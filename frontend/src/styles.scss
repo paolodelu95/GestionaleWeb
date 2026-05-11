@@ -1,0 +1,158 @@
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  @include mat.theme((
+    color: (primary: mat.$azure-palette, tertiary: mat.$blue-palette),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+body {
+  color-scheme: light;
+  background-color: #f1f5f9;
+  margin: 0;
+  height: 100%;
+  font-family: Roboto, sans-serif;
+}
+
+// Page layout helpers
+.page { padding: 24px; background: #f1f5f9; min-height: 100%; box-sizing: border-box; }
+.page-header { display: flex; align-items: center; margin-bottom: 20px; gap: 12px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0; flex: 1; }
+
+// Card
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  overflow-x: auto;
+}
+
+// ── Sidebar (sidenav dark override) ──────────────────────────────────────────
+// Angular Material MDC usa classi proprie che non vengono raggiunte dagli stili
+// scoped del componente — queste regole globali le sovrascrivono correttamente.
+.sidenav {
+  // CSS custom properties per il tema MDC list
+  --mdc-list-list-item-label-text-color: #e2e8f0;
+  --mdc-list-list-item-supporting-text-color: #94a3b8;
+  --mdc-list-list-item-leading-icon-color: #94a3b8;
+  --mdc-list-list-item-trailing-icon-color: #94a3b8;
+  --mdc-list-list-item-hover-label-text-color: #ffffff;
+  --mdc-list-list-item-hover-leading-icon-color: #cbd5e1;
+  --mdc-list-list-item-focus-label-text-color: #e2e8f0;
+  --mdc-list-list-item-hover-state-layer-color: #334155;
+  --mdc-list-list-item-focus-state-layer-color: #334155;
+  --mdc-list-list-item-pressed-label-text-color: #ffffff;
+
+  // Fallback diretto sulle classi MDC renderizzate
+  .mdc-list-item__primary-text { color: #e2e8f0 !important; }
+  .mdc-list-item__start .mat-icon,
+  .mdc-list-item__start mat-icon { color: #94a3b8 !important; }
+
+  .mdc-list-item:hover .mdc-list-item__primary-text { color: #ffffff !important; }
+  .mdc-list-item:hover .mdc-list-item__start mat-icon { color: #cbd5e1 !important; }
+
+  .active-link .mdc-list-item__primary-text { color: #ffffff !important; }
+  .active-link .mdc-list-item__start mat-icon { color: #ffffff !important; }
+
+  // Expansion panel (voci con sottomenu)
+  --mat-expansion-header-text-color: #e2e8f0;
+  --mat-expansion-header-indicator-color: #94a3b8;
+  .mat-expansion-panel-header-title,
+  .mat-panel-title { color: #e2e8f0 !important; }
+  .mat-expansion-indicator::after { color: #94a3b8 !important; }
+}
+
+// KPI
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.kpi-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  .kpi-accent { height: 4px; width: 40px; border-radius: 2px; margin-bottom: 10px; }
+  .kpi-label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+  .kpi-value { font-size: 28px; font-weight: 700; }
+}
+
+// Table
+.mat-mdc-table { width: 100%; min-width: 600px; }
+.mat-mdc-row:hover { background: #f8fafc; }
+// Colonna azioni: text-align evita di sovrascrivere display:table-cell del <td>
+.table-actions {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+  padding-right: 8px !important;
+}
+td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
+
+// Status chips
+.stato-chip {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  &.bozza    { background:#e2e8f0; color:#475569; }
+  &.emesso, &.emessa { background:#dbeafe; color:#1d4ed8; }
+  &.pagata   { background:#dcfce7; color:#16a34a; }
+  &.annullato, &.annullata { background:#fee2e2; color:#dc2626; }
+  &.aperto   { background:#fef3c7; color:#d97706; }
+  &.evaso    { background:#dcfce7; color:#16a34a; }
+  &.inviato  { background:#ede9fe; color:#7c3aed; }
+  &.accettato { background:#dcfce7; color:#16a34a; }
+  &.rifiutato { background:#fee2e2; color:#dc2626; }
+  &.scaduto   { background:#fef3c7; color:#d97706; }
+  &.ricevuta  { background:#dbeafe; color:#1d4ed8; }
+  &.pagata    { background:#dcfce7; color:#16a34a; }
+  &.annullata { background:#fee2e2; color:#dc2626; }
+}
+
+// Dialog
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+.form-row { display: flex; gap: 12px; > mat-form-field { flex: 1; } }
+
+// Dialoghi documento: il mat-dialog-content scala con la larghezza del dialog
+.mat-mdc-dialog-content { padding: 0 24px 16px !important; }
+.mat-mdc-dialog-surface { padding: 24px 0 0 !important; }
+
+// Euro
+.euro { color: #16a34a; font-weight: 600; }
+.euro-neg { color: #dc2626; font-weight: 600; }
+
+// Bulk selection bar
+.bulk-bar {
+  display: flex; align-items: center; gap: 8px; flex: 1;
+  background: #eff6ff; border: 1px solid #bfdbfe;
+  border-radius: 8px; padding: 4px 12px;
+  .bulk-count { font-weight: 600; color: #1d4ed8; margin-right: 4px; }
+}
+
+// Link nella tabella DDT (fattura collegata)
+.fattura-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: #4f46e5; font-weight: 600; font-size: 13px;
+  cursor: pointer; text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+.fattura-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #dcfce7; color: #16a34a;
+  padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;
+}
+
+.empty-msg { padding: 16px; color: #94a3b8; margin: 0; }
+
+// Righe document table
+.righe-table { width: 100%; margin-top: 8px; }
+.righe-table th { background: #f8fafc; font-weight: 600; }
+.righe-total { text-align: right; padding: 12px 16px; font-size: 16px; font-weight: 700; color: #1e293b; background: #f8fafc; border-top: 2px solid #e2e8f0; }

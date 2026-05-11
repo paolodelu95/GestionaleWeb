@@ -1,0 +1,96 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Ordini</h1>
+    @if (selection.hasValue()) {
+      <div class="bulk-bar">
+        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <button mat-stroked-button type="button" (click)="bulkSetStato('CONFERMATO')">
+          <mat-icon>check_circle</mat-icon> Conferma
+        </button>
+        <button mat-stroked-button type="button" (click)="bulkSetStato('EVASO')">
+          <mat-icon>local_shipping</mat-icon> Evadi
+        </button>
+        <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('ANNULLATO')">
+          <mat-icon>cancel</mat-icon> Annulla
+        </button>
+        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+      </div>
+    }
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo Ordine</button>
+  </div>
+
+  <div class="card">
+    <table mat-table [dataSource]="ordini" class="mat-mdc-table">
+
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox (change)="toggleAll()" [checked]="isAllSelected()" [indeterminate]="selection.hasValue() && !isAllSelected()"></mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox (click)="$event.stopPropagation()" (change)="selection.toggle(row)" [checked]="selection.isSelected(row)"></mat-checkbox>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Numero</th>
+        <td mat-cell *matCellDef="let o"><b>{{ o.numero }}</b></td>
+      </ng-container>
+
+      <ng-container matColumnDef="dataOrdine">
+        <th mat-header-cell *matHeaderCellDef>Data</th>
+        <td mat-cell *matCellDef="let o">{{ o.dataOrdine | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let o">
+          <span class="stato-chip" [class]="o.tipo.toLowerCase()">{{ o.tipo }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="controparte">
+        <th mat-header-cell *matHeaderCellDef>Cliente / Fornitore</th>
+        <td mat-cell *matCellDef="let o">{{ o.clienteNome || o.fornitoreNome || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="totale">
+        <th mat-header-cell *matHeaderCellDef>Importo</th>
+        <td mat-cell *matCellDef="let o" class="euro">{{ (o.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="stato">
+        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <td mat-cell *matCellDef="let o">
+          <span class="stato-chip" [class]="o.stato.toLowerCase()">{{ o.stato }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="azioni">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let o" class="table-actions">
+          @if (o.stato === 'BOZZA') {
+            <button mat-icon-button type="button" title="Conferma ordine" (click)="setStato(o, 'CONFERMATO')">
+              <mat-icon>check_circle</mat-icon>
+            </button>
+          }
+          @if (o.stato === 'CONFERMATO' || o.stato === 'IN_LAVORAZIONE') {
+            <button mat-icon-button type="button" title="Segna come Evaso" (click)="setStato(o, 'EVASO')">
+              <mat-icon>local_shipping</mat-icon>
+            </button>
+          }
+          @if (o.stato !== 'ANNULLATO' && o.stato !== 'EVASO') {
+            <button mat-icon-button type="button" title="Annulla ordine" (click)="setStato(o, 'ANNULLATO')">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          }
+          <button mat-icon-button type="button" title="Modifica" (click)="open(o)"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(o)"><mat-icon>delete</mat-icon></button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    @if (!ordini.length) { <p class="empty-msg">Nessun ordine</p> }
+  </div>
+</div>

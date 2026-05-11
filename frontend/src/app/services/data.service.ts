@@ -1,0 +1,126 @@
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { ApiService } from './api.service';
+import {
+  Azienda, Prodotto, Cliente, Fornitore,
+  Ddt, Fattura, NotaCredito, Ordine, Preventivo,
+  Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
+  CategoriaProdotto, UnitaMisura, AliquotaIva
+} from '../models';
+
+@Injectable({ providedIn: 'root' })
+export class DataService {
+  constructor(private api: ApiService) {}
+
+  // Azienda
+  getAzienda(): Observable<Azienda> { return this.api.get('azienda'); }
+  updateAzienda(a: Azienda): Observable<any> { return this.api.put('azienda', a); }
+  saveAzienda(a: Azienda): Observable<any> { return this.api.put('azienda', a); }
+
+  // Prodotti
+  getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }
+  getProdottiSottoSoglia(): Observable<Prodotto[]> { return this.api.get('prodotti/sotto-soglia'); }
+  getProdottiCount(): Observable<number> { return this.api.get('prodotti/count'); }
+  getProdottiValore(): Observable<number> { return this.api.get('prodotti/valore'); }
+  createProdotto(p: Prodotto): Observable<any> { return this.api.post('prodotti', p); }
+  updateProdotto(p: Prodotto): Observable<any> { return this.api.put(`prodotti/${p.id}`, p); }
+  deleteProdotto(id: number): Observable<any> { return this.api.delete(`prodotti/${id}`); }
+
+  // Clienti
+  getClienti(): Observable<Cliente[]> { return this.api.get('clienti'); }
+  getClientiCount(): Observable<number> { return this.api.get('clienti/count'); }
+  createCliente(c: Cliente): Observable<any> { return this.api.post('clienti', c); }
+  updateCliente(c: Cliente): Observable<any> { return this.api.put(`clienti/${c.id}`, c); }
+  deleteCliente(id: number): Observable<any> { return this.api.delete(`clienti/${id}`); }
+
+  // Fornitori
+  getFornitori(): Observable<Fornitore[]> { return this.api.get('fornitori'); }
+  createFornitore(f: Fornitore): Observable<any> { return this.api.post('fornitori', f); }
+  updateFornitore(f: Fornitore): Observable<any> { return this.api.put(`fornitori/${f.id}`, f); }
+  deleteFornitore(id: number): Observable<any> { return this.api.delete(`fornitori/${id}`); }
+
+  // DDT
+  getDdt(): Observable<Ddt[]> { return this.api.get('ddt'); }
+  getDdtById(id: number): Observable<Ddt> { return this.api.get(`ddt/${id}`); }
+  createDdt(d: Ddt): Observable<any> { return this.api.post('ddt', d); }
+  updateDdt(d: Ddt): Observable<any> { return this.api.put(`ddt/${d.id}`, d); }
+  deleteDdt(id: number): Observable<any> { return this.api.delete(`ddt/${id}`); }
+
+  // Fatture
+  getFatture(): Observable<Fattura[]> { return this.api.get('fatture'); }
+  getFatturaById(id: number): Observable<Fattura> { return this.api.get(`fatture/${id}`); }
+  createFattura(f: Fattura): Observable<any> { return this.api.post('fatture', f); }
+  updateFattura(f: Fattura): Observable<any> { return this.api.put(`fatture/${f.id}`, f); }
+  deleteFattura(id: number): Observable<any> { return this.api.delete(`fatture/${id}`); }
+
+  // Note di Credito
+  getNoteCredito(): Observable<NotaCredito[]> { return this.api.get('note-credito'); }
+  getNotaCreditoById(id: number): Observable<NotaCredito> { return this.api.get(`note-credito/${id}`); }
+  createNotaCredito(n: NotaCredito): Observable<any> { return this.api.post('note-credito', n); }
+  updateNotaCredito(n: NotaCredito): Observable<any> { return this.api.put(`note-credito/${n.id}`, n); }
+  deleteNotaCredito(id: number): Observable<any> { return this.api.delete(`note-credito/${id}`); }
+
+  // Ordini
+  getOrdini(): Observable<Ordine[]> { return this.api.get('ordini'); }
+  getOrdiniApertiCount(): Observable<number> { return this.api.get('ordini/count-aperti'); }
+  getOrdineById(id: number): Observable<Ordine> { return this.api.get(`ordini/${id}`); }
+  createOrdine(o: Ordine): Observable<any> { return this.api.post('ordini', o); }
+  updateOrdine(o: Ordine): Observable<any> { return this.api.put(`ordini/${o.id}`, o); }
+  deleteOrdine(id: number): Observable<any> { return this.api.delete(`ordini/${id}`); }
+
+  // Preventivi
+  getPreventivi(): Observable<Preventivo[]> { return this.api.get('preventivi'); }
+  getPreventivoById(id: number): Observable<Preventivo> { return this.api.get(`preventivi/${id}`); }
+  createPreventivo(p: Preventivo): Observable<any> { return this.api.post('preventivi', p); }
+  updatePreventivo(p: Preventivo): Observable<any> { return this.api.put(`preventivi/${p.id}`, p); }
+  deletePreventivo(id: number): Observable<any> { return this.api.delete(`preventivi/${id}`); }
+
+  // Utility
+  getNextNumero(tipo: string): Observable<{ numero: number }> { return this.api.get(`next-number/${tipo}`); }
+  setDdtStato(id: number, stato: string): Observable<any> { return this.api.patch(`ddt/${id}/stato`, { stato }); }
+  setFatturaStato(id: number, stato: string): Observable<any> { return this.api.patch(`fatture/${id}/stato`, { stato }); }
+  setNotaCreditoStato(id: number, stato: string): Observable<any> { return this.api.patch(`note-credito/${id}/stato`, { stato }); }
+  setOrdineStato(id: number, stato: string): Observable<any> { return this.api.patch(`ordini/${id}/stato`, { stato }); }
+  setPreventivoStato(id: number, stato: string): Observable<any> { return this.api.patch(`preventivi/${id}/stato`, { stato }); }
+
+  // Pagamenti
+  getPagamenti(tipo?: string): Observable<Pagamento[]> {
+    return this.api.get(tipo ? `pagamenti?tipo=${tipo}` : 'pagamenti');
+  }
+  getScadenzario(): Observable<ScadenzarioEntry[]> { return this.api.get('pagamenti/scadenzario'); }
+  createPagamento(p: Pagamento): Observable<any> { return this.api.post('pagamenti', p); }
+  updatePagamento(p: Pagamento): Observable<any> { return this.api.put(`pagamenti/${p.id}`, p); }
+  deletePagamento(id: number): Observable<any> { return this.api.delete(`pagamenti/${id}`); }
+
+  // Tipi Pagamento
+  getTipiPagamento(): Observable<TipoPagamento[]> { return this.api.get('tipi-pagamento'); }
+  createTipoPagamento(t: TipoPagamento): Observable<any> { return this.api.post('tipi-pagamento', t); }
+  updateTipoPagamento(t: TipoPagamento): Observable<any> { return this.api.put(`tipi-pagamento/${t.id}`, t); }
+  deleteTipoPagamento(id: number): Observable<any> { return this.api.delete(`tipi-pagamento/${id}`); }
+
+  // Categorie Prodotto
+  getCategorieProdotto(): Observable<CategoriaProdotto[]> { return this.api.get('categorie-prodotto'); }
+  createCategoriaProdotto(c: CategoriaProdotto): Observable<any> { return this.api.post('categorie-prodotto', c); }
+  updateCategoriaProdotto(c: CategoriaProdotto): Observable<any> { return this.api.put(`categorie-prodotto/${c.id}`, c); }
+  deleteCategoriaProdotto(id: number): Observable<any> { return this.api.delete(`categorie-prodotto/${id}`); }
+
+  // Unità di Misura
+  getUnitaMisura(): Observable<UnitaMisura[]> { return this.api.get('unita-misura'); }
+  createUnitaMisura(u: UnitaMisura): Observable<any> { return this.api.post('unita-misura', u); }
+  updateUnitaMisura(u: UnitaMisura): Observable<any> { return this.api.put(`unita-misura/${u.id}`, u); }
+  deleteUnitaMisura(id: number): Observable<any> { return this.api.delete(`unita-misura/${id}`); }
+
+  // Aliquote IVA
+  getAliquoteIva(): Observable<AliquotaIva[]> { return this.api.get('aliquote-iva'); }
+  createAliquotaIva(a: AliquotaIva): Observable<any> { return this.api.post('aliquote-iva', a); }
+  updateAliquotaIva(a: AliquotaIva): Observable<any> { return this.api.put(`aliquote-iva/${a.id}`, a); }
+  deleteAliquotaIva(id: number): Observable<any> { return this.api.delete(`aliquote-iva/${id}`); }
+
+  // Acquisti
+  getAcquisti(): Observable<Acquisto[]> { return this.api.get('acquisti'); }
+  getAcquistoById(id: number): Observable<Acquisto> { return this.api.get(`acquisti/${id}`); }
+  createAcquisto(a: Acquisto): Observable<any> { return this.api.post('acquisti', a); }
+  updateAcquisto(a: Acquisto): Observable<any> { return this.api.put(`acquisti/${a.id}`, a); }
+  deleteAcquisto(id: number): Observable<any> { return this.api.delete(`acquisti/${id}`); }
+  setAcquistoStato(id: number, stato: string): Observable<any> { return this.api.patch(`acquisti/${id}/stato`, { stato }); }
+}

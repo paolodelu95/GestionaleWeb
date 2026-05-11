@@ -1,0 +1,218 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Impostazioni</h1>
+  </div>
+
+  <mat-tab-group animationDuration="0ms">
+
+    <!-- ── Azienda ─────────────────────────────────────────────────────────── -->
+    <mat-tab label="Azienda">
+      <div class="tab-content">
+        <div class="card" style="max-width:800px">
+          <form [formGroup]="form" class="dialog-form">
+            <h3 class="section-title">Dati societari</h3>
+            <div class="form-row">
+              <mat-form-field style="flex:2"><mat-label>Ragione Sociale</mat-label><input matInput formControlName="ragioneSociale"></mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field><mat-label>Partita IVA</mat-label><input matInput formControlName="pIva"></mat-form-field>
+              <mat-form-field><mat-label>Codice Fiscale</mat-label><input matInput formControlName="codFiscale"></mat-form-field>
+            </div>
+
+            <h3 class="section-title">Sede legale</h3>
+            <div class="form-row">
+              <mat-form-field style="flex:2"><mat-label>Indirizzo</mat-label><input matInput formControlName="indirizzo"></mat-form-field>
+              <mat-form-field><mat-label>CAP</mat-label><input matInput formControlName="cap"></mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field style="flex:2"><mat-label>Città</mat-label><input matInput formControlName="citta"></mat-form-field>
+              <mat-form-field><mat-label>Provincia</mat-label><input matInput formControlName="provincia"></mat-form-field>
+              <mat-form-field><mat-label>Stato</mat-label><input matInput formControlName="stato"></mat-form-field>
+            </div>
+
+            <h3 class="section-title">Contatti</h3>
+            <div class="form-row">
+              <mat-form-field><mat-label>Telefono</mat-label><input matInput formControlName="telefono"></mat-form-field>
+              <mat-form-field><mat-label>Email</mat-label><input matInput formControlName="email"></mat-form-field>
+              <mat-form-field><mat-label>PEC</mat-label><input matInput formControlName="pec"></mat-form-field>
+              <mat-form-field><mat-label>Codice SDI</mat-label><input matInput formControlName="sdi"></mat-form-field>
+            </div>
+
+            <h3 class="section-title">Dati bancari</h3>
+            <div class="form-row">
+              <mat-form-field style="flex:2"><mat-label>IBAN</mat-label><input matInput formControlName="iban"></mat-form-field>
+              <mat-form-field><mat-label>Banca</mat-label><input matInput formControlName="banca"></mat-form-field>
+            </div>
+          </form>
+          <div style="display:flex; justify-content:flex-end; padding:8px 0 0">
+            <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Tipi di Pagamento ────────────────────────────────────────────────── -->
+    <mat-tab label="Pagamenti">
+      <div class="tab-content">
+        <div class="card" style="max-width:860px">
+          <div class="tab-section-header">
+            <h2 class="tab-section-title">Tipi di Pagamento</h2>
+            <button mat-flat-button type="button" (click)="openTipoPagamento()">
+              <mat-icon>add</mat-icon> Nuovo
+            </button>
+          </div>
+          <table mat-table [dataSource]="tipiPagamento" class="mat-mdc-table">
+            <ng-container matColumnDef="nome">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let t"><b>{{ t.nome }}</b></td>
+            </ng-container>
+            <ng-container matColumnDef="conto">
+              <th mat-header-cell *matHeaderCellDef>Conto</th>
+              <td mat-cell *matCellDef="let t">
+                <mat-icon style="font-size:16px; vertical-align:middle; color:#64748b">
+                  {{ t.conto === 'CASSA' ? 'account_balance_wallet' : 'account_balance' }}
+                </mat-icon>
+                {{ t.conto }}
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="scadenza">
+              <th mat-header-cell *matHeaderCellDef>Scadenza</th>
+              <td mat-cell *matCellDef="let t">{{ scadenzaLabel(t) }}</td>
+            </ng-container>
+            <ng-container matColumnDef="immediato">
+              <th mat-header-cell *matHeaderCellDef>Immediato</th>
+              <td mat-cell *matCellDef="let t">
+                @if (t.immediato) { <mat-icon style="color:#16a34a">flash_on</mat-icon> }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="attivo">
+              <th mat-header-cell *matHeaderCellDef>Attivo</th>
+              <td mat-cell *matCellDef="let t">
+                @if (t.attivo) { <mat-icon style="color:#16a34a">check_circle</mat-icon> }
+                @else { <mat-icon style="color:#94a3b8">cancel</mat-icon> }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="azioni">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let t" class="table-actions">
+                <button mat-icon-button type="button" (click)="openTipoPagamento(t)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button type="button" color="warn" (click)="deleteTipoPagamento(t)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="tpColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: tpColumns;"></tr>
+          </table>
+          @if (!tipiPagamento.length) { <p class="empty-msg">Nessun tipo di pagamento</p> }
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Categorie Prodotto ───────────────────────────────────────────────── -->
+    <mat-tab label="Categorie prodotto">
+      <div class="tab-content">
+        <div class="card" style="max-width:500px">
+          <div class="tab-section-header">
+            <h2 class="tab-section-title">Categorie prodotto</h2>
+            <button mat-flat-button type="button" (click)="openCategoria()">
+              <mat-icon>add</mat-icon> Nuova
+            </button>
+          </div>
+          <table mat-table [dataSource]="categorie" class="mat-mdc-table">
+            <ng-container matColumnDef="nome">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let c"><b>{{ c.nome }}</b></td>
+            </ng-container>
+            <ng-container matColumnDef="azioni">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let c" class="table-actions">
+                <button mat-icon-button type="button" (click)="openCategoria(c)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button type="button" color="warn" (click)="deleteCategoria(c)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="catColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: catColumns;"></tr>
+          </table>
+          @if (!categorie.length) { <p class="empty-msg">Nessuna categoria</p> }
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Unità di Misura ──────────────────────────────────────────────────── -->
+    <mat-tab label="Unità di misura">
+      <div class="tab-content">
+        <div class="card" style="max-width:560px">
+          <div class="tab-section-header">
+            <h2 class="tab-section-title">Unità di misura</h2>
+            <button mat-flat-button type="button" (click)="openUnitaMisura()">
+              <mat-icon>add</mat-icon> Nuova
+            </button>
+          </div>
+          <table mat-table [dataSource]="unitaMisura" class="mat-mdc-table">
+            <ng-container matColumnDef="nome">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let u"><b>{{ u.nome }}</b></td>
+            </ng-container>
+            <ng-container matColumnDef="simbolo">
+              <th mat-header-cell *matHeaderCellDef>Simbolo</th>
+              <td mat-cell *matCellDef="let u">
+                <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px">{{ u.simbolo }}</code>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="azioni">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let u" class="table-actions">
+                <button mat-icon-button type="button" (click)="openUnitaMisura(u)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button type="button" color="warn" (click)="deleteUnitaMisura(u)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="umColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: umColumns;"></tr>
+          </table>
+          @if (!unitaMisura.length) { <p class="empty-msg">Nessuna unità di misura</p> }
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Aliquote IVA ──────────────────────────────────────────────────────── -->
+    <mat-tab label="Aliquote IVA">
+      <div class="tab-content">
+        <div class="card" style="max-width:560px">
+          <div class="tab-section-header">
+            <h2 class="tab-section-title">Aliquote IVA</h2>
+            <button mat-flat-button type="button" (click)="openAliquotaIva()">
+              <mat-icon>add</mat-icon> Nuova
+            </button>
+          </div>
+          <table mat-table [dataSource]="aliquoteIva" class="mat-mdc-table">
+            <ng-container matColumnDef="nome">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let a"><b>{{ a.nome }}</b></td>
+            </ng-container>
+            <ng-container matColumnDef="valore">
+              <th mat-header-cell *matHeaderCellDef>Aliquota</th>
+              <td mat-cell *matCellDef="let a">{{ a.valore }}%</td>
+            </ng-container>
+            <ng-container matColumnDef="attiva">
+              <th mat-header-cell *matHeaderCellDef>Attiva</th>
+              <td mat-cell *matCellDef="let a">
+                @if (a.attiva) { <mat-icon style="color:#16a34a">check_circle</mat-icon> }
+                @else { <mat-icon style="color:#94a3b8">cancel</mat-icon> }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="azioni">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let a" class="table-actions">
+                <button mat-icon-button type="button" (click)="openAliquotaIva(a)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button type="button" color="warn" (click)="deleteAliquotaIva(a)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="ivaColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: ivaColumns;"></tr>
+          </table>
+          @if (!aliquoteIva.length) { <p class="empty-msg">Nessuna aliquota IVA</p> }
+        </div>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+</div>

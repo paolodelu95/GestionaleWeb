@@ -1,0 +1,49 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav mode="side" opened class="sidenav">
+    <div class="sidenav-header">
+      <span class="sidenav-title">Gestionale</span>
+      <span class="sidenav-sub">Magazzino ERP</span>
+    </div>
+
+    <mat-nav-list dense>
+      @for (item of navItems; track item.label) {
+        @if (!item.children) {
+          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+          </a>
+        } @else {
+          <mat-expansion-panel class="sidenav-panel">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="panel-icon">{{ item.icon }}</mat-icon>
+                {{ item.label }}
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            @for (child of item.children; track child.label) {
+              <a mat-list-item [routerLink]="child.route" routerLinkActive="active-link" class="sub-item">
+                <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
+                <span matListItemTitle>{{ child.label }}</span>
+              </a>
+            }
+          </mat-expansion-panel>
+        }
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="main-content">
+    <mat-toolbar class="topbar">
+      <span class="topbar-company">{{ azienda?.ragioneSociale || 'La tua azienda' }}</span>
+      @if (azienda?.pIva) {
+        <span class="topbar-sub">&nbsp;|&nbsp;P.IVA {{ azienda!.pIva }}</span>
+      }
+      @if (azienda?.citta) {
+        <span class="topbar-sub">&nbsp;—&nbsp;{{ azienda!.citta }}</span>
+      }
+    </mat-toolbar>
+    <div class="content-area">
+      <router-outlet />
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
