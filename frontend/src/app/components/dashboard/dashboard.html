@@ -1,0 +1,104 @@
+<div class="page">
+  <h1 class="page-title" style="margin-bottom:20px">Dashboard</h1>
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-accent" style="background:#3b82f6"></div>
+      <div class="kpi-label">Prodotti a magazzino</div>
+      <div class="kpi-value" style="color:#3b82f6">{{ prodottiCount }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent" style="background:#22c55e"></div>
+      <div class="kpi-label">Valore magazzino</div>
+      <div class="kpi-value" style="color:#22c55e">{{ valoremagazzino | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent" style="background:#f59e0b"></div>
+      <div class="kpi-label">Ordini aperti</div>
+      <div class="kpi-value" style="color:#f59e0b">{{ ordiniAperti }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent" style="background:#8b5cf6"></div>
+      <div class="kpi-label">Clienti</div>
+      <div class="kpi-value" style="color:#8b5cf6">{{ clientiCount }}</div>
+    </div>
+  </div>
+
+  <!-- Tables row -->
+  <div class="dash-tables">
+    <!-- Prodotti sotto soglia -->
+    <div class="card">
+      <h3 class="section-title" style="color:#ef4444">Prodotti sotto soglia minima</h3>
+      <table mat-table [dataSource]="prodottiSottoSoglia" class="mat-mdc-table">
+        <ng-container matColumnDef="nome">
+          <th mat-header-cell *matHeaderCellDef>Prodotto</th>
+          <td mat-cell *matCellDef="let p">{{ p.nome }}</td>
+        </ng-container>
+        <ng-container matColumnDef="categoria">
+          <th mat-header-cell *matHeaderCellDef>Categoria</th>
+          <td mat-cell *matCellDef="let p">{{ p.categoria }}</td>
+        </ng-container>
+        <ng-container matColumnDef="quantita">
+          <th mat-header-cell *matHeaderCellDef>Qtà</th>
+          <td mat-cell *matCellDef="let p"><b style="color:#ef4444">{{ p.quantita }}</b></td>
+        </ng-container>
+        <ng-container matColumnDef="sogliaMinima">
+          <th mat-header-cell *matHeaderCellDef>Soglia</th>
+          <td mat-cell *matCellDef="let p">{{ p.sogliaMinima }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="prodottiCols"></tr>
+        <tr mat-row *matRowDef="let row; columns: prodottiCols;" style="background:#fff5f5"></tr>
+      </table>
+      @if (!prodottiSottoSoglia.length) {
+        <p class="empty-msg">Nessun prodotto sotto soglia</p>
+      }
+    </div>
+
+    <!-- DDT da fatturare -->
+    <div class="card">
+      <h3 class="section-title" style="color:#0284c7">DDT da fatturare</h3>
+      <table mat-table [dataSource]="ddtDaFatturare" class="mat-mdc-table">
+        <ng-container matColumnDef="numero">
+          <th mat-header-cell *matHeaderCellDef>Numero</th>
+          <td mat-cell *matCellDef="let d">{{ d.numero }}</td>
+        </ng-container>
+        <ng-container matColumnDef="dataEmissione">
+          <th mat-header-cell *matHeaderCellDef>Data</th>
+          <td mat-cell *matCellDef="let d">{{ d.dataEmissione | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="clienteNome">
+          <th mat-header-cell *matHeaderCellDef>Cliente</th>
+          <td mat-cell *matCellDef="let d">{{ d.clienteNome || '-' }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="ddtCols"></tr>
+        <tr mat-row *matRowDef="let row; columns: ddtCols;"></tr>
+      </table>
+      @if (!ddtDaFatturare.length) { <p class="empty-msg">Nessun DDT da fatturare</p> }
+    </div>
+
+    <!-- Fatture da incassare -->
+    <div class="card">
+      <h3 class="section-title" style="color:#16a34a">Fatture da incassare</h3>
+      <table mat-table [dataSource]="fattureDaIncassare" class="mat-mdc-table">
+        <ng-container matColumnDef="numero">
+          <th mat-header-cell *matHeaderCellDef>Numero</th>
+          <td mat-cell *matCellDef="let f">{{ f.numero }}</td>
+        </ng-container>
+        <ng-container matColumnDef="clienteNome">
+          <th mat-header-cell *matHeaderCellDef>Cliente</th>
+          <td mat-cell *matCellDef="let f">{{ f.clienteNome || '-' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="stato">
+          <th mat-header-cell *matHeaderCellDef>Stato</th>
+          <td mat-cell *matCellDef="let f">
+            <span class="stato-chip" [class]="f.stato.toLowerCase()">{{ f.stato }}</span>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="fattureOls"></tr>
+        <tr mat-row *matRowDef="let row; columns: fattureOls;"></tr>
+      </table>
+      @if (!fattureDaIncassare.length) { <p class="empty-msg">Nessuna fattura da incassare</p> }
+    </div>
+  </div>
+</div>

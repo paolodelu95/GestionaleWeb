@@ -1,0 +1,81 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Note di Credito</h1>
+    @if (selection.hasValue()) {
+      <div class="bulk-bar">
+        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <button mat-stroked-button type="button" (click)="bulkSetStato('EMESSA')">
+          <mat-icon>send</mat-icon> Emetti
+        </button>
+        <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('ANNULLATA')">
+          <mat-icon>cancel</mat-icon> Annulla
+        </button>
+        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+      </div>
+    }
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuova Nota di Credito</button>
+  </div>
+
+  <div class="card">
+    <table mat-table [dataSource]="noteCredito" class="mat-mdc-table">
+
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox (change)="toggleAll()" [checked]="isAllSelected()" [indeterminate]="selection.hasValue() && !isAllSelected()"></mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox (click)="$event.stopPropagation()" (change)="selection.toggle(row)" [checked]="selection.isSelected(row)"></mat-checkbox>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Numero</th>
+        <td mat-cell *matCellDef="let n"><b>{{ n.numero }}</b></td>
+      </ng-container>
+
+      <ng-container matColumnDef="dataEmissione">
+        <th mat-header-cell *matHeaderCellDef>Data</th>
+        <td mat-cell *matCellDef="let n">{{ n.dataEmissione | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="clienteNome">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let n">{{ n.clienteNome || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="totale">
+        <th mat-header-cell *matHeaderCellDef>Importo</th>
+        <td mat-cell *matCellDef="let n" class="euro">{{ (n.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="stato">
+        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <td mat-cell *matCellDef="let n">
+          <span class="stato-chip" [class]="n.stato.toLowerCase()">{{ n.stato }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="azioni">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let n" class="table-actions">
+          @if (n.stato === 'BOZZA') {
+            <button mat-icon-button type="button" title="Emetti" (click)="setStato(n, 'EMESSA')">
+              <mat-icon>send</mat-icon>
+            </button>
+          }
+          @if (n.stato !== 'ANNULLATA') {
+            <button mat-icon-button type="button" title="Annulla" (click)="setStato(n, 'ANNULLATA')">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          }
+          <button mat-icon-button type="button" title="Modifica" (click)="open(n)"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(n)"><mat-icon>delete</mat-icon></button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    @if (!noteCredito.length) { <p class="empty-msg">Nessuna nota di credito</p> }
+  </div>
+</div>

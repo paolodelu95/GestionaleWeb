@@ -1,0 +1,25 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Fornitori</h1>
+    <button mat-flat-button (click)="open()"><mat-icon>add</mat-icon> Aggiungi</button>
+  </div>
+  <div class="card">
+    <table mat-table [dataSource]="fornitori" class="mat-mdc-table">
+      <ng-container matColumnDef="id"><th mat-header-cell *matHeaderCellDef>ID</th><td mat-cell *matCellDef="let f">{{f.id}}</td></ng-container>
+      <ng-container matColumnDef="ragioneSociale"><th mat-header-cell *matHeaderCellDef>Ragione Sociale</th><td mat-cell *matCellDef="let f"><b>{{f.ragioneSociale}}</b></td></ng-container>
+      <ng-container matColumnDef="email"><th mat-header-cell *matHeaderCellDef>Email</th><td mat-cell *matCellDef="let f">{{f.email}}</td></ng-container>
+      <ng-container matColumnDef="telefono"><th mat-header-cell *matHeaderCellDef>Telefono</th><td mat-cell *matCellDef="let f">{{f.telefono}}</td></ng-container>
+      <ng-container matColumnDef="indirizzo"><th mat-header-cell *matHeaderCellDef>Indirizzo</th><td mat-cell *matCellDef="let f">{{indirizzo(f)}}</td></ng-container>
+      <ng-container matColumnDef="pIva"><th mat-header-cell *matHeaderCellDef>P. IVA</th><td mat-cell *matCellDef="let f">{{f.pIva}}</td></ng-container>
+      <ng-container matColumnDef="azioni"><th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let f" class="table-actions">
+          <button mat-icon-button (click)="open(f)"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button color="warn" (click)="delete(f)"><mat-icon>delete</mat-icon></button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    @if (!fornitori.length) { <p style="padding:16px;color:#94a3b8">Nessun fornitore</p> }
+  </div>
+</div>

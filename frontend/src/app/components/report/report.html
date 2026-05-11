@@ -1,0 +1,77 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Report</h1>
+    <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Aggiorna</button>
+  </div>
+
+  @if (loading) { <p style="padding:16px;color:#94a3b8">Caricamento...</p> }
+
+  @if (data && !loading) {
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Fatturato totale</div>
+        <div class="kpi-value">{{ data.totaleFatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Incassato</div>
+        <div class="kpi-value" style="color:#22c55e">{{ data.totalePagato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Da incassare</div>
+        <div class="kpi-value" style="color:#ef4444">{{ data.totaleAperto | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="card">
+        <div class="card-title">Fatture per stato</div>
+        <table class="report-table">
+          <thead><tr><th>Stato</th><th>N°</th><th>Totale</th></tr></thead>
+          <tbody>
+            @for (s of data.fatturePerStato; track s.stato) {
+              <tr>
+                <td><span class="stato-chip" [class]="s.stato.toLowerCase()">{{s.stato}}</span></td>
+                <td>{{s.count}}</td>
+                <td>{{s.totale | currency:'EUR':'symbol':'1.2-2':'it'}}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Top clienti per fatturato</div>
+        <table class="report-table">
+          <thead><tr><th>Cliente</th><th>Fatturato</th></tr></thead>
+          <tbody>
+            @for (c of data.topClienti; track c.nome) {
+              <tr>
+                <td>{{c.nome}}</td>
+                <td><b>{{c.fatturato | currency:'EUR':'symbol':'1.2-2':'it'}}</b></td>
+              </tr>
+            }
+            @if (!data.topClienti.length) { <tr><td colspan="2" style="color:#94a3b8">Nessun dato</td></tr> }
+          </tbody>
+        </table>
+      </div>
+
+      @if (data.prodottiLow.length) {
+        <div class="card">
+          <div class="card-title" style="color:#ef4444"><mat-icon style="vertical-align:middle;font-size:18px">warning</mat-icon> Prodotti sotto soglia</div>
+          <table class="report-table">
+            <thead><tr><th>Prodotto</th><th>Disponibile</th><th>Soglia</th></tr></thead>
+            <tbody>
+              @for (p of data.prodottiLow; track p.nome) {
+                <tr>
+                  <td>{{p.nome}}</td>
+                  <td style="color:#ef4444"><b>{{p.quantita}}</b></td>
+                  <td>{{p.soglia}}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</div>

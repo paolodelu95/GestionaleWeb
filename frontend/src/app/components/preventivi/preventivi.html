@@ -1,0 +1,87 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Preventivi</h1>
+    @if (selection.hasValue()) {
+      <div class="bulk-bar">
+        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <button mat-stroked-button type="button" (click)="bulkSetStato('INVIATO')">
+          <mat-icon>send</mat-icon> Invia
+        </button>
+        <button mat-stroked-button type="button" (click)="bulkSetStato('ACCETTATO')">
+          <mat-icon>thumb_up</mat-icon> Accetta
+        </button>
+        <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('RIFIUTATO')">
+          <mat-icon>thumb_down</mat-icon> Rifiuta
+        </button>
+        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+      </div>
+    }
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo Preventivo</button>
+  </div>
+
+  <div class="card">
+    <table mat-table [dataSource]="preventivi" class="mat-mdc-table">
+
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox (change)="toggleAll()" [checked]="isAllSelected()" [indeterminate]="selection.hasValue() && !isAllSelected()"></mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox (click)="$event.stopPropagation()" (change)="selection.toggle(row)" [checked]="selection.isSelected(row)"></mat-checkbox>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Numero</th>
+        <td mat-cell *matCellDef="let p"><b>{{ p.numero }}</b></td>
+      </ng-container>
+
+      <ng-container matColumnDef="dataEmissione">
+        <th mat-header-cell *matHeaderCellDef>Data</th>
+        <td mat-cell *matCellDef="let p">{{ p.dataEmissione | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="clienteNome">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let p">{{ p.clienteNome || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="totale">
+        <th mat-header-cell *matHeaderCellDef>Importo</th>
+        <td mat-cell *matCellDef="let p" class="euro">{{ (p.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="stato">
+        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <td mat-cell *matCellDef="let p">
+          <span class="stato-chip" [class]="p.stato.toLowerCase()">{{ p.stato }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="azioni">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let p" class="table-actions">
+          @if (p.stato === 'BOZZA') {
+            <button mat-icon-button type="button" title="Invia al cliente" (click)="setStato(p, 'INVIATO')">
+              <mat-icon>send</mat-icon>
+            </button>
+          }
+          @if (p.stato === 'INVIATO') {
+            <button mat-icon-button type="button" title="Accetta" (click)="setStato(p, 'ACCETTATO')">
+              <mat-icon>thumb_up</mat-icon>
+            </button>
+            <button mat-icon-button type="button" title="Rifiuta" color="warn" (click)="setStato(p, 'RIFIUTATO')">
+              <mat-icon>thumb_down</mat-icon>
+            </button>
+          }
+          <button mat-icon-button type="button" title="Modifica" (click)="open(p)"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(p)"><mat-icon>delete</mat-icon></button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    @if (!preventivi.length) { <p class="empty-msg">Nessun preventivo</p> }
+  </div>
+</div>

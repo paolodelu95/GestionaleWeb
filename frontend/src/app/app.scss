@@ -1,0 +1,121 @@
+.shell {
+  height: 100vh;
+  background: #0f172a;
+}
+
+.sidenav {
+  width: 220px;
+  background-color: #1e293b;
+  border-right: none;
+
+  .sidenav-header {
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidenav-title {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .sidenav-sub {
+    color: #94a3b8;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  mat-nav-list {
+    padding-top: 8px;
+
+    a[mat-list-item] {
+      color: #e2e8f0;
+      border-radius: 0;
+      margin: 1px 0;
+
+      mat-icon { color: #94a3b8; font-size: 20px; }
+
+      &:hover {
+        background: #334155;
+        color: #ffffff;
+        mat-icon { color: #cbd5e1; }
+      }
+
+      &.active-link {
+        background: #3b82f6;
+        color: white;
+        font-weight: 600;
+        mat-icon { color: white; }
+      }
+
+      &.sub-item {
+        padding-left: 20px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .sidenav-panel {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+
+    mat-expansion-panel-header {
+      color: #e2e8f0;
+      padding: 0 16px;
+      height: 44px;
+      background: transparent !important;
+      &:hover { background: #334155 !important; }
+    }
+
+    mat-panel-title {
+      color: #e2e8f0;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-icon {
+      font-size: 20px;
+      color: #94a3b8;
+      width: 20px;
+      height: 20px;
+    }
+
+    .mat-expansion-panel-body { padding: 0; }
+  }
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.topbar {
+  background-color: #0f172a;
+  color: white;
+  height: 52px;
+  min-height: 52px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+
+  .topbar-company {
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .topbar-sub {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  background: #f1f5f9;
+}
