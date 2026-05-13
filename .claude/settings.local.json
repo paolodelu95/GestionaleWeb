@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node server.js)",
       "Bash(curl -s http://localhost:3000/api/clienti)",
-      "Bash(curl -s http://localhost:3000/api/fornitori)"
+      "Bash(curl -s http://localhost:3000/api/fornitori)",
+      "Bash(git pull *)"
     ]
   }
 }
