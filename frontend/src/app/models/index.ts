@@ -64,7 +64,18 @@ export interface RigaDocumento {
   quantita: number;
   unitaMisura?: string;
   prezzo: number;
+  sconto?: number;
   iva: number;
+}
+
+export interface PrezzoRecente {
+  prezzo: number;
+  sconto: number;
+  prezzoEffettivo: number;
+  quantita: number;
+  numero: string;
+  dataEmissione: string;
+  tipo: string;
 }
 
 export interface Ddt {
@@ -73,7 +84,6 @@ export interface Ddt {
   dataEmissione: string;
   clienteId?: number | null;
   clienteNome?: string;
-  causale?: string;
   note?: string;
   stato: string;
   totale?: number;
@@ -81,6 +91,17 @@ export interface Ddt {
   righe?: RigaDocumento[];
   fatturaId?: number | null;
   fatturaNumero?: string | null;
+  // Dati trasporto
+  dataOraInizioTrasporto?: string;
+  causaleTrasporto?: string;
+  aspettoBeni?: string;
+  porto?: string;
+  numeroColli?: number | null;
+  pesoLordo?: number | null;
+  incaricatoTrasporto?: string;
+  vettore?: string;
+  destinazioneDiversa?: string;
+  noteTrasporto?: string;
 }
 
 export interface Fattura {

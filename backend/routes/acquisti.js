@@ -54,9 +54,9 @@ router.delete('/:id', (req, res) => {
 });
 
 function saveRighe(acquistoId, righe) {
-  const stmt = db.prepare(`INSERT INTO acquisti_righe (acquisto_id,prodotto_id,descrizione,quantita,prezzo,iva,unita_misura)
-    VALUES (?,?,?,?,?,?,?)`);
-  for (const r of righe) stmt.run(acquistoId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.iva, r.unitaMisura || '');
+  const stmt = db.prepare(`INSERT INTO acquisti_righe (acquisto_id,prodotto_id,descrizione,quantita,prezzo,sconto,iva,unita_misura)
+    VALUES (?,?,?,?,?,?,?,?)`);
+  for (const r of righe) stmt.run(acquistoId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.sconto ?? 0, r.iva, r.unitaMisura || '');
 }
 
 function getRighe(acquistoId) {
@@ -65,13 +65,14 @@ function getRighe(acquistoId) {
     WHERE ar.acquisto_id=?`).all(acquistoId);
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
-    descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura, prezzo: r.prezzo, iva: r.iva
+    descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva
   }));
 }
 
 function toDto(r) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 + iva/100)), 0) as t FROM acquisti_righe WHERE acquisto_id=?`).get(r.id)?.t || 0;
-  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo), 0) as t FROM acquisti_righe WHERE acquisto_id=?`).get(r.id)?.t || 0;
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t FROM acquisti_righe WHERE acquisto_id=?`).get(r.id)?.t || 0;
+  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM acquisti_righe WHERE acquisto_id=?`).get(r.id)?.t || 0;
   return {
     id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
     fornitoreId: r.fornitore_id, fornitoreNome: r.fornitore_nome,

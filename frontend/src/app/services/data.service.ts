@@ -116,6 +116,12 @@ export class DataService {
   updateAliquotaIva(a: AliquotaIva): Observable<any> { return this.api.put(`aliquote-iva/${a.id}`, a); }
   deleteAliquotaIva(id: number): Observable<any> { return this.api.delete(`aliquote-iva/${id}`); }
 
+  // Prezzi recenti per prodotto+cliente
+  getPrezziRecenti(prodottoId: number, clienteId?: number | null): Observable<any[]> {
+    const params = clienteId ? `prodottoId=${prodottoId}&clienteId=${clienteId}` : `prodottoId=${prodottoId}`;
+    return this.api.get(`prezzi-recenti?${params}`);
+  }
+
   // Acquisti
   getAcquisti(): Observable<Acquisto[]> { return this.api.get('acquisti'); }
   getAcquistoById(id: number): Observable<Acquisto> { return this.api.get(`acquisti/${id}`); }

@@ -50,20 +50,21 @@ router.delete('/:id', (req, res) => {
 });
 
 function saveRighe(ordineId, righe) {
-  const stmt = db.prepare(`INSERT INTO ordini_righe (ordine_id, prodotto_id, descrizione, quantita, prezzo, iva, unita_misura) VALUES (?,?,?,?,?,?,?)`);
-  for (const r of righe) stmt.run(ordineId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.iva, r.unitaMisura || '');
+  const stmt = db.prepare(`INSERT INTO ordini_righe (ordine_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura) VALUES (?,?,?,?,?,?,?,?)`);
+  for (const r of righe) stmt.run(ordineId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.sconto ?? 0, r.iva, r.unitaMisura || '');
 }
 
 function getRighe(ordineId) {
   return db.prepare(`SELECT r.*, p.nome as prodotto_nome FROM ordini_righe r
     LEFT JOIN prodotti p ON r.prodotto_id = p.id WHERE r.ordine_id=?`).all(ordineId)
     .map(r => ({ id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
-      descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura, prezzo: r.prezzo, iva: r.iva }));
+      descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
+      prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva }));
 }
 
 function toDto(r) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 + iva/100)), 0) as t FROM ordini_righe WHERE ordine_id=?`).get(r.id)?.t || 0;
-  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo), 0) as t FROM ordini_righe WHERE ordine_id=?`).get(r.id)?.t || 0;
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t FROM ordini_righe WHERE ordine_id=?`).get(r.id)?.t || 0;
+  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM ordini_righe WHERE ordine_id=?`).get(r.id)?.t || 0;
   return { id: r.id, numero: r.numero, dataOrdine: r.data_ordine,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
     fornitoreId: r.fornitore_id, fornitoreNome: r.fornitore_nome,

@@ -1,7 +1,7 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -10,7 +10,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { Preventivo, Cliente, Prodotto, RigaDocumento, UnitaMisura } from '../../models';
@@ -23,9 +25,11 @@ const RIGHE_STYLES = `
   .righe-table th { background: #f8fafc; padding: 8px; font-size: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
   .righe-table td { padding: 4px 2px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   .riga-input { border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-  .riga-input.num { width: 80px; }
+  .riga-input.num { width: 72px; }
+  .riga-input.sconto { width: 60px; }
   .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
   .td-search { width: 36px; padding: 0 !important; }
+  .td-history { width: 28px; padding: 0 !important; }
 `;
 
 @Component({
@@ -33,7 +37,7 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Preventivo' : 'Nuovo Preventivo' }}</h2>
     <mat-dialog-content>
@@ -96,6 +100,8 @@ const RIGHE_STYLES = `
               <th>Qtà</th>
               <th>UM</th>
               <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+              <th class="td-history"></th>
+              <th>Sconto%</th>
               <th>IVA%</th>
               <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
               <th></th>
@@ -122,6 +128,24 @@ const RIGHE_STYLES = `
                 <td><input class="riga-input num" type="number" step="0.01"
                   [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                   (change)="setPrezzoFromInput(riga, $event)"></td>
+                <td class="td-history">
+                  @if (prezziRecenti[$index]?.length) {
+                    <button mat-icon-button type="button" title="Prezzi recenti" [matMenuTriggerFor]="menuPrezzi">
+                      <mat-icon style="font-size:16px;color:#6366f1">history</mat-icon>
+                    </button>
+                    <mat-menu #menuPrezzi="matMenu">
+                      <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>
+                      @for (pr of prezziRecenti[$index]; track $index) {
+                        <button mat-menu-item type="button" (click)="usaPrezzo($index, pr.prezzo, pr.sconto)">
+                          <span style="font-size:12px;color:#64748b">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                          <b style="margin-left:8px;color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                          @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                        </button>
+                      }
+                    </mat-menu>
+                  }
+                </td>
+                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
                 <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
                 <td style="padding:4px 8px; white-space:nowrap">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
@@ -166,6 +190,7 @@ export class PreventivoDialogComponent implements OnInit {
   righe: RigaDocumento[] = [];
   prodotti: Prodotto[] = [];
   unitaMisura: UnitaMisura[] = [];
+  prezziRecenti: any[][] = [];
   readonly isNew: boolean;
 
   submitted = false;
@@ -173,14 +198,35 @@ export class PreventivoDialogComponent implements OnInit {
   get hasRighe(): boolean { return this.righe.length > 0 && this.righe.some(r => r.descrizione?.trim()); }
   get canSave(): boolean { return this.form.valid && this.hasCliente && this.hasRighe; }
 
+  get clienteId(): number | null {
+    const v = this.clienteCtrl.value;
+    return v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
+  }
+
   showNetto = false;
-  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo, 0); }
-  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * r.iva / 100, 0); }
+  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
+  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
-  rigaTotale(riga: RigaDocumento) { return this.showNetto ? riga.quantita * riga.prezzo : riga.quantita * riga.prezzo * (1 + riga.iva / 100); }
+  rigaTotale(riga: RigaDocumento) {
+    const net = riga.quantita * riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
+    return this.showNetto ? net : net * (1 + riga.iva / 100);
+  }
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
     riga.prezzo = this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6);
+  }
+
+  loadPrezziRecenti(index: number) {
+    const riga = this.righe[index];
+    if (!riga.prodottoId) return;
+    this.ds.getPrezziRecenti(riga.prodottoId, this.clienteId).subscribe(prezzi => {
+      this.prezziRecenti[index] = prezzi;
+    });
+  }
+
+  usaPrezzo(index: number, prezzo: number, sconto: number) {
+    this.righe[index].prezzo = prezzo;
+    this.righe[index].sconto = sconto;
   }
 
   constructor(
@@ -197,8 +243,12 @@ export class PreventivoDialogComponent implements OnInit {
       validita: [data?.validita ?? 30],
       note: [data?.note ?? ''],
     });
-    if (data?.id) { this.ds.getPreventivoById(data.id).subscribe(p => this.righe = p.righe ?? []); }
-    else { this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }]; }
+    if (data?.id) {
+      this.ds.getPreventivoById(data.id).subscribe(p => { this.righe = p.righe ?? []; this.prezziRecenti = new Array(this.righe.length).fill([]); });
+    } else {
+      this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 }];
+      this.prezziRecenti = [[]];
+    }
   }
 
   ngOnInit() {
@@ -241,11 +291,15 @@ export class PreventivoDialogComponent implements OnInit {
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
         this.righe[index].prodottoId = p.id ?? null;
+        this.loadPrezziRecenti(index);
       });
   }
 
-  addRiga() { this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }); }
-  removeRiga(i: number) { this.righe.splice(i, 1); }
+  addRiga() {
+    this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 });
+    this.prezziRecenti.push([]);
+  }
+  removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); }
 
   save() {
     this.submitted = true;
@@ -259,20 +313,41 @@ export class PreventivoDialogComponent implements OnInit {
 @Component({
   selector: 'app-preventivi',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule],
+  imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule],
   templateUrl: './preventivi.html',
   styleUrl: './preventivi.scss'
 })
-export class PreventiviComponent implements OnInit {
+export class PreventiviComponent implements OnInit, AfterViewInit {
   preventivi: Preventivo[] = [];
+  dataSource = new MatTableDataSource<Preventivo>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Preventivo>(true, []);
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() { this.load(); }
-  load() { this.ds.getPreventivi().subscribe(p => { this.preventivi = p; this.selection.clear(); }); }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, prop) => {
+      switch (prop) {
+        case 'totale': return item.totale ?? 0;
+        case 'dataEmissione': return item.dataEmissione ?? '';
+        default: return (item as any)[prop] ?? '';
+      }
+    };
+    this.dataSource.filterPredicate = (data, filter) =>
+      [data.numero, data.clienteNome, data.stato].some(v => v?.toLowerCase().includes(filter));
+  }
+
+  load() { this.ds.getPreventivi().subscribe(p => { this.preventivi = p; this.dataSource.data = p; this.selection.clear(); }); }
+
+  applyFilter(event: Event) {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
+  }
 
   isAllSelected() { return this.preventivi.length > 0 && this.selection.selected.length === this.preventivi.length; }
   toggleAll() { this.isAllSelected() ? this.selection.clear() : this.preventivi.forEach(r => this.selection.select(r)); }

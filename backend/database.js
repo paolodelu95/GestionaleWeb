@@ -266,6 +266,22 @@ const migrations = [
   'ALTER TABLE ordini_righe ADD COLUMN unita_misura TEXT DEFAULT ""',
   'ALTER TABLE preventivi_righe ADD COLUMN unita_misura TEXT DEFAULT ""',
   'ALTER TABLE acquisti_righe ADD COLUMN unita_misura TEXT DEFAULT ""',
+  'ALTER TABLE ddt_righe ADD COLUMN sconto REAL DEFAULT 0',
+  'ALTER TABLE fatture_righe ADD COLUMN sconto REAL DEFAULT 0',
+  'ALTER TABLE note_credito_righe ADD COLUMN sconto REAL DEFAULT 0',
+  'ALTER TABLE ordini_righe ADD COLUMN sconto REAL DEFAULT 0',
+  'ALTER TABLE preventivi_righe ADD COLUMN sconto REAL DEFAULT 0',
+  'ALTER TABLE acquisti_righe ADD COLUMN sconto REAL DEFAULT 0',
+  // DDT trasporto
+  'ALTER TABLE ddt ADD COLUMN data_ora_inizio_trasporto TEXT DEFAULT ""',
+  'ALTER TABLE ddt ADD COLUMN aspetto_beni TEXT DEFAULT ""',
+  'ALTER TABLE ddt ADD COLUMN porto TEXT DEFAULT "Franco"',
+  'ALTER TABLE ddt ADD COLUMN numero_colli INTEGER DEFAULT 0',
+  'ALTER TABLE ddt ADD COLUMN peso_lordo REAL DEFAULT 0',
+  'ALTER TABLE ddt ADD COLUMN incaricato_trasporto TEXT DEFAULT "Mittente"',
+  'ALTER TABLE ddt ADD COLUMN vettore TEXT DEFAULT ""',
+  'ALTER TABLE ddt ADD COLUMN destinazione_diversa TEXT DEFAULT ""',
+  'ALTER TABLE ddt ADD COLUMN note_trasporto TEXT DEFAULT ""',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

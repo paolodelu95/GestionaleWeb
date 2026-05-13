@@ -1,7 +1,7 @@
-import { Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -13,6 +13,8 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento } from '../../models';
@@ -25,9 +27,12 @@ const RIGHE_STYLES = `
   .righe-table th { background: #f8fafc; padding: 8px; font-size: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
   .righe-table td { padding: 4px 2px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   .riga-input { border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-  .riga-input.num { width: 80px; }
+  .riga-input.num { width: 72px; }
+  .riga-input.sconto { width: 60px; }
   .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
   .td-search { width: 36px; padding: 0 !important; }
+  .td-history { width: 28px; padding: 0 !important; }
+  .prezzo-cell { display: flex; align-items: center; gap: 2px; }
 `;
 
 @Component({
@@ -35,7 +40,8 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule, MatButtonToggleModule, MatSnackBarModule],
+            MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
+            MatButtonToggleModule, MatSnackBarModule, MatMenuModule],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Fattura' : 'Nuova Fattura' }}</h2>
     <mat-dialog-content>
@@ -104,6 +110,8 @@ const RIGHE_STYLES = `
                     <th>Qtà</th>
                     <th>UM</th>
                     <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+                    <th class="td-history"></th>
+                    <th>Sconto%</th>
                     <th>IVA%</th>
                     <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
                     <th></th>
@@ -130,6 +138,24 @@ const RIGHE_STYLES = `
                       <td><input class="riga-input num" type="number" step="0.01"
                         [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                         (change)="setPrezzoFromInput(riga, $event)"></td>
+                      <td class="td-history">
+                        @if (prezziRecenti[$index]?.length) {
+                          <button mat-icon-button type="button" title="Prezzi recenti" [matMenuTriggerFor]="menuPrezzi">
+                            <mat-icon style="font-size:16px;color:#6366f1">history</mat-icon>
+                          </button>
+                          <mat-menu #menuPrezzi="matMenu">
+                            <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>
+                            @for (pr of prezziRecenti[$index]; track $index) {
+                              <button mat-menu-item type="button" (click)="usaPrezzo($index, pr.prezzo, pr.sconto)">
+                                <span style="font-size:12px;color:#64748b">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                                <b style="margin-left:8px;color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                                @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                              </button>
+                            }
+                          </mat-menu>
+                        }
+                      </td>
+                      <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
                       <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
                       <td style="padding:4px 8px; white-space:nowrap">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
@@ -288,6 +314,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   tipiPagamento: TipoPagamento[] = [];
   selectedTipoPagamentoId: number | null = null;
   pagamenti: Pagamento[] = [];
+  prezziRecenti: any[][] = [];
   nuovoAcconto = { dataPagamento: new Date().toISOString().substring(0, 10), importo: 0, metodo: 'Bonifico', note: '' };
   readonly isNew: boolean;
 
@@ -304,11 +331,19 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     return this.form.valid && this.hasCliente && this.hasRighe;
   }
 
+  get clienteId(): number | null {
+    const v = this.clienteCtrl.value;
+    return v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
+  }
+
   showNetto = false;
-  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo, 0); }
-  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * r.iva / 100, 0); }
+  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
+  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
-  rigaTotale(riga: RigaDocumento) { return this.showNetto ? riga.quantita * riga.prezzo : riga.quantita * riga.prezzo * (1 + riga.iva / 100); }
+  rigaTotale(riga: RigaDocumento) {
+    const net = riga.quantita * riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
+    return this.showNetto ? net : net * (1 + riga.iva / 100);
+  }
 
   get tipoPagamentoSelezionato(): TipoPagamento | null {
     return this.tipiPagamento.find(t => t.id === this.selectedTipoPagamentoId) ?? null;
@@ -316,13 +351,26 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   get totalePagato() { return this.pagamenti.reduce((s, p) => s + p.importo, 0); }
   get rimanente() { return this.totale - this.totalePagato; }
 
-  onTipoPagamentoChange() { /* selection handled by ngModel binding */ }
+  onTipoPagamentoChange() { /* handled by ngModel */ }
 
   loadPagamenti() {
     if (!this.data?.id) return;
     this.ds.getPagamenti().subscribe(ps => {
       this.pagamenti = ps.filter(p => p.fatturaId === this.data!.id);
     });
+  }
+
+  loadPrezziRecenti(index: number) {
+    const riga = this.righe[index];
+    if (!riga.prodottoId) return;
+    this.ds.getPrezziRecenti(riga.prodottoId, this.clienteId).subscribe(prezzi => {
+      this.prezziRecenti[index] = prezzi;
+    });
+  }
+
+  usaPrezzo(index: number, prezzo: number, sconto: number) {
+    this.righe[index].prezzo = prezzo;
+    this.righe[index].sconto = sconto;
   }
 
   addAcconto() {
@@ -375,11 +423,13 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       note: [data?.note ?? ''],
     });
     if (data?.id) {
-      this.ds.getFatturaById(data.id).subscribe(f => this.righe = f.righe ?? []);
+      this.ds.getFatturaById(data.id).subscribe(f => { this.righe = f.righe ?? []; this.prezziRecenti = new Array(this.righe.length).fill([]); });
     } else if (data?.righe?.length) {
       this.righe = [...data.righe];
+      this.prezziRecenti = new Array(this.righe.length).fill([]);
     } else {
-      this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }];
+      this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 }];
+      this.prezziRecenti = [[]];
     }
   }
 
@@ -411,8 +461,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 
   get ddtsFiltrati(): Ddt[] {
     const v = this.clienteCtrl.value;
-    const clienteId = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
-    return clienteId ? this.ddts.filter(d => d.clienteId === clienteId) : this.ddts;
+    const cid = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
+    return cid ? this.ddts.filter(d => d.clienteId === cid) : this.ddts;
   }
 
   displayCliente(c: Cliente | string | null): string {
@@ -432,11 +482,15 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
         this.righe[index].prodottoId = p.id ?? null;
+        this.loadPrezziRecenti(index);
       });
   }
 
-  addRiga() { this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }); }
-  removeRiga(i: number) { this.righe.splice(i, 1); }
+  addRiga() {
+    this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 });
+    this.prezziRecenti.push([]);
+  }
+  removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); }
 
   save() {
     this.submitted = true;
@@ -454,20 +508,47 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 @Component({
   selector: 'app-fatture',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule],
+  imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
-export class FattureComponent implements OnInit {
+export class FattureComponent implements OnInit, AfterViewInit {
   fatture: Fattura[] = [];
+  dataSource = new MatTableDataSource<Fattura>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Fattura>(true, []);
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() { this.load(); }
-  load() { this.ds.getFatture().subscribe(f => { this.fatture = f; this.selection.clear(); }); }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, prop) => {
+      switch (prop) {
+        case 'totale': return item.totale ?? 0;
+        case 'dataEmissione': return item.dataEmissione ?? '';
+        default: return (item as any)[prop] ?? '';
+      }
+    };
+    this.dataSource.filterPredicate = (data, filter) =>
+      [data.numero, data.clienteNome, data.stato].some(v => v?.toLowerCase().includes(filter));
+  }
+
+  load() {
+    this.ds.getFatture().subscribe(f => {
+      this.fatture = f;
+      this.dataSource.data = f;
+      this.selection.clear();
+    });
+  }
+
+  applyFilter(event: Event) {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
+  }
 
   isAllSelected() { return this.fatture.length > 0 && this.selection.selected.length === this.fatture.length; }
   toggleAll() { this.isAllSelected() ? this.selection.clear() : this.fatture.forEach(r => this.selection.select(r)); }

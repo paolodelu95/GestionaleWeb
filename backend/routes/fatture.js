@@ -47,9 +47,9 @@ router.delete('/:id', (req, res) => {
 });
 
 function saveRighe(fatturaId, righe) {
-  const stmt = db.prepare(`INSERT INTO fatture_righe (fattura_id, prodotto_id, descrizione, quantita, prezzo, iva, unita_misura)
-    VALUES (?,?,?,?,?,?,?)`);
-  for (const r of righe) stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.iva, r.unitaMisura || '');
+  const stmt = db.prepare(`INSERT INTO fatture_righe (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura)
+    VALUES (?,?,?,?,?,?,?,?)`);
+  for (const r of righe) stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.sconto ?? 0, r.iva, r.unitaMisura || '');
 }
 
 function getRighe(fatturaId) {
@@ -58,13 +58,14 @@ function getRighe(fatturaId) {
     WHERE fr.fattura_id=?`).all(fatturaId);
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
-    descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura, prezzo: r.prezzo, iva: r.iva
+    descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva
   }));
 }
 
 function toDto(r) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 + iva/100)), 0) as t FROM fatture_righe WHERE fattura_id=?`).get(r.id)?.t || 0;
-  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo), 0) as t FROM fatture_righe WHERE fattura_id=?`).get(r.id)?.t || 0;
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t FROM fatture_righe WHERE fattura_id=?`).get(r.id)?.t || 0;
+  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM fatture_righe WHERE fattura_id=?`).get(r.id)?.t || 0;
   return {
     id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
@@ -87,7 +88,7 @@ function creaPagamentoImmediato(fatturaId) {
   if (!fattura?.tipo_pagamento_id) return;
   const tp = db.prepare('SELECT * FROM tipi_pagamento WHERE id=?').get(fattura.tipo_pagamento_id);
   if (tp?.immediato !== 1) return;
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 + iva/100)), 0) as t
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t
     FROM fatture_righe WHERE fattura_id=?`).get(fatturaId)?.t || 0;
   if (totale <= 0) return;
   db.prepare(`INSERT INTO pagamenti (fattura_id, data_pagamento, importo, metodo, note, tipo, tipo_pagamento_id, conto)
