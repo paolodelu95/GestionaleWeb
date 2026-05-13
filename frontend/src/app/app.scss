@@ -196,3 +196,34 @@
   overflow-y: auto;
   background: #f1f5f9;
 }
+
+.sidenav-backdrop {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sidenav {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100dvh !important;
+    z-index: 1000;
+    width: 280px !important;
+    overflow-y: scroll;
+    touch-action: pan-y;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+
+    &:not(.collapsed) {
+      transform: translateX(0);
+    }
+  }
+
+  .sidenav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 999;
+  }
+}

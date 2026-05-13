@@ -45,6 +45,7 @@ export class App implements OnInit {
   }
 
   toggleSidebar() { this.collapsed = !this.collapsed; }
+  closeOnMobile() { if (window.innerWidth < 768) this.collapsed = true; }
 
   readonly navItems: NavItem[] = [
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
