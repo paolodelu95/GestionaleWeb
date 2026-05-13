@@ -9,10 +9,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
+import { CityService, CityResult } from '../../services/city.service';
 import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
+import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-validators';
 
 // ── Tipo Pagamento Dialog ────────────────────────────────────────────────────
 @Component({
@@ -187,12 +191,15 @@ export class AliquotaIvaDialogComponent {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule,
             MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
-            MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule],
+            MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
+            MatAutocompleteModule],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })
 export class ImpostazioniComponent implements OnInit {
   form: FormGroup;
+  filteredCities: CityResult[] = [];
+  private cityMap = new Map<string, CityResult>();
 
   tipiPagamento: TipoPagamento[] = [];
   tpColumns = ['nome', 'conto', 'scadenza', 'immediato', 'attivo', 'azioni'];
@@ -209,11 +216,12 @@ export class ImpostazioniComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private ds: DataService,
+    private cityService: CityService,
     private dialog: MatDialog,
     private snack: MatSnackBar
   ) {
     this.form = this.fb.group({
-      ragioneSociale: [''], pIva: [''], codFiscale: [''],
+      ragioneSociale: [''], pIva: ['', pIvaValidator], codFiscale: ['', codiceFiscaleValidator],
       indirizzo: [''], cap: [''], citta: [''], provincia: [''], stato: [''],
       telefono: [''], email: [''], pec: [''], sdi: [''],
       iban: [''], banca: [''],
@@ -222,10 +230,35 @@ export class ImpostazioniComponent implements OnInit {
 
   ngOnInit() {
     this.ds.getAzienda().subscribe(a => { if (a) this.form.patchValue(a); });
+
+    this.form.get('citta')!.valueChanges.pipe(
+      debounceTime(300), distinctUntilChanged(),
+      switchMap(v => this.cityService.searchCities(v ?? ''))
+    ).subscribe(results => {
+      this.filteredCities = results;
+      results.forEach(r => this.cityMap.set(r.name, r));
+    });
+
+    this.form.get('cap')!.valueChanges.pipe(
+      debounceTime(400), distinctUntilChanged(),
+      filter(cap => cap?.length === 5),
+      switchMap(cap => this.cityService.lookupByCap(cap))
+    ).subscribe(result => {
+      if (result) {
+        this.form.patchValue({ citta: result.name, provincia: result.provincia, stato: 'Italia' }, { emitEvent: false });
+        this.cityMap.set(result.name, result);
+      }
+    });
+
     this.loadTipiPagamento();
     this.loadCategorie();
     this.loadUnitaMisura();
     this.loadAliquoteIva();
+  }
+
+  onCitySelected(name: string) {
+    const r = this.cityMap.get(name);
+    if (r) this.form.patchValue({ cap: r.cap, provincia: r.provincia, stato: 'Italia' }, { emitEvent: false });
   }
 
   save() {

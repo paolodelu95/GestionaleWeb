@@ -10,10 +10,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
+import { CityService, CityResult } from '../../services/city.service';
 import { Cliente } from '../../models';
-import { filterCities, cityInfo, cityByCap } from '../../models/cities';
+import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-validators';
 
 // ── Dialog ────────────────────────────────────────────────────────────────────
 @Component({
@@ -41,23 +42,32 @@ import { filterCities, cityInfo, cityByCap } from '../../models/cities';
           <mat-form-field>
             <mat-label>Città</mat-label>
             <input matInput formControlName="citta" [matAutocomplete]="auto">
-            <mat-autocomplete #auto="matAutocomplete">
-              @for (c of filteredCities; track c) {
-                <mat-option [value]="c">{{ c }}</mat-option>
+            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCitySelected($event.option.value)">
+              @for (c of filteredCities; track c.name) {
+                <mat-option [value]="c.name">{{ c.name }}</mat-option>
               }
             </mat-autocomplete>
           </mat-form-field>
-          <mat-form-field style="max-width:100px"><mat-label>Provincia</mat-label>
-            <input matInput formControlName="provincia"></mat-form-field>
+          <mat-form-field style="max-width:80px"><mat-label>Prov.</mat-label>
+            <input matInput formControlName="provincia" maxlength="2" style="text-transform:uppercase">
+            <mat-hint>sigla</mat-hint></mat-form-field>
         </div>
         <div class="form-row">
           <mat-form-field><mat-label>Stato</mat-label>
             <input matInput formControlName="stato"></mat-form-field>
           <mat-form-field><mat-label>Codice Fiscale</mat-label>
-            <input matInput formControlName="codiceFiscale"></mat-form-field>
+            <input matInput formControlName="codiceFiscale" style="text-transform:uppercase">
+            @if (form.get('codiceFiscale')?.hasError('codiceFiscale')) {
+              <mat-error>Codice fiscale non valido (16 caratteri o 11 cifre)</mat-error>
+            }
+          </mat-form-field>
         </div>
         <mat-form-field style="width:100%"><mat-label>P. IVA</mat-label>
-          <input matInput formControlName="pIva"></mat-form-field>
+          <input matInput formControlName="pIva">
+          @if (form.get('pIva')?.hasError('pIva')) {
+            <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
+          }
+        </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -67,11 +77,12 @@ import { filterCities, cityInfo, cityByCap } from '../../models/cities';
 })
 export class ClienteDialogComponent implements OnInit {
   form: FormGroup;
-  filteredCities: string[] = [];
-  private updating = false;
+  filteredCities: CityResult[] = [];
+  private cityMap = new Map<string, CityResult>();
 
   constructor(
     private fb: FormBuilder,
+    private cityService: CityService,
     public dialogRef: MatDialogRef<ClienteDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Cliente | null
   ) {
@@ -84,38 +95,35 @@ export class ClienteDialogComponent implements OnInit {
       citta:          [data?.citta ?? ''],
       provincia:      [data?.provincia ?? ''],
       stato:          [data?.stato ?? 'Italia'],
-      codiceFiscale:  [data?.codiceFiscale ?? ''],
-      pIva:           [data?.pIva ?? ''],
+      codiceFiscale:  [data?.codiceFiscale ?? '', codiceFiscaleValidator],
+      pIva:           [data?.pIva ?? '', pIvaValidator],
     });
   }
 
   ngOnInit() {
-    this.filteredCities = filterCities('');
+    this.form.get('citta')!.valueChanges.pipe(
+      debounceTime(300), distinctUntilChanged(),
+      switchMap(v => this.cityService.searchCities(v ?? ''))
+    ).subscribe(results => {
+      this.filteredCities = results;
+      results.forEach(r => this.cityMap.set(r.name, r));
+    });
 
-    this.form.get('citta')!.valueChanges.pipe(debounceTime(100), distinctUntilChanged())
-      .subscribe(v => {
-        if (this.updating) return;
-        this.filteredCities = filterCities(v ?? '');
-        const info = cityInfo(v);
-        if (info) {
-          this.updating = true;
-          this.form.patchValue({ cap: info.cap, provincia: info.provincia, stato: 'Italia' }, { emitEvent: false });
-          this.updating = false;
-        }
-      });
+    this.form.get('cap')!.valueChanges.pipe(
+      debounceTime(400), distinctUntilChanged(),
+      filter(cap => cap?.length === 5),
+      switchMap(cap => this.cityService.lookupByCap(cap))
+    ).subscribe(result => {
+      if (result) {
+        this.form.patchValue({ citta: result.name, provincia: result.provincia, stato: 'Italia' }, { emitEvent: false });
+        this.cityMap.set(result.name, result);
+      }
+    });
+  }
 
-    this.form.get('cap')!.valueChanges.pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe(cap => {
-        if (this.updating || cap?.length !== 5) return;
-        const city = cityByCap(cap);
-        if (city) {
-          this.updating = true;
-          const info = cityInfo(city)!;
-          this.form.patchValue({ citta: city, provincia: info.provincia, stato: 'Italia' }, { emitEvent: false });
-          this.filteredCities = filterCities(city);
-          this.updating = false;
-        }
-      });
+  onCitySelected(name: string) {
+    const r = this.cityMap.get(name);
+    if (r) this.form.patchValue({ cap: r.cap, provincia: r.provincia, stato: 'Italia' }, { emitEvent: false });
   }
 
   save() { if (this.form.valid) this.dialogRef.close({ ...this.data, ...this.form.value }); }
