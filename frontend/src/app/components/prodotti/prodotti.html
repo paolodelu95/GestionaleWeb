@@ -1,55 +1,64 @@
 <div class="page">
   <div class="page-header">
     <h1 class="page-title">Prodotti</h1>
-    <button mat-flat-button (click)="open()">
+    <button mat-flat-button type="button" (click)="open()">
       <mat-icon>add</mat-icon> Aggiungi
     </button>
   </div>
 
   <div class="card">
-    <table mat-table [dataSource]="prodotti" class="mat-mdc-table">
+    <mat-form-field class="search-field" appearance="outline">
+      <mat-label>Cerca prodotti...</mat-label>
+      <input matInput (input)="applyFilter($event)">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <table mat-table [dataSource]="dataSource" matSort class="mat-mdc-table">
       <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef>ID</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
         <td mat-cell *matCellDef="let p">{{ p.id }}</td>
       </ng-container>
       <ng-container matColumnDef="nome">
-        <th mat-header-cell *matHeaderCellDef>Nome</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Nome</th>
         <td mat-cell *matCellDef="let p"><b>{{ p.nome }}</b></td>
       </ng-container>
       <ng-container matColumnDef="categoria">
-        <th mat-header-cell *matHeaderCellDef>Categoria</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Categoria</th>
         <td mat-cell *matCellDef="let p">{{ p.categoria }}</td>
       </ng-container>
       <ng-container matColumnDef="codice">
-        <th mat-header-cell *matHeaderCellDef>Codice</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Codice</th>
         <td mat-cell *matCellDef="let p">{{ p.codice }}</td>
       </ng-container>
       <ng-container matColumnDef="prezzo">
-        <th mat-header-cell *matHeaderCellDef>Prezzo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Prezzo</th>
         <td mat-cell *matCellDef="let p" class="euro">{{ p.prezzo | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
       <ng-container matColumnDef="quantita">
-        <th mat-header-cell *matHeaderCellDef>Qtà</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Qtà</th>
         <td mat-cell *matCellDef="let p" [class.warn]="p.quantita < p.sogliaMinima">{{ p.quantita }}</td>
       </ng-container>
       <ng-container matColumnDef="sogliaMinima">
-        <th mat-header-cell *matHeaderCellDef>Soglia min.</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Soglia min.</th>
         <td mat-cell *matCellDef="let p">{{ p.sogliaMinima }}</td>
       </ng-container>
       <ng-container matColumnDef="iva">
-        <th mat-header-cell *matHeaderCellDef>IVA</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>IVA</th>
         <td mat-cell *matCellDef="let p">{{ p.iva }}%</td>
       </ng-container>
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let p" class="table-actions">
-          <button mat-icon-button (click)="open(p)" title="Modifica"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button color="warn" (click)="delete(p)" title="Elimina"><mat-icon>delete</mat-icon></button>
+          <button mat-icon-button type="button" (click)="open(p)" title="Modifica"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button type="button" color="warn" (click)="delete(p)" title="Elimina"><mat-icon>delete</mat-icon></button>
         </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+      </tr>
     </table>
-    @if (!prodotti.length) { <p style="padding:16px;color:#94a3b8">Nessun prodotto</p> }
+    @if (!prodotti.length) { <p class="empty-msg">Nessun prodotto</p> }
   </div>
 </div>

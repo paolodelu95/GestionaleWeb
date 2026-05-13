@@ -8,6 +8,41 @@ app.use(express.json());
 
 const db = require('./database');
 
+app.get('/api/prezzi-recenti', (req, res) => {
+  const pid = parseInt(req.query.prodottoId);
+  const cid = req.query.clienteId ? parseInt(req.query.clienteId) : null;
+  if (!pid) return res.json([]);
+
+  const results = [];
+  try {
+    const fRows = cid
+      ? db.prepare(`SELECT fr.prezzo,fr.sconto,fr.quantita,f.numero,f.data_emissione,'Fattura' as tipo FROM fatture_righe fr JOIN fatture f ON fr.fattura_id=f.id WHERE fr.prodotto_id=? AND f.cliente_id=? ORDER BY f.data_emissione DESC LIMIT 5`).all(pid, cid)
+      : db.prepare(`SELECT fr.prezzo,fr.sconto,fr.quantita,f.numero,f.data_emissione,'Fattura' as tipo FROM fatture_righe fr JOIN fatture f ON fr.fattura_id=f.id WHERE fr.prodotto_id=? ORDER BY f.data_emissione DESC LIMIT 5`).all(pid);
+    results.push(...fRows);
+
+    const dRows = cid
+      ? db.prepare(`SELECT dr.prezzo,dr.sconto,dr.quantita,d.numero,d.data_emissione,'DDT' as tipo FROM ddt_righe dr JOIN ddt d ON dr.ddt_id=d.id WHERE dr.prodotto_id=? AND d.cliente_id=? ORDER BY d.data_emissione DESC LIMIT 5`).all(pid, cid)
+      : db.prepare(`SELECT dr.prezzo,dr.sconto,dr.quantita,d.numero,d.data_emissione,'DDT' as tipo FROM ddt_righe dr JOIN ddt d ON dr.ddt_id=d.id WHERE dr.prodotto_id=? ORDER BY d.data_emissione DESC LIMIT 5`).all(pid);
+    results.push(...dRows);
+
+    const pRows = cid
+      ? db.prepare(`SELECT pr.prezzo,pr.sconto,pr.quantita,p.numero,p.data_emissione,'Preventivo' as tipo FROM preventivi_righe pr JOIN preventivi p ON pr.preventivo_id=p.id WHERE pr.prodotto_id=? AND p.cliente_id=? ORDER BY p.data_emissione DESC LIMIT 5`).all(pid, cid)
+      : db.prepare(`SELECT pr.prezzo,pr.sconto,pr.quantita,p.numero,p.data_emissione,'Preventivo' as tipo FROM preventivi_righe pr JOIN preventivi p ON pr.preventivo_id=p.id WHERE pr.prodotto_id=? ORDER BY p.data_emissione DESC LIMIT 5`).all(pid);
+    results.push(...pRows);
+  } catch (_) { return res.json([]); }
+
+  results.sort((a, b) => (b.data_emissione || '').localeCompare(a.data_emissione || ''));
+  res.json(results.slice(0, 5).map(r => ({
+    prezzo: r.prezzo,
+    sconto: r.sconto ?? 0,
+    prezzoEffettivo: +(r.prezzo * (1 - (r.sconto ?? 0) / 100)).toFixed(4),
+    quantita: r.quantita,
+    numero: r.numero,
+    dataEmissione: r.data_emissione,
+    tipo: r.tipo,
+  })));
+});
+
 app.get('/api/next-number/:tipo', (req, res) => {
   const map = { ddt: 'ddt', fatture: 'fatture', ordini: 'ordini', preventivi: 'preventivi', 'note-credito': 'note_credito', acquisti: 'acquisti' };
   const table = map[req.params.tipo];

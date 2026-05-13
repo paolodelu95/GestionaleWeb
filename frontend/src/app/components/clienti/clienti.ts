@@ -1,7 +1,7 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { Cliente } from '../../models';
@@ -91,7 +92,6 @@ export class ClienteDialogComponent implements OnInit {
   ngOnInit() {
     this.filteredCities = filterCities('');
 
-    // Autocomplete città
     this.form.get('citta')!.valueChanges.pipe(debounceTime(100), distinctUntilChanged())
       .subscribe(v => {
         if (this.updating) return;
@@ -104,7 +104,6 @@ export class ClienteDialogComponent implements OnInit {
         }
       });
 
-    // CAP → città
     this.form.get('cap')!.valueChanges.pipe(debounceTime(300), distinctUntilChanged())
       .subscribe(cap => {
         if (this.updating || cap?.length !== 5) return;
@@ -127,18 +126,46 @@ export class ClienteDialogComponent implements OnInit {
   selector: 'app-clienti',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule],
+            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })
-export class ClientiComponent implements OnInit {
+export class ClientiComponent implements OnInit, AfterViewInit {
   clienti: Cliente[] = [];
-  displayedColumns = ['id','ragioneSociale','email','telefono','indirizzo','codiceFiscale','azioni'];
+  dataSource = new MatTableDataSource<Cliente>([]);
+  displayedColumns = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'codiceFiscale', 'azioni'];
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() { this.load(); }
-  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; }); }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, col) => {
+      switch (col) {
+        case 'id': return item.id ?? 0;
+        case 'indirizzo': return this.indirizzo(item);
+        default: return (item as any)[col] ?? '';
+      }
+    };
+    this.dataSource.filterPredicate = (item, filter) => {
+      const s = filter.toLowerCase();
+      return (item.ragioneSociale ?? '').toLowerCase().includes(s)
+          || (item.email ?? '').toLowerCase().includes(s)
+          || (item.telefono ?? '').toLowerCase().includes(s)
+          || (item.codiceFiscale ?? '').toLowerCase().includes(s)
+          || (item.pIva ?? '').toLowerCase().includes(s)
+          || this.indirizzo(item).toLowerCase().includes(s);
+    };
+  }
+
+  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.dataSource.data = c; }); }
+
+  applyFilter(event: Event) {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
+  }
 
   indirizzo(c: Cliente): string {
     return [c.via, c.cap, c.citta, c.provincia, c.stato].filter(Boolean).join(', ');

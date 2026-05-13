@@ -20,46 +20,52 @@
   </div>
 
   <div class="card">
-    <table mat-table [dataSource]="ordini" class="mat-mdc-table">
+    <mat-form-field class="search-field" appearance="outline">
+      <mat-label>Cerca ordini...</mat-label>
+      <input matInput (input)="applyFilter($event)">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <table mat-table [dataSource]="dataSource" matSort class="mat-mdc-table">
 
       <ng-container matColumnDef="select">
-        <th mat-header-cell *matHeaderCellDef>
+        <th mat-header-cell *matHeaderCellDef style="width:48px">
           <mat-checkbox (change)="toggleAll()" [checked]="isAllSelected()" [indeterminate]="selection.hasValue() && !isAllSelected()"></mat-checkbox>
         </th>
-        <td mat-cell *matCellDef="let row">
+        <td mat-cell *matCellDef="let row" style="width:48px">
           <mat-checkbox (click)="$event.stopPropagation()" (change)="selection.toggle(row)" [checked]="selection.isSelected(row)"></mat-checkbox>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef>Numero</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
         <td mat-cell *matCellDef="let o"><b>{{ o.numero }}</b></td>
       </ng-container>
 
       <ng-container matColumnDef="dataOrdine">
-        <th mat-header-cell *matHeaderCellDef>Data</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Data</th>
         <td mat-cell *matCellDef="let o">{{ o.dataOrdine | date:'dd/MM/yyyy' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="tipo">
-        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tipo</th>
         <td mat-cell *matCellDef="let o">
           <span class="stato-chip" [class]="o.tipo.toLowerCase()">{{ o.tipo }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="controparte">
-        <th mat-header-cell *matHeaderCellDef>Cliente / Fornitore</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente / Fornitore</th>
         <td mat-cell *matCellDef="let o">{{ o.clienteNome || o.fornitoreNome || '—' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="totale">
-        <th mat-header-cell *matHeaderCellDef>Importo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
         <td mat-cell *matCellDef="let o" class="euro">{{ (o.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="stato">
-        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Stato</th>
         <td mat-cell *matCellDef="let o">
           <span class="stato-chip" [class]="o.stato.toLowerCase()">{{ o.stato }}</span>
         </td>
@@ -90,6 +96,9 @@
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+      </tr>
     </table>
     @if (!ordini.length) { <p class="empty-msg">Nessun ordine</p> }
   </div>

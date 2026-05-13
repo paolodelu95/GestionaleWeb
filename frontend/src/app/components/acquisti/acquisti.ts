@@ -1,7 +1,7 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura } from '../../models';
@@ -24,7 +25,8 @@ const RIGHE_STYLES = `
   .righe-table th { background: #f8fafc; padding: 8px; font-size: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
   .righe-table td { padding: 4px 2px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   .riga-input { border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-  .riga-input.num { width: 80px; }
+  .riga-input.num { width: 72px; }
+  .riga-input.sconto { width: 60px; }
   .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
   .td-search { width: 36px; padding: 0 !important; }
 `;
@@ -94,6 +96,7 @@ const RIGHE_STYLES = `
               <th>UM</th>
               <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
               <th>IVA%</th>
+              <th>Sconto%</th>
               <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
               <th></th>
             </tr>
@@ -120,6 +123,7 @@ const RIGHE_STYLES = `
                   [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                   (change)="setPrezzoFromInput(riga, $event)"></td>
                 <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
+                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
                 <td style="padding:4px 8px; white-space:nowrap">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </td>
@@ -162,10 +166,13 @@ export class AcquistoDialogComponent implements OnInit {
   unitaMisura: UnitaMisura[] = [];
 
   showNetto = false;
-  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo, 0); }
-  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * r.iva / 100, 0); }
+  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
+  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
-  rigaTotale(riga: RigaDocumento) { return this.showNetto ? riga.quantita * riga.prezzo : riga.quantita * riga.prezzo * (1 + riga.iva / 100); }
+  rigaTotale(riga: RigaDocumento) {
+    const net = riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
+    return this.showNetto ? riga.quantita * net : riga.quantita * net * (1 + riga.iva / 100);
+  }
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
     riga.prezzo = this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6);
@@ -185,9 +192,9 @@ export class AcquistoDialogComponent implements OnInit {
       note: [data?.note ?? ''],
     });
     if (data?.id) {
-      this.ds.getAcquistoById(data.id).subscribe(a => this.righe = a.righe ?? []);
+      this.ds.getAcquistoById(data.id).subscribe(a => { this.righe = (a.righe ?? []).map((r: any) => ({ ...r, sconto: r.sconto ?? 0 })); });
     } else {
-      this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }];
+      this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }];
     }
   }
 
@@ -235,7 +242,7 @@ export class AcquistoDialogComponent implements OnInit {
       });
   }
 
-  addRiga() { this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }); }
+  addRiga() { this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }
   removeRiga(i: number) { this.righe.splice(i, 1); }
 
   save() {
@@ -250,19 +257,51 @@ export class AcquistoDialogComponent implements OnInit {
   selector: 'app-acquisti',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule],
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule,
+            MatSortModule, MatFormFieldModule, MatInputModule],
   templateUrl: './acquisti.html',
   styleUrl: './acquisti.scss'
 })
-export class AcquistiComponent implements OnInit {
+export class AcquistiComponent implements OnInit, AfterViewInit {
   acquisti: Acquisto[] = [];
+  dataSource = new MatTableDataSource<Acquisto>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'fornitoreNome', 'tipoPagamentoNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Acquisto>(true, []);
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() { this.load(); }
-  load() { this.ds.getAcquisti().subscribe(a => { this.acquisti = a; this.selection.clear(); }); }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, col) => {
+      switch (col) {
+        case 'totale': return item.totale ?? 0;
+        case 'dataEmissione': return item.dataEmissione ?? '';
+        default: return (item as any)[col] ?? '';
+      }
+    };
+    this.dataSource.filterPredicate = (item, filter) => {
+      const s = filter.toLowerCase();
+      return (item.numero ?? '').toLowerCase().includes(s)
+          || (item.fornitoreNome ?? '').toLowerCase().includes(s)
+          || (item.stato ?? '').toLowerCase().includes(s);
+    };
+  }
+
+  load() {
+    this.ds.getAcquisti().subscribe(a => {
+      this.acquisti = a;
+      this.dataSource.data = a;
+      this.selection.clear();
+    });
+  }
+
+  applyFilter(event: Event) {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
+  }
 
   isAllSelected() { return this.acquisti.length > 0 && this.selection.selected.length === this.acquisti.length; }
   toggleAll() { this.isAllSelected() ? this.selection.clear() : this.acquisti.forEach(r => this.selection.select(r)); }

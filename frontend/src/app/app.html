@@ -1,39 +1,57 @@
-<mat-sidenav-container class="shell">
-  <mat-sidenav mode="side" opened class="sidenav">
+<div class="shell">
+  <aside class="sidenav" [class.collapsed]="collapsed">
     <div class="sidenav-header">
-      <span class="sidenav-title">Gestionale</span>
-      <span class="sidenav-sub">Magazzino ERP</span>
+      @if (!collapsed) {
+        <span class="sidenav-title">Gestionale</span>
+        <span class="sidenav-sub">Magazzino ERP</span>
+      } @else {
+        <mat-icon class="collapsed-logo">business</mat-icon>
+      }
     </div>
 
-    <mat-nav-list dense>
-      @for (item of navItems; track item.label) {
-        @if (!item.children) {
-          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
+    @if (collapsed) {
+      <div class="nav-icons">
+        @for (item of flatNavItems; track item.label) {
+          <a class="nav-icon-btn" [routerLink]="item.route" routerLinkActive="active-link"
+             [matTooltip]="item.label" matTooltipPosition="right">
+            <mat-icon>{{ item.icon }}</mat-icon>
           </a>
-        } @else {
-          <mat-expansion-panel class="sidenav-panel">
-            <mat-expansion-panel-header>
-              <mat-panel-title>
-                <mat-icon class="panel-icon">{{ item.icon }}</mat-icon>
-                {{ item.label }}
-              </mat-panel-title>
-            </mat-expansion-panel-header>
-            @for (child of item.children; track child.label) {
-              <a mat-list-item [routerLink]="child.route" routerLinkActive="active-link" class="sub-item">
-                <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
-                <span matListItemTitle>{{ child.label }}</span>
-              </a>
-            }
-          </mat-expansion-panel>
         }
-      }
-    </mat-nav-list>
-  </mat-sidenav>
+      </div>
+    } @else {
+      <mat-nav-list dense>
+        @for (item of navItems; track item.label) {
+          @if (!item.children) {
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          } @else {
+            <mat-expansion-panel class="sidenav-panel">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-icon">{{ item.icon }}</mat-icon>
+                  {{ item.label }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              @for (child of item.children; track child.label) {
+                <a mat-list-item [routerLink]="child.route" routerLinkActive="active-link" class="sub-item">
+                  <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
+                  <span matListItemTitle>{{ child.label }}</span>
+                </a>
+              }
+            </mat-expansion-panel>
+          }
+        }
+      </mat-nav-list>
+    }
+  </aside>
 
-  <mat-sidenav-content class="main-content">
+  <div class="main-content">
     <mat-toolbar class="topbar">
+      <button mat-icon-button type="button" class="toggle-btn" (click)="toggleSidebar()" [title]="collapsed ? 'Espandi menu' : 'Comprimi menu'">
+        <mat-icon>{{ collapsed ? 'menu' : 'menu_open' }}</mat-icon>
+      </button>
       <span class="topbar-company">{{ azienda?.ragioneSociale || 'La tua azienda' }}</span>
       @if (azienda?.pIva) {
         <span class="topbar-sub">&nbsp;|&nbsp;P.IVA {{ azienda!.pIva }}</span>
@@ -45,5 +63,5 @@
     <div class="content-area">
       <router-outlet />
     </div>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+  </div>
+</div>

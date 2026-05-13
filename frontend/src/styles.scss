@@ -152,6 +152,14 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 
 .empty-msg { padding: 16px; color: #94a3b8; margin: 0; }
 
+// Search field above tables
+.search-field {
+  width: 100%;
+  max-width: 380px;
+  margin-bottom: 12px;
+  display: block;
+}
+
 // Righe document table
 .righe-table { width: 100%; margin-top: 8px; }
 .righe-table th { background: #f8fafc; font-weight: 600; }

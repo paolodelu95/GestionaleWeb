@@ -1,7 +1,7 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { DataService } from '../../services/data.service';
 import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
 
@@ -113,19 +114,47 @@ export class ProdottoDialogComponent implements OnInit {
   selector: 'app-prodotti',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule],
+            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
-export class ProdottiComponent implements OnInit {
+export class ProdottiComponent implements OnInit, AfterViewInit {
   prodotti: Prodotto[] = [];
-  displayedColumns = ['id','nome','categoria','codice','prezzo','quantita','sogliaMinima','iva','azioni'];
+  dataSource = new MatTableDataSource<Prodotto>([]);
+  displayedColumns = ['id', 'nome', 'categoria', 'codice', 'prezzo', 'quantita', 'sogliaMinima', 'iva', 'azioni'];
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() { this.load(); }
 
-  load() { this.ds.getProdotti().subscribe(p => { this.prodotti = p; }); }
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, col) => {
+      switch (col) {
+        case 'id': return item.id ?? 0;
+        case 'prezzo': return item.prezzo ?? 0;
+        case 'quantita': return item.quantita ?? 0;
+        case 'sogliaMinima': return item.sogliaMinima ?? 0;
+        case 'iva': return item.iva ?? 0;
+        default: return (item as any)[col] ?? '';
+      }
+    };
+    this.dataSource.filterPredicate = (item, filter) => {
+      const s = filter.toLowerCase();
+      return (item.nome ?? '').toLowerCase().includes(s)
+          || (item.codice ?? '').toLowerCase().includes(s)
+          || (item.categoria ?? '').toLowerCase().includes(s)
+          || (item.descrizione ?? '').toLowerCase().includes(s);
+    };
+  }
+
+  load() { this.ds.getProdotti().subscribe(p => { this.prodotti = p; this.dataSource.data = p; }); }
+
+  applyFilter(event: Event) {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
+  }
 
   open(p?: Prodotto) {
     const ref = this.dialog.open(ProdottoDialogComponent, { data: p ?? null, width: '780px' });

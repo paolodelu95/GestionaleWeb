@@ -1,30 +1,89 @@
 .shell {
   height: 100vh;
+  display: flex;
   background: #0f172a;
+  overflow: hidden;
 }
 
 .sidenav {
   width: 220px;
   background-color: #1e293b;
   border-right: none;
+  transition: width 0.25s ease;
+  overflow: hidden;
+
+  &.collapsed {
+    width: 56px;
+  }
 
   .sidenav-header {
     padding: 20px 16px 12px;
     border-bottom: 1px solid #334155;
     display: flex;
     flex-direction: column;
+    min-height: 60px;
+    justify-content: center;
   }
 
   .sidenav-title {
     color: white;
     font-size: 18px;
     font-weight: 700;
+    white-space: nowrap;
   }
 
   .sidenav-sub {
     color: #94a3b8;
     font-size: 11px;
     margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  .collapsed-logo {
+    color: #94a3b8;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .nav-icons {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    gap: 2px;
+
+    .nav-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 44px;
+      color: #94a3b8;
+      text-decoration: none;
+      border-radius: 0;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      &:hover {
+        background: #334155;
+        color: #cbd5e1;
+        mat-icon { color: #cbd5e1; }
+      }
+
+      &.active-link {
+        background: #3b82f6;
+        color: white;
+        mat-icon { color: white; }
+      }
+    }
   }
 
   mat-nav-list {
@@ -34,6 +93,7 @@
       color: #e2e8f0;
       border-radius: 0;
       margin: 1px 0;
+      white-space: nowrap;
 
       mat-icon { color: #94a3b8; font-size: 20px; }
 
@@ -67,6 +127,7 @@
       padding: 0 16px;
       height: 44px;
       background: transparent !important;
+      white-space: nowrap;
       &:hover { background: #334155 !important; }
     }
 
@@ -92,7 +153,9 @@
 .main-content {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .topbar {
@@ -102,6 +165,13 @@
   min-height: 52px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   flex-shrink: 0;
+  gap: 4px;
+
+  .toggle-btn {
+    color: #94a3b8;
+    flex-shrink: 0;
+    &:hover { color: white; }
+  }
 
   .topbar-company {
     font-weight: 700;

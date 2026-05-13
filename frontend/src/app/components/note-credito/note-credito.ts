@@ -1,7 +1,7 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -11,7 +11,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura } from '../../models';
@@ -24,9 +26,13 @@ const RIGHE_STYLES = `
   .righe-table th { background: #f8fafc; padding: 8px; font-size: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
   .righe-table td { padding: 4px 2px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   .riga-input { border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-  .riga-input.num { width: 80px; }
+  .riga-input.num { width: 72px; }
+  .riga-input.sconto { width: 60px; }
   .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
   .td-search { width: 36px; padding: 0 !important; }
+  .td-history { width: 28px; padding: 0 !important; }
+  .prezzo-recente-item { display:flex; justify-content:space-between; gap:16px; font-size:13px; min-width:220px; }
+  .pr-meta { color:#64748b; font-size:11px; }
 `;
 
 @Component({
@@ -34,7 +40,7 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Nota di Credito' : 'Nuova Nota di Credito' }}</h2>
     <mat-dialog-content>
@@ -88,10 +94,12 @@ const RIGHE_STYLES = `
             <tr>
               <th>Codice / Descrizione</th>
               <th class="td-search"></th>
+              <th class="td-history"></th>
               <th>Qtà</th>
               <th>UM</th>
               <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
               <th>IVA%</th>
+              <th>Sconto%</th>
               <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
               <th></th>
             </tr>
@@ -104,6 +112,13 @@ const RIGHE_STYLES = `
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                     <mat-icon>search</mat-icon>
                   </button>
+                </td>
+                <td class="td-history">
+                  @if (prezziRecenti[$index]?.length) {
+                    <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti">
+                      <mat-icon style="font-size:18px;color:#7c3aed">history</mat-icon>
+                    </button>
+                  }
                 </td>
                 <td><input class="riga-input num" type="number" [(ngModel)]="riga.quantita"></td>
                 <td>
@@ -118,6 +133,7 @@ const RIGHE_STYLES = `
                   [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                   (change)="setPrezzoFromInput(riga, $event)"></td>
                 <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
+                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
                 <td style="padding:4px 8px; white-space:nowrap">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </td>
@@ -130,6 +146,20 @@ const RIGHE_STYLES = `
             }
           </tbody>
         </table>
+        <mat-menu #menuPR="matMenu">
+          <ng-template matMenuContent let-idx="idx">
+            @for (pr of prezziRecenti[idx]; track $index) {
+              <button mat-menu-item type="button" (click)="usaPrezzo(idx, pr.prezzo, pr.sconto)">
+                <div class="prezzo-recente-item">
+                  <span>{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}
+                    @if (pr.sconto) { <span style="color:#d97706">&nbsp;(-{{ pr.sconto }}%)</span> }
+                  </span>
+                  <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} · {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                </div>
+              </button>
+            }
+          </ng-template>
+        </mat-menu>
         <div class="righe-total">
           <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
           <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
@@ -158,13 +188,17 @@ export class NotaCreditoDialogComponent implements OnInit {
   righe: RigaDocumento[] = [];
   prodotti: Prodotto[] = [];
   unitaMisura: UnitaMisura[] = [];
+  prezziRecenti: any[][] = [];
   readonly isNew: boolean;
 
   showNetto = false;
-  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo, 0); }
-  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * r.iva / 100, 0); }
+  get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
+  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
-  rigaTotale(riga: RigaDocumento) { return this.showNetto ? riga.quantita * riga.prezzo : riga.quantita * riga.prezzo * (1 + riga.iva / 100); }
+  rigaTotale(riga: RigaDocumento) {
+    const net = riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
+    return this.showNetto ? riga.quantita * net : riga.quantita * net * (1 + riga.iva / 100);
+  }
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
     riga.prezzo = this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6);
@@ -184,8 +218,8 @@ export class NotaCreditoDialogComponent implements OnInit {
       fatturaId: [data?.fatturaId ?? null],
       note: [data?.note ?? ''],
     });
-    if (data?.id) { this.ds.getNotaCreditoById(data.id).subscribe(n => this.righe = n.righe ?? []); }
-    else { this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }]; }
+    if (data?.id) { this.ds.getNotaCreditoById(data.id).subscribe(n => { this.righe = (n.righe ?? []).map((r: any) => ({ ...r, sconto: r.sconto ?? 0 })); }); }
+    else { this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }]; }
   }
 
   ngOnInit() {
@@ -220,6 +254,11 @@ export class NotaCreditoDialogComponent implements OnInit {
     if (this.filteredClienti.length > 0) this.clienteCtrl.setValue(this.filteredClienti[0]);
   }
 
+  private get selectedClienteId(): number | null {
+    const v = this.clienteCtrl.value;
+    return v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
+  }
+
   searchProdotto(index: number) {
     this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: this.prodotti })
       .afterClosed().subscribe((p: Prodotto) => {
@@ -229,10 +268,24 @@ export class NotaCreditoDialogComponent implements OnInit {
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
         this.righe[index].prodottoId = p.id ?? null;
+        this.loadPrezziRecenti(index);
       });
   }
 
-  addRiga() { this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22 }); }
+  loadPrezziRecenti(index: number) {
+    const riga = this.righe[index];
+    if (!riga.prodottoId) return;
+    this.ds.getPrezziRecenti(riga.prodottoId, this.selectedClienteId).subscribe(pr => {
+      this.prezziRecenti[index] = pr;
+    });
+  }
+
+  usaPrezzo(index: number, prezzo: number, sconto: number) {
+    this.righe[index].prezzo = prezzo;
+    this.righe[index].sconto = sconto;
+  }
+
+  addRiga() { this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }
   removeRiga(i: number) { this.righe.splice(i, 1); }
 
   save() {
@@ -247,19 +300,51 @@ export class NotaCreditoDialogComponent implements OnInit {
   selector: 'app-note-credito',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule],
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule,
+            MatSortModule, MatFormFieldModule, MatInputModule],
   templateUrl: './note-credito.html',
   styleUrl: './note-credito.scss'
 })
-export class NoteCreditoComponent implements OnInit {
+export class NoteCreditoComponent implements OnInit, AfterViewInit {
   noteCredito: NotaCredito[] = [];
+  dataSource = new MatTableDataSource<NotaCredito>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<NotaCredito>(true, []);
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() { this.load(); }
-  load() { this.ds.getNoteCredito().subscribe(n => { this.noteCredito = n; this.selection.clear(); }); }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, col) => {
+      switch (col) {
+        case 'totale': return item.totale ?? 0;
+        case 'dataEmissione': return item.dataEmissione ?? '';
+        default: return (item as any)[col] ?? '';
+      }
+    };
+    this.dataSource.filterPredicate = (item, filter) => {
+      const s = filter.toLowerCase();
+      return (item.numero ?? '').toLowerCase().includes(s)
+          || (item.clienteNome ?? '').toLowerCase().includes(s)
+          || (item.stato ?? '').toLowerCase().includes(s);
+    };
+  }
+
+  load() {
+    this.ds.getNoteCredito().subscribe(n => {
+      this.noteCredito = n;
+      this.dataSource.data = n;
+      this.selection.clear();
+    });
+  }
+
+  applyFilter(event: Event) {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
+  }
 
   isAllSelected() { return this.noteCredito.length > 0 && this.selection.selected.length === this.noteCredito.length; }
   toggleAll() { this.isAllSelected() ? this.selection.clear() : this.noteCredito.forEach(r => this.selection.select(r)); }

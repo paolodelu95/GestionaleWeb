@@ -26,17 +26,39 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
   const d = req.body;
-  const result = db.prepare(`INSERT INTO ddt (numero, data_emissione, cliente_id, causale, note, stato)
-    VALUES (?,?,?,?,?,?)`)
-    .run(d.numero, d.dataEmissione, d.clienteId || null, d.causale, d.note, d.stato || 'BOZZA');
+  const result = db.prepare(`
+    INSERT INTO ddt (numero, data_emissione, cliente_id, causale, note, stato,
+      data_ora_inizio_trasporto, aspetto_beni, porto, numero_colli, peso_lordo,
+      incaricato_trasporto, vettore, destinazione_diversa, note_trasporto)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(
+      d.numero, d.dataEmissione, d.clienteId || null,
+      d.causaleTrasporto || '', d.note || '', d.stato || 'BOZZA',
+      d.dataOraInizioTrasporto || '', d.aspettoBeni || '',
+      d.porto || 'Franco', d.numeroColli || 0, d.pesoLordo || 0,
+      d.incaricatoTrasporto || 'Mittente', d.vettore || '',
+      d.destinazioneDiversa || '', d.noteTrasporto || ''
+    );
   if (d.righe?.length) saveRighe(result.lastInsertRowid, d.righe);
   res.json({ id: result.lastInsertRowid });
 });
 
 router.put('/:id', (req, res) => {
   const d = req.body;
-  db.prepare(`UPDATE ddt SET numero=?, data_emissione=?, cliente_id=?, causale=?, note=?, stato=? WHERE id=?`)
-    .run(d.numero, d.dataEmissione, d.clienteId || null, d.causale, d.note, d.stato, req.params.id);
+  db.prepare(`
+    UPDATE ddt SET numero=?, data_emissione=?, cliente_id=?, causale=?, note=?, stato=?,
+      data_ora_inizio_trasporto=?, aspetto_beni=?, porto=?, numero_colli=?, peso_lordo=?,
+      incaricato_trasporto=?, vettore=?, destinazione_diversa=?, note_trasporto=?
+    WHERE id=?`)
+    .run(
+      d.numero, d.dataEmissione, d.clienteId || null,
+      d.causaleTrasporto || '', d.note || '', d.stato,
+      d.dataOraInizioTrasporto || '', d.aspettoBeni || '',
+      d.porto || 'Franco', d.numeroColli || 0, d.pesoLordo || 0,
+      d.incaricatoTrasporto || 'Mittente', d.vettore || '',
+      d.destinazioneDiversa || '', d.noteTrasporto || '',
+      req.params.id
+    );
   db.prepare('DELETE FROM ddt_righe WHERE ddt_id=?').run(req.params.id);
   if (d.righe?.length) saveRighe(req.params.id, d.righe);
   res.json({ success: true });
@@ -48,9 +70,9 @@ router.delete('/:id', (req, res) => {
 });
 
 function saveRighe(ddtId, righe) {
-  const stmt = db.prepare(`INSERT INTO ddt_righe (ddt_id, prodotto_id, descrizione, quantita, prezzo, iva, unita_misura)
-    VALUES (?,?,?,?,?,?,?)`);
-  for (const r of righe) stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.iva, r.unitaMisura || '');
+  const stmt = db.prepare(`INSERT INTO ddt_righe (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura)
+    VALUES (?,?,?,?,?,?,?,?)`);
+  for (const r of righe) stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.sconto ?? 0, r.iva, r.unitaMisura || '');
 }
 
 function getRighe(ddtId) {
@@ -59,7 +81,8 @@ function getRighe(ddtId) {
     WHERE dr.ddt_id=?`).all(ddtId);
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
-    descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura, prezzo: r.prezzo, iva: r.iva
+    descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva
   }));
 }
 
@@ -69,14 +92,24 @@ router.patch('/:id/stato', (req, res) => {
 });
 
 function toDto(r) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 + iva/100)), 0) as t FROM ddt_righe WHERE ddt_id=?`).get(r.id)?.t || 0;
-  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo), 0) as t FROM ddt_righe WHERE ddt_id=?`).get(r.id)?.t || 0;
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t FROM ddt_righe WHERE ddt_id=?`).get(r.id)?.t || 0;
+  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM ddt_righe WHERE ddt_id=?`).get(r.id)?.t || 0;
   return {
     id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
-    causale: r.causale, note: r.note, stato: r.stato,
+    causaleTrasporto: r.causale || '',
+    note: r.note, stato: r.stato,
     fatturaId: r.fattura_id || null, fatturaNumero: r.fattura_numero || null,
     totale, imponibile,
+    dataOraInizioTrasporto: r.data_ora_inizio_trasporto || '',
+    aspettoBeni: r.aspetto_beni || '',
+    porto: r.porto || 'Franco',
+    numeroColli: r.numero_colli || 0,
+    pesoLordo: r.peso_lordo || 0,
+    incaricatoTrasporto: r.incaricato_trasporto || 'Mittente',
+    vettore: r.vettore || '',
+    destinazioneDiversa: r.destinazione_diversa || '',
+    noteTrasporto: r.note_trasporto || '',
   };
 }
 

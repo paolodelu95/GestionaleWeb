@@ -1,7 +1,7 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { Fornitore } from '../../models';
@@ -104,18 +105,46 @@ export class FornitoreDialogComponent implements OnInit {
 @Component({
   selector: 'app-fornitori',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule, MatDialogModule, MatSnackBarModule],
+  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
+            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
-export class FornitoriComponent implements OnInit {
+export class FornitoriComponent implements OnInit, AfterViewInit {
   fornitori: Fornitore[] = [];
-  displayedColumns = ['id','ragioneSociale','email','telefono','indirizzo','pIva','azioni'];
+  dataSource = new MatTableDataSource<Fornitore>([]);
+  displayedColumns = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'pIva', 'azioni'];
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() { this.load(); }
-  load() { this.ds.getFornitori().subscribe(f => { this.fornitori = f; }); }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, col) => {
+      switch (col) {
+        case 'id': return item.id ?? 0;
+        case 'indirizzo': return this.indirizzo(item);
+        default: return (item as any)[col] ?? '';
+      }
+    };
+    this.dataSource.filterPredicate = (item, filter) => {
+      const s = filter.toLowerCase();
+      return (item.ragioneSociale ?? '').toLowerCase().includes(s)
+          || (item.email ?? '').toLowerCase().includes(s)
+          || (item.telefono ?? '').toLowerCase().includes(s)
+          || (item.pIva ?? '').toLowerCase().includes(s)
+          || this.indirizzo(item).toLowerCase().includes(s);
+    };
+  }
+
+  load() { this.ds.getFornitori().subscribe(f => { this.fornitori = f; this.dataSource.data = f; }); }
+
+  applyFilter(event: Event) {
+    this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
+  }
 
   indirizzo(f: Fornitore) {
     return [f.via, f.cap, f.citta, f.provincia, f.stato].filter(Boolean).join(', ');
