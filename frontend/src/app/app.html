@@ -1,4 +1,7 @@
 <div class="shell">
+  @if (!collapsed) {
+    <div class="sidenav-backdrop" (click)="toggleSidebar()"></div>
+  }
   <aside class="sidenav" [class.collapsed]="collapsed">
     <div class="sidenav-header">
       @if (!collapsed) {
@@ -13,7 +16,7 @@
       <div class="nav-icons">
         @for (item of flatNavItems; track item.label) {
           <a class="nav-icon-btn" [routerLink]="item.route" routerLinkActive="active-link"
-             [matTooltip]="item.label" matTooltipPosition="right">
+             [matTooltip]="item.label" matTooltipPosition="right" (click)="closeOnMobile()">
             <mat-icon>{{ item.icon }}</mat-icon>
           </a>
         }
@@ -22,7 +25,7 @@
       <mat-nav-list dense>
         @for (item of navItems; track item.label) {
           @if (!item.children) {
-            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
             </a>
@@ -35,7 +38,7 @@
                 </mat-panel-title>
               </mat-expansion-panel-header>
               @for (child of item.children; track child.label) {
-                <a mat-list-item [routerLink]="child.route" routerLinkActive="active-link" class="sub-item">
+                <a mat-list-item [routerLink]="child.route" routerLinkActive="active-link" class="sub-item" (click)="closeOnMobile()">
                   <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
                   <span matListItemTitle>{{ child.label }}</span>
                 </a>
