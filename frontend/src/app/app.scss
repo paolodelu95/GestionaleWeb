@@ -10,7 +10,10 @@
   background-color: #1e293b;
   border-right: none;
   transition: width 0.25s ease;
-  overflow: hidden;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 
   &.collapsed {
     width: 56px;
@@ -23,6 +26,7 @@
     flex-direction: column;
     min-height: 60px;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .sidenav-title {
@@ -53,6 +57,8 @@
     flex-direction: column;
     padding: 8px 0;
     gap: 2px;
+    overflow-y: auto;
+    flex: 1;
 
     .nav-icon-btn {
       display: flex;
@@ -88,6 +94,8 @@
 
   mat-nav-list {
     padding-top: 8px;
+    overflow-y: auto;
+    flex: 1;
 
     a[mat-list-item] {
       color: #e2e8f0;
