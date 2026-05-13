@@ -179,6 +179,21 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   .card { padding: 10px; overflow-x: auto; }
   .mat-mdc-table { min-width: unset; }
 
+  // Form nei dialoghi: campi impilati verticalmente
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .dialog-form { gap: 0; }
+
+  // Tabella righe documento: scroll orizzontale
+  .righe-section { overflow-x: auto; }
+
+  // Padding dialogo ridotto
+  .mat-mdc-dialog-content { padding: 0 12px 12px !important; }
+  .mat-mdc-dialog-surface { padding: 16px 0 0 !important; }
+  .mat-mdc-dialog-actions { padding: 8px 12px !important; }
+
   // Dialoghi a schermo intero
   .cdk-overlay-pane:has(.mat-mdc-dialog-container) {
     width: 100vw !important;
