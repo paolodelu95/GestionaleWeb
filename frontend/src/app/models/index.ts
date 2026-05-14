@@ -218,6 +218,8 @@ export interface Pagamento {
   fatturaNumero?: string;
   acquistoId?: number | null;
   acquistoNumero?: string;
+  clienteNome?: string;
+  fornitoreNome?: string;
   dataPagamento: string;
   importo: number;
   metodo?: string;

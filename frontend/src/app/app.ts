@@ -63,7 +63,6 @@ export class App implements OnInit {
         { label: 'Acquisti',        icon: 'shopping_bag',  route: '/acquisti' },
       ]
     },
-    { label: 'Scadenzario',  icon: 'event',          route: '/scadenzario' },
     { label: 'Pagamenti',    icon: 'payments',       route: '/pagamenti' },
     { label: 'Report',       icon: 'bar_chart',      route: '/report' },
     { label: 'Impostazioni', icon: 'settings',       route: '/impostazioni' },
