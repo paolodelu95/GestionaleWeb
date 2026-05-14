@@ -28,7 +28,7 @@ export class DashboardComponent implements OnInit {
 
   ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
   fattureCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
-  acquistiCols = ['numero', 'fornitoreNome', 'totale'];
+  acquistiCols = ['numero', 'dataEmissione','fornitoreNome', 'totale'];
   prodottiCols = ['nome', 'categoria', 'quantita', 'sogliaMinima'];
 
   readonly oggi = new Date().toISOString().substring(0, 10);
