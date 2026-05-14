@@ -14,6 +14,25 @@
       </div>
     }
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo Acquisto</button>
+    <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+  </div>
+
+  <div class="filter-bar">
+    <mat-select [(ngModel)]="filtroAnno" (selectionChange)="applyFilters()" placeholder="Anno">
+      <mat-option [value]="null">Tutti gli anni</mat-option>
+      @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
+    </mat-select>
+    <mat-select [(ngModel)]="filtroMese" (selectionChange)="applyFilters()" placeholder="Mese">
+      <mat-option [value]="null">Tutti i mesi</mat-option>
+      @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
+    </mat-select>
+    <mat-select [(ngModel)]="filtroFornitore" (selectionChange)="applyFilters()" placeholder="Fornitore">
+      <mat-option [value]="null">Tutti i fornitori</mat-option>
+      @for (f of fornitoriList; track f.id) { <mat-option [value]="f.id">{{ f.nome }}</mat-option> }
+    </mat-select>
+    @if (filtroAnno || filtroMese || filtroFornitore) {
+      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+    }
   </div>
 
   <div class="card">

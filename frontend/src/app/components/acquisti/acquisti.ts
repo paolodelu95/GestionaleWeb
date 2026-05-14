@@ -256,17 +256,30 @@ export class AcquistoDialogComponent implements OnInit {
 @Component({
   selector: 'app-acquisti',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
+  imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule],
   templateUrl: './acquisti.html',
   styleUrl: './acquisti.scss'
 })
 export class AcquistiComponent implements OnInit, AfterViewInit {
-  acquisti: Acquisto[] = [];
+  private allAcquisti: Acquisto[] = [];
   dataSource = new MatTableDataSource<Acquisto>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'fornitoreNome', 'tipoPagamentoNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Acquisto>(true, []);
+
+  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  filtroAnno: number | null = null;
+  filtroMese: number | null = null;
+  filtroFornitore: number | null = null;
+
+  get anni() { return [...new Set(this.allAcquisti.map(a => +a.dataEmissione.substring(0, 4)))].sort().reverse(); }
+  get fornitoriList() {
+    const map = new Map<number, string>();
+    this.allAcquisti.forEach(a => { if (a.fornitoreId) map.set(a.fornitoreId, a.fornitoreNome ?? ''); });
+    return [...map.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+  get acquisti() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -293,18 +306,33 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
 
   load() {
     this.ds.getAcquisti().subscribe(a => {
-      this.acquisti = a;
-      this.dataSource.data = a;
+      this.allAcquisti = a;
+      this.applyFilters();
       this.selection.clear();
     });
+  }
+
+  applyFilters() {
+    let data = this.allAcquisti;
+    if (this.filtroAnno) data = data.filter(a => +a.dataEmissione.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(a => +a.dataEmissione.substring(5, 7) === this.filtroMese);
+    if (this.filtroFornitore) data = data.filter(a => a.fornitoreId === this.filtroFornitore);
+    this.dataSource.data = data;
+  }
+
+  resetFiltri() {
+    this.filtroAnno = null; this.filtroMese = null; this.filtroFornitore = null;
+    this.dataSource.filter = ''; this.applyFilters();
   }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
   }
 
-  isAllSelected() { return this.acquisti.length > 0 && this.selection.selected.length === this.acquisti.length; }
-  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.acquisti.forEach(r => this.selection.select(r)); }
+  print() { window.print(); }
+
+  isAllSelected() { return this.dataSource.data.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
+  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 
   setStato(a: Acquisto, stato: string) {
     this.ds.setAcquistoStato(a.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });

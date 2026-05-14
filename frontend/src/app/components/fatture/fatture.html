@@ -11,6 +11,31 @@
       </div>
     }
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuova Fattura</button>
+    <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+  </div>
+
+  <div class="filter-bar">
+    <mat-select [(ngModel)]="filtroAnno" (selectionChange)="applyFilters()" placeholder="Anno">
+      <mat-option [value]="null">Tutti gli anni</mat-option>
+      @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
+    </mat-select>
+    <mat-select [(ngModel)]="filtroMese" (selectionChange)="applyFilters()" placeholder="Mese">
+      <mat-option [value]="null">Tutti i mesi</mat-option>
+      @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
+    </mat-select>
+    <mat-select [(ngModel)]="filtroCliente" (selectionChange)="applyFilters()" placeholder="Cliente">
+      <mat-option [value]="null">Tutti i clienti</mat-option>
+      @for (c of clientiList; track c.id) { <mat-option [value]="c.id">{{ c.nome }}</mat-option> }
+    </mat-select>
+    <mat-select [(ngModel)]="filtroStato" (selectionChange)="applyFilters()" placeholder="Stato">
+      <mat-option [value]="null">Tutti gli stati</mat-option>
+      <mat-option value="EMESSA">Emessa</mat-option>
+      <mat-option value="PAGATA">Pagata</mat-option>
+      <mat-option value="ANNULLATA">Annullata</mat-option>
+    </mat-select>
+    @if (filtroAnno || filtroMese || filtroCliente || filtroStato) {
+      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+    }
   </div>
 
   <div class="card">

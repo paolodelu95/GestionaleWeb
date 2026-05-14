@@ -474,16 +474,30 @@ export class DdtDialogComponent implements OnInit {
 @Component({
   selector: 'app-ddt',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule],
+  imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
+            MatSelectModule],
   templateUrl: './ddt.html',
   styleUrl: './ddt.scss'
 })
 export class DdtComponent implements OnInit, AfterViewInit {
-  ddt: Ddt[] = [];
+  private allDdt: Ddt[] = [];
   dataSource = new MatTableDataSource<Ddt>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'fattura', 'azioni'];
   selection = new SelectionModel<Ddt>(true, []);
+
+  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  filtroAnno: number | null = null;
+  filtroMese: number | null = null;
+  filtroCliente: number | null = null;
+
+  get anni() { return [...new Set(this.allDdt.map(d => +d.dataEmissione.substring(0, 4)))].sort().reverse(); }
+  get clientiList() {
+    const map = new Map<number, string>();
+    this.allDdt.forEach(d => { if (d.clienteId) map.set(d.clienteId, d.clienteNome ?? ''); });
+    return [...map.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+  get ddt() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -504,14 +518,31 @@ export class DdtComponent implements OnInit, AfterViewInit {
       [data.numero, data.clienteNome, data.stato].some(v => v?.toLowerCase().includes(filter));
   }
 
-  load() { this.ds.getDdt().subscribe(d => { this.ddt = d; this.dataSource.data = d; this.selection.clear(); }); }
+  load() {
+    this.ds.getDdt().subscribe(d => { this.allDdt = d; this.applyFilters(); this.selection.clear(); });
+  }
+
+  applyFilters() {
+    let data = this.allDdt;
+    if (this.filtroAnno) data = data.filter(d => +d.dataEmissione.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(d => +d.dataEmissione.substring(5, 7) === this.filtroMese);
+    if (this.filtroCliente) data = data.filter(d => d.clienteId === this.filtroCliente);
+    this.dataSource.data = data;
+  }
+
+  resetFiltri() {
+    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null;
+    this.dataSource.filter = ''; this.applyFilters();
+  }
+
+  print() { window.print(); }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
   }
 
-  isAllSelected() { return this.ddt.length > 0 && this.selection.selected.length === this.ddt.length; }
-  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.ddt.forEach(r => this.selection.select(r)); }
+  isAllSelected() { return this.dataSource.data.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
+  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 
   setStato(d: Ddt, stato: string) {
     this.ds.setDdtStato(d.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });

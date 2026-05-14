@@ -160,6 +160,30 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   display: block;
 }
 
+// Filter bar (anno/mese/entity selects)
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  mat-select { min-width: 110px; max-width: 200px; font-size: 14px; }
+}
+
+// Print
+@media print {
+  mat-sidenav, .sidenav, mat-toolbar, .page-header button,
+  .filter-bar, .search-field, mat-button-toggle-group, .bulk-bar,
+  .table-actions { display: none !important; }
+  mat-sidenav-container { display: block !important; }
+  mat-sidenav-content { margin-left: 0 !important; }
+  .page { padding: 8px; background: white; }
+  .card { box-shadow: none; padding: 0; }
+  .mat-mdc-table { min-width: unset; }
+  .page-title { font-size: 16px; margin-bottom: 8px; display: block; }
+  .page-header { margin-bottom: 8px; }
+}
+
 // Righe document table
 .righe-table { width: 100%; margin-top: 8px; }
 .righe-table th { background: #f8fafc; font-weight: 600; }
