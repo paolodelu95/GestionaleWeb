@@ -535,7 +535,14 @@ export class DdtComponent implements OnInit, AfterViewInit {
     this.dataSource.filter = ''; this.applyFilters();
   }
 
-  print() { window.print(); }
+  print() {
+    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
+    const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
+    const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
+    const body = rows.map(r=>`<tr><td>${r.numero}</td><td>${d(r.dataEmissione)}</td><td>${r.clienteNome||'—'}</td><td class="r">${e(r.totale)}</td><td>${r.stato}</td><td>${r.fatturaNumero||'—'}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><title>DDT</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>DDT</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th><th>Fattura</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();

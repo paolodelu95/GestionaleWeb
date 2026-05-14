@@ -338,17 +338,25 @@ export class OrdineDialogComponent implements OnInit {
 @Component({
   selector: 'app-ordini',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
+  imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule],
   templateUrl: './ordini.html',
   styleUrl: './ordini.scss'
 })
 export class OrdiniComponent implements OnInit, AfterViewInit {
-  ordini: Ordine[] = [];
+  private allOrdini: Ordine[] = [];
   dataSource = new MatTableDataSource<Ordine>([]);
   displayedColumns = ['select', 'numero', 'dataOrdine', 'tipo', 'controparte', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Ordine>(true, []);
+
+  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  filtroAnno: number | null = null;
+  filtroMese: number | null = null;
+  filtroTipo: string | null = null;
+
+  get anni() { return [...new Set(this.allOrdini.map(o => +o.dataOrdine.substring(0, 4)))].sort().reverse(); }
+  get ordini() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -378,18 +386,40 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   load() {
     this.ds.getOrdini().subscribe(o => {
-      this.ordini = o;
-      this.dataSource.data = o;
+      this.allOrdini = o;
+      this.applyFilters();
       this.selection.clear();
     });
+  }
+
+  applyFilters() {
+    let data = this.allOrdini;
+    if (this.filtroAnno) data = data.filter(o => +o.dataOrdine.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(o => +o.dataOrdine.substring(5, 7) === this.filtroMese);
+    if (this.filtroTipo) data = data.filter(o => o.tipo === this.filtroTipo);
+    this.dataSource.data = data;
+  }
+
+  resetFiltri() {
+    this.filtroAnno = null; this.filtroMese = null; this.filtroTipo = null;
+    this.dataSource.filter = ''; this.applyFilters();
   }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
   }
 
-  isAllSelected() { return this.ordini.length > 0 && this.selection.selected.length === this.ordini.length; }
-  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.ordini.forEach(r => this.selection.select(r)); }
+  print() {
+    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
+    const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
+    const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
+    const body = rows.map(o=>`<tr><td>${o.numero}</td><td>${d(o.dataOrdine)}</td><td>${o.tipo}</td><td>${o.clienteNome||o.fornitoreNome||'—'}</td><td class="r">${e(o.totale)}</td><td>${o.stato}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><title>Ordini</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Ordini</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Tipo</th><th>Controparte</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
+
+  isAllSelected() { return this.dataSource.data.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
+  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 
   setStato(o: Ordine, stato: string) {
     this.ds.setOrdineStato(o.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });

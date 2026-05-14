@@ -259,7 +259,23 @@ export class PagamentiComponent implements OnInit {
   }
 
   resetFiltri() { this.filtroAnno = null; this.filtroMese = null; this.filtroControparte = null; }
-  print() { window.print(); }
+
+  print() {
+    const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
+    const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
+    let html: string;
+    if (this.filtro === 'DA_SALDARE') {
+      const rows = this.selection.hasValue() ? this.selection.selected : this.scadenzario;
+      const body = rows.map(r=>`<tr><td>${r.tipoEntry}</td><td>${r.numero}</td><td>${d(r.dataEmissione)}</td><td>${d(r.dataScadenza||'')}</td><td>${r.controparte||'—'}</td><td class="r">${e(r.rimanente)}</td></tr>`).join('');
+      html = `<!DOCTYPE html><html><head><title>Da Saldare</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Da Saldare</h1><table><thead><tr><th>Tipo</th><th>Numero</th><th>Data</th><th>Scadenza</th><th>Controparte</th><th class="r">Rimanente</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    } else {
+      const rows = this.pagamenti;
+      const body = rows.map(p=>`<tr><td>${d(p.dataPagamento)}</td><td>${p.tipo||'—'}</td><td class="r">${e(p.importo)}</td><td>${p.clienteNome||p.fornitoreNome||'—'}</td><td>${p.metodo||'—'}</td></tr>`).join('');
+      const title = this.filtro === 'ENTRATE' ? 'Entrate' : this.filtro === 'USCITE' ? 'Uscite' : 'Pagamenti';
+      html = `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${title}</h1><table><thead><tr><th>Data</th><th>Tipo</th><th class="r">Importo</th><th>Controparte</th><th>Metodo</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    }
+    const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
 
   get anni() {
     const src = this.filtro === 'DA_SALDARE'

@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -313,16 +314,29 @@ export class PreventivoDialogComponent implements OnInit {
 @Component({
   selector: 'app-preventivi',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule],
+  imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatSelectModule],
   templateUrl: './preventivi.html',
   styleUrl: './preventivi.scss'
 })
 export class PreventiviComponent implements OnInit, AfterViewInit {
-  preventivi: Preventivo[] = [];
+  private allPreventivi: Preventivo[] = [];
   dataSource = new MatTableDataSource<Preventivo>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Preventivo>(true, []);
+
+  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  filtroAnno: number | null = null;
+  filtroMese: number | null = null;
+  filtroCliente: number | null = null;
+
+  get anni() { return [...new Set(this.allPreventivi.map(p => +p.dataEmissione.substring(0, 4)))].sort().reverse(); }
+  get clientiList() {
+    const map = new Map<number, string>();
+    this.allPreventivi.forEach(p => { if (p.clienteId) map.set(p.clienteId, p.clienteNome ?? ''); });
+    return [...map.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+  get preventivi() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -343,14 +357,38 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
       [data.numero, data.clienteNome, data.stato].some(v => v?.toLowerCase().includes(filter));
   }
 
-  load() { this.ds.getPreventivi().subscribe(p => { this.preventivi = p; this.dataSource.data = p; this.selection.clear(); }); }
+  load() {
+    this.ds.getPreventivi().subscribe(p => { this.allPreventivi = p; this.applyFilters(); this.selection.clear(); });
+  }
+
+  applyFilters() {
+    let data = this.allPreventivi;
+    if (this.filtroAnno) data = data.filter(p => +p.dataEmissione.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(p => +p.dataEmissione.substring(5, 7) === this.filtroMese);
+    if (this.filtroCliente) data = data.filter(p => p.clienteId === this.filtroCliente);
+    this.dataSource.data = data;
+  }
+
+  resetFiltri() {
+    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null;
+    this.dataSource.filter = ''; this.applyFilters();
+  }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
   }
 
-  isAllSelected() { return this.preventivi.length > 0 && this.selection.selected.length === this.preventivi.length; }
-  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.preventivi.forEach(r => this.selection.select(r)); }
+  print() {
+    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
+    const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
+    const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
+    const body = rows.map(p=>`<tr><td>${p.numero}</td><td>${d(p.dataEmissione)}</td><td>${p.clienteNome||'—'}</td><td class="r">${e(p.totale)}</td><td>${p.stato}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><title>Preventivi</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Preventivi</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
+
+  isAllSelected() { return this.dataSource.data.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
+  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 
   setStato(p: Preventivo, stato: string) {
     this.ds.setPreventivoStato(p.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
