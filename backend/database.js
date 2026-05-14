@@ -282,8 +282,26 @@ const migrations = [
   'ALTER TABLE ddt ADD COLUMN vettore TEXT DEFAULT ""',
   'ALTER TABLE ddt ADD COLUMN destinazione_diversa TEXT DEFAULT ""',
   'ALTER TABLE ddt ADD COLUMN note_trasporto TEXT DEFAULT ""',
+  'ALTER TABLE clienti ADD COLUMN sdi TEXT DEFAULT ""',
+  'ALTER TABLE clienti ADD COLUMN pec TEXT DEFAULT ""',
+  'ALTER TABLE clienti ADD COLUMN tipo_pagamento_id INTEGER',
+  'ALTER TABLE fornitori ADD COLUMN sdi TEXT DEFAULT ""',
+  'ALTER TABLE fornitori ADD COLUMN pec TEXT DEFAULT ""',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
+
+// Tabella molti-a-molti fatture ↔ ddt (supporta più DDT per fattura)
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fatture_ddt (
+      fattura_id INTEGER NOT NULL REFERENCES fatture(id) ON DELETE CASCADE,
+      ddt_id     INTEGER NOT NULL REFERENCES ddt(id),
+      PRIMARY KEY (fattura_id, ddt_id)
+    );
+    INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id)
+      SELECT id, ddt_id FROM fatture WHERE ddt_id IS NOT NULL;
+  `);
+} catch(_) {}
 
 // Seed aliquote IVA standard italiane
 try {

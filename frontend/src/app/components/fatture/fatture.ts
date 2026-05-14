@@ -75,15 +75,39 @@ const RIGHE_STYLES = `
                     <mat-error>Seleziona un cliente</mat-error>
                   }
                 </mat-form-field>
-                <mat-form-field>
-                  <mat-label>DDT collegato</mat-label>
-                  <mat-select formControlName="ddtId">
-                    <mat-option [value]="null">— nessuno —</mat-option>
-                    @for (d of ddtsFiltrati; track d.id) { <mat-option [value]="d.id">{{ d.numero }} — {{ d.dataEmissione | date:'dd/MM/yy' }}</mat-option> }
-                  </mat-select>
-                </mat-form-field>
               </div>
             </form>
+
+            <!-- DDT collegati (visibile solo dopo aver selezionato il cliente) -->
+            @if (hasCliente) {
+            <div class="ddt-section">
+              <div class="ddt-header">
+                <span style="font-size:13px;font-weight:600;color:#374151">DDT collegati</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <select class="riga-input" style="width:auto;min-width:220px" [(ngModel)]="ddtSelezione" (change)="addDdt()">
+                    <option [ngValue]="null">— Collega DDT... —</option>
+                    @for (d of ddtDisponibili; track d.id) {
+                      <option [ngValue]="d.id">DDT {{ d.numero }} — {{ d.dataEmissione | date:'dd/MM/yy' }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              @if (linkedDdts.length) {
+                <div class="ddt-chips">
+                  @for (d of linkedDdts; track d.id) {
+                    <span class="ddt-chip">
+                      <mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle;margin-right:4px">local_shipping</mat-icon>
+                      DDT n. {{ d.numero }} del {{ d.dataEmissione | date:'dd/MM/yyyy' }}
+                      <button type="button" class="chip-remove" (click)="removeDdt(d.id!)" title="Scollega DDT">×</button>
+                    </span>
+                  }
+                </div>
+              } @else {
+                <p style="margin:6px 0 0;font-size:12px;color:#94a3b8">Nessun DDT collegato. Selezionane uno per importare le righe automaticamente.</p>
+              }
+            </div>
+            }
+
             <div class="righe-section">
               <div class="righe-header">
                 <div style="display:flex;align-items:center;gap:12px">
@@ -158,7 +182,7 @@ const RIGHE_STYLES = `
                       <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
                       <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
                       <td style="padding:4px 8px; white-space:nowrap">
-                        {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
+                        {{ isRigaNota(riga) ? '' : (rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it') }}
                       </td>
                       <td>
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -300,6 +324,12 @@ const RIGHE_STYLES = `
     .tipo-badge { font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600; background:#e2e8f0; color:#475569; }
     .tipo-automatico { background:#dbeafe; color:#1d4ed8; }
     .tipo-acconto { background:#dcfce7; color:#15803d; }
+    .ddt-section { margin: 12px 0 8px; padding: 12px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .ddt-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .ddt-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .ddt-chip { display:inline-flex; align-items:center; background:#dbeafe; color:#1d4ed8; border-radius:20px; padding:4px 10px 4px 10px; font-size:12px; font-weight:500; }
+    .chip-remove { background:none; border:none; cursor:pointer; color:#1d4ed8; font-size:16px; line-height:1; margin-left:6px; padding:0; opacity:0.7; }
+    .chip-remove:hover { opacity:1; }
   `]
 })
 export class FatturaDialogComponent implements OnInit, AfterViewInit {
@@ -308,6 +338,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
   ddts: Ddt[] = [];
+  linkedDdts: Ddt[] = [];
+  ddtSelezione: number | null = null;
   righe: RigaDocumento[] = [];
   prodotti: Prodotto[] = [];
   unitaMisura: UnitaMisura[] = [];
@@ -336,6 +368,19 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     return v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
   }
 
+  get ddtsFiltrati(): Ddt[] {
+    const cid = this.clienteId;
+    return cid ? this.ddts.filter(d => d.clienteId === cid) : [];
+  }
+
+  get ddtDisponibili(): Ddt[] {
+    const linkedIds = new Set(this.linkedDdts.map(d => d.id));
+    const currentFatturaId = this.data?.id;
+    return this.ddtsFiltrati.filter(d =>
+      !linkedIds.has(d.id) && (!d.fatturaId || d.fatturaId === currentFatturaId)
+    );
+  }
+
   showNetto = false;
   get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
   get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
@@ -343,6 +388,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   rigaTotale(riga: RigaDocumento) {
     const net = riga.quantita * riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
     return this.showNetto ? net : net * (1 + riga.iva / 100);
+  }
+  isRigaNota(riga: RigaDocumento) {
+    return riga.quantita === 0 && riga.prezzo === 0 && riga.iva === 0;
   }
 
   get tipoPagamentoSelezionato(): TipoPagamento | null {
@@ -405,6 +453,43 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     riga.prezzo = this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6);
   }
 
+  addDdt() {
+    const id = this.ddtSelezione;
+    if (!id) return;
+    this.ddtSelezione = null;
+    if (this.linkedDdts.some(d => d.id === id)) return;
+
+    this.ds.getDdtById(id).subscribe(ddt => {
+      this.linkedDdts.push(ddt);
+
+      // Rimuove la riga placeholder vuota iniziale
+      if (this.righe.length === 1) {
+        const r = this.righe[0];
+        if (!r.descrizione?.trim() && !r.prodottoId) {
+          this.righe.splice(0, 1);
+          this.prezziRecenti.splice(0, 1);
+        }
+      }
+
+      const [year, month, day] = ddt.dataEmissione.split('T')[0].split('-');
+      const dataFmt = `${day}/${month}/${year}`;
+
+      // Riga di intestazione con il riferimento al DDT
+      this.righe.push({ descrizione: `Riferimento DDT n. ${ddt.numero} del ${dataFmt}`, quantita: 0, prezzo: 0, sconto: 0, iva: 0, unitaMisura: '' });
+      this.prezziRecenti.push([]);
+
+      // Righe prodotti del DDT
+      if (ddt.righe?.length) {
+        this.righe.push(...ddt.righe.map(r => ({ ...r, id: undefined })));
+        this.prezziRecenti.push(...new Array(ddt.righe.length).fill([]));
+      }
+    });
+  }
+
+  removeDdt(ddtId: number) {
+    this.linkedDdts = this.linkedDdts.filter(d => d.id !== ddtId);
+  }
+
   constructor(
     private fb: FormBuilder,
     private ds: DataService,
@@ -419,11 +504,19 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.form = this.fb.group({
       numero: [data?.numero ?? '', Validators.required],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
-      ddtId: [data?.ddtId ?? null],
       note: [data?.note ?? ''],
     });
     if (data?.id) {
-      this.ds.getFatturaById(data.id).subscribe(f => { this.righe = f.righe ?? []; this.prezziRecenti = new Array(this.righe.length).fill([]); });
+      this.ds.getFatturaById(data.id).subscribe(f => {
+        this.righe = f.righe ?? [];
+        this.prezziRecenti = new Array(this.righe.length).fill([]);
+        // Carica i DDT collegati per visualizzarli
+        if (f.ddtIds?.length) {
+          f.ddtIds.forEach(ddtId => {
+            this.ds.getDdtById(ddtId).subscribe(ddt => this.linkedDdts.push(ddt));
+          });
+        }
+      });
     } else if (data?.righe?.length) {
       this.righe = [...data.righe];
       this.prezziRecenti = new Array(this.righe.length).fill([]);
@@ -437,6 +530,10 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.clienteCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredClienti = this.clienti.filter(c => c.ragioneSociale.toLowerCase().includes(q));
+      if (v && typeof v !== 'string' && this.isNew && !this.selectedTipoPagamentoId) {
+        const tp = (v as Cliente).tipoPagamentoId;
+        if (tp) this.selectedTipoPagamentoId = tp;
+      }
     });
 
     this.ds.getClienti().subscribe(c => {
@@ -457,12 +554,6 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     if (this.isNew && !this.data?.numero) {
       this.ds.getNextNumero('fatture').subscribe(n => this.form.patchValue({ numero: String(n.numero) }));
     }
-  }
-
-  get ddtsFiltrati(): Ddt[] {
-    const v = this.clienteCtrl.value;
-    const cid = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
-    return cid ? this.ddts.filter(d => d.clienteId === cid) : this.ddts;
   }
 
   displayCliente(c: Cliente | string | null): string {
@@ -499,7 +590,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     const clienteId = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
     this.dialogRef.close({
       ...this.data, ...this.form.value, clienteId,
+      stato: this.data?.stato ?? 'EMESSA',
       tipoPagamentoId: this.selectedTipoPagamentoId,
+      ddtIds: this.linkedDdts.map(d => d.id).filter(Boolean),
       righe: this.righe
     });
   }

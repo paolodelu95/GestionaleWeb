@@ -39,12 +39,17 @@ router.post('/', (req, res) => {
       d.incaricatoTrasporto || 'Mittente', d.vettore || '',
       d.destinazioneDiversa || '', d.noteTrasporto || ''
     );
-  if (d.righe?.length) saveRighe(result.lastInsertRowid, d.righe);
+  if (d.righe?.length) {
+    saveRighe(result.lastInsertRowid, d.righe);
+    aggiornaQuantita(d.righe, -1);
+  }
   res.json({ id: result.lastInsertRowid });
 });
 
 router.put('/:id', (req, res) => {
   const d = req.body;
+  const vecchieRighe = getRighe(req.params.id);
+  if (vecchieRighe.length) aggiornaQuantita(vecchieRighe, +1);
   db.prepare(`
     UPDATE ddt SET numero=?, data_emissione=?, cliente_id=?, causale=?, note=?, stato=?,
       data_ora_inizio_trasporto=?, aspetto_beni=?, porto=?, numero_colli=?, peso_lordo=?,
@@ -60,14 +65,26 @@ router.put('/:id', (req, res) => {
       req.params.id
     );
   db.prepare('DELETE FROM ddt_righe WHERE ddt_id=?').run(req.params.id);
-  if (d.righe?.length) saveRighe(req.params.id, d.righe);
+  if (d.righe?.length) {
+    saveRighe(req.params.id, d.righe);
+    aggiornaQuantita(d.righe, -1);
+  }
   res.json({ success: true });
 });
 
 router.delete('/:id', (req, res) => {
+  const righe = getRighe(req.params.id);
+  if (righe.length) aggiornaQuantita(righe, +1);
   db.prepare('DELETE FROM ddt WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
+
+function aggiornaQuantita(righe, delta) {
+  const stmt = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+  for (const r of righe) {
+    if (r.prodottoId) stmt.run(delta * r.quantita, r.prodottoId);
+  }
+}
 
 function saveRighe(ddtId, righe) {
   const stmt = db.prepare(`INSERT INTO ddt_righe (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura)
@@ -87,7 +104,14 @@ function getRighe(ddtId) {
 }
 
 router.patch('/:id/stato', (req, res) => {
-  db.prepare('UPDATE ddt SET stato=? WHERE id=?').run(req.body.stato, req.params.id);
+  const { stato } = req.body;
+  const vecchio = db.prepare('SELECT stato FROM ddt WHERE id=?').get(req.params.id);
+  if (stato === 'ANNULLATO' && vecchio?.stato !== 'ANNULLATO') {
+    aggiornaQuantita(getRighe(req.params.id), +1);
+  } else if (vecchio?.stato === 'ANNULLATO' && stato !== 'ANNULLATO') {
+    aggiornaQuantita(getRighe(req.params.id), -1);
+  }
+  db.prepare('UPDATE ddt SET stato=? WHERE id=?').run(stato, req.params.id);
   res.json({ success: true });
 });
 

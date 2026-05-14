@@ -8,12 +8,13 @@ import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angu
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Cliente } from '../../models';
+import { Cliente, TipoPagamento } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-validators';
 
 // ── Dialog ────────────────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-
   selector: 'app-cliente-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica cliente' : 'Nuovo cliente' }}</h2>
     <mat-dialog-content>
@@ -68,6 +69,23 @@ import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-
             <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
           }
         </mat-form-field>
+        <div class="form-row">
+          <mat-form-field><mat-label>Codice SDI</mat-label>
+            <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
+          </mat-form-field>
+          <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
+            <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
+          </mat-form-field>
+        </div>
+        <mat-form-field style="width:100%">
+          <mat-label>Metodo di pagamento preferito</mat-label>
+          <mat-select formControlName="tipoPagamentoId">
+            <mat-option [value]="null">— nessuno —</mat-option>
+            @for (t of tipiPagamento; track t.id) {
+              <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -78,10 +96,12 @@ import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-
 export class ClienteDialogComponent implements OnInit {
   form: FormGroup;
   filteredCities: CityResult[] = [];
+  tipiPagamento: TipoPagamento[] = [];
   private cityMap = new Map<string, CityResult>();
 
   constructor(
     private fb: FormBuilder,
+    private ds: DataService,
     private cityService: CityService,
     public dialogRef: MatDialogRef<ClienteDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Cliente | null
@@ -97,10 +117,15 @@ export class ClienteDialogComponent implements OnInit {
       stato:          [data?.stato ?? 'Italia'],
       codiceFiscale:  [data?.codiceFiscale ?? '', codiceFiscaleValidator],
       pIva:           [data?.pIva ?? '', pIvaValidator],
+      sdi:            [data?.sdi ?? ''],
+      pec:            [data?.pec ?? ''],
+      tipoPagamentoId:[data?.tipoPagamentoId ?? null],
     });
   }
 
   ngOnInit() {
+    this.ds.getTipiPagamento().subscribe(t => this.tipiPagamento = t.filter(x => x.attivo));
+
     this.form.get('citta')!.valueChanges.pipe(
       debounceTime(300), distinctUntilChanged(),
       switchMap(v => this.cityService.searchCities(v ?? ''))

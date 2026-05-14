@@ -15,17 +15,17 @@ router.get('/count', (req, res) => {
 router.post('/', (req, res) => {
   const c = req.body;
   const result = db.prepare(`INSERT INTO clienti
-    (ragione_sociale, email, telefono, via, cap, citta, provincia, stato, codice_fiscale, p_iva)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, c.pIva);
+    (ragione_sociale, email, telefono, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(c.ragioneSociale, c.email, c.telefono, c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, c.pIva, c.sdi || '', c.pec || '', c.tipoPagamentoId || null);
   res.json({ id: result.lastInsertRowid });
 });
 
 router.put('/:id', (req, res) => {
   const c = req.body;
   db.prepare(`UPDATE clienti SET ragione_sociale=?, email=?, telefono=?, via=?, cap=?,
-    citta=?, provincia=?, stato=?, codice_fiscale=?, p_iva=? WHERE id=?`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, c.pIva, req.params.id);
+    citta=?, provincia=?, stato=?, codice_fiscale=?, p_iva=?, sdi=?, pec=?, tipo_pagamento_id=? WHERE id=?`)
+    .run(c.ragioneSociale, c.email, c.telefono, c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, c.pIva, c.sdi || '', c.pec || '', c.tipoPagamentoId || null, req.params.id);
   res.json({ success: true });
 });
 
@@ -38,7 +38,7 @@ function toDto(r) {
   return {
     id: r.id, ragioneSociale: r.ragione_sociale, email: r.email, telefono: r.telefono,
     via: r.via, cap: r.cap, citta: r.citta, provincia: r.provincia, stato: r.stato,
-    codiceFiscale: r.codice_fiscale, pIva: r.p_iva
+    codiceFiscale: r.codice_fiscale, pIva: r.p_iva, sdi: r.sdi, pec: r.pec, tipoPagamentoId: r.tipo_pagamento_id
   };
 }
 

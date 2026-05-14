@@ -292,7 +292,7 @@ export class NotaCreditoDialogComponent implements OnInit {
     if (!this.form.valid) return;
     const v = this.clienteCtrl.value;
     const clienteId = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
-    this.dialogRef.close({ ...this.data, ...this.form.value, clienteId, righe: this.righe });
+    this.dialogRef.close({ ...this.data, ...this.form.value, clienteId, stato: this.data?.stato ?? 'EMESSA', righe: this.righe });
   }
 }
 

@@ -55,6 +55,14 @@ import { pIvaValidator } from '../../validators/italian-validators';
             }
           </mat-form-field>
         </div>
+        <div class="form-row">
+          <mat-form-field><mat-label>Codice SDI</mat-label>
+            <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
+          </mat-form-field>
+          <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
+            <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
+          </mat-form-field>
+        </div>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -77,6 +85,7 @@ export class FornitoreDialogComponent implements OnInit {
       via: [data?.via ?? ''], cap: [data?.cap ?? ''],
       citta: [data?.citta ?? ''], provincia: [data?.provincia ?? ''],
       stato: [data?.stato ?? 'Italia'], pIva: [data?.pIva ?? '', pIvaValidator],
+      sdi: [data?.sdi ?? ''], pec: [data?.pec ?? ''],
     });
   }
 
