@@ -214,17 +214,22 @@ export class PagamentoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatButtonToggleModule,
-            FormsModule, MatCheckboxModule],
+            FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule],
   templateUrl: './pagamenti.html',
   styleUrl: './pagamenti.scss'
 })
 export class PagamentiComponent implements OnInit {
-  pagamenti: Pagamento[] = [];
-  scadenzario: ScadenzarioEntry[] = [];
+  private allPagamenti: Pagamento[] = [];
+  private allScadenzario: ScadenzarioEntry[] = [];
   tipiPagamento: TipoPagamento[] = [];
   filtro = 'TUTTI';
   selection = new SelectionModel<ScadenzarioEntry>(true, []);
   readonly oggi = new Date().toISOString().substring(0, 10);
+  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+
+  filtroAnno: number | null = null;
+  filtroMese: number | null = null;
+  filtroControparte: string | null = null;
 
   pagamentiCols = ['data', 'tipo', 'importo', 'documento', 'controparte', 'tipoPagamentoNome', 'conto', 'azioni'];
   scadenzarioCols = ['select', 'tipo', 'numero', 'dataEmissione', 'dataScadenza', 'controparte', 'rimanente', 'azioni'];
@@ -237,8 +242,8 @@ export class PagamentiComponent implements OnInit {
       scadenzario: this.ds.getScadenzario(),
       tipi: this.ds.getTipiPagamento(),
     }).subscribe(r => {
-      this.pagamenti = r.pagamenti;
-      this.scadenzario = r.scadenzario;
+      this.allPagamenti = r.pagamenti;
+      this.allScadenzario = r.scadenzario;
       this.tipiPagamento = r.tipi.filter(t => t.attivo);
     });
   }
@@ -246,11 +251,44 @@ export class PagamentiComponent implements OnInit {
   load() {
     this.selection.clear();
     if (this.filtro === 'DA_SALDARE') {
-      this.ds.getScadenzario().subscribe(s => { this.scadenzario = s; });
+      this.ds.getScadenzario().subscribe(s => { this.allScadenzario = s; });
     } else {
       const t = this.filtro === 'TUTTI' ? undefined : this.filtro;
-      this.ds.getPagamenti(t).subscribe(p => { this.pagamenti = p; });
+      this.ds.getPagamenti(t).subscribe(p => { this.allPagamenti = p; });
     }
+  }
+
+  resetFiltri() { this.filtroAnno = null; this.filtroMese = null; this.filtroControparte = null; }
+  print() { window.print(); }
+
+  get anni() {
+    const src = this.filtro === 'DA_SALDARE'
+      ? this.allScadenzario.map(e => +e.dataEmissione.substring(0, 4))
+      : this.allPagamenti.map(p => +p.dataPagamento.substring(0, 4));
+    return [...new Set(src)].sort().reverse();
+  }
+
+  get controparti() {
+    const src = this.filtro === 'DA_SALDARE'
+      ? this.allScadenzario.map(e => e.controparte).filter(Boolean)
+      : this.allPagamenti.map(p => p.clienteNome || p.fornitoreNome).filter(Boolean);
+    return [...new Set(src)].sort() as string[];
+  }
+
+  get pagamenti(): Pagamento[] {
+    let data = this.allPagamenti;
+    if (this.filtroAnno) data = data.filter(p => +p.dataPagamento.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(p => +p.dataPagamento.substring(5, 7) === this.filtroMese);
+    if (this.filtroControparte) data = data.filter(p => (p.clienteNome || p.fornitoreNome) === this.filtroControparte);
+    return data;
+  }
+
+  get scadenzario(): ScadenzarioEntry[] {
+    let data = this.allScadenzario;
+    if (this.filtroAnno) data = data.filter(e => +e.dataEmissione.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(e => +e.dataEmissione.substring(5, 7) === this.filtroMese);
+    if (this.filtroControparte) data = data.filter(e => e.controparte === this.filtroControparte);
+    return data;
   }
 
   get totaleEntrate()     { return this.pagamenti.filter(p => p.tipo === 'ENTRATA').reduce((s, p) => s + p.importo, 0); }
@@ -278,8 +316,9 @@ export class PagamentiComponent implements OnInit {
   }
 
   delete(p: Pagamento) {
-    if (!confirm(`Eliminare pagamento di €${p.importo}?`)) return;
-    this.ds.deletePagamento(p.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    const doc = p.fatturaNumero ? `fattura ${p.fatturaNumero}` : p.acquistoNumero ? `acquisto ${p.acquistoNumero}` : 'documento';
+    if (!confirm(`Eliminare il pagamento di €${p.importo}?\nIl ${doc} tornerà in "Da saldare".`)) return;
+    this.ds.deletePagamento(p.id!).subscribe(() => { this.load(); this.snack.open('Saldo annullato', '', { duration: 2000 }); });
   }
 
   salda(entry: ScadenzarioEntry) {

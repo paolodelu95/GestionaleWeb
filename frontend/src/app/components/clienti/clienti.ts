@@ -164,6 +164,7 @@ export class ClienteDialogComponent implements OnInit {
   styleUrl: './clienti.scss'
 })
 export class ClientiComponent implements OnInit, AfterViewInit {
+  print() { window.print(); }
   clienti: Cliente[] = [];
   dataSource = new MatTableDataSource<Cliente>([]);
   displayedColumns = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'codiceFiscale', 'azioni'];

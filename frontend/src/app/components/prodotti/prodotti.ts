@@ -113,15 +113,20 @@ export class ProdottoDialogComponent implements OnInit {
 @Component({
   selector: 'app-prodotti',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule],
+  imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
+            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
+            MatSortModule, MatSelectModule],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
 export class ProdottiComponent implements OnInit, AfterViewInit {
-  prodotti: Prodotto[] = [];
+  private allProdotti: Prodotto[] = [];
   dataSource = new MatTableDataSource<Prodotto>([]);
   displayedColumns = ['id', 'nome', 'categoria', 'codice', 'prezzo', 'quantita', 'sogliaMinima', 'iva', 'azioni'];
+
+  filtroCategoria: string | null = null;
+  get categorieList() { return [...new Set(this.allProdotti.map(p => p.categoria).filter(Boolean))].sort() as string[]; }
+  get prodotti() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -150,7 +155,18 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     };
   }
 
-  load() { this.ds.getProdotti().subscribe(p => { this.prodotti = p; this.dataSource.data = p; }); }
+  load() {
+    this.ds.getProdotti().subscribe(p => { this.allProdotti = p; this.applyFilters(); });
+  }
+
+  applyFilters() {
+    let data = this.allProdotti;
+    if (this.filtroCategoria) data = data.filter(p => p.categoria === this.filtroCategoria);
+    this.dataSource.data = data;
+  }
+
+  resetFiltri() { this.filtroCategoria = null; this.dataSource.filter = ''; this.applyFilters(); }
+  print() { window.print(); }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();

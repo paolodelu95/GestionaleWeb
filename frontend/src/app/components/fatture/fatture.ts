@@ -601,16 +601,30 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 @Component({
   selector: 'app-fatture',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule],
+  imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
+            MatSelectModule],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
 export class FattureComponent implements OnInit, AfterViewInit {
-  fatture: Fattura[] = [];
+  private allFatture: Fattura[] = [];
   dataSource = new MatTableDataSource<Fattura>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Fattura>(true, []);
+
+  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  filtroAnno: number | null = null;
+  filtroMese: number | null = null;
+  filtroCliente: number | null = null;
+  filtroStato: string | null = null;
+
+  get anni() { return [...new Set(this.allFatture.map(f => +f.dataEmissione.substring(0, 4)))].sort().reverse(); }
+  get clientiList() {
+    const map = new Map<number, string>();
+    this.allFatture.forEach(f => { if (f.clienteId) map.set(f.clienteId, f.clienteNome ?? ''); });
+    return [...map.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -633,18 +647,36 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   load() {
     this.ds.getFatture().subscribe(f => {
-      this.fatture = f;
-      this.dataSource.data = f;
+      this.allFatture = f;
+      this.applyFilters();
       this.selection.clear();
     });
+  }
+
+  applyFilters() {
+    let data = this.allFatture;
+    if (this.filtroAnno) data = data.filter(f => +f.dataEmissione.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(f => +f.dataEmissione.substring(5, 7) === this.filtroMese);
+    if (this.filtroCliente) data = data.filter(f => f.clienteId === this.filtroCliente);
+    if (this.filtroStato) data = data.filter(f => f.stato === this.filtroStato);
+    this.dataSource.data = data;
+  }
+
+  resetFiltri() {
+    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroStato = null;
+    this.dataSource.filter = '';
+    this.applyFilters();
   }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim().toLowerCase();
   }
 
-  isAllSelected() { return this.fatture.length > 0 && this.selection.selected.length === this.fatture.length; }
-  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.fatture.forEach(r => this.selection.select(r)); }
+  print() { window.print(); }
+
+  get fatture() { return this.dataSource.data; }
+  isAllSelected() { return this.allFatture.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
+  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 
   setStato(f: Fattura, stato: string) {
     this.ds.setFatturaStato(f.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
