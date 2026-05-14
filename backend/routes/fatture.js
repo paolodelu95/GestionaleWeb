@@ -18,33 +18,70 @@ router.get('/:id', (req, res) => {
   if (!row) return res.status(404).json({ error: 'Not found' });
   const dto = toDto(row);
   dto.righe = getRighe(row.id);
+  dto.ddtIds = getDdtIds(row.id);
   res.json(dto);
 });
 
 router.post('/', (req, res) => {
   const f = req.body;
+  const ddtIds = f.ddtIds ?? (f.ddtId ? [f.ddtId] : []);
   const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
     VALUES (?,?,?,?,?,?,?)`)
-    .run(f.numero, f.dataEmissione, f.clienteId || null, f.ddtId || null, f.note, f.stato || 'BOZZA', f.tipoPagamentoId || null);
+    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'BOZZA', f.tipoPagamentoId || null);
   const fatturaId = result.lastInsertRowid;
-  if (f.righe?.length) saveRighe(fatturaId, f.righe);
+  if (f.righe?.length) {
+    saveRighe(fatturaId, f.righe);
+    if (!ddtIds.length) aggiornaQuantita(f.righe, -1);
+  }
+  if (ddtIds.length) saveDdtLinks(fatturaId, ddtIds);
   creaPagamentoImmediato(fatturaId);
   res.json({ id: fatturaId });
 });
 
 router.put('/:id', (req, res) => {
   const f = req.body;
+  const ddtIds = f.ddtIds ?? (f.ddtId ? [f.ddtId] : []);
+  const vecchiDdtIds = getDdtIds(req.params.id);
+  const vecchieRighe = getRighe(req.params.id);
+  if (vecchieRighe.length && !vecchiDdtIds.length) aggiornaQuantita(vecchieRighe, +1);
   db.prepare(`UPDATE fatture SET numero=?, data_emissione=?, cliente_id=?, ddt_id=?, note=?, stato=?, tipo_pagamento_id=? WHERE id=?`)
-    .run(f.numero, f.dataEmissione, f.clienteId || null, f.ddtId || null, f.note, f.stato, f.tipoPagamentoId || null, req.params.id);
+    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato, f.tipoPagamentoId || null, req.params.id);
   db.prepare('DELETE FROM fatture_righe WHERE fattura_id=?').run(req.params.id);
-  if (f.righe?.length) saveRighe(req.params.id, f.righe);
+  if (f.righe?.length) {
+    saveRighe(req.params.id, f.righe);
+    if (!ddtIds.length) aggiornaQuantita(f.righe, -1);
+  }
+  saveDdtLinks(req.params.id, ddtIds);
   res.json({ success: true });
 });
 
 router.delete('/:id', (req, res) => {
+  const ddtIds = getDdtIds(req.params.id);
+  if (!ddtIds.length) {
+    const righe = getRighe(req.params.id);
+    if (righe.length) aggiornaQuantita(righe, +1);
+  }
   db.prepare('DELETE FROM fatture WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
+
+function aggiornaQuantita(righe, delta) {
+  const stmt = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+  for (const r of righe) {
+    if (r.prodottoId) stmt.run(delta * r.quantita, r.prodottoId);
+  }
+}
+
+function saveDdtLinks(fatturaId, ddtIds) {
+  db.prepare('DELETE FROM fatture_ddt WHERE fattura_id=?').run(fatturaId);
+  const stmt = db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)');
+  for (const id of ddtIds) stmt.run(fatturaId, id);
+}
+
+function getDdtIds(fatturaId) {
+  return db.prepare('SELECT ddt_id FROM fatture_ddt WHERE fattura_id=?')
+    .all(fatturaId).map(r => r.ddt_id);
+}
 
 function saveRighe(fatturaId, righe) {
   const stmt = db.prepare(`INSERT INTO fatture_righe (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura)

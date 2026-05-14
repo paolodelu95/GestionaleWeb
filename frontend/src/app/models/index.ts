@@ -41,6 +41,9 @@ export interface Cliente {
   stato?: string;
   codiceFiscale?: string;
   pIva?: string;
+  sdi?: string;
+  pec?: string;
+  tipoPagamentoId?: number | null;
 }
 
 export interface Fornitore {
@@ -54,6 +57,8 @@ export interface Fornitore {
   provincia?: string;
   stato?: string;
   pIva?: string;
+  sdi?: string;
+  pec?: string;
 }
 
 export interface RigaDocumento {
@@ -111,6 +116,7 @@ export interface Fattura {
   clienteId?: number | null;
   clienteNome?: string;
   ddtId?: number | null;
+  ddtIds?: number[];
   note?: string;
   stato: string;
   totale?: number;

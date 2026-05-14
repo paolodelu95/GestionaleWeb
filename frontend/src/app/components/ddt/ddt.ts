@@ -465,6 +465,7 @@ export class DdtDialogComponent implements OnInit {
       ...this.documentoForm.value,
       ...this.trasportoForm.value,
       clienteId: this.clienteId,
+      stato: this.data?.stato ?? 'EMESSO',
       righe: this.righe,
     });
   }
@@ -523,7 +524,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
         numero: String(num.numero),
         dataEmissione: new Date().toISOString().substring(0, 10),
         clienteId: ddt.clienteId, ddtId: ddt.id,
-        stato: 'BOZZA', righe: full.righe,
+        stato: 'EMESSA', righe: full.righe,
       } as Fattura;
       this.dialog.open(FatturaDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
         .afterClosed().subscribe(result => {

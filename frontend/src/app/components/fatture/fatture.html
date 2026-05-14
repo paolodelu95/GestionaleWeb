@@ -4,9 +4,6 @@
     @if (selection.hasValue()) {
       <div class="bulk-bar">
         <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
-        <button mat-stroked-button type="button" (click)="bulkSetStato('EMESSA')">
-          <mat-icon>send</mat-icon> Emetti
-        </button>
         <button mat-stroked-button type="button" (click)="bulkSetStato('PAGATA')">
           <mat-icon>payments</mat-icon> Segna Pagata
         </button>
@@ -64,11 +61,6 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let f" class="table-actions">
-          @if (f.stato === 'BOZZA') {
-            <button mat-icon-button type="button" title="Emetti" (click)="setStato(f, 'EMESSA')">
-              <mat-icon>send</mat-icon>
-            </button>
-          }
           @if (f.stato === 'EMESSA') {
             <button mat-icon-button type="button" title="Segna come Pagata" (click)="setStato(f, 'PAGATA')">
               <mat-icon>payments</mat-icon>

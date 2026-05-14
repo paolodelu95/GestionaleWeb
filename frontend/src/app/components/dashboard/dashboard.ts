@@ -5,7 +5,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
-import { Prodotto, Ddt, Fattura } from '../../models';
+import { Prodotto, Ddt, Fattura, Acquisto } from '../../models';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,9 +23,11 @@ export class DashboardComponent implements OnInit {
   prodottiSottoSoglia: Prodotto[] = [];
   ddtDaFatturare: Ddt[] = [];
   fattureDaIncassare: Fattura[] = [];
+  fattureDaPagare: Acquisto[] = [];
 
-  ddtCols = ['numero', 'dataEmissione', 'clienteNome'];
-  fattureOls = ['numero', 'clienteNome', 'stato'];
+  ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
+  fattureCols = ['numero', 'clienteNome', 'totale'];
+  acquistiCols = ['numero', 'fornitoreNome', 'totale'];
   prodottiCols = ['nome', 'categoria', 'quantita', 'sogliaMinima'];
 
   constructor(private ds: DataService) {}
@@ -39,14 +41,22 @@ export class DashboardComponent implements OnInit {
       sotto: this.ds.getProdottiSottoSoglia(),
       ddt: this.ds.getDdt(),
       fatture: this.ds.getFatture(),
+      acquisti: this.ds.getAcquisti(),
     }).subscribe(r => {
       this.prodottiCount = r.count;
       this.valoremagazzino = r.valore;
       this.ordiniAperti = r.ordini;
       this.clientiCount = r.clienti;
       this.prodottiSottoSoglia = r.sotto;
-      this.ddtDaFatturare = r.ddt.filter(d => d.stato !== 'ANNULLATO').slice(0, 10);
-      this.fattureDaIncassare = r.fatture.filter(f => f.stato === 'EMESSA').slice(0, 10);
+      this.ddtDaFatturare = r.ddt
+        .filter(d => !d.fatturaId && d.stato !== 'ANNULLATO')
+        .slice(0, 10);
+      this.fattureDaIncassare = r.fatture
+        .filter(f => f.stato === 'EMESSA')
+        .slice(0, 10);
+      this.fattureDaPagare = r.acquisti
+        .filter(a => a.stato !== 'PAGATA' && a.stato !== 'ANNULLATA')
+        .slice(0, 10);
     });
   }
 }
