@@ -5,7 +5,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
-import { Prodotto, Ddt, Fattura, Acquisto } from '../../models';
+import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento } from '../../models';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,11 +24,14 @@ export class DashboardComponent implements OnInit {
   ddtDaFatturare: Ddt[] = [];
   fattureDaIncassare: Fattura[] = [];
   fattureDaPagare: Acquisto[] = [];
+  tipiPagamento: TipoPagamento[] = [];
 
   ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
-  fattureCols = ['numero', 'clienteNome', 'totale'];
+  fattureCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
   acquistiCols = ['numero', 'fornitoreNome', 'totale'];
   prodottiCols = ['nome', 'categoria', 'quantita', 'sogliaMinima'];
+
+  readonly oggi = new Date().toISOString().substring(0, 10);
 
   constructor(private ds: DataService) {}
 
@@ -42,12 +45,14 @@ export class DashboardComponent implements OnInit {
       ddt: this.ds.getDdt(),
       fatture: this.ds.getFatture(),
       acquisti: this.ds.getAcquisti(),
+      tipi: this.ds.getTipiPagamento(),
     }).subscribe(r => {
       this.prodottiCount = r.count;
       this.valoremagazzino = r.valore;
       this.ordiniAperti = r.ordini;
       this.clientiCount = r.clienti;
       this.prodottiSottoSoglia = r.sotto;
+      this.tipiPagamento = r.tipi;
       this.ddtDaFatturare = r.ddt
         .filter(d => !d.fatturaId && d.stato !== 'ANNULLATO')
         .slice(0, 10);
@@ -58,5 +63,24 @@ export class DashboardComponent implements OnInit {
         .filter(a => a.stato !== 'PAGATA' && a.stato !== 'ANNULLATA')
         .slice(0, 10);
     });
+  }
+
+  getScadenza(f: Fattura): string | null {
+    if (!f.tipoPagamentoId) return null;
+    const tp = this.tipiPagamento.find(t => t.id === f.tipoPagamentoId);
+    if (!tp) return null;
+    const d = new Date(f.dataEmissione);
+    d.setDate(d.getDate() + (tp.giorniScadenza || 0));
+    if (tp.fineMese) {
+      d.setMonth(d.getMonth() + 1);
+      d.setDate(0);
+    }
+    return d.toISOString().substring(0, 10);
+  }
+
+  isScaduta(f: Fattura): boolean {
+    const scadenza = this.getScadenza(f);
+    if (!scadenza) return false;
+    return scadenza < this.oggi;
   }
 }
