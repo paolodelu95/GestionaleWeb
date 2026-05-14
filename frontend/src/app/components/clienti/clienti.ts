@@ -164,7 +164,12 @@ export class ClienteDialogComponent implements OnInit {
   styleUrl: './clienti.scss'
 })
 export class ClientiComponent implements OnInit, AfterViewInit {
-  print() { window.print(); }
+  print() {
+    const rows = this.dataSource.data;
+    const body = rows.map(c=>`<tr><td>${c.ragioneSociale}</td><td>${c.email||'—'}</td><td>${c.telefono||'—'}</td><td>${this.indirizzo(c)||'—'}</td><td>${c.codiceFiscale||'—'}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><title>Clienti</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}</style></head><body><h1>Clienti</h1><table><thead><tr><th>Ragione Sociale</th><th>Email</th><th>Telefono</th><th>Indirizzo</th><th>Cod. Fiscale</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
   clienti: Cliente[] = [];
   dataSource = new MatTableDataSource<Cliente>([]);
   displayedColumns = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'codiceFiscale', 'azioni'];

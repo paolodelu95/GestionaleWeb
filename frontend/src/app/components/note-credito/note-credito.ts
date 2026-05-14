@@ -68,13 +68,24 @@ const RIGHE_STYLES = `
             </mat-autocomplete>
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Fattura collegata</mat-label>
+            <mat-label>Fattura da stornare</mat-label>
             <mat-select formControlName="fatturaId">
               <mat-option [value]="null">— nessuna —</mat-option>
-              @for (f of fatture; track f.id) { <mat-option [value]="f.id">{{ f.numero }}</mat-option> }
+              @for (f of fattureDisponibili; track f.id) {
+                <mat-option [value]="f.id">{{ f.numero }} — {{ f.dataEmissione | date:'dd/MM/yyyy' }}</mat-option>
+              }
             </mat-select>
+            @if (!selectedClienteId) {
+              <mat-hint>Seleziona prima un cliente</mat-hint>
+            }
           </mat-form-field>
         </div>
+        @if (form.get('fatturaId')?.value) {
+          <div style="font-size:12px;color:#16a34a;margin-top:-8px;margin-bottom:4px">
+            <mat-icon style="font-size:14px;vertical-align:middle">auto_fix_high</mat-icon>
+            Le righe della fattura sono state importate con importo negativo. Fattura e nota di credito saranno saldate automaticamente.
+          </div>
+        }
       </form>
       <div class="righe-section">
         <div class="righe-header">
@@ -184,12 +195,27 @@ export class NotaCreditoDialogComponent implements OnInit {
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
-  fatture: Fattura[] = [];
+  allFatture: Fattura[] = [];
+  private usedFatturaIds = new Set<number>();
   righe: RigaDocumento[] = [];
   prodotti: Prodotto[] = [];
   unitaMisura: UnitaMisura[] = [];
   prezziRecenti: any[][] = [];
   readonly isNew: boolean;
+
+  get selectedClienteId(): number | null {
+    const v = this.clienteCtrl.value;
+    return v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
+  }
+
+  get fattureDisponibili(): Fattura[] {
+    const cid = this.selectedClienteId;
+    if (!cid) return [];
+    return this.allFatture.filter(f =>
+      f.clienteId === cid &&
+      (f.id === this.form.value.fatturaId || !this.usedFatturaIds.has(f.id!))
+    );
+  }
 
   showNetto = false;
   get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
@@ -226,6 +252,10 @@ export class NotaCreditoDialogComponent implements OnInit {
     this.clienteCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredClienti = this.clienti.filter(c => c.ragioneSociale.toLowerCase().includes(q));
+      // Reset fattura when client changes
+      if (typeof v !== 'string') {
+        this.form.patchValue({ fatturaId: null }, { emitEvent: false });
+      }
     });
 
     this.ds.getClienti().subscribe(c => {
@@ -237,13 +267,34 @@ export class NotaCreditoDialogComponent implements OnInit {
       }
     });
 
-    this.ds.getFatture().subscribe(f => this.fatture = f);
+    this.ds.getFatture().subscribe(f => this.allFatture = f);
     this.ds.getProdotti().subscribe(p => this.prodotti = p);
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
+    this.ds.getNoteCredito().subscribe(ncs => {
+      this.usedFatturaIds = new Set(
+        ncs.filter(n => n.fatturaId && n.id !== this.data?.id).map(n => n.fatturaId!)
+      );
+    });
+
+    // Auto-populate rows when a fattura is selected (only for new NCs)
+    this.form.get('fatturaId')!.valueChanges.subscribe(id => {
+      if (id && this.isNew) this.loadFatturaRows(id);
+    });
 
     if (this.isNew) {
       this.ds.getNextNumero('note-credito').subscribe(n => this.form.patchValue({ numero: String(n.numero) }));
     }
+  }
+
+  private loadFatturaRows(fatturaId: number) {
+    this.ds.getFatturaById(fatturaId).subscribe(f => {
+      const [y, mo, day] = f.dataEmissione.substring(0, 10).split('-');
+      this.righe = [
+        { descrizione: `Riferimento fattura n. ${f.numero} del ${day}/${mo}/${y}`, quantita: 0, prezzo: 0, iva: 0, sconto: 0, unitaMisura: '' },
+        ...(f.righe ?? []).map(r => ({ ...r, id: undefined, quantita: -(r.quantita ?? 0) }))
+      ];
+      this.prezziRecenti = new Array(this.righe.length).fill([]);
+    });
   }
 
   displayCliente(c: Cliente | string | null): string {
@@ -252,11 +303,6 @@ export class NotaCreditoDialogComponent implements OnInit {
 
   autoSelectCliente() {
     if (this.filteredClienti.length > 0) this.clienteCtrl.setValue(this.filteredClienti[0]);
-  }
-
-  private get selectedClienteId(): number | null {
-    const v = this.clienteCtrl.value;
-    return v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
   }
 
   searchProdotto(index: number) {
@@ -292,24 +338,39 @@ export class NotaCreditoDialogComponent implements OnInit {
     if (!this.form.valid) return;
     const v = this.clienteCtrl.value;
     const clienteId = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
-    this.dialogRef.close({ ...this.data, ...this.form.value, clienteId, stato: this.data?.stato ?? 'EMESSA', righe: this.righe });
+    const fatturaId = this.form.value.fatturaId;
+    const stato = fatturaId ? 'PAGATA' : (this.data?.stato ?? 'EMESSA');
+    this.dialogRef.close({ ...this.data, ...this.form.value, clienteId, stato, righe: this.righe });
   }
 }
 
 @Component({
   selector: 'app-note-credito',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
+  imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule],
   templateUrl: './note-credito.html',
   styleUrl: './note-credito.scss'
 })
 export class NoteCreditoComponent implements OnInit, AfterViewInit {
-  noteCredito: NotaCredito[] = [];
+  private allNoteCredito: NotaCredito[] = [];
   dataSource = new MatTableDataSource<NotaCredito>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<NotaCredito>(true, []);
+
+  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  filtroAnno: number | null = null;
+  filtroMese: number | null = null;
+  filtroCliente: number | null = null;
+
+  get anni() { return [...new Set(this.allNoteCredito.map(n => +n.dataEmissione.substring(0, 4)))].sort().reverse(); }
+  get clientiList() {
+    const map = new Map<number, string>();
+    this.allNoteCredito.forEach(n => { if (n.clienteId) map.set(n.clienteId, n.clienteNome ?? ''); });
+    return [...map.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+  get noteCredito() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -336,18 +397,40 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
 
   load() {
     this.ds.getNoteCredito().subscribe(n => {
-      this.noteCredito = n;
-      this.dataSource.data = n;
+      this.allNoteCredito = n;
+      this.applyFilters();
       this.selection.clear();
     });
+  }
+
+  applyFilters() {
+    let data = this.allNoteCredito;
+    if (this.filtroAnno) data = data.filter(n => +n.dataEmissione.substring(0, 4) === this.filtroAnno);
+    if (this.filtroMese) data = data.filter(n => +n.dataEmissione.substring(5, 7) === this.filtroMese);
+    if (this.filtroCliente) data = data.filter(n => n.clienteId === this.filtroCliente);
+    this.dataSource.data = data;
+  }
+
+  resetFiltri() {
+    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null;
+    this.dataSource.filter = ''; this.applyFilters();
   }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
   }
 
-  isAllSelected() { return this.noteCredito.length > 0 && this.selection.selected.length === this.noteCredito.length; }
-  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.noteCredito.forEach(r => this.selection.select(r)); }
+  print() {
+    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
+    const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
+    const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
+    const body = rows.map(n=>`<tr><td>${n.numero}</td><td>${d(n.dataEmissione)}</td><td>${n.clienteNome||'—'}</td><td class="r">${e(n.totale)}</td><td>${n.stato}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><title>Note di Credito</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Note di Credito</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
+
+  isAllSelected() { return this.dataSource.data.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
+  toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 
   setStato(n: NotaCredito, stato: string) {
     this.ds.setNotaCreditoStato(n.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
@@ -362,7 +445,13 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
       if (!result) return;
       const op = result.id ? this.ds.updateNotaCredito(result) : this.ds.createNotaCredito(result);
       op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+        next: () => {
+          if (result.fatturaId) {
+            this.ds.setFatturaStato(result.fatturaId, 'PAGATA').subscribe();
+          }
+          this.load();
+          this.snack.open('Salvato', '', { duration: 2000 });
+        },
         error: e => this.snack.open(e.message, '', { duration: 3000 })
       });
     });
