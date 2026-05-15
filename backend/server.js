@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const DIST = path.join(__dirname, 'public');
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -76,4 +78,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message });
 });
 
-app.listen(PORT, () => console.log(`Backend avviato su http://localhost:${PORT}`));
+// Serve Angular in production
+const fs = require('fs');
+if (fs.existsSync(DIST)) {
+  app.use(express.static(DIST));
+  app.get('*', (req, res) => res.sendFile(path.join(DIST, 'index.html')));
+}
+
+app.listen(PORT, () => console.log(`Server avviato su http://localhost:${PORT}`));

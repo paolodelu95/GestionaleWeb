@@ -86,7 +86,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   vendita: VenditaBanco = { numero: '', data: this.today, clienteNome: '', metodoPagamento: 'CONTANTI' };
   righe: RigaVendita[] = [];
   prodottiList: Prodotto[] = [];
-  filteredProdotti: Prodotto[][] = [];
+  filteredProdotti: (Prodotto[] | undefined)[] = [];
   variantiPerRiga: ProdottoVariante[][] = [];
   aliquoteIva: AliquotaIva[] = [];
   unitaMisura: UnitaMisura[] = [];
