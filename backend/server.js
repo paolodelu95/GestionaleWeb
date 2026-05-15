@@ -44,7 +44,7 @@ app.get('/api/prezzi-recenti', (req, res) => {
 });
 
 app.get('/api/next-number/:tipo', (req, res) => {
-  const map = { ddt: 'ddt', fatture: 'fatture', ordini: 'ordini', preventivi: 'preventivi', 'note-credito': 'note_credito', acquisti: 'acquisti' };
+  const map = { ddt: 'ddt', fatture: 'fatture', ordini: 'ordini', preventivi: 'preventivi', 'note-credito': 'note_credito', acquisti: 'acquisti', 'vendite-banco': 'vendite_banco' };
   const table = map[req.params.tipo];
   if (!table) return res.status(400).json({ error: 'tipo non valido' });
   const row = db.prepare(`SELECT COUNT(*) as n FROM "${table}"`).get();
@@ -62,6 +62,9 @@ app.use('/api/ordini',           require('./routes/ordini'));
 app.use('/api/preventivi',       require('./routes/preventivi'));
 app.use('/api/pagamenti',        require('./routes/pagamenti'));
 app.use('/api/acquisti',         require('./routes/acquisti'));
+app.use('/api/movimenti-magazzino', require('./routes/movimentiMagazzino'));
+app.use('/api/vendite-banco',      require('./routes/venditeBanco'));
+app.use('/api/prodotto-varianti',  require('./routes/prodottoVarianti'));
 app.use('/api/tipi-pagamento',   require('./routes/tipiPagamento'));
 app.use('/api/categorie-prodotto', require('./routes/categorieProdotto'));
 app.use('/api/unita-misura',     require('./routes/unitaMisura'));

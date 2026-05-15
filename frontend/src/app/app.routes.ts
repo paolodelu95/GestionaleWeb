@@ -12,8 +12,9 @@ export const routes: Routes = [
   { path: 'ordini',       loadComponent: () => import('./components/ordini/ordini').then(m => m.OrdiniComponent) },
   { path: 'preventivi',   loadComponent: () => import('./components/preventivi/preventivi').then(m => m.PreventiviComponent) },
   { path: 'acquisti',     loadComponent: () => import('./components/acquisti/acquisti').then(m => m.AcquistiComponent) },
-  { path: 'scadenzario',  loadComponent: () => import('./components/scadenzario/scadenzario').then(m => m.ScadenzarioComponent) },
   { path: 'pagamenti',    loadComponent: () => import('./components/pagamenti/pagamenti').then(m => m.PagamentiComponent) },
+  { path: 'magazzino',      loadComponent: () => import('./components/magazzino/magazzino').then(m => m.MagazzinoComponent) },
+  { path: 'vendita-banco',  loadComponent: () => import('./components/vendita-banco/vendita-banco').then(m => m.VenditaBancoComponent) },
   { path: 'report',       loadComponent: () => import('./components/report/report').then(m => m.ReportComponent) },
   { path: 'impostazioni', loadComponent: () => import('./components/impostazioni/impostazioni').then(m => m.ImpostazioniComponent) },
 ];

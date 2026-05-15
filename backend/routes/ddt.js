@@ -39,17 +39,30 @@ router.post('/', (req, res) => {
       d.incaricatoTrasporto || 'Mittente', d.vettore || '',
       d.destinazioneDiversa || '', d.noteTrasporto || ''
     );
+  const ddtId = result.lastInsertRowid;
   if (d.righe?.length) {
-    saveRighe(result.lastInsertRowid, d.righe);
-    aggiornaQuantita(d.righe, -1);
+    saveRighe(ddtId, d.righe);
+    const cliente = d.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(d.clienteId) : null;
+    aggiornaQuantita(d.righe, -1, {
+      data: d.dataEmissione, causale: 'DDT', documentoTipo: 'DDT',
+      documentoId: ddtId, documentoNumero: d.numero,
+      clienteId: d.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
+    });
   }
-  res.json({ id: result.lastInsertRowid });
+  res.json({ id: ddtId });
 });
 
 router.put('/:id', (req, res) => {
   const d = req.body;
+  const old = db.prepare('SELECT numero, cliente_id FROM ddt WHERE id=?').get(req.params.id);
   const vecchieRighe = getRighe(req.params.id);
-  if (vecchieRighe.length) aggiornaQuantita(vecchieRighe, +1);
+  if (vecchieRighe.length) {
+    const oldCliente = old?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(old.cliente_id) : null;
+    aggiornaQuantita(vecchieRighe, +1, {
+      causale: 'STORNO', documentoTipo: 'DDT', documentoId: req.params.id,
+      documentoNumero: old?.numero || '', clienteId: old?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || ''
+    });
+  }
   db.prepare(`
     UPDATE ddt SET numero=?, data_emissione=?, cliente_id=?, causale=?, note=?, stato=?,
       data_ora_inizio_trasporto=?, aspetto_beni=?, porto=?, numero_colli=?, peso_lordo=?,
@@ -67,16 +80,27 @@ router.put('/:id', (req, res) => {
   db.prepare('DELETE FROM ddt_righe WHERE ddt_id=?').run(req.params.id);
   if (d.righe?.length) {
     saveRighe(req.params.id, d.righe);
-    aggiornaQuantita(d.righe, -1);
+    const cliente = d.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(d.clienteId) : null;
+    aggiornaQuantita(d.righe, -1, {
+      data: d.dataEmissione, causale: 'DDT', documentoTipo: 'DDT',
+      documentoId: req.params.id, documentoNumero: d.numero,
+      clienteId: d.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
+    });
   }
   res.json({ success: true });
 });
 
 router.delete('/:id', (req, res) => {
-  const stato = db.prepare('SELECT stato FROM ddt WHERE id=?').get(req.params.id)?.stato;
-  if (stato !== 'ANNULLATO') {
+  const ddt = db.prepare('SELECT stato, numero, cliente_id FROM ddt WHERE id=?').get(req.params.id);
+  if (ddt?.stato !== 'ANNULLATO') {
     const righe = getRighe(req.params.id);
-    if (righe.length) aggiornaQuantita(righe, +1);
+    if (righe.length) {
+      const cliente = ddt?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(ddt.cliente_id) : null;
+      aggiornaQuantita(righe, +1, {
+        causale: 'ELIMINAZIONE', documentoTipo: 'DDT', documentoId: req.params.id,
+        documentoNumero: ddt?.numero || '', clienteId: ddt?.cliente_id || null, clienteNome: cliente?.ragione_sociale || ''
+      });
+    }
   }
   db.prepare('UPDATE fatture SET ddt_id = NULL WHERE ddt_id=?').run(req.params.id);
   db.prepare('DELETE FROM fatture_ddt WHERE ddt_id=?').run(req.params.id);
@@ -85,17 +109,37 @@ router.delete('/:id', (req, res) => {
   res.json({ success: true });
 });
 
-function aggiornaQuantita(righe, delta) {
-  const stmt = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+function aggiornaQuantita(righe, delta, ctx = {}) {
+  const stmtQ = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+  const stmtV = db.prepare('UPDATE prodotto_varianti SET quantita = quantita + ? WHERE id = ?');
+  const stmtM = db.prepare(`INSERT INTO movimenti_magazzino
+    (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,cliente_id,cliente_nome,fornitore_id,fornitore_nome,note,variante_id,variante_taglia,variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const oggi = new Date().toISOString().split('T')[0];
   for (const r of righe) {
-    if (r.prodottoId) stmt.run(delta * r.quantita, r.prodottoId);
+    if (!r.prodottoId) continue;
+    stmtQ.run(delta * r.quantita, r.prodottoId);
+    if (r.varianteId) stmtV.run(delta * r.quantita, r.varianteId);
+    const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
+    stmtM.run(
+      ctx.data || oggi, r.prodottoId, prod?.nome || r.descrizione || '',
+      delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta * r.quantita),
+      ctx.causale || '', ctx.documentoTipo || '', ctx.documentoId || null,
+      ctx.documentoNumero || '', ctx.clienteId || null, ctx.clienteNome || '',
+      ctx.fornitoreId || null, ctx.fornitoreNome || '', ctx.note || '',
+      r.varianteId || null, r.varianteTaglia || '', r.varianteColore || ''
+    );
   }
 }
 
 function saveRighe(ddtId, righe) {
-  const stmt = db.prepare(`INSERT INTO ddt_righe (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura)
-    VALUES (?,?,?,?,?,?,?,?)`);
-  for (const r of righe) stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.sconto ?? 0, r.iva, r.unitaMisura || '');
+  const stmt = db.prepare(`INSERT INTO ddt_righe
+    (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+  for (const r of righe)
+    stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+             r.sconto ?? 0, r.iva, r.unitaMisura || '',
+             r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
 }
 
 function getRighe(ddtId) {
@@ -105,7 +149,8 @@ function getRighe(ddtId) {
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
-    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
+    varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || ''
   }));
 }
 
@@ -132,11 +177,14 @@ router.get('/:id/print', (req, res) => {
 
 router.patch('/:id/stato', (req, res) => {
   const { stato } = req.body;
-  const vecchio = db.prepare('SELECT stato FROM ddt WHERE id=?').get(req.params.id);
+  const vecchio = db.prepare('SELECT stato, numero, cliente_id FROM ddt WHERE id=?').get(req.params.id);
+  const righe = getRighe(req.params.id);
+  const cliente = vecchio?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(vecchio.cliente_id) : null;
+  const ctx = { documentoTipo: 'DDT', documentoId: req.params.id, documentoNumero: vecchio?.numero || '', clienteId: vecchio?.cliente_id || null, clienteNome: cliente?.ragione_sociale || '' };
   if (stato === 'ANNULLATO' && vecchio?.stato !== 'ANNULLATO') {
-    aggiornaQuantita(getRighe(req.params.id), +1);
+    aggiornaQuantita(righe, +1, { ...ctx, causale: 'ANNULLAMENTO' });
   } else if (vecchio?.stato === 'ANNULLATO' && stato !== 'ANNULLATO') {
-    aggiornaQuantita(getRighe(req.params.id), -1);
+    aggiornaQuantita(righe, -1, { ...ctx, causale: 'RIATTIVAZIONE' });
   }
   db.prepare('UPDATE ddt SET stato=? WHERE id=?').run(stato, req.params.id);
   res.json({ success: true });

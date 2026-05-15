@@ -50,6 +50,7 @@ export class App implements OnInit {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
     { label: 'Prodotti',     icon: 'inventory_2',    route: '/prodotti' },
+    { label: 'Magazzino',   icon: 'warehouse',      route: '/magazzino' },
     { label: 'Clienti',      icon: 'people',         route: '/clienti' },
     { label: 'Fornitori',    icon: 'local_shipping', route: '/fornitori' },
     {
@@ -63,6 +64,7 @@ export class App implements OnInit {
         { label: 'Acquisti',        icon: 'shopping_bag',  route: '/acquisti' },
       ]
     },
+    { label: 'Vendita al banco', icon: 'point_of_sale', route: '/vendita-banco' },
     { label: 'Pagamenti',    icon: 'payments',       route: '/pagamenti' },
     { label: 'Report',       icon: 'bar_chart',      route: '/report' },
     { label: 'Impostazioni', icon: 'settings',       route: '/impostazioni' },

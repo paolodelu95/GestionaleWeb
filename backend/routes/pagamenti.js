@@ -10,13 +10,15 @@ router.get('/', (req, res) => {
   const rows = db.prepare(`
     SELECT p.*, f.numero as fattura_numero, c.ragione_sociale as cliente_nome,
            a.numero as acquisto_numero, forn.ragione_sociale as fornitore_nome,
-           tp.nome as tipo_pagamento_nome
+           tp.nome as tipo_pagamento_nome,
+           vb.numero as vendita_banco_numero, vb.cliente_nome as vb_cliente_nome
     FROM pagamenti p
     LEFT JOIN fatture f ON p.fattura_id = f.id
     LEFT JOIN clienti c ON f.cliente_id = c.id
     LEFT JOIN acquisti a ON p.acquisto_id = a.id
     LEFT JOIN fornitori forn ON a.fornitore_id = forn.id
     LEFT JOIN tipi_pagamento tp ON p.tipo_pagamento_id = tp.id
+    LEFT JOIN vendite_banco vb ON p.vendita_banco_id = vb.id
     ${where}
     ORDER BY p.data_pagamento DESC`).all();
   res.json(rows.map(toDto));
@@ -132,7 +134,9 @@ function toDto(r) {
   return {
     id: r.id, fatturaId: r.fattura_id, fatturaNumero: r.fattura_numero,
     acquistoId: r.acquisto_id, acquistoNumero: r.acquisto_numero,
-    clienteNome: r.cliente_nome, fornitoreNome: r.fornitore_nome,
+    venditaBancoId: r.vendita_banco_id, venditaBancoNumero: r.vendita_banco_numero,
+    clienteNome: r.cliente_nome || r.vb_cliente_nome || null,
+    fornitoreNome: r.fornitore_nome,
     dataPagamento: r.data_pagamento, importo: r.importo, metodo: r.metodo,
     note: r.note, tipo: r.tipo || 'ENTRATA', conto: r.conto || 'BANCA',
     tipoPagamentoId: r.tipo_pagamento_id, tipoPagamentoNome: r.tipo_pagamento_nome

@@ -2,6 +2,7 @@ import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -212,7 +213,7 @@ export class PagamentoDialogComponent implements OnInit {
 @Component({
   selector: 'app-pagamenti',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
+  imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatButtonToggleModule,
             FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule],
   templateUrl: './pagamenti.html',
@@ -233,6 +234,12 @@ export class PagamentiComponent implements OnInit {
 
   pagamentiCols = ['data', 'tipo', 'importo', 'documento', 'controparte', 'tipoPagamentoNome', 'conto', 'azioni'];
   scadenzarioCols = ['select', 'tipo', 'numero', 'dataEmissione', 'dataScadenza', 'controparte', 'rimanente', 'azioni'];
+
+  pagSortCol = 'data'; pagSortDir: 'asc'|'desc' = 'desc';
+  scadSortCol = 'dataScadenza'; scadSortDir: 'asc'|'desc' = 'asc';
+
+  onPagSort(s: { active: string; direction: string }) { this.pagSortCol = s.active; this.pagSortDir = (s.direction || 'desc') as 'asc'|'desc'; }
+  onScadSort(s: { active: string; direction: string }) { this.scadSortCol = s.active; this.scadSortDir = (s.direction || 'asc') as 'asc'|'desc'; }
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
@@ -296,7 +303,15 @@ export class PagamentiComponent implements OnInit {
     if (this.filtroAnno) data = data.filter(p => +p.dataPagamento.substring(0, 4) === this.filtroAnno);
     if (this.filtroMese) data = data.filter(p => +p.dataPagamento.substring(5, 7) === this.filtroMese);
     if (this.filtroControparte) data = data.filter(p => (p.clienteNome || p.fornitoreNome) === this.filtroControparte);
-    return data;
+    const dir = this.pagSortDir === 'asc' ? 1 : -1;
+    return [...data].sort((a, b) => {
+      switch (this.pagSortCol) {
+        case 'dataPagamento': return (a.dataPagamento || '').localeCompare(b.dataPagamento || '') * dir;
+        case 'importo':       return ((a.importo ?? 0) - (b.importo ?? 0)) * dir;
+        case 'controparte':   return ((a.clienteNome || a.fornitoreNome || '') as string).localeCompare((b.clienteNome || b.fornitoreNome || '') as string) * dir;
+        default:              return ((a as any)[this.pagSortCol] || '').localeCompare((b as any)[this.pagSortCol] || '') * dir;
+      }
+    });
   }
 
   get scadenzario(): ScadenzarioEntry[] {
@@ -304,7 +319,14 @@ export class PagamentiComponent implements OnInit {
     if (this.filtroAnno) data = data.filter(e => +e.dataEmissione.substring(0, 4) === this.filtroAnno);
     if (this.filtroMese) data = data.filter(e => +e.dataEmissione.substring(5, 7) === this.filtroMese);
     if (this.filtroControparte) data = data.filter(e => e.controparte === this.filtroControparte);
-    return data;
+    const dir = this.scadSortDir === 'asc' ? 1 : -1;
+    return [...data].sort((a, b) => {
+      switch (this.scadSortCol) {
+        case 'rimanente':    return ((a.rimanente ?? 0) - (b.rimanente ?? 0)) * dir;
+        case 'controparte':  return (a.controparte || '').localeCompare(b.controparte || '') * dir;
+        default:             return ((a as any)[this.scadSortCol] || '').localeCompare((b as any)[this.scadSortCol] || '') * dir;
+      }
+    });
   }
 
   get totaleEntrate()     { return this.pagamenti.filter(p => p.tipo === 'ENTRATA').reduce((s, p) => s + p.importo, 0); }

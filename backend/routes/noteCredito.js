@@ -42,9 +42,13 @@ router.delete('/:id', (req, res) => {
 });
 
 function saveRighe(ncId, righe) {
-  const stmt = db.prepare(`INSERT INTO note_credito_righe (nota_credito_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura)
-    VALUES (?,?,?,?,?,?,?,?)`);
-  for (const r of righe) stmt.run(ncId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.sconto ?? 0, r.iva, r.unitaMisura || '');
+  const stmt = db.prepare(`INSERT INTO note_credito_righe
+    (nota_credito_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+  for (const r of righe)
+    stmt.run(ncId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+             r.sconto ?? 0, r.iva, r.unitaMisura || '',
+             r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
 }
 
 function getRighe(ncId) {
@@ -52,7 +56,8 @@ function getRighe(ncId) {
     LEFT JOIN prodotti p ON r.prodotto_id = p.id WHERE r.nota_credito_id=?`).all(ncId)
     .map(r => ({ id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
       descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
-      prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva }));
+      prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
+      varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '' }));
 }
 
 function toDto(r) {

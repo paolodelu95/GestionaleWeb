@@ -31,7 +31,14 @@ router.post('/', (req, res) => {
   const fatturaId = result.lastInsertRowid;
   if (f.righe?.length) {
     saveRighe(fatturaId, f.righe);
-    if (!ddtIds.length) aggiornaQuantita(f.righe, -1);
+    if (!ddtIds.length) {
+      const cliente = f.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(f.clienteId) : null;
+      aggiornaQuantita(f.righe, -1, {
+        data: f.dataEmissione, causale: 'FATTURA', documentoTipo: 'FATTURA',
+        documentoId: fatturaId, documentoNumero: f.numero,
+        clienteId: f.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
+      });
+    }
   }
   if (ddtIds.length) saveDdtLinks(fatturaId, ddtIds);
   creaPagamentoImmediato(fatturaId);
@@ -43,13 +50,27 @@ router.put('/:id', (req, res) => {
   const ddtIds = f.ddtIds ?? (f.ddtId ? [f.ddtId] : []);
   const vecchiDdtIds = getDdtIds(req.params.id);
   const vecchieRighe = getRighe(req.params.id);
-  if (vecchieRighe.length && !vecchiDdtIds.length) aggiornaQuantita(vecchieRighe, +1);
+  if (vecchieRighe.length && !vecchiDdtIds.length) {
+    const oldF = db.prepare('SELECT numero, cliente_id FROM fatture WHERE id=?').get(req.params.id);
+    const oldCliente = oldF?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(oldF.cliente_id) : null;
+    aggiornaQuantita(vecchieRighe, +1, {
+      causale: 'STORNO', documentoTipo: 'FATTURA', documentoId: req.params.id,
+      documentoNumero: oldF?.numero || '', clienteId: oldF?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || ''
+    });
+  }
   db.prepare(`UPDATE fatture SET numero=?, data_emissione=?, cliente_id=?, ddt_id=?, note=?, stato=?, tipo_pagamento_id=? WHERE id=?`)
     .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato, f.tipoPagamentoId || null, req.params.id);
   db.prepare('DELETE FROM fatture_righe WHERE fattura_id=?').run(req.params.id);
   if (f.righe?.length) {
     saveRighe(req.params.id, f.righe);
-    if (!ddtIds.length) aggiornaQuantita(f.righe, -1);
+    if (!ddtIds.length) {
+      const cliente = f.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(f.clienteId) : null;
+      aggiornaQuantita(f.righe, -1, {
+        data: f.dataEmissione, causale: 'FATTURA', documentoTipo: 'FATTURA',
+        documentoId: req.params.id, documentoNumero: f.numero,
+        clienteId: f.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
+      });
+    }
   }
   saveDdtLinks(req.params.id, ddtIds);
   res.json({ success: true });
@@ -59,16 +80,39 @@ router.delete('/:id', (req, res) => {
   const ddtIds = getDdtIds(req.params.id);
   if (!ddtIds.length) {
     const righe = getRighe(req.params.id);
-    if (righe.length) aggiornaQuantita(righe, +1);
+    if (righe.length) {
+      const fattura = db.prepare('SELECT numero, cliente_id FROM fatture WHERE id=?').get(req.params.id);
+      const cliente = fattura?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(fattura.cliente_id) : null;
+      aggiornaQuantita(righe, +1, {
+        causale: 'ELIMINAZIONE', documentoTipo: 'FATTURA', documentoId: req.params.id,
+        documentoNumero: fattura?.numero || '', clienteId: fattura?.cliente_id || null, clienteNome: cliente?.ragione_sociale || ''
+      });
+    }
   }
   db.prepare('DELETE FROM fatture WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
 
-function aggiornaQuantita(righe, delta) {
-  const stmt = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+function aggiornaQuantita(righe, delta, ctx = {}) {
+  const stmtQ = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+  const stmtV = db.prepare('UPDATE prodotto_varianti SET quantita = quantita + ? WHERE id = ?');
+  const stmtM = db.prepare(`INSERT INTO movimenti_magazzino
+    (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,cliente_id,cliente_nome,fornitore_id,fornitore_nome,note,variante_id,variante_taglia,variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const oggi = new Date().toISOString().split('T')[0];
   for (const r of righe) {
-    if (r.prodottoId) stmt.run(delta * r.quantita, r.prodottoId);
+    if (!r.prodottoId) continue;
+    stmtQ.run(delta * r.quantita, r.prodottoId);
+    if (r.varianteId) stmtV.run(delta * r.quantita, r.varianteId);
+    const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
+    stmtM.run(
+      ctx.data || oggi, r.prodottoId, prod?.nome || r.descrizione || '',
+      delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta * r.quantita),
+      ctx.causale || '', ctx.documentoTipo || '', ctx.documentoId || null,
+      ctx.documentoNumero || '', ctx.clienteId || null, ctx.clienteNome || '',
+      ctx.fornitoreId || null, ctx.fornitoreNome || '', ctx.note || '',
+      r.varianteId || null, r.varianteTaglia || '', r.varianteColore || ''
+    );
   }
 }
 
@@ -84,9 +128,13 @@ function getDdtIds(fatturaId) {
 }
 
 function saveRighe(fatturaId, righe) {
-  const stmt = db.prepare(`INSERT INTO fatture_righe (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura)
-    VALUES (?,?,?,?,?,?,?,?)`);
-  for (const r of righe) stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo, r.sconto ?? 0, r.iva, r.unitaMisura || '');
+  const stmt = db.prepare(`INSERT INTO fatture_righe
+    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+  for (const r of righe)
+    stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+             r.sconto ?? 0, r.iva, r.unitaMisura || '',
+             r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
 }
 
 function getRighe(fatturaId) {
@@ -96,7 +144,8 @@ function getRighe(fatturaId) {
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
-    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
+    varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || ''
   }));
 }
 

@@ -19,7 +19,7 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento } from '../../models';
-import { ProdottoPickerComponent } from '../shared/prodotto-picker';
+import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -151,7 +151,9 @@ const RIGHE_STYLES = `
                           <mat-icon>search</mat-icon>
                         </button>
                       </td>
-                      <td><input class="riga-input num" type="number" [(ngModel)]="riga.quantita"></td>
+                      <td><input class="riga-input num" type="number" min="0"
+                        [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
+                        [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
                       <td>
                         <select class="riga-input num" [(ngModel)]="riga.unitaMisura">
                           <option value="">—</option>
@@ -567,15 +569,24 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 
   searchProdotto(index: number) {
     this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: this.prodotti })
-      .afterClosed().subscribe((p: Prodotto) => {
-        if (!p) return;
-        this.righe[index].descrizione = p.codice ?? p.nome;
+      .afterClosed().subscribe((pick: ProdottoPick) => {
+        if (!pick) return;
+        const p = pick.prodotto; const v = pick.variante;
+        const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
+        this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
         this.righe[index].prodottoId = p.id ?? null;
+        this.righe[index].varianteId = v?.id ?? null;
+        this.righe[index].varianteTaglia = v?.taglia ?? '';
+        this.righe[index].varianteColore = v?.colore ?? '';
         this.loadPrezziRecenti(index);
       });
+  }
+
+  roundIfPz(riga: RigaDocumento) {
+    if (riga.unitaMisura === 'pz') riga.quantita = Math.round(riga.quantita || 0);
   }
 
   addRiga() {
