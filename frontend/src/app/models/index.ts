@@ -14,6 +14,7 @@ export interface Azienda {
   sdi?: string;
   banca?: string;
   iban?: string;
+  logo?: string;
 }
 
 export interface Prodotto {

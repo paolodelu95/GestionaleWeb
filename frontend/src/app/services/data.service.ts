@@ -75,6 +75,14 @@ export class DataService {
   updatePreventivo(p: Preventivo): Observable<any> { return this.api.put(`preventivi/${p.id}`, p); }
   deletePreventivo(id: number): Observable<any> { return this.api.delete(`preventivi/${id}`); }
 
+  // Print
+  getFatturaPrint(id: number): Observable<any> { return this.api.get(`fatture/${id}/print`); }
+  getDdtPrint(id: number): Observable<any> { return this.api.get(`ddt/${id}/print`); }
+  getNotaCreditoPrint(id: number): Observable<any> { return this.api.get(`note-credito/${id}/print`); }
+  getOrdinePrint(id: number): Observable<any> { return this.api.get(`ordini/${id}/print`); }
+  getPreventivoePrint(id: number): Observable<any> { return this.api.get(`preventivi/${id}/print`); }
+  getAcquistoPrint(id: number): Observable<any> { return this.api.get(`acquisti/${id}/print`); }
+
   // Utility
   getNextNumero(tipo: string): Observable<{ numero: number }> { return this.api.get(`next-number/${tipo}`); }
   setDdtStato(id: number, stato: string): Observable<any> { return this.api.patch(`ddt/${id}/stato`, { stato }); }

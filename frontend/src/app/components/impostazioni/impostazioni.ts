@@ -200,6 +200,7 @@ export class ImpostazioniComponent implements OnInit {
   form: FormGroup;
   filteredCities: CityResult[] = [];
   private cityMap = new Map<string, CityResult>();
+  logoPreview: string = '';
 
   tipiPagamento: TipoPagamento[] = [];
   tpColumns = ['nome', 'conto', 'scadenza', 'immediato', 'attivo', 'azioni'];
@@ -224,12 +225,17 @@ export class ImpostazioniComponent implements OnInit {
       ragioneSociale: [''], pIva: ['', pIvaValidator], codFiscale: ['', codiceFiscaleValidator],
       indirizzo: [''], cap: [''], citta: [''], provincia: [''], stato: [''],
       telefono: [''], email: [''], pec: [''], sdi: [''],
-      iban: [''], banca: [''],
+      iban: [''], banca: [''], logo: [''],
     });
   }
 
   ngOnInit() {
-    this.ds.getAzienda().subscribe(a => { if (a) this.form.patchValue(a); });
+    this.ds.getAzienda().subscribe(a => {
+      if (a) {
+        this.form.patchValue(a);
+        this.logoPreview = a.logo || '';
+      }
+    });
 
     this.form.get('citta')!.valueChanges.pipe(
       debounceTime(300), distinctUntilChanged(),
@@ -261,8 +267,24 @@ export class ImpostazioniComponent implements OnInit {
     if (r) this.form.patchValue({ cap: r.cap, provincia: r.provincia, stato: 'Italia' }, { emitEvent: false });
   }
 
+  onLogoSelected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.logoPreview = reader.result as string;
+      this.form.patchValue({ logo: this.logoPreview });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeLogo() {
+    this.logoPreview = '';
+    this.form.patchValue({ logo: '' });
+  }
+
   save() {
-    this.ds.saveAzienda(this.form.value as Azienda).subscribe({
+    this.ds.saveAzienda({ ...this.form.value, logo: this.logoPreview } as Azienda).subscribe({
       next: () => this.snack.open('Dati salvati', '', { duration: 2000 }),
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });

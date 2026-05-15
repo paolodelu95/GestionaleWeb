@@ -73,8 +73,14 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  const righe = getRighe(req.params.id);
-  if (righe.length) aggiornaQuantita(righe, +1);
+  const stato = db.prepare('SELECT stato FROM ddt WHERE id=?').get(req.params.id)?.stato;
+  if (stato !== 'ANNULLATO') {
+    const righe = getRighe(req.params.id);
+    if (righe.length) aggiornaQuantita(righe, +1);
+  }
+  db.prepare('UPDATE fatture SET ddt_id = NULL WHERE ddt_id=?').run(req.params.id);
+  db.prepare('DELETE FROM fatture_ddt WHERE ddt_id=?').run(req.params.id);
+  db.prepare('DELETE FROM ddt_righe WHERE ddt_id=?').run(req.params.id);
   db.prepare('DELETE FROM ddt WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
@@ -102,6 +108,27 @@ function getRighe(ddtId) {
     prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva
   }));
 }
+
+router.get('/:id/print', (req, res) => {
+  const row = db.prepare(`
+    SELECT d.*, c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap,
+           c.citta as c_citta, c.provincia as c_provincia, c.stato as c_stato,
+           c.p_iva as c_p_iva, c.codice_fiscale as c_cod_fiscale,
+           c.email as c_email, c.telefono as c_telefono
+    FROM ddt d
+    LEFT JOIN clienti c ON d.cliente_id = c.id
+    WHERE d.id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const dto = toDto(row);
+  dto.righe = getRighe(row.id);
+  dto.cliente = {
+    ragioneSociale: row.c_nome, via: row.c_via, cap: row.c_cap,
+    citta: row.c_citta, provincia: row.c_provincia, stato: row.c_stato,
+    pIva: row.c_p_iva, codFiscale: row.c_cod_fiscale,
+    email: row.c_email, telefono: row.c_telefono,
+  };
+  res.json(dto);
+});
 
 router.patch('/:id/stato', (req, res) => {
   const { stato } = req.body;

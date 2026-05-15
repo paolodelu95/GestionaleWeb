@@ -111,6 +111,33 @@ function toDto(r) {
   };
 }
 
+router.get('/:id/print', (req, res) => {
+  const row = db.prepare(`
+    SELECT f.*, c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap,
+           c.citta as c_citta, c.provincia as c_provincia, c.stato as c_stato,
+           c.p_iva as c_p_iva, c.codice_fiscale as c_cod_fiscale,
+           c.email as c_email, c.telefono as c_telefono, c.pec as c_pec, c.sdi as c_sdi,
+           tp.nome as tp_nome
+    FROM fatture f
+    LEFT JOIN clienti c ON f.cliente_id = c.id
+    LEFT JOIN tipi_pagamento tp ON f.tipo_pagamento_id = tp.id
+    WHERE f.id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const dto = toDto(row);
+  dto.righe = getRighe(row.id);
+  dto.cliente = {
+    ragioneSociale: row.c_nome, via: row.c_via, cap: row.c_cap,
+    citta: row.c_citta, provincia: row.c_provincia, stato: row.c_stato,
+    pIva: row.c_p_iva, codFiscale: row.c_cod_fiscale,
+    email: row.c_email, telefono: row.c_telefono, pec: row.c_pec, sdi: row.c_sdi,
+  };
+  dto.tipoPagamentoNome = row.tp_nome || '';
+  dto.pagamenti = db.prepare(
+    'SELECT data_pagamento, importo, metodo, note FROM pagamenti WHERE fattura_id=? ORDER BY data_pagamento'
+  ).all(row.id).map(p => ({ dataPagamento: p.data_pagamento, importo: p.importo, metodo: p.metodo, note: p.note }));
+  res.json(dto);
+});
+
 router.patch('/:id/stato', (req, res) => {
   const { stato } = req.body;
   db.prepare('UPDATE fatture SET stato=? WHERE id=?').run(stato, req.params.id);

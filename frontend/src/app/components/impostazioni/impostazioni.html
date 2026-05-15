@@ -10,6 +10,27 @@
       <div class="tab-content">
         <div class="card" style="max-width:800px">
           <form [formGroup]="form" class="dialog-form">
+            <h3 class="section-title">Logo aziendale</h3>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+              @if (logoPreview) {
+                <img [src]="logoPreview" alt="Logo aziendale" style="max-height:64px;max-width:200px;object-fit:contain;border:1px solid #e2e8f0;border-radius:6px;padding:4px;background:#fff">
+                <button mat-stroked-button type="button" color="warn" (click)="removeLogo()">
+                  <mat-icon>delete</mat-icon> Rimuovi
+                </button>
+              } @else {
+                <div style="width:200px;height:64px;border:2px dashed #e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px">
+                  Nessun logo
+                </div>
+              }
+              <label style="cursor:pointer">
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none" (change)="onLogoSelected($event)">
+                <span mat-stroked-button style="display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(0,0,0,.12);padding:6px 14px;border-radius:4px;font-size:14px;cursor:pointer">
+                  <mat-icon style="font-size:18px;height:18px;width:18px">upload</mat-icon>
+                  {{ logoPreview ? 'Cambia logo' : 'Carica logo' }}
+                </span>
+              </label>
+            </div>
+
             <h3 class="section-title">Dati societari</h3>
             <div class="form-row">
               <mat-form-field style="flex:2"><mat-label>Ragione Sociale</mat-label><input matInput formControlName="ragioneSociale"></mat-form-field>

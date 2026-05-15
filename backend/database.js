@@ -287,6 +287,7 @@ const migrations = [
   'ALTER TABLE clienti ADD COLUMN tipo_pagamento_id INTEGER',
   'ALTER TABLE fornitori ADD COLUMN sdi TEXT DEFAULT ""',
   'ALTER TABLE fornitori ADD COLUMN pec TEXT DEFAULT ""',
+  'ALTER TABLE azienda ADD COLUMN logo TEXT DEFAULT ""',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

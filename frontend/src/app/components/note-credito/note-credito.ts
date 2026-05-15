@@ -16,6 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
+import { PrintService } from '../../services/print.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura } from '../../models';
 import { ProdottoPickerComponent } from '../shared/prodotto-picker';
 
@@ -374,7 +375,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() { this.load(); }
 
@@ -382,6 +383,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     this.dataSource.sort = this.sort;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
+        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
         case 'totale': return item.totale ?? 0;
         case 'dataEmissione': return item.dataEmissione ?? '';
         default: return (item as any)[col] ?? '';
@@ -456,6 +458,8 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
       });
     });
   }
+
+  printDoc(n: NotaCredito) { this.printSvc.printNotaCredito(n.id!); }
 
   delete(n: NotaCredito) {
     if (!confirm(`Eliminare Nota di Credito ${n.numero}?`)) return;

@@ -15,6 +15,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
+import { PrintService } from '../../services/print.service';
 import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura } from '../../models';
 import { ProdottoPickerComponent } from '../shared/prodotto-picker';
 
@@ -283,7 +284,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() { this.load(); }
 
@@ -291,6 +292,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     this.dataSource.sort = this.sort;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
+        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
         case 'totale': return item.totale ?? 0;
         case 'dataEmissione': return item.dataEmissione ?? '';
         default: return (item as any)[col] ?? '';
@@ -359,6 +361,8 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
       });
     });
   }
+
+  printDoc(a: Acquisto) { this.printSvc.printAcquisto(a.id!); }
 
   delete(a: Acquisto) {
     if (!confirm(`Eliminare acquisto ${a.numero}?`)) return;

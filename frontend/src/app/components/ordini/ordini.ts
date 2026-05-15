@@ -16,6 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
+import { PrintService } from '../../services/print.service';
 import { Ordine, Cliente, Fornitore, Prodotto, RigaDocumento, UnitaMisura } from '../../models';
 import { ProdottoPickerComponent } from '../shared/prodotto-picker';
 
@@ -360,7 +361,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() { this.load(); }
 
@@ -368,6 +369,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     this.dataSource.sort = this.sort;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
+        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
         case 'totale': return item.totale ?? 0;
         case 'dataOrdine': return item.dataOrdine ?? '';
         case 'controparte': return item.clienteNome || item.fornitoreNome || '';
@@ -439,6 +441,8 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
       });
     });
   }
+
+  printDoc(o: Ordine) { this.printSvc.printOrdine(o.id!); }
 
   delete(o: Ordine) {
     if (!confirm(`Eliminare Ordine ${o.numero}?`)) return;
