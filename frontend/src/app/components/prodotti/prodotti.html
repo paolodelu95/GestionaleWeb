@@ -41,13 +41,32 @@
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Codice</th>
         <td mat-cell *matCellDef="let p">{{ p.codice }}</td>
       </ng-container>
+      <ng-container matColumnDef="barcode">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Barcode</th>
+        <td mat-cell *matCellDef="let p" style="font-size:12px;color:#64748b">
+          {{ p.barcode || '—' }}
+          @if (p.haVarianti) { <span style="margin-left:4px;background:#ede9fe;color:#6d28d9;padding:2px 6px;border-radius:99px;font-size:10px;font-weight:700">VARIANTI</span> }
+        </td>
+      </ng-container>
       <ng-container matColumnDef="prezzo">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Prezzo</th>
         <td mat-cell *matCellDef="let p" class="euro">{{ p.prezzo | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
       <ng-container matColumnDef="quantita">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Qtà</th>
-        <td mat-cell *matCellDef="let p" [class.warn]="p.quantita < p.sogliaMinima">{{ p.quantita }}</td>
+        <td mat-cell *matCellDef="let p" [class.warn]="p.quantita < p.sogliaMinima">
+          {{ p.quantita }}
+          @if (p.haVarianti && p.varianti?.length) {
+            <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">
+              @for (v of p.varianti; track v.id) {
+                <span style="font-size:10px;background:#f1f5f9;border-radius:4px;padding:1px 5px;white-space:nowrap"
+                      [style.color]="v.quantita === 0 ? '#ef4444' : '#1e293b'">
+                  {{ v.taglia && v.colore ? v.taglia + '/' + v.colore : (v.taglia || v.colore || '#' + v.id) }}: {{ v.quantita }}
+                </span>
+              }
+            </div>
+          }
+        </td>
       </ng-container>
       <ng-container matColumnDef="sogliaMinima">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Soglia min.</th>

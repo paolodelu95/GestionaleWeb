@@ -28,6 +28,18 @@ export interface Prodotto {
   unitaMisura?: string;
   codice?: string;
   iva: number;
+  barcode?: string;
+  haVarianti?: boolean;
+  varianti?: ProdottoVariante[];
+}
+
+export interface ProdottoVariante {
+  id?: number;
+  prodottoId?: number;
+  taglia: string;
+  colore: string;
+  quantita: number;
+  barcode: string;
 }
 
 export interface Cliente {
@@ -72,6 +84,9 @@ export interface RigaDocumento {
   prezzo: number;
   sconto?: number;
   iva: number;
+  varianteId?: number | null;
+  varianteTaglia?: string;
+  varianteColore?: string;
 }
 
 export interface PrezzoRecente {
@@ -219,6 +234,8 @@ export interface Pagamento {
   fatturaNumero?: string;
   acquistoId?: number | null;
   acquistoNumero?: string;
+  venditaBancoId?: number | null;
+  venditaBancoNumero?: string;
   clienteNome?: string;
   fornitoreNome?: string;
   dataPagamento: string;
@@ -229,6 +246,47 @@ export interface Pagamento {
   conto?: string;
   tipoPagamentoId?: number | null;
   tipoPagamentoNome?: string;
+}
+
+export interface VenditaBanco {
+  id?: number;
+  numero: string;
+  data: string;
+  clienteNome?: string;
+  metodoPagamento: string;
+  note?: string;
+  stato?: string;
+  totale?: number;
+  righe?: RigaDocumento[];
+}
+
+export interface MovimentoMagazzino {
+  id: number;
+  data: string;
+  prodottoId: number;
+  prodottoNome: string;
+  tipo: 'CARICO' | 'SCARICO';
+  quantita: number;
+  causale: string;
+  documentoTipo: string;
+  documentoId?: number;
+  documentoNumero: string;
+  clienteId?: number;
+  clienteNome?: string;
+  fornitoreId?: number;
+  fornitoreNome?: string;
+  note?: string;
+  varianteTaglia?: string;
+  varianteColore?: string;
+}
+
+export interface GiacenzaStorica {
+  id: number;
+  nome: string;
+  categoria: string;
+  unitaMisura?: string;
+  sogliaMinima?: number;
+  quantita: number;
 }
 
 export interface ScadenzarioEntry {

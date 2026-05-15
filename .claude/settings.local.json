@@ -5,7 +5,12 @@
       "Bash(curl -s http://localhost:3000/api/clienti)",
       "Bash(curl -s http://localhost:3000/api/fornitori)",
       "Bash(git pull *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(node --check /Users/paolodeluca/Documents/GitHub/GestionaleWeb/backend/routes/ddt.js)",
+      "Bash(node --check /Users/paolodeluca/Documents/GitHub/GestionaleWeb/backend/routes/fatture.js)",
+      "Bash(node --check /Users/paolodeluca/Documents/GitHub/GestionaleWeb/backend/routes/movimentiMagazzino.js)",
+      "Bash(npx --prefix frontend tsc --noEmit)",
+      "Bash(npx tsc *)"
     ]
   }
 }

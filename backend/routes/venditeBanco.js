@@ -1,0 +1,134 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../database');
+
+router.get('/', (req, res) => {
+  const rows = db.prepare(`SELECT * FROM vendite_banco ORDER BY data DESC, id DESC`).all();
+  res.json(rows.map(r => toDto(r)));
+});
+
+router.get('/:id', (req, res) => {
+  const row = db.prepare(`SELECT * FROM vendite_banco WHERE id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const dto = toDto(row);
+  dto.righe = getRighe(row.id);
+  res.json(dto);
+});
+
+router.get('/:id/print', (req, res) => {
+  const row = db.prepare(`SELECT * FROM vendite_banco WHERE id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const dto = toDto(row);
+  dto.righe = getRighe(row.id);
+  res.json(dto);
+});
+
+router.post('/', (req, res) => {
+  const v = req.body;
+  const result = db.prepare(
+    `INSERT INTO vendite_banco (numero, data, cliente_nome, metodo_pagamento, note, stato)
+     VALUES (?,?,?,?,?,?)`
+  ).run(v.numero, v.data, v.clienteNome || '', v.metodoPagamento || 'CONTANTI', v.note || '', 'EMESSA');
+  const vendita_id = result.lastInsertRowid;
+
+  if (v.righe?.length) {
+    saveRighe(vendita_id, v.righe);
+    aggiornaQuantita(v.righe, -1, {
+      data: v.data, causale: 'VENDITA_BANCO', documentoTipo: 'VENDITA_BANCO',
+      documentoId: vendita_id, documentoNumero: v.numero, clienteNome: v.clienteNome || ''
+    });
+  }
+
+  // Calcola totale e inserisce pagamento automatico
+  const totale = calcolaTotale(vendita_id);
+  const conto = ['CONTANTI'].includes(v.metodoPagamento) ? 'CASSA' : 'BANCA';
+  db.prepare(
+    `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
+     VALUES (?,?,?,?,?,?,?)`
+  ).run(v.data, totale, v.metodoPagamento, 'ENTRATA', conto, vendita_id,
+       `Vendita al banco N. ${v.numero}${v.clienteNome ? ' – ' + v.clienteNome : ''}`);
+
+  res.json({ id: vendita_id });
+});
+
+router.delete('/:id', (req, res) => {
+  const vendita = db.prepare(`SELECT numero, cliente_nome FROM vendite_banco WHERE id=?`).get(req.params.id);
+  const righe = getRighe(req.params.id);
+  if (righe.length) {
+    aggiornaQuantita(righe, +1, {
+      causale: 'ELIMINAZIONE', documentoTipo: 'VENDITA_BANCO', documentoId: req.params.id,
+      documentoNumero: vendita?.numero || '', clienteNome: vendita?.cliente_nome || ''
+    });
+  }
+  db.prepare('DELETE FROM pagamenti WHERE vendita_banco_id=?').run(req.params.id);
+  db.prepare(`DELETE FROM vendite_banco WHERE id=?`).run(req.params.id);
+  res.json({ success: true });
+});
+
+function saveRighe(vendita_id, righe) {
+  const stmt = db.prepare(
+    `INSERT INTO vendite_banco_righe
+     (vendita_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura,
+      variante_id, variante_taglia, variante_colore)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+  );
+  for (const r of righe) {
+    stmt.run(vendita_id, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+             r.sconto ?? 0, r.iva, r.unitaMisura || '',
+             r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+  }
+}
+
+function getRighe(vendita_id) {
+  return db.prepare(
+    `SELECT vr.*, p.nome as prodotto_nome FROM vendite_banco_righe vr
+     LEFT JOIN prodotti p ON vr.prodotto_id = p.id WHERE vr.vendita_id=?`
+  ).all(vendita_id).map(r => ({
+    id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
+    descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
+    varianteId: r.variante_id, varianteTaglia: r.variante_taglia, varianteColore: r.variante_colore,
+  }));
+}
+
+function calcolaTotale(vendita_id) {
+  const r = db.prepare(
+    `SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t
+     FROM vendite_banco_righe WHERE vendita_id=?`
+  ).get(vendita_id);
+  return r?.t || 0;
+}
+
+function aggiornaQuantita(righe, delta, ctx = {}) {
+  const stmtQ = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+  const stmtV = db.prepare('UPDATE prodotto_varianti SET quantita = quantita + ? WHERE id = ?');
+  const stmtM = db.prepare(
+    `INSERT INTO movimenti_magazzino
+     (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,cliente_id,cliente_nome,fornitore_id,fornitore_nome,note)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  );
+  const oggi = new Date().toISOString().split('T')[0];
+  for (const r of righe) {
+    if (!r.prodottoId) continue;
+    stmtQ.run(delta * r.quantita, r.prodottoId);
+    if (r.varianteId) stmtV.run(delta * r.quantita, r.varianteId);
+    const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
+    stmtM.run(
+      ctx.data || oggi, r.prodottoId, prod?.nome || r.descrizione || '',
+      delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta * r.quantita),
+      ctx.causale || '', ctx.documentoTipo || '', ctx.documentoId || null,
+      ctx.documentoNumero || '', null, ctx.clienteNome || '', null, '', ''
+    );
+  }
+}
+
+function toDto(r) {
+  const totale = calcolaTotale(r.id);
+  return {
+    id: r.id, numero: r.numero, data: r.data,
+    clienteNome: r.cliente_nome, metodoPagamento: r.metodo_pagamento,
+    note: r.note, stato: r.stato, totale,
+  };
+}
+
+module.exports = router;

@@ -288,8 +288,116 @@ const migrations = [
   'ALTER TABLE fornitori ADD COLUMN sdi TEXT DEFAULT ""',
   'ALTER TABLE fornitori ADD COLUMN pec TEXT DEFAULT ""',
   'ALTER TABLE azienda ADD COLUMN logo TEXT DEFAULT ""',
+  // Barcode e varianti prodotti
+  'ALTER TABLE prodotti ADD COLUMN barcode TEXT DEFAULT ""',
+  'ALTER TABLE prodotti ADD COLUMN ha_varianti INTEGER DEFAULT 0',
+  // Vendite al banco → pagamenti
+  'ALTER TABLE pagamenti ADD COLUMN vendita_banco_id INTEGER',
+  // Righe vendita banco: variante
+  'ALTER TABLE vendite_banco_righe ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE vendite_banco_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE vendite_banco_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
+  // DDT causale
+  'ALTER TABLE ddt ADD COLUMN causale_trasporto TEXT DEFAULT ""',
+  // Variante in tutte le righe documento
+  'ALTER TABLE ddt_righe ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE ddt_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE ddt_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
+  'ALTER TABLE fatture_righe ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE fatture_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE fatture_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
+  'ALTER TABLE note_credito_righe ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE note_credito_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE note_credito_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
+  'ALTER TABLE ordini_righe ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE ordini_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE ordini_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
+  'ALTER TABLE preventivi_righe ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE preventivi_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE preventivi_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
+  'ALTER TABLE acquisti_righe ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE acquisti_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE acquisti_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
+  // Variante nei movimenti magazzino
+  'ALTER TABLE movimenti_magazzino ADD COLUMN variante_id INTEGER',
+  'ALTER TABLE movimenti_magazzino ADD COLUMN variante_taglia TEXT DEFAULT ""',
+  'ALTER TABLE movimenti_magazzino ADD COLUMN variante_colore TEXT DEFAULT ""',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
+
+// Varianti prodotto (taglie / colori)
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS prodotto_varianti (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      prodotto_id INTEGER NOT NULL,
+      taglia      TEXT DEFAULT '',
+      colore      TEXT DEFAULT '',
+      quantita    REAL DEFAULT 0,
+      barcode     TEXT DEFAULT '',
+      FOREIGN KEY (prodotto_id) REFERENCES prodotti(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_var_prodotto ON prodotto_varianti(prodotto_id);
+    CREATE INDEX IF NOT EXISTS idx_var_barcode  ON prodotto_varianti(barcode);
+  `);
+} catch(_) {}
+
+// Vendite al banco
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vendite_banco (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero            TEXT NOT NULL,
+      data              TEXT NOT NULL,
+      cliente_nome      TEXT DEFAULT '',
+      metodo_pagamento  TEXT DEFAULT 'CONTANTI',
+      note              TEXT DEFAULT '',
+      stato             TEXT DEFAULT 'EMESSA'
+    );
+    CREATE TABLE IF NOT EXISTS vendite_banco_righe (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      vendita_id  INTEGER NOT NULL,
+      prodotto_id INTEGER,
+      descrizione TEXT DEFAULT '',
+      quantita    REAL DEFAULT 1,
+      prezzo      REAL DEFAULT 0,
+      sconto      REAL DEFAULT 0,
+      iva         REAL DEFAULT 22,
+      unita_misura TEXT DEFAULT '',
+      FOREIGN KEY (vendita_id)  REFERENCES vendite_banco(id) ON DELETE CASCADE,
+      FOREIGN KEY (prodotto_id) REFERENCES prodotti(id)
+    );
+  `);
+} catch(_) {}
+
+// Movimenti di magazzino (audit trail completo)
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS movimenti_magazzino (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      data             TEXT NOT NULL,
+      prodotto_id      INTEGER NOT NULL,
+      prodotto_nome    TEXT DEFAULT '',
+      tipo             TEXT NOT NULL,
+      quantita         REAL NOT NULL,
+      causale          TEXT DEFAULT '',
+      documento_tipo   TEXT DEFAULT '',
+      documento_id     INTEGER,
+      documento_numero TEXT DEFAULT '',
+      cliente_id       INTEGER,
+      cliente_nome     TEXT DEFAULT '',
+      fornitore_id     INTEGER,
+      fornitore_nome   TEXT DEFAULT '',
+      note             TEXT DEFAULT '',
+      FOREIGN KEY (prodotto_id)  REFERENCES prodotti(id)  ON DELETE CASCADE,
+      FOREIGN KEY (cliente_id)   REFERENCES clienti(id)   ON DELETE SET NULL,
+      FOREIGN KEY (fornitore_id) REFERENCES fornitori(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_mov_data        ON movimenti_magazzino(data);
+    CREATE INDEX IF NOT EXISTS idx_mov_prodotto    ON movimenti_magazzino(prodotto_id);
+    CREATE INDEX IF NOT EXISTS idx_mov_cliente     ON movimenti_magazzino(cliente_id);
+  `);
+} catch(_) {}
 
 // Tabella molti-a-molti fatture ↔ ddt (supporta più DDT per fattura)
 try {

@@ -1,9 +1,45 @@
-import { Injectable } from '@angular/core';
+import { Component, Inject, Injectable } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DataService } from './data.service';
 import { Azienda } from '../models';
+
+@Component({
+  selector: 'app-pdf-preview',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  template: `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:16px;font-weight:700;color:#1a1a2e">{{ data.filename }}</span>
+      <button mat-icon-button type="button" mat-dialog-close><mat-icon>close</mat-icon></button>
+    </div>
+    <div style="height:76vh">
+      <iframe [src]="safeUrl" style="width:100%;height:100%;border:none" title="Anteprima PDF"></iframe>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e2e8f0">
+      <button mat-button type="button" mat-dialog-close>Chiudi</button>
+      <button mat-flat-button type="button" (click)="save()">
+        <mat-icon>download</mat-icon> Salva PDF
+      </button>
+    </div>
+  `
+})
+export class PdfPreviewDialogComponent {
+  safeUrl: SafeResourceUrl;
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public data: { pdf: jsPDF; filename: string },
+    private sanitizer: DomSanitizer
+  ) {
+    this.safeUrl = sanitizer.bypassSecurityTrustResourceUrl(data.pdf.output('bloburl') as unknown as string);
+  }
+  save() { this.data.pdf.save(this.data.filename); }
+}
 
 const PR: [number, number, number] = [79, 70, 229];
 const DK: [number, number, number] = [26, 26, 46];
@@ -14,7 +50,17 @@ const ML = 14, PW = 210, CW = PW - ML * 2;
 
 @Injectable({ providedIn: 'root' })
 export class PrintService {
-  constructor(private ds: DataService) {}
+  constructor(private ds: DataService, private dialog: MatDialog) {}
+
+  private showPreview(pdf: jsPDF, filename: string) {
+    this.dialog.open(PdfPreviewDialogComponent, {
+      data: { pdf, filename },
+      width: '900px',
+      maxWidth: '98vw',
+      height: '92vh',
+      panelClass: 'pdf-preview-panel',
+    });
+  }
 
   printFattura(id: number) {
     forkJoin({ doc: this.ds.getFatturaPrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
@@ -30,7 +76,7 @@ export class PrintService {
       y = this.payment(pdf, y, doc, az);
       if (doc.note) y = this.noteBox(pdf, y, doc.note);
       this.footer(pdf, az);
-      pdf.save(`Fattura_${doc.numero}.pdf`);
+      this.showPreview(pdf, `Fattura_${doc.numero}.pdf`);
     });
   }
 
@@ -49,7 +95,7 @@ export class PrintService {
       if (doc.note) y = this.noteBox(pdf, y, doc.note);
       y = this.signatures(pdf, y);
       this.footer(pdf, az);
-      pdf.save(`DDT_${doc.numero}.pdf`);
+      this.showPreview(pdf, `DDT_${doc.numero}.pdf`);
     });
   }
 
@@ -66,7 +112,7 @@ export class PrintService {
       y = this.totals(pdf, y, doc.righe || []);
       if (doc.note) y = this.noteBox(pdf, y, doc.note);
       this.footer(pdf, az);
-      pdf.save(`NotaCredito_${doc.numero}.pdf`);
+      this.showPreview(pdf, `NotaCredito_${doc.numero}.pdf`);
     });
   }
 
@@ -84,7 +130,7 @@ export class PrintService {
       y = this.totals(pdf, y, doc.righe || []);
       if (doc.note) y = this.noteBox(pdf, y, doc.note);
       this.footer(pdf, az);
-      pdf.save(`Ordine_${doc.numero}.pdf`);
+      this.showPreview(pdf, `Ordine_${doc.numero}.pdf`);
     });
   }
 
@@ -101,7 +147,25 @@ export class PrintService {
       y = this.totals(pdf, y, doc.righe || []);
       if (doc.note) y = this.noteBox(pdf, y, doc.note);
       this.footer(pdf, az);
-      pdf.save(`Preventivo_${doc.numero}.pdf`);
+      this.showPreview(pdf, `Preventivo_${doc.numero}.pdf`);
+    });
+  }
+
+  printDocumentale(id: number) {
+    forkJoin({ doc: this.ds.getVenditaBancoPrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      const logo = await this.resolveLogoInfo(az.logo);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let y = this.hdr(pdf, az, 'DOCUMENTO COMMERCIALE', `Pagamento: ${doc.metodoPagamento || 'CONTANTI'}`, doc.numero, doc.data, logo);
+      const clienteName = doc.clienteNome || 'Cliente al banco';
+      y = this.parties(pdf, y,
+        { lbl: 'VENDITORE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+        { lbl: 'CLIENTE', name: clienteName, lines: [] }
+      );
+      y = this.table(pdf, y, doc.righe || []);
+      y = this.totals(pdf, y, doc.righe || []);
+      if (doc.note) y = this.noteBox(pdf, y, doc.note);
+      this.footer(pdf, az);
+      this.showPreview(pdf, `DocumentoCommerciale_${doc.numero}.pdf`);
     });
   }
 
@@ -119,7 +183,7 @@ export class PrintService {
       y = this.payment(pdf, y, doc, az);
       if (doc.note) y = this.noteBox(pdf, y, doc.note);
       this.footer(pdf, az);
-      pdf.save(`Acquisto_${doc.numero}.pdf`);
+      this.showPreview(pdf, `Acquisto_${doc.numero}.pdf`);
     });
   }
 

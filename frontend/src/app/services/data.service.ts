@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
-  Azienda, Prodotto, Cliente, Fornitore,
+  Azienda, Prodotto, ProdottoVariante, Cliente, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
-  CategoriaProdotto, UnitaMisura, AliquotaIva
+  CategoriaProdotto, UnitaMisura, AliquotaIva,
+  MovimentoMagazzino, GiacenzaStorica, VenditaBanco
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +26,12 @@ export class DataService {
   createProdotto(p: Prodotto): Observable<any> { return this.api.post('prodotti', p); }
   updateProdotto(p: Prodotto): Observable<any> { return this.api.put(`prodotti/${p.id}`, p); }
   deleteProdotto(id: number): Observable<any> { return this.api.delete(`prodotti/${id}`); }
+
+  // Varianti prodotto
+  getProdottoVarianti(prodottoId: number): Observable<ProdottoVariante[]> { return this.api.get(`prodotto-varianti/${prodottoId}`); }
+  searchByBarcode(barcode: string): Observable<{ prodotto: Prodotto; variante: ProdottoVariante | null }> {
+    return this.api.get(`prodotto-varianti/barcode/${encodeURIComponent(barcode)}`);
+  }
 
   // Clienti
   getClienti(): Observable<Cliente[]> { return this.api.get('clienti'); }
@@ -137,4 +144,22 @@ export class DataService {
   updateAcquisto(a: Acquisto): Observable<any> { return this.api.put(`acquisti/${a.id}`, a); }
   deleteAcquisto(id: number): Observable<any> { return this.api.delete(`acquisti/${id}`); }
   setAcquistoStato(id: number, stato: string): Observable<any> { return this.api.patch(`acquisti/${id}/stato`, { stato }); }
+
+  // Vendite al banco
+  getVenditeBanco(): Observable<VenditaBanco[]> { return this.api.get('vendite-banco'); }
+  getVenditaBancoPrint(id: number): Observable<any> { return this.api.get(`vendite-banco/${id}/print`); }
+  createVenditaBanco(v: VenditaBanco): Observable<any> { return this.api.post('vendite-banco', v); }
+  deleteVenditaBanco(id: number): Observable<any> { return this.api.delete(`vendite-banco/${id}`); }
+  getNextNumberVenditaBanco(): Observable<{ numero: number }> { return this.api.get('next-number/vendite-banco'); }
+
+  // Magazzino
+  getMovimentiMagazzino(filters: Record<string, any> = {}): Observable<MovimentoMagazzino[]> {
+    const qs = Object.entries(filters)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+    return this.api.get(`movimenti-magazzino${qs ? '?' + qs : ''}`);
+  }
+  getMagazzinoStorico(data: string): Observable<GiacenzaStorica[]> {
+    return this.api.get(`movimenti-magazzino/storico?data=${data}`);
+  }
 }
