@@ -63,6 +63,22 @@ function toDto(r) {
     fatturaId: r.fattura_id, note: r.note, stato: r.stato, totale, imponibile };
 }
 
+router.get('/:id/print', (req, res) => {
+  const row = db.prepare(`SELECT n.*, c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap,
+    c.citta as c_citta, c.provincia as c_provincia, c.p_iva as c_p_iva,
+    f.numero as fattura_numero
+    FROM note_credito n
+    LEFT JOIN clienti c ON n.cliente_id = c.id
+    LEFT JOIN fatture f ON n.fattura_id = f.id
+    WHERE n.id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const dto = toDto(row);
+  dto.righe = getRighe(row.id);
+  dto.cliente = { ragioneSociale: row.c_nome, via: row.c_via, cap: row.c_cap, citta: row.c_citta, provincia: row.c_provincia, pIva: row.c_p_iva };
+  dto.fatturaNumeroColl = row.fattura_numero || '';
+  res.json(dto);
+});
+
 router.patch('/:id/stato', (req, res) => {
   db.prepare('UPDATE note_credito SET stato=? WHERE id=?').run(req.body.stato, req.params.id);
   res.json({ success: true });

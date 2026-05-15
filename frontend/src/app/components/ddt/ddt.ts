@@ -18,6 +18,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { SelectionModel } from '@angular/cdk/collections';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
+import { PrintService } from '../../services/print.service';
 import { Ddt, Fattura, Cliente, Prodotto, RigaDocumento, UnitaMisura } from '../../models';
 import { ProdottoPickerComponent } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
@@ -501,7 +502,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() { this.load(); }
 
@@ -509,6 +510,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
     this.dataSource.sort = this.sort;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
+        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
         case 'totale': return item.totale ?? 0;
         case 'dataEmissione': return item.dataEmissione ?? '';
         default: return (item as any)[prop] ?? '';
@@ -555,6 +557,8 @@ export class DdtComponent implements OnInit, AfterViewInit {
     this.ds.setDdtStato(d.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
   }
   bulkSetStato(stato: string) { this.selection.selected.forEach(d => this.ds.setDdtStato(d.id!, stato).subscribe()); this.load(); }
+
+  printDoc(d: Ddt) { this.printSvc.printDdt(d.id!); }
 
   generaFattura(ddt: Ddt) {
     forkJoin({ full: this.ds.getDdtById(ddt.id!), num: this.ds.getNextNumero('fatture') }).subscribe(({ full, num }) => {

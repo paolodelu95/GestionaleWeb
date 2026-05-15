@@ -48,6 +48,24 @@ router.patch('/:id/stato', (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/:id/print', (req, res) => {
+  const row = db.prepare(`SELECT a.*, f.ragione_sociale as f_nome, f.via as f_via, f.cap as f_cap,
+    f.citta as f_citta, f.provincia as f_provincia, f.p_iva as f_p_iva, f.email as f_email,
+    tp.nome as tp_nome
+    FROM acquisti a
+    LEFT JOIN fornitori f ON a.fornitore_id = f.id
+    LEFT JOIN tipi_pagamento tp ON a.tipo_pagamento_id = tp.id
+    WHERE a.id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const dto = toDto(row);
+  dto.righe = getRighe(row.id);
+  dto.fornitore = { ragioneSociale: row.f_nome, via: row.f_via, cap: row.f_cap, citta: row.f_citta, provincia: row.f_provincia, pIva: row.f_p_iva, email: row.f_email };
+  dto.tipoPagamentoNome = row.tp_nome || '';
+  dto.pagamenti = db.prepare(`SELECT data_pagamento, importo, metodo, note FROM pagamenti WHERE acquisto_id=? ORDER BY data_pagamento`).all(row.id)
+    .map(p => ({ dataPagamento: p.data_pagamento, importo: p.importo, metodo: p.metodo, note: p.note }));
+  res.json(dto);
+});
+
 router.delete('/:id', (req, res) => {
   db.prepare('DELETE FROM acquisti WHERE id=?').run(req.params.id);
   res.json({ success: true });

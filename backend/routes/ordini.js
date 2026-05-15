@@ -71,6 +71,22 @@ function toDto(r) {
     tipo: r.tipo, stato: r.stato, note: r.note, totale, imponibile };
 }
 
+router.get('/:id/print', (req, res) => {
+  const row = db.prepare(`SELECT o.*,
+    c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap, c.citta as c_citta, c.provincia as c_provincia, c.p_iva as c_p_iva,
+    f.ragione_sociale as f_nome, f.via as f_via, f.cap as f_cap, f.citta as f_citta, f.provincia as f_provincia, f.p_iva as f_p_iva
+    FROM ordini o
+    LEFT JOIN clienti c ON o.cliente_id = c.id
+    LEFT JOIN fornitori f ON o.fornitore_id = f.id
+    WHERE o.id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const dto = toDto(row);
+  dto.righe = getRighe(row.id);
+  dto.cliente = { ragioneSociale: row.c_nome, via: row.c_via, cap: row.c_cap, citta: row.c_citta, provincia: row.c_provincia, pIva: row.c_p_iva };
+  dto.fornitore = { ragioneSociale: row.f_nome, via: row.f_via, cap: row.f_cap, citta: row.f_citta, provincia: row.f_provincia, pIva: row.f_p_iva };
+  res.json(dto);
+});
+
 router.patch('/:id/stato', (req, res) => {
   db.prepare('UPDATE ordini SET stato=? WHERE id=?').run(req.body.stato, req.params.id);
   res.json({ success: true });

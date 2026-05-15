@@ -45,7 +45,7 @@
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
-    <table mat-table [dataSource]="dataSource" matSort class="mat-mdc-table">
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="numero" matSortDirection="desc" matSortDisableClear class="mat-mdc-table">
 
       <ng-container matColumnDef="select">
         <th mat-header-cell *matHeaderCellDef style="width:48px">
@@ -99,6 +99,7 @@
               <mat-icon>thumb_down</mat-icon>
             </button>
           }
+          <button mat-icon-button type="button" title="Stampa" (click)="printDoc(p)"><mat-icon>print</mat-icon></button>
           <button mat-icon-button type="button" title="Modifica" (click)="open(p)"><mat-icon>edit</mat-icon></button>
           <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(p)"><mat-icon>delete</mat-icon></button>
         </td>
