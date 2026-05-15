@@ -250,6 +250,7 @@ const aziendaExtras = [
   'ALTER TABLE azienda ADD COLUMN stato TEXT DEFAULT ""',
   'ALTER TABLE azienda ADD COLUMN pec TEXT DEFAULT ""',
   'ALTER TABLE azienda ADD COLUMN sdi TEXT DEFAULT ""',
+  'ALTER TABLE azienda ADD COLUMN regime_fiscale TEXT DEFAULT "RF01"',
 ];
 for (const sql of aziendaExtras) { try { db.exec(sql); } catch(_) {} }
 

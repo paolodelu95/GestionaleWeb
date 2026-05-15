@@ -196,6 +196,8 @@ export class AcquistoDialogComponent implements OnInit {
     });
     if (data?.id) {
       this.ds.getAcquistoById(data.id).subscribe(a => { this.righe = (a.righe ?? []).map((r: any) => ({ ...r, sconto: r.sconto ?? 0 })); });
+    } else if (data?.righe?.length) {
+      this.righe = data.righe.map(r => ({ ...r, sconto: r.sconto ?? 0 }));
     } else {
       this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }];
     }
@@ -213,6 +215,8 @@ export class AcquistoDialogComponent implements OnInit {
       if (this.data?.fornitoreId) {
         const found = f.find(x => x.id === this.data!.fornitoreId);
         if (found) this.fornitoreCtrl.setValue(found, { emitEvent: false });
+      } else if (this.data?.fornitoreNome && !this.data.fornitoreId) {
+        this.fornitoreCtrl.setValue(this.data.fornitoreNome, { emitEvent: false });
       }
     });
 
@@ -276,6 +280,7 @@ export class AcquistoDialogComponent implements OnInit {
 })
 export class AcquistiComponent implements OnInit, AfterViewInit {
   private allAcquisti: Acquisto[] = [];
+  private fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Acquisto>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'fornitoreNome', 'tipoPagamentoNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Acquisto>(true, []);
@@ -297,7 +302,10 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.getFornitori().subscribe(f => this.fornitori = f);
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
@@ -371,6 +379,65 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
         error: e => this.snack.open(e.message, '', { duration: 3000 })
       });
     });
+  }
+
+  importaXml(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    (event.target as HTMLInputElement).value = '';
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = this.parseXmlFatturaPA(reader.result as string);
+        const forn = this.fornitori.find(f =>
+          f.pIva && f.pIva.replace(/^IT/i, '') === (parsed.fornitorePIva ?? '').replace(/^IT/i, '')
+        );
+        this.open({
+          numero: parsed.numero ?? '',
+          dataEmissione: parsed.dataEmissione ?? new Date().toISOString().substring(0, 10),
+          fornitoreId: forn?.id ?? null,
+          fornitoreNome: forn ? undefined : parsed.fornitoreNome,
+          note: parsed.note,
+          stato: 'RICEVUTA',
+          righe: parsed.righe,
+        });
+      } catch (_) {
+        this.snack.open('File XML non valido o non riconosciuto', '', { duration: 3500 });
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  private parseXmlFatturaPA(xml: string) {
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    if (doc.querySelector('parsererror')) throw new Error('XML non valido');
+    const txt = (sel: string, ctx: Element | Document = doc) =>
+      ctx.querySelector(sel)?.textContent?.trim() ?? '';
+    const num = (sel: string, ctx: Element | Document = doc) =>
+      parseFloat(txt(sel, ctx)) || 0;
+
+    const cedente = doc.querySelector('CedentePrestatore');
+    const fornitorePIva  = txt('IdFiscaleIVA IdCodice', cedente ?? doc);
+    const fornitoreNome  = txt('Anagrafica Denominazione', cedente ?? doc)
+                        || txt('Anagrafica Nome', cedente ?? doc);
+
+    const datiDoc = doc.querySelector('DatiGeneraliDocumento');
+    const numero        = txt('Numero', datiDoc ?? doc);
+    const dataEmissione = txt('Data', datiDoc ?? doc);
+    const causali = Array.from(doc.querySelectorAll('DatiGeneraliDocumento Causale'))
+      .map(el => el.textContent?.trim() ?? '').filter(Boolean);
+    const note = causali.join(' ');
+
+    const righe: RigaDocumento[] = Array.from(doc.querySelectorAll('DettaglioLinee')).map(linea => ({
+      descrizione:  txt('Descrizione', linea),
+      quantita:     num('Quantita', linea) || 1,
+      prezzo:       num('PrezzoUnitario', linea),
+      sconto:       num('ScontoMaggiorazione Percentuale', linea),
+      iva:          num('AliquotaIVA', linea),
+      unitaMisura:  txt('UnitaMisura', linea),
+    }));
+
+    return { numero, dataEmissione, note, righe, fornitorePIva, fornitoreNome };
   }
 
   printDoc(a: Acquisto) { this.printSvc.printAcquisto(a.id!); }

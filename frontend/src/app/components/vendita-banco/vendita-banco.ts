@@ -58,6 +58,26 @@ interface RigaVendita extends RigaDocumento {
     mat-table { width: 100%; }
     th.mat-header-cell { font-weight: 700; font-size: 12px; color: #64748b; text-transform: uppercase; background: #f8fafc; }
     td.mat-cell { font-size: 13px; }
+    .resto-box { border: 1px solid #e0e7ff; border-radius: 12px; background: #f5f3ff; margin-top: 16px; overflow: hidden; }
+    .resto-header { background: #ede9fe; padding: 10px 16px; font-size: 13px; font-weight: 700; color: #4f46e5; display: flex; align-items: center; }
+    .resto-body { padding: 14px 16px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .resto-banconote { display: flex; gap: 8px; flex-wrap: wrap; }
+    .banconota-btn { position: relative; border: 2px solid #c7d2fe; background: #fff; border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 700; color: #4338ca; cursor: pointer; transition: all .15s; }
+    .banconota-btn:hover { background: #e0e7ff; border-color: #6366f1; }
+    .banconota-btn.banconota-selected { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .banconota-count { position: absolute; top: -7px; right: -7px; background: #f59e0b; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 3px; line-height: 1; }
+    .resto-clear-btn { border: none; background: none; cursor: pointer; color: #94a3b8; padding: 0 6px; display: flex; align-items: center; transition: color .15s; }
+    .resto-clear-btn:hover { color: #dc2626; }
+    .resto-clear-btn mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .resto-input-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .resto-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+    .resto-input-wrap { display: flex; align-items: center; border: 2px solid #c7d2fe; border-radius: 8px; background: #fff; overflow: hidden; }
+    .resto-currency { padding: 0 8px; font-weight: 700; color: #6366f1; font-size: 15px; }
+    .resto-input { border: none; outline: none; padding: 8px 10px 8px 0; font-size: 15px; font-weight: 700; width: 100px; color: #1e293b; }
+    .resto-risultato { display: flex; align-items: center; gap: 6px; font-size: 15px; padding: 6px 14px; border-radius: 8px; font-weight: 600; }
+    .resto-ok { background: #dcfce7; color: #15803d; }
+    .resto-err { background: #fee2e2; color: #dc2626; }
+    .resto-risultato mat-icon { font-size: 18px; width: 18px; height: 18px; }
   `]
 })
 export class VenditaBancoComponent implements OnInit, AfterViewInit {
@@ -82,6 +102,25 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     }, 0);
   }
   get totale(): number { return this.imponibile + this.ivaTotal; }
+
+  importoPagato: number | null = null;
+  selectedBanconote: number[] = [];
+  get resto(): number | null {
+    if (this.importoPagato == null) return null;
+    return Math.round((this.importoPagato - this.totale) * 100) / 100;
+  }
+  readonly banconote = [5, 10, 20, 50, 100, 200];
+  addBanconota(b: number) {
+    this.selectedBanconote.push(b);
+    this.importoPagato = this.selectedBanconote.reduce((a, x) => a + x, 0);
+  }
+  countBanconota(b: number): number {
+    return this.selectedBanconote.filter(x => x === b).length;
+  }
+  clearImporto() {
+    this.importoPagato = null;
+    this.selectedBanconote = [];
+  }
 
   ivaBreakdown(): { aliquota: number; imp: number; iva: number }[] {
     const map = new Map<number, { imp: number; iva: number }>();
@@ -221,6 +260,19 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     if (r.unitaMisura === 'pz') r.quantita = Math.round(r.quantita || 0);
   }
 
+  prezzoIvato(r: RigaVendita): number {
+    return +((r.prezzo || 0) * (1 + (r.iva || 0) / 100)).toFixed(2);
+  }
+
+  setPrezzoFromGross(r: RigaVendita, event: Event) {
+    const gross = +(event.target as HTMLInputElement).value;
+    r.prezzo = gross > 0 ? +(gross / (1 + (r.iva || 0) / 100)).toFixed(6) : 0;
+  }
+
+  rigaImporto(r: RigaVendita): number {
+    return (r.quantita || 0) * (r.prezzo || 0) * (1 + (r.iva || 0) / 100) * (1 - (r.sconto || 0) / 100);
+  }
+
   salvaEStampa() {
     if (!this.righe.length) { this.snack.open('Aggiungi almeno un prodotto', '', { duration: 2000 }); return; }
     const payload: VenditaBanco = { ...this.vendita, righe: this.righe };
@@ -232,6 +284,8 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
         this.righe = [];
         this.filteredProdotti = [];
         this.variantiPerRiga = [];
+        this.importoPagato = null;
+        this.selectedBanconote = [];
         this.vendita = { numero: '', data: this.today, clienteNome: '', metodoPagamento: 'CONTANTI' };
         this.loadNextNumber();
       },
