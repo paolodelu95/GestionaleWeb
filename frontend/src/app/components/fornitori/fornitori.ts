@@ -167,7 +167,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
   }
 
   open(f?: Fornitore) {
-    const ref = this.dialog.open(FornitoreDialogComponent, { data: f ?? null, width: '780px' });
+    const ref = this.dialog.open(FornitoreDialogComponent, { data: f ?? null, width: '95vw', maxWidth: '860px' });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       const op = result.id ? this.ds.updateFornitore(result) : this.ds.createFornitore(result);

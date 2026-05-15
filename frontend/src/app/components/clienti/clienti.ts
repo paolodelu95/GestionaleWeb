@@ -211,7 +211,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   }
 
   open(c?: Cliente) {
-    const ref = this.dialog.open(ClienteDialogComponent, { data: c ?? null, width: '780px' });
+    const ref = this.dialog.open(ClienteDialogComponent, { data: c ?? null, width: '95vw', maxWidth: '860px' });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       const op = result.id ? this.ds.updateCliente(result) : this.ds.createCliente(result);

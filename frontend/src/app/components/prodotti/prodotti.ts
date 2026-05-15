@@ -23,7 +23,7 @@ import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva
             MatIconModule, MatCheckboxModule],
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica prodotto' : 'Nuovo prodotto' }}</h2>
-    <mat-dialog-content style="min-width:680px;max-height:80vh">
+    <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">
           <mat-form-field><mat-label>Nome *</mat-label>
@@ -85,14 +85,15 @@ import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva
           <textarea matInput rows="2" formControlName="descrizione"></textarea></mat-form-field>
 
         @if (form.value.haVarianti) {
-          <div style="margin-top:12px;border:1px solid #e2e8f0;border-radius:10px;padding:16px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <span style="font-size:12px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.5px">Varianti (Taglie / Colori)</span>
+          <div class="varianti-box">
+            <div class="varianti-header">
+              <span class="varianti-title">Varianti (Taglie / Colori)</span>
               <button mat-stroked-button type="button" (click)="addVariante()">
                 <mat-icon>add</mat-icon> Aggiungi variante
               </button>
             </div>
-            <table style="width:100%;border-collapse:collapse">
+            <div class="var-table-wrap">
+            <table class="var-table">
               <thead>
                 <tr style="background:#f8fafc">
                   <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Taglia</th>
@@ -132,6 +133,7 @@ import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva
                 }
               </tbody>
             </table>
+            </div>
             @if (varianti.length) {
               <div style="text-align:right;padding-top:8px;font-size:12px;color:#64748b">
                 Totale quantità: <b style="color:#1e293b">{{ totaleVarianti }}</b>
@@ -149,6 +151,11 @@ import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva
     .var-input { border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:13px;width:100%;box-sizing:border-box; }
     .var-input:focus { outline:none;border-color:#4f46e5; }
     .var-input.num { width:70px;text-align:right; }
+    .varianti-box { margin-top:12px;border:1px solid #e2e8f0;border-radius:10px;padding:16px; }
+    .varianti-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px; }
+    .varianti-title { font-size:12px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.5px; }
+    .var-table-wrap { overflow-x:auto; }
+    .var-table { width:100%;border-collapse:collapse;min-width:420px; }
   `]
 })
 export class ProdottoDialogComponent implements OnInit {
@@ -272,7 +279,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   }
 
   open(p?: Prodotto) {
-    const ref = this.dialog.open(ProdottoDialogComponent, { data: p ?? null, width: '780px' });
+    const ref = this.dialog.open(ProdottoDialogComponent, { data: p ?? null, width: '95vw', maxWidth: '900px' });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       const op = result.id ? this.ds.updateProdotto(result) : this.ds.createProdotto(result);

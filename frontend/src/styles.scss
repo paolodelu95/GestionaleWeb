@@ -121,8 +121,12 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 }
 .form-row { display: flex; gap: 12px; > mat-form-field { flex: 1; } }
 
-// Dialoghi documento: il mat-dialog-content scala con la larghezza del dialog
-.mat-mdc-dialog-content { padding: 0 24px 16px !important; }
+// Dialoghi: dimensioni comode su desktop, scroll interno
+.mat-mdc-dialog-content {
+  padding: 0 24px 16px !important;
+  max-height: calc(90dvh - 140px) !important;
+  overflow-y: auto !important;
+}
 .mat-mdc-dialog-surface { padding: 24px 0 0 !important; }
 
 // Euro
