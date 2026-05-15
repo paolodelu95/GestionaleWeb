@@ -1,0 +1,7 @@
+**/node_modules
+**/.git
+frontend/.angular
+frontend/dist
+backend/gestionale.db
+backend/gestionale.db-shm
+backend/gestionale.db-wal
