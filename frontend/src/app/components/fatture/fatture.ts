@@ -719,6 +719,13 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   printDoc(f: Fattura) { this.printSvc.printFattura(f.id!); }
 
+  downloadXml(f: Fattura) {
+    const a = document.createElement('a');
+    a.href = `http://localhost:3000/api/fattura-xml/${f.id}`;
+    a.download = `FatturaPA_${f.numero}.xml`;
+    a.click();
+  }
+
   delete(f: Fattura) {
     if (!confirm(`Eliminare Fattura ${f.numero}?`)) return;
     this.ds.deleteFattura(f.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
