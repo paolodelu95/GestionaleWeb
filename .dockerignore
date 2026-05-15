@@ -5,3 +5,5 @@ frontend/dist
 backend/gestionale.db
 backend/gestionale.db-shm
 backend/gestionale.db-wal
+backend/.env
+.env

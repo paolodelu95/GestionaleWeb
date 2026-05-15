@@ -10,7 +10,11 @@
       "Bash(node --check /Users/paolodeluca/Documents/GitHub/GestionaleWeb/backend/routes/fatture.js)",
       "Bash(node --check /Users/paolodeluca/Documents/GitHub/GestionaleWeb/backend/routes/movimentiMagazzino.js)",
       "Bash(npx --prefix frontend tsc --noEmit)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Bash(git push *)"
     ]
   }
 }
