@@ -1,3 +1,6 @@
+@if (!loggedIn) {
+  <app-login (loggedIn)="onLogin()" />
+} @else {
 <div class="shell">
   @if (!collapsed) {
     <div class="sidenav-backdrop" (click)="toggleSidebar()"></div>
@@ -62,9 +65,14 @@
       @if (azienda?.citta) {
         <span class="topbar-sub">&nbsp;—&nbsp;{{ azienda!.citta }}</span>
       }
+      <span class="topbar-spacer"></span>
+      <button mat-icon-button type="button" title="Esci" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+      </button>
     </mat-toolbar>
     <div class="content-area">
       <router-outlet />
     </div>
   </div>
 </div>
+}

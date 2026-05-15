@@ -10,6 +10,27 @@ app.use(express.json({ limit: '10mb' }));
 
 const db = require('./database');
 
+// ── Auth ─────────────────────────────────────────────────────────────────────
+const crypto = require('crypto');
+const AUTH_USER   = process.env.AUTH_USER   || 'invoxa-admin';
+const AUTH_PASS   = process.env.AUTH_PASS   || 'invoxa-passowrd';
+const AUTH_SECRET = process.env.AUTH_SECRET || 'invoxa-jwt-secret-changeme';
+const VALID_TOKEN = crypto.createHmac('sha256', AUTH_SECRET)
+  .update(`${AUTH_USER}:${AUTH_PASS}`).digest('hex');
+
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === AUTH_USER && password === AUTH_PASS)
+    return res.json({ token: VALID_TOKEN });
+  res.status(401).json({ error: 'Credenziali non valide' });
+});
+
+app.use('/api', (req, res, next) => {
+  const auth = req.headers['authorization'];
+  if (auth === `Bearer ${VALID_TOKEN}`) return next();
+  res.status(401).json({ error: 'Non autorizzato' });
+});
+
 app.get('/api/prezzi-recenti', (req, res) => {
   const pid = parseInt(req.query.prodottoId);
   const cid = req.query.clienteId ? parseInt(req.query.clienteId) : null;
@@ -82,7 +103,7 @@ app.use((err, req, res, next) => {
 const fs = require('fs');
 if (fs.existsSync(DIST)) {
   app.use(express.static(DIST));
-  app.get('*', (req, res) => res.sendFile(path.join(DIST, 'index.html')));
+  app.get(/(.*)/, (req, res) => res.sendFile(path.join(DIST, 'index.html')));
 }
 
 app.listen(PORT, () => console.log(`Server avviato su http://localhost:${PORT}`));

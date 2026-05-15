@@ -8,6 +8,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService } from './services/data.service';
+import { AuthService } from './services/auth.service';
+import { LoginComponent } from './components/login/login';
 import { Azienda } from './models';
 
 interface NavItem {
@@ -23,7 +25,8 @@ interface NavItem {
   imports: [
     CommonModule, RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatListModule,
-    MatIconModule, MatExpansionModule, MatButtonModule, MatTooltipModule
+    MatIconModule, MatExpansionModule, MatButtonModule, MatTooltipModule,
+    LoginComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'
@@ -31,12 +34,28 @@ interface NavItem {
 export class App implements OnInit {
   azienda: Azienda | null = null;
   collapsed = false;
+  loggedIn = false;
 
-  constructor(private ds: DataService) {}
+  constructor(private ds: DataService, private authSvc: AuthService) {
+    this.loggedIn = authSvc.isLoggedIn();
+  }
 
   ngOnInit() {
+    if (!this.loggedIn) return;
     this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
     if (window.innerWidth < 768) this.collapsed = true;
+  }
+
+  onLogin() {
+    this.loggedIn = true;
+    this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
+    if (window.innerWidth < 768) this.collapsed = true;
+  }
+
+  logout() {
+    this.authSvc.logout();
+    this.loggedIn = false;
+    this.azienda = null;
   }
 
   @HostListener('window:resize')
