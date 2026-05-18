@@ -1,0 +1,135 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Prima Nota</h1>
+    <button mat-flat-button (click)="open()">
+      <mat-icon>add</mat-icon> Nuova registrazione
+    </button>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+    <div class="kpi-card">
+      <div class="kpi-label">Totale Entrate</div>
+      <div class="kpi-value euro">{{ totaleEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Totale Uscite</div>
+      <div class="kpi-value euro-neg">{{ totaleUscite | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Saldo</div>
+      <div class="kpi-value"
+           [class.euro]="saldo >= 0"
+           [class.euro-neg]="saldo < 0">
+        {{ saldo | currency:'EUR':'symbol':'1.2-2':'it' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <mat-select [(ngModel)]="filtroMese" placeholder="Mese" (ngModelChange)="load()">
+      @for (m of mesiOptions; track m.v) {
+        <mat-option [value]="m.v">{{ m.l }}</mat-option>
+      }
+    </mat-select>
+
+    <mat-select [(ngModel)]="filtroConto" placeholder="Conto" (ngModelChange)="load()">
+      <mat-option value="">Tutti i conti</mat-option>
+      <mat-option value="CASSA">Cassa</mat-option>
+      <mat-option value="BANCA">Banca</mat-option>
+    </mat-select>
+
+    <mat-select [(ngModel)]="filtroTipo" placeholder="Tipo" (ngModelChange)="load()">
+      <mat-option value="">Tutti</mat-option>
+      <mat-option value="ENTRATA">Entrata</mat-option>
+      <mat-option value="USCITA">Uscita</mat-option>
+    </mat-select>
+
+    @if (filtroMese || filtroConto || filtroTipo) {
+      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()">
+        <mat-icon>clear</mat-icon>
+      </button>
+    }
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="data" matSortDirection="desc"
+           matSortDisableClear class="mat-mdc-table">
+
+      <!-- Data -->
+      <ng-container matColumnDef="data">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Data</th>
+        <td mat-cell *matCellDef="let e">{{ e.data | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <!-- Tipo chip -->
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let e">
+          <span class="stato-chip" style="font-size:11px"
+                [style.background]="e.tipo === 'ENTRATA' ? '#dcfce7' : '#fee2e2'"
+                [style.color]="e.tipo === 'ENTRATA' ? '#16a34a' : '#dc2626'">
+            {{ e.tipo === 'ENTRATA' ? 'Entrata' : 'Uscita' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Causale -->
+      <ng-container matColumnDef="causale">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Causale</th>
+        <td mat-cell *matCellDef="let e">{{ e.causale }}</td>
+      </ng-container>
+
+      <!-- Conto -->
+      <ng-container matColumnDef="conto">
+        <th mat-header-cell *matHeaderCellDef>Conto</th>
+        <td mat-cell *matCellDef="let e" style="white-space:nowrap">
+          <mat-icon style="font-size:16px;vertical-align:middle;color:#64748b;margin-right:4px">
+            {{ e.conto === 'CASSA' ? 'account_balance_wallet' : 'account_balance' }}
+          </mat-icon>
+          {{ e.conto }}
+        </td>
+      </ng-container>
+
+      <!-- Importo -->
+      <ng-container matColumnDef="importo">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align:right">Importo</th>
+        <td mat-cell *matCellDef="let e" style="text-align:right">
+          <b [class.euro]="e.tipo === 'ENTRATA'" [class.euro-neg]="e.tipo === 'USCITA'">
+            {{ e.importo | currency:'EUR':'symbol':'1.2-2':'it' }}
+          </b>
+        </td>
+      </ng-container>
+
+      <!-- Note -->
+      <ng-container matColumnDef="note">
+        <th mat-header-cell *matHeaderCellDef>Note</th>
+        <td mat-cell *matCellDef="let e" style="color:#64748b;font-size:13px">{{ e.note || '—' }}</td>
+      </ng-container>
+
+      <!-- Azioni -->
+      <ng-container matColumnDef="azioni">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let e" class="table-actions">
+          <button mat-icon-button title="Modifica" (click)="open(e)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" title="Elimina" (click)="delete(e)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    @if (!dataSource.data.length) {
+      <p class="empty-msg">Nessuna registrazione trovata</p>
+    }
+
+    <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
+  </div>
+</div>

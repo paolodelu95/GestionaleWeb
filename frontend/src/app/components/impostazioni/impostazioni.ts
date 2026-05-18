@@ -18,7 +18,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente } from '../../models';
-import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-validators';
+import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 
 // ── Tipo Pagamento Dialog ────────────────────────────────────────────────────
 @Component({
@@ -295,8 +295,8 @@ export class ImpostazioniComponent implements OnInit {
       ragioneSociale: [''], pIva: ['', pIvaValidator], codFiscale: ['', codiceFiscaleValidator],
       indirizzo: [''], cap: [''], citta: [''], provincia: [''], stato: [''],
       telefono: [''], email: [''], pec: [''], sdi: [''],
-      iban: [''], banca: [''], logo: [''],
-      smtpHost: [''], smtpPort: [587], smtpUser: [''], smtpPass: [''], smtpFrom: [''], smtpSecure: [false],
+      iban: ['', ibanValidator], banca: [''], logo: [''],
+      smtpHost: [''], smtpPort: [587, [Validators.min(1), Validators.max(65535)]], smtpUser: [''], smtpPass: [''], smtpFrom: [''], smtpSecure: [false],
       sdiApiUrl: [''], sdiApiKey: [''],
       riordinoAutomatico: [false], multiUtenteAttivo: [false],
       numerazioneAnnuale: [true],

@@ -1,0 +1,49 @@
+<div class="allegati-section">
+  <div class="allegati-header">
+    <span class="allegati-title">
+      <mat-icon>attach_file</mat-icon>
+      Allegati
+      @if (allegati.length > 0) {
+        <span class="count-badge">{{ allegati.length }}</span>
+      }
+    </span>
+    <button mat-stroked-button type="button" (click)="triggerUpload()" [disabled]="uploading">
+      @if (uploading) {
+        <mat-spinner diameter="18" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner>
+        Caricamento...
+      } @else {
+        <mat-icon>upload</mat-icon>
+        Carica allegato
+      }
+    </button>
+    <input #fileInput type="file" style="display:none" (change)="onFileSelected($event)">
+  </div>
+
+  @if (allegati.length === 0 && !uploading) {
+    <p class="empty-msg">Nessun allegato</p>
+  }
+
+  @if (allegati.length > 0) {
+    <ul class="allegati-list">
+      @for (a of allegati; track a.id) {
+        <li class="allegato-item">
+          <mat-icon class="file-icon" [class.pdf]="a.mimeType === 'application/pdf'" [class.image]="a.mimeType?.startsWith('image/')">
+            {{ getFileIcon(a.mimeType) }}
+          </mat-icon>
+          <div class="file-info">
+            <span class="file-name" [title]="a.nomeFile">{{ a.nomeFile }}</span>
+            <span class="file-meta">{{ formatSize(a.dimensione) }} &middot; {{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="file-actions">
+            <button mat-icon-button type="button" (click)="download(a)" title="Scarica">
+              <mat-icon>download</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" type="button" (click)="delete(a)" title="Elimina">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

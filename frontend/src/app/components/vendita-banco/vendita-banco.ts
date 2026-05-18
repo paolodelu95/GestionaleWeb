@@ -253,7 +253,11 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
 
   roundIfPz(r: { unitaMisura?: string; quantita: number }) {
-    if (r.unitaMisura === 'pz') r.quantita = Math.round(r.quantita || 0);
+    if (r.unitaMisura === 'pz') r.quantita = Math.max(1, Math.round(r.quantita || 1));
+    else r.quantita = Math.max(0.001, r.quantita || 0.001);
+  }
+  clampSconto(r: any) {
+    r.sconto = Math.min(100, Math.max(0, r.sconto ?? 0));
   }
 
   prezzoIvato(r: RigaVendita): number {
@@ -261,7 +265,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
 
   setPrezzoFromGross(r: RigaVendita, event: Event) {
-    const gross = +(event.target as HTMLInputElement).value;
+    const gross = Math.max(0, +(event.target as HTMLInputElement).value || 0);
     r.prezzo = gross > 0 ? +(gross / (1 + (r.iva || 0) / 100)).toFixed(6) : 0;
   }
 

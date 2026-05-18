@@ -119,6 +119,12 @@ app.use('/api/stats',            require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
 app.use('/api/piva',             require('./routes/piva'));
 app.use('/api/notifications',    require('./routes/notifications'));
+app.use('/api/prima-nota',       require('./routes/primaNota'));
+app.use('/api/scadenzario',      require('./routes/scadenzario'));
+app.use('/api/fatture-ricorrenti', require('./routes/fattureRicorrenti').router);
+app.use('/api/allegati',          require('./routes/allegati'));
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Ricerca globale ────────────────────────────────────────────────────────────
 app.get('/api/search', (req, res) => {
@@ -153,6 +159,29 @@ setTimeout(runBackup, 5000);
 cron.schedule('0 8 * * *', () => {
   console.log('[Cron] Avvio invio solleciti automatici');
   inviaSOllecitiAutomatici().catch(err => console.error('[Solleciti] Errore cron:', err.message));
+});
+
+// Fatturazione ricorrente — emissione automatica ogni giorno alle 07:00
+cron.schedule('0 7 * * *', () => {
+  const today = new Date().toISOString().substring(0, 10);
+  console.log('[Cron] Fatturazione ricorrente — controllo per', today);
+  try {
+    const { emettiFattura } = require('./routes/fattureRicorrenti');
+    const dovute = db.prepare(
+      'SELECT * FROM fatture_ricorrenti WHERE attiva=1 AND prossima_emissione <= ?'
+    ).all(today);
+    for (const r of dovute) {
+      try {
+        const { numero } = emettiFattura(r);
+        console.log(`[Cron] Fattura ricorrente emessa: ${numero} (template id=${r.id})`);
+      } catch (err) {
+        console.error(`[Cron] Errore emissione fattura ricorrente id=${r.id}:`, err.message);
+      }
+    }
+    if (dovute.length === 0) console.log('[Cron] Nessuna fattura ricorrente da emettere oggi');
+  } catch (err) {
+    console.error('[Cron] Errore fatturazione ricorrente:', err.message);
+  }
 });
 
 app.use((err, req, res, next) => {

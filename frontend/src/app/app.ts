@@ -153,10 +153,13 @@ export class App implements OnInit {
         { label: 'Ordini',          icon: 'shopping_cart', route: '/ordini' },
         { label: 'Preventivi',      icon: 'request_quote', route: '/preventivi' },
         { label: 'Acquisti',        icon: 'shopping_bag',  route: '/acquisti' },
+        { label: 'Ricorrenti',      icon: 'autorenew',     route: '/fatture-ricorrenti' },
       ]
     },
     { label: 'Vendita al banco', icon: 'point_of_sale', route: '/vendita-banco' },
     { label: 'Pagamenti',    icon: 'payments',       route: '/pagamenti' },
+    { label: 'Scadenzario', icon: 'event',           route: '/scadenzario' },
+    { label: 'Prima Nota',   icon: 'menu_book',       route: '/prima-nota' },
     { label: 'Report',       icon: 'bar_chart',      route: '/report' },
     { label: 'Impostazioni', icon: 'settings',       route: '/impostazioni' },
   ];

@@ -352,8 +352,49 @@ const migrations = [
   // Numerazione progressiva annuale
   'ALTER TABLE azienda ADD COLUMN numerazione_annuale INTEGER DEFAULT 1',
   'ALTER TABLE azienda ADD COLUMN numero_prefissi TEXT DEFAULT "{}"',
+  // Prima Nota
+  `CREATE TABLE IF NOT EXISTS prima_nota (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  data TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK(tipo IN ('ENTRATA','USCITA')),
+  causale TEXT NOT NULL,
+  importo REAL NOT NULL CHECK(importo > 0),
+  conto TEXT DEFAULT 'CASSA' CHECK(conto IN ('CASSA','BANCA')),
+  riferimento_tipo TEXT DEFAULT '',
+  riferimento_id INTEGER DEFAULT NULL,
+  note TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
+)`,
+  // Allegati documenti
+  `CREATE TABLE IF NOT EXISTS allegati (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  documento_tipo TEXT NOT NULL,
+  documento_id INTEGER NOT NULL,
+  nome_file TEXT NOT NULL,
+  percorso TEXT NOT NULL,
+  dimensione INTEGER DEFAULT 0,
+  mime_type TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
+)`,
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
+
+// Fatturazione ricorrente
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS fatture_ricorrenti (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id INTEGER NOT NULL,
+    descrizione TEXT NOT NULL,
+    frequenza TEXT NOT NULL CHECK(frequenza IN ('MENSILE','BIMESTRALE','TRIMESTRALE','SEMESTRALE','ANNUALE')),
+    giorno_emissione INTEGER DEFAULT 1,
+    prossima_emissione TEXT NOT NULL,
+    attiva INTEGER DEFAULT 1,
+    righe TEXT NOT NULL DEFAULT '[]',
+    tipo_pagamento_id INTEGER,
+    note TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+} catch(_) {}
 
 // Varianti prodotto (taglie / colori)
 try {

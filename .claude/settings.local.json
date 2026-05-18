@@ -14,7 +14,10 @@
       "Bash(git fetch *)",
       "Bash(git rebase *)",
       "Bash(git stash *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Read(//private/tmp/**)",
+      "Bash(node -e ' *)",
+      "WebSearch"
     ]
   }
 }

@@ -85,7 +85,12 @@
 
             <h3 class="section-title">Dati bancari</h3>
             <div class="form-row">
-              <mat-form-field style="flex:2"><mat-label>IBAN</mat-label><input matInput formControlName="iban"></mat-form-field>
+              <mat-form-field style="flex:2"><mat-label>IBAN</mat-label>
+                <input matInput formControlName="iban" style="text-transform:uppercase">
+                @if (form.get('iban')?.hasError('iban') && form.get('iban')?.dirty) {
+                  <mat-error>IBAN non valido (IT + 25 caratteri)</mat-error>
+                }
+              </mat-form-field>
               <mat-form-field><mat-label>Banca</mat-label><input matInput formControlName="banca"></mat-form-field>
             </div>
           </form>

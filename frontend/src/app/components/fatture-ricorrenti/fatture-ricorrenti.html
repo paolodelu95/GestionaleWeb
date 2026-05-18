@@ -1,0 +1,93 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Fatturazione Ricorrente</h1>
+    <button mat-flat-button type="button" (click)="open()">
+      <mat-icon>add</mat-icon> Nuova ricorrente
+    </button>
+  </div>
+
+  <div class="filter-bar">
+    <mat-select [(ngModel)]="filtroAttiva" placeholder="Stato">
+      <mat-option value="all">Tutti</mat-option>
+      <mat-option value="attiva">Solo attive</mat-option>
+      <mat-option value="non-attiva">Solo non attive</mat-option>
+    </mat-select>
+  </div>
+
+  <div class="card">
+    <table mat-table [dataSource]="filtered" class="mat-mdc-table">
+
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let r"><b>{{ r.clienteNome || '—' }}</b></td>
+      </ng-container>
+
+      <ng-container matColumnDef="descrizione">
+        <th mat-header-cell *matHeaderCellDef>Descrizione</th>
+        <td mat-cell *matCellDef="let r">{{ r.descrizione }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="frequenza">
+        <th mat-header-cell *matHeaderCellDef>Frequenza</th>
+        <td mat-cell *matCellDef="let r">
+          <span class="freq-chip freq-{{ r.frequenza | lowercase }}">{{ frequenzaLabel(r.frequenza) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="prossimaEmissione">
+        <th mat-header-cell *matHeaderCellDef>Prossima emissione</th>
+        <td mat-cell *matCellDef="let r">
+          <span [class.scaduta]="isScaduta(r)" [class.ok-date]="!isScaduta(r)">
+            {{ r.prossimaEmissione | date:'dd/MM/yyyy' }}
+          </span>
+          @if (isScaduta(r)) {
+            <mat-icon class="scaduta-icon" matTooltip="Emissione scaduta">warning</mat-icon>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="attiva">
+        <th mat-header-cell *matHeaderCellDef>Attiva</th>
+        <td mat-cell *matCellDef="let r">
+          <mat-slide-toggle
+            [checked]="r.attiva"
+            (change)="toggleAttiva(r)"
+            color="primary">
+          </mat-slide-toggle>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="azioni">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let r" class="table-actions">
+          <button mat-icon-button type="button"
+                  matTooltip="Emetti fattura adesso"
+                  (click)="emetti(r)">
+            <mat-icon style="color:#6366f1">send</mat-icon>
+          </button>
+          <button mat-icon-button type="button" matTooltip="Modifica" (click)="open(r)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" type="button" matTooltip="Elimina" (click)="delete(r)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">
+          Nessuna fattura ricorrente configurata
+        </td>
+      </tr>
+    </table>
+
+    @if (!filtered.length && ricorrenti.length > 0) {
+      <p class="empty-msg">Nessun risultato con i filtri selezionati</p>
+    }
+    @if (!ricorrenti.length) {
+      <p class="empty-msg">Nessuna fattura ricorrente. Creane una con il pulsante in alto.</p>
+    }
+  </div>
+</div>

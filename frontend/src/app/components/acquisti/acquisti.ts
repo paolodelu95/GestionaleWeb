@@ -179,7 +179,7 @@ export class AcquistoDialogComponent implements OnInit {
   }
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
-    riga.prezzo = this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6);
+    riga.prezzo = Math.max(0, this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6));
   }
 
   constructor(
@@ -256,7 +256,11 @@ export class AcquistoDialogComponent implements OnInit {
   }
 
   roundIfPz(riga: RigaDocumento) {
-    if (riga.unitaMisura === 'pz') riga.quantita = Math.round(riga.quantita || 0);
+    if (riga.unitaMisura === 'pz') riga.quantita = Math.max(1, Math.round(riga.quantita || 1));
+    else riga.quantita = Math.max(0.001, riga.quantita || 0.001);
+  }
+  clampSconto(riga: RigaDocumento) {
+    riga.sconto = Math.min(100, Math.max(0, riga.sconto ?? 0));
   }
 
   addRiga() { this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }

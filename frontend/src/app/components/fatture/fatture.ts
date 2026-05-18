@@ -21,6 +21,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
+import { AllegatiComponent } from '../shared/allegati/allegati';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -43,7 +44,7 @@ const RIGHE_STYLES = `
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
-            MatButtonToggleModule, MatSnackBarModule, MatMenuModule],
+            MatButtonToggleModule, MatSnackBarModule, MatMenuModule, AllegatiComponent],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Fattura' : 'Nuova Fattura' }}</h2>
     <mat-dialog-content>
@@ -183,7 +184,7 @@ const RIGHE_STYLES = `
                           </mat-menu>
                         }
                       </td>
-                      <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
+                      <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
                       <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
                       <td style="padding:4px 8px; white-space:nowrap">
                         {{ isRigaNota(riga) ? '' : (rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it') }}
@@ -308,6 +309,10 @@ const RIGHE_STYLES = `
           </div>
         </mat-tab>
       </mat-tab-group>
+
+      @if (data?.id) {
+        <app-allegati [documentoTipo]="'fattura'" [documentoId]="data?.id ?? null"></app-allegati>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
@@ -454,7 +459,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
-    riga.prezzo = this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6);
+    riga.prezzo = Math.max(0, this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6));
   }
 
   addDdt() {
@@ -589,7 +594,11 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   }
 
   roundIfPz(riga: RigaDocumento) {
-    if (riga.unitaMisura === 'pz') riga.quantita = Math.round(riga.quantita || 0);
+    if (riga.unitaMisura === 'pz') riga.quantita = Math.max(1, Math.round(riga.quantita || 1));
+    else riga.quantita = Math.max(0.001, riga.quantita || 0.001);
+  }
+  clampSconto(riga: RigaDocumento) {
+    riga.sconto = Math.min(100, Math.max(0, riga.sconto ?? 0));
   }
 
   addRiga() {

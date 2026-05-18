@@ -105,6 +105,10 @@ export class DataService {
     return this.api.get(tipo ? `pagamenti?tipo=${tipo}` : 'pagamenti');
   }
   getScadenzario(): Observable<ScadenzarioEntry[]> { return this.api.get('pagamenti/scadenzario'); }
+  getScadenzarioFull(mese?: string): Observable<any[]> {
+    const q = mese ? `?mese=${mese}` : '';
+    return this.api.get(`scadenzario${q}`);
+  }
   createPagamento(p: Pagamento): Observable<any> { return this.api.post('pagamenti', p); }
   updatePagamento(p: Pagamento): Observable<any> { return this.api.put(`pagamenti/${p.id}`, p); }
   deletePagamento(id: number): Observable<any> { return this.api.delete(`pagamenti/${id}`); }
@@ -217,6 +221,17 @@ export class DataService {
     return this.api.post('utenti/login', { username, password });
   }
 
+  // Allegati
+  getAllegati(tipo: string, id: number): Observable<any[]> { return this.api.get(`allegati?tipo=${tipo}&id=${id}`); }
+  deleteAllegato(id: number): Observable<any> { return this.api.delete(`allegati/${id}`); }
+
+  // Fatture Ricorrenti
+  getFattureRicorrenti(): Observable<any[]> { return this.api.get('fatture-ricorrenti'); }
+  createFatturaRicorrente(f: any): Observable<any> { return this.api.post('fatture-ricorrenti', f); }
+  updateFatturaRicorrente(f: any): Observable<any> { return this.api.put(`fatture-ricorrenti/${f.id}`, f); }
+  deleteFatturaRicorrente(id: number): Observable<any> { return this.api.delete(`fatture-ricorrenti/${id}`); }
+  emettiFatturaRicorrente(id: number): Observable<any> { return this.api.post(`fatture-ricorrenti/${id}/emetti`, {}); }
+
   // SDI
   inviaFatturaSdi(id: number): Observable<any> { return this.api.post(`fattura-xml/${id}/invia-sdi`, {}); }
 
@@ -235,7 +250,22 @@ export class DataService {
     return this.api.get(`piva/${piva.replace(/\s/g, '')}`);
   }
 
+  checkPivaDuplicate(piva: string, tipo: 'clienti' | 'fornitori', excludeId?: number): Observable<{ exists: boolean; id?: number }> {
+    const params = excludeId != null ? `piva=${piva}&excludeId=${excludeId}` : `piva=${piva}`;
+    return this.api.get(`${tipo}/check-piva?${params}`);
+  }
+
+  searchAziendaByName(q: string): Observable<any[]> {
+    return this.api.get(`piva/search-name?q=${encodeURIComponent(q)}`);
+  }
+
   searchGlobal(q: string): Observable<{ clienti: any[]; prodotti: any[]; fatture: any[]; ddt: any[] }> {
     return this.api.get(`search?q=${encodeURIComponent(q)}`);
   }
+
+  // Prima Nota
+  getPrimaNota(mese?: string): Observable<any> { return this.api.get(`prima-nota${mese ? '?mese=' + mese : ''}`); }
+  createPrimaNotaEntry(e: any): Observable<any> { return this.api.post('prima-nota', e); }
+  updatePrimaNotaEntry(e: any): Observable<any> { return this.api.put(`prima-nota/${e.id}`, e); }
+  deletePrimaNotaEntry(id: number): Observable<any> { return this.api.delete(`prima-nota/${id}`); }
 }

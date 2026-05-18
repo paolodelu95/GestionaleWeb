@@ -150,7 +150,7 @@ const RIGHE_STYLES = `
                     </mat-menu>
                   }
                 </td>
-                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
+                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
                 <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
                 <td style="padding:4px 8px; white-space:nowrap">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
@@ -218,7 +218,7 @@ export class PreventivoDialogComponent implements OnInit {
   }
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
-    riga.prezzo = this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6);
+    riga.prezzo = Math.max(0, this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6));
   }
 
   loadPrezziRecenti(index: number) {
@@ -306,7 +306,11 @@ export class PreventivoDialogComponent implements OnInit {
   }
 
   roundIfPz(riga: RigaDocumento) {
-    if (riga.unitaMisura === 'pz') riga.quantita = Math.round(riga.quantita || 0);
+    if (riga.unitaMisura === 'pz') riga.quantita = Math.max(1, Math.round(riga.quantita || 1));
+    else riga.quantita = Math.max(0.001, riga.quantita || 0.001);
+  }
+  clampSconto(riga: RigaDocumento) {
+    riga.sconto = Math.min(100, Math.max(0, riga.sconto ?? 0));
   }
 
   addRiga() {

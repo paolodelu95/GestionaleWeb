@@ -1,0 +1,88 @@
+// Tipo chip: ENTRATA / USCITA
+.tipo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &.entrata {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  &.uscita {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+// Giorni badge
+.giorni-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.badge-scaduto {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  &.badge-warning {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  &.badge-ok {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+}
+
+// Testo data scaduta
+.text-scaduto {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+// Riga scaduta: leggero sfondo rosso
+.row-scaduto td {
+  background: #fff5f5 !important;
+}
+
+// Vista buttons group
+.vista-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+
+  button {
+    font-size: 13px;
+    height: 36px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    &.active-btn {
+      background: #6366f1;
+      color: #fff;
+      border-color: #6366f1;
+    }
+  }
+}

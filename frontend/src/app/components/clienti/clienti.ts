@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators,
+         AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,12 +15,109 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
+import { Observable, of, timer } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
 import { Cliente, TipoPagamento } from '../../models';
-import { pIvaValidator, codiceFiscaleValidator, telefonoValidator } from '../../validators/italian-validators';
+import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator } from '../../validators/italian-validators';
+
+// ── Azienda Search Dialog ──────────────────────────────────────────────────────
+@Component({
+  selector: 'app-azienda-search-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
+            MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  styles: [`
+    .azienda-result {
+      padding: 10px 12px; cursor: pointer; border-radius: 6px;
+      border-bottom: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
+      transition: background 0.15s;
+    }
+    .azienda-result:hover { background: var(--mat-sys-secondary-container, #f0f4ff); }
+    .azienda-nome { font-weight: 500; font-size: 14px; }
+    .azienda-dettagli { font-size: 12px; color: var(--mat-sys-on-surface-variant, #666); margin-top: 2px; }
+    .no-results { text-align: center; color: var(--mat-sys-on-surface-variant, #888);
+                  padding: 24px 0; font-size: 14px; }
+  `],
+  template: `
+    <h2 mat-dialog-title>Cerca azienda per ragione sociale</h2>
+    <mat-dialog-content style="width:520px;max-width:90vw;min-height:120px">
+      <mat-form-field style="width:100%">
+        <mat-label>Nome azienda</mat-label>
+        <input matInput [(ngModel)]="query" (ngModelChange)="onQueryChange($event)"
+               placeholder="es. Rossi srl, Fabbrica..." autofocus>
+        <span matSuffix style="margin-right:8px">
+          @if (loading) { <mat-spinner diameter="18"></mat-spinner> }
+          @else { <mat-icon>search</mat-icon> }
+        </span>
+      </mat-form-field>
+
+      @if (results.length > 0) {
+        <div style="max-height:320px;overflow-y:auto">
+          @for (r of results; track r.pIva || r.ragioneSociale) {
+            <div class="azienda-result" (click)="select(r)">
+              <div class="azienda-nome">{{ r.ragioneSociale }}</div>
+              <div class="azienda-dettagli">
+                @if (r.pIva) { <span>P.IVA: {{ r.pIva }}</span> }
+                @if (r.citta) { <span>{{ r.pIva ? ' · ' : '' }}{{ r.citta }}{{ r.provincia ? ' (' + r.provincia + ')' : '' }}</span> }
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (searched && !loading) {
+        <div class="no-results">
+          @if (serviceUnavailable) {
+            <mat-icon style="vertical-align:middle;margin-right:6px;opacity:.5">cloud_off</mat-icon>
+            Servizio di ricerca non disponibile.<br>
+            <small>Inserire manualmente la ragione sociale o attivare il servizio Imprese su openapi.it</small>
+          } @else {
+            Nessuna azienda trovata per "{{ query }}"
+          }
+        </div>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Chiudi</button>
+    </mat-dialog-actions>`
+})
+export class AziendaSearchDialogComponent {
+  query = '';
+  results: any[] = [];
+  loading = false;
+  searched = false;
+  serviceUnavailable = false;
+  private searchTimer: any;
+
+  constructor(private ds: DataService, public dialogRef: MatDialogRef<AziendaSearchDialogComponent>) {}
+
+  onQueryChange(q: string) {
+    clearTimeout(this.searchTimer);
+    if (q.length < 2) { this.results = []; this.searched = false; return; }
+    this.loading = true;
+    this.searchTimer = setTimeout(() => this.doSearch(q), 400);
+  }
+
+  private doSearch(q: string) {
+    this.ds.searchAziendaByName(q).subscribe({
+      next: results => {
+        this.loading = false;
+        this.searched = true;
+        this.serviceUnavailable = false;
+        this.results = results;
+      },
+      error: () => {
+        this.loading = false;
+        this.searched = true;
+        this.serviceUnavailable = true;
+        this.results = [];
+      }
+    });
+  }
+
+  select(r: any) { this.dialogRef.close(r); }
+}
 
 // ── Dialog ────────────────────────────────────────────────────────────────────
 @Component({
@@ -32,8 +130,15 @@ import { pIvaValidator, codiceFiscaleValidator, telefonoValidator } from '../../
     <h2 mat-dialog-title>{{ data ? 'Modifica cliente' : 'Nuovo cliente' }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form">
-        <mat-form-field style="width:100%"><mat-label>Ragione Sociale *</mat-label>
-          <input matInput formControlName="ragioneSociale"></mat-form-field>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <mat-form-field style="flex:1"><mat-label>Ragione Sociale *</mat-label>
+            <input matInput formControlName="ragioneSociale">
+          </mat-form-field>
+          <button mat-icon-button type="button" style="margin-top:4px"
+                  matTooltip="Cerca azienda per nome" (click)="cercaAzienda()">
+            <mat-icon>business_center</mat-icon>
+          </button>
+        </div>
         <div class="form-row">
           <mat-form-field>
             <mat-label>Email</mat-label>
@@ -54,7 +159,11 @@ import { pIvaValidator, codiceFiscaleValidator, telefonoValidator } from '../../
           <input matInput formControlName="via"></mat-form-field>
         <div class="form-row">
           <mat-form-field style="max-width:120px"><mat-label>CAP</mat-label>
-            <input matInput formControlName="cap" maxlength="5"></mat-form-field>
+            <input matInput formControlName="cap" maxlength="5">
+            @if (form.get('cap')?.hasError('cap') && form.get('cap')?.dirty) {
+              <mat-error>CAP non valido (5 cifre)</mat-error>
+            }
+          </mat-form-field>
           <mat-form-field>
             <mat-label>Città</mat-label>
             <input matInput formControlName="citta" [matAutocomplete]="auto">
@@ -84,9 +193,15 @@ import { pIvaValidator, codiceFiscaleValidator, telefonoValidator } from '../../
             @if (form.get('pIva')?.hasError('pIva')) {
               <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
             }
+            @if (form.get('pIva')?.hasError('pivaEsiste')) {
+              <mat-error>P. IVA già presente nell'anagrafica clienti</mat-error>
+            }
+            @if (form.get('pIva')?.pending) {
+              <mat-hint>Verifica duplicati...</mat-hint>
+            }
           </mat-form-field>
           <button mat-icon-button type="button" style="margin-top:4px"
-                  matTooltip="Carica dati da P.IVA (VIES)"
+                  matTooltip="Carica dati da P.IVA"
                   [disabled]="lookupLoading || (form.get('pIva')?.value?.replace(/\\s/g,'')?.length !== 11)"
                   (click)="lookupPiva()">
             @if (lookupLoading) {
@@ -117,7 +232,7 @@ import { pIvaValidator, codiceFiscaleValidator, telefonoValidator } from '../../
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="!form.get('ragioneSociale')?.valid">Salva</button>
+      <button mat-flat-button (click)="save()" [disabled]="!form.get('ragioneSociale')?.valid || form.pending">Salva</button>
     </mat-dialog-actions>`
 })
 export class ClienteDialogComponent implements OnInit {
@@ -130,6 +245,7 @@ export class ClienteDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private ds: DataService,
+    private dialog: MatDialog,
     private cityService: CityService,
     private snack: MatSnackBar,
     public dialogRef: MatDialogRef<ClienteDialogComponent>,
@@ -140,16 +256,28 @@ export class ClienteDialogComponent implements OnInit {
       email:          [data?.email ?? '', Validators.email],
       telefono:       [data?.telefono ?? '', telefonoValidator],
       via:            [data?.via ?? ''],
-      cap:            [data?.cap ?? ''],
+      cap:            [data?.cap ?? '', capValidator],
       citta:          [data?.citta ?? ''],
       provincia:      [data?.provincia ?? ''],
       stato:          [data?.stato ?? 'Italia'],
       codiceFiscale:  [data?.codiceFiscale ?? '', codiceFiscaleValidator],
-      pIva:           [data?.pIva ?? '', pIvaValidator],
+      pIva:           [data?.pIva ?? '', pIvaValidator, this.pivaAsyncValidator('clienti', data?.id)],
       sdi:            [data?.sdi ?? ''],
       pec:            [data?.pec ?? ''],
       tipoPagamentoId:[data?.tipoPagamentoId ?? null],
     });
+  }
+
+  private pivaAsyncValidator(tipo: 'clienti' | 'fornitori', excludeId?: number): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const piva = (control.value ?? '').replace(/\s/g, '');
+      if (!piva || piva.length !== 11) return of(null);
+      return timer(500).pipe(
+        switchMap(() => this.ds.checkPivaDuplicate(piva, tipo, excludeId)),
+        map((r: any) => r.exists ? { pivaEsiste: true } : null),
+        catchError(() => of(null))
+      );
+    };
   }
 
   ngOnInit() {
@@ -180,6 +308,22 @@ export class ClienteDialogComponent implements OnInit {
     if (r) this.form.patchValue({ cap: r.cap, provincia: r.provincia, stato: 'Italia' }, { emitEvent: false });
   }
 
+  cercaAzienda() {
+    const ref = this.dialog.open(AziendaSearchDialogComponent, { width: '580px', maxWidth: '95vw' });
+    ref.afterClosed().subscribe(result => {
+      if (!result) return;
+      const patch: any = {};
+      if (result.ragioneSociale) patch.ragioneSociale = result.ragioneSociale;
+      if (result.pIva)           patch.pIva = result.pIva;
+      if (result.via)            patch.via = result.via;
+      if (result.cap)            patch.cap = result.cap;
+      if (result.citta)          patch.citta = result.citta;
+      if (result.provincia)      patch.provincia = result.provincia;
+      if (result.stato)          patch.stato = result.stato;
+      this.form.patchValue(patch);
+    });
+  }
+
   lookupPiva() {
     const piva = this.form.get('pIva')?.value?.replace(/\s/g, '');
     if (!piva || piva.length !== 11) return;
@@ -195,16 +339,20 @@ export class ClienteDialogComponent implements OnInit {
         if (result.provincia)      patch.provincia = result.provincia;
         if (result.stato)          patch.stato = result.stato;
         this.form.patchValue(patch);
-        this.snack.open('Dati caricati da VIES', '', { duration: 2500 });
+        this.snack.open('Dati caricati', '', { duration: 2500 });
       },
       error: () => {
         this.lookupLoading = false;
-        this.snack.open('P.IVA non trovata nel registro VIES', '', { duration: 3000 });
+        this.snack.open('P.IVA non trovata', '', { duration: 3000 });
       }
     });
   }
 
-  save() { if (this.form.valid) this.dialogRef.close({ ...this.data, ...this.form.value }); }
+  save() {
+    if (this.form.valid && !this.form.pending) {
+      this.dialogRef.close({ ...this.data, ...this.form.value });
+    }
+  }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

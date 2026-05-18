@@ -7,6 +7,17 @@ router.get('/', (req, res) => {
   res.json(rows.map(r => toDto(r)));
 });
 
+router.get('/check-piva', (req, res) => {
+  const { piva, excludeId } = req.query;
+  if (!piva) return res.json({ exists: false });
+  const clean = String(piva).replace(/\s/g, '').toUpperCase();
+  if (!/^\d{11}$/.test(clean)) return res.json({ exists: false });
+  const row = excludeId
+    ? db.prepare('SELECT id FROM fornitori WHERE p_iva=? AND id!=?').get(clean, Number(excludeId))
+    : db.prepare('SELECT id FROM fornitori WHERE p_iva=?').get(clean);
+  res.json({ exists: !!row, id: row?.id });
+});
+
 router.post('/', (req, res) => {
   const f = req.body;
   const result = db.prepare(`INSERT INTO fornitori

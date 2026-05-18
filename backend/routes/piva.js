@@ -1,6 +1,45 @@
 const express = require('express');
 const router = express.Router();
 
+router.get('/search-name', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 2) return res.json([]);
+
+  const openapiKey = process.env.OPENAPI_IT_KEY;
+  if (!openapiKey) return res.json([]);
+
+  const endpoints = [
+    `https://imprese.openapi.it/ricerca?denominazione=${encodeURIComponent(q)}&dimensione=10`,
+    `https://imprese.openapi.it/ricerca?q=${encodeURIComponent(q)}&size=10`,
+    `https://imprese.openapi.it/search?q=${encodeURIComponent(q)}&limit=10`,
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const resp = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${openapiKey}`, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const items = data.data || data.items || data.results || (Array.isArray(data) ? data : []);
+        if (Array.isArray(items) && items.length > 0) {
+          return res.json(items.map(d => ({
+            ragioneSociale: cleanName(d.ragione_sociale || d.denominazione || d.nome),
+            pIva: (d.codice_fiscale || d.partita_iva || d.p_iva || d.piva || '').replace(/\s/g, ''),
+            via:       cleanVia(d.sede_legale?.indirizzo || d.indirizzo || null),
+            cap:       d.sede_legale?.cap || d.cap || null,
+            citta:     titleCase(d.sede_legale?.comune || d.comune || null),
+            provincia: (d.sede_legale?.provincia || d.provincia || '').slice(0, 2).toUpperCase() || null,
+            stato: 'Italia',
+          })).filter(r => r.ragioneSociale));
+        }
+      }
+    } catch (_) {}
+  }
+  return res.json([]);
+});
+
 router.get('/:piva', async (req, res) => {
   let piva = req.params.piva.replace(/\s/g, '').toUpperCase();
   if (piva.startsWith('IT')) piva = piva.slice(2);
@@ -11,20 +50,20 @@ router.get('/:piva', async (req, res) => {
   const openapiKey = process.env.OPENAPI_IT_KEY;
   if (openapiKey) {
     try {
-      const resp = await fetch(`https://api.openapi.it/imprese?cf=${piva}`, {
+      const resp = await fetch(`https://imprese.openapi.it/base/${piva}`, {
         headers: { 'Authorization': `Bearer ${openapiKey}`, 'Accept': 'application/json' },
         signal: AbortSignal.timeout(8000),
       });
       if (resp.ok) {
         const data = await resp.json();
-        const azienda = Array.isArray(data?.data) ? data.data[0] : data?.data;
-        if (azienda) {
-          const sede = azienda.sede || azienda.indirizzo_sede || {};
+        if (data?.success !== false && data) {
+          const d = data.data || data;
+          const sede = d.sede_legale || d.sede || d.indirizzo_sede || {};
           return res.json({
             pIva: piva,
-            ragioneSociale: cleanName(azienda.ragione_sociale || azienda.denominazione),
-            via:       cleanVia(sede.indirizzo || sede.via || sede.strada || null),
-            cap:       sede.cap || sede.cap_sede || null,
+            ragioneSociale: cleanName(d.ragione_sociale || d.denominazione || d.nome),
+            via:       cleanVia(sede.indirizzo || sede.via || sede.toponomastico && `${sede.toponomastico} ${sede.via || ''} ${sede.civico || ''}`.trim() || null),
+            cap:       sede.cap || sede.codice_postale || null,
             citta:     titleCase(sede.comune || sede.citta || null),
             provincia: (sede.provincia || sede.sigla_provincia || '').slice(0, 2).toUpperCase() || null,
             stato:     'Italia',
