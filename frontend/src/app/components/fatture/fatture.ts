@@ -523,6 +523,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     } else if (data?.righe?.length) {
       this.righe = [...data.righe];
       this.prezziRecenti = new Array(this.righe.length).fill([]);
+      const preIds: number[] = data.ddtIds?.length ? data.ddtIds : (data.ddtId ? [data.ddtId] : []);
+      preIds.forEach(id => this.ds.getDdtById(id).subscribe(ddt => this.linkedDdts.push(ddt)));
     } else {
       this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 }];
       this.prezziRecenti = [[]];

@@ -24,7 +24,7 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
   const f = req.body;
-  const ddtIds = f.ddtIds ?? (f.ddtId ? [f.ddtId] : []);
+  const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
   const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
     VALUES (?,?,?,?,?,?,?)`)
     .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'BOZZA', f.tipoPagamentoId || null);
@@ -47,7 +47,7 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const f = req.body;
-  const ddtIds = f.ddtIds ?? (f.ddtId ? [f.ddtId] : []);
+  const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
   const vecchiDdtIds = getDdtIds(req.params.id);
   const vecchieRighe = getRighe(req.params.id);
   if (vecchieRighe.length && !vecchiDdtIds.length) {

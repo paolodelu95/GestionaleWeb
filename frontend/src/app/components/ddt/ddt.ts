@@ -576,7 +576,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
       const pre: Fattura = {
         numero: String(num.numero),
         dataEmissione: new Date().toISOString().substring(0, 10),
-        clienteId: ddt.clienteId, ddtId: ddt.id,
+        clienteId: ddt.clienteId, ddtIds: [ddt.id!],
         stato: 'EMESSA', righe: full.righe,
       } as Fattura;
       this.dialog.open(FatturaDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })

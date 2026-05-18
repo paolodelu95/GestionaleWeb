@@ -181,6 +181,8 @@ router.get('/:id/print', (req, res) => {
 router.post('/:id/to-fattura', (req, res) => {
   const ddt = db.prepare('SELECT * FROM ddt WHERE id=?').get(req.params.id);
   if (!ddt) return res.status(404).json({ error: 'DDT non trovato' });
+  const existing = db.prepare('SELECT id, numero FROM fatture WHERE ddt_id=?').get(req.params.id);
+  if (existing) return res.status(409).json({ error: `DDT già collegato alla fattura n. ${existing.numero}` });
   const righe = getRighe(ddt.id);
   const count = db.prepare('SELECT COUNT(*) as n FROM fatture').get();
   const numero = String(count.n + 1);
