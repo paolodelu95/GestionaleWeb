@@ -1,15 +1,40 @@
 const express = require('express');
 const router = express.Router();
 
-// Lookup P.IVA italiana via VIES (EU VAT validation service)
-// Restituisce nome, via, cap, citta, provincia quando disponibili
 router.get('/:piva', async (req, res) => {
   let piva = req.params.piva.replace(/\s/g, '').toUpperCase();
-  // Rimuovi il prefisso IT se presente
   if (piva.startsWith('IT')) piva = piva.slice(2);
   if (!/^\d{11}$/.test(piva))
     return res.status(400).json({ error: 'P.IVA non valida: deve essere di 11 cifre' });
 
+  // 1. Prova openapi.it (CCIAA - copre tutte le aziende italiane)
+  const openapiKey = process.env.OPENAPI_IT_KEY;
+  if (openapiKey) {
+    try {
+      const resp = await fetch(`https://api.openapi.it/imprese?cf=${piva}`, {
+        headers: { 'Authorization': `Bearer ${openapiKey}`, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const azienda = Array.isArray(data?.data) ? data.data[0] : data?.data;
+        if (azienda) {
+          const sede = azienda.sede || azienda.indirizzo_sede || {};
+          return res.json({
+            pIva: piva,
+            ragioneSociale: cleanName(azienda.ragione_sociale || azienda.denominazione),
+            via:       cleanVia(sede.indirizzo || sede.via || sede.strada || null),
+            cap:       sede.cap || sede.cap_sede || null,
+            citta:     titleCase(sede.comune || sede.citta || null),
+            provincia: (sede.provincia || sede.sigla_provincia || '').slice(0, 2).toUpperCase() || null,
+            stato:     'Italia',
+          });
+        }
+      }
+    } catch (_) { /* fallback a VIES */ }
+  }
+
+  // 2. Fallback: VIES (solo aziende registrate per IVA intracomunitaria)
   try {
     const response = await fetch('https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number', {
       method: 'POST',
@@ -24,7 +49,7 @@ router.get('/:piva', async (req, res) => {
     const data = await response.json();
 
     if (!data.valid && !data.isValid)
-      return res.status(404).json({ error: 'P.IVA non trovata nel registro VIES' });
+      return res.status(404).json({ error: 'P.IVA non trovata. Per la copertura completa configura OPENAPI_IT_KEY nel file .env (openapi.it - gratuito)' });
 
     const result = {
       pIva: piva,
@@ -33,65 +58,46 @@ router.get('/:piva', async (req, res) => {
     };
 
     if (data.address && data.address !== '---') {
-      parseAddress(data.address, result);
+      parseViesAddress(data.address, result);
     }
 
     res.json(result);
   } catch (err) {
     if (err.name === 'TimeoutError')
-      return res.status(504).json({ error: 'Timeout: servizio VIES non risponde' });
-    console.error('VIES error:', err.message);
-    res.status(502).json({ error: 'Errore nella comunicazione con VIES' });
+      return res.status(504).json({ error: 'Timeout: servizi di lookup non rispondono' });
+    console.error('P.IVA lookup error:', err.message);
+    res.status(502).json({ error: 'Errore nella comunicazione con i servizi di lookup' });
   }
 });
 
 function cleanName(name) {
-  // VIES restituisce a volte "---" o nomi in caps
   if (!name || name.trim() === '---') return null;
   return name.trim();
 }
 
-// Esempio indirizzo VIES IT:
-// "VIA ROMA 10\n20100 MILANO MI\nITALY" oppure
-// "VIA EXAMPLE 1 CITY MI 12345"
-function parseAddress(raw, result) {
+function cleanVia(via) {
+  if (!via || via.trim() === '---') return null;
+  return titleCase(via.trim());
+}
+
+function parseViesAddress(raw, result) {
   const lines = raw.split(/\n/).map(l => l.trim()).filter(Boolean);
-
   if (lines.length >= 2) {
-    // Riga 1 = via
-    result.via = lines[0];
-
-    // Riga 2 = CAP CITTA PROV o CITTA PROV CAP
-    const line2 = lines[1].replace(/^ITALY$|^ITALIA$/, '').trim();
-
-    // Pattern: 5 cifre NOME SIGLA
+    result.via = titleCase(lines[0]);
+    const line2 = lines[1].replace(/^ITALY$|^ITALIA$/i, '').trim();
     const m1 = line2.match(/^(\d{5})\s+(.+?)\s+([A-Z]{2})$/);
-    if (m1) {
-      result.cap = m1[1];
-      result.citta = titleCase(m1[2]);
-      result.provincia = m1[3];
-      return;
-    }
-    // Pattern: NOME SIGLA 5 cifre
+    if (m1) { result.cap = m1[1]; result.citta = titleCase(m1[2]); result.provincia = m1[3]; return; }
     const m2 = line2.match(/^(.+?)\s+([A-Z]{2})\s+(\d{5})$/);
-    if (m2) {
-      result.citta = titleCase(m2[1]);
-      result.provincia = m2[2];
-      result.cap = m2[3];
-      return;
-    }
-    // Pattern: NOME (SIGLA)
+    if (m2) { result.citta = titleCase(m2[1]); result.provincia = m2[2]; result.cap = m2[3]; return; }
     const m3 = line2.match(/^(.+?)\s+\(([A-Z]{2})\)$/);
-    if (m3) {
-      result.citta = titleCase(m3[1]);
-      result.provincia = m3[2];
-    }
+    if (m3) { result.citta = titleCase(m3[1]); result.provincia = m3[2]; }
   } else if (lines.length === 1) {
-    result.via = lines[0];
+    result.via = titleCase(lines[0]);
   }
 }
 
 function titleCase(s) {
+  if (!s) return null;
   return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
