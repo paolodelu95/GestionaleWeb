@@ -13,3 +13,9 @@ export function codiceFiscaleValidator(control: AbstractControl): ValidationErro
   if (/^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/.test(v)) return null;
   return { codiceFiscale: true };
 }
+
+export function telefonoValidator(control: AbstractControl): ValidationErrors | null {
+  const v: string = (control.value ?? '').trim();
+  if (!v) return null;
+  return /^[0-9\s\+\-\(\)\/\.]{4,20}$/.test(v) ? null : { telefono: true };
+}

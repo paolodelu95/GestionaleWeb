@@ -14,6 +14,7 @@ export const routes: Routes = [
   { path: 'acquisti',     loadComponent: () => import('./components/acquisti/acquisti').then(m => m.AcquistiComponent) },
   { path: 'pagamenti',    loadComponent: () => import('./components/pagamenti/pagamenti').then(m => m.PagamentiComponent) },
   { path: 'magazzino',      loadComponent: () => import('./components/magazzino/magazzino').then(m => m.MagazzinoComponent) },
+  { path: 'arrivi-merce',   loadComponent: () => import('./components/arrivi-merce/arrivi-merce').then(m => m.ArriviMerceComponent) },
   { path: 'vendita-banco',  loadComponent: () => import('./components/vendita-banco/vendita-banco').then(m => m.VenditaBancoComponent) },
   { path: 'report',       loadComponent: () => import('./components/report/report').then(m => m.ReportComponent) },
   { path: 'impostazioni', loadComponent: () => import('./components/impostazioni/impostazioni').then(m => m.ImpostazioniComponent) },

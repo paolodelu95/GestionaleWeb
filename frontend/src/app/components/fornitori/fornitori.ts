@@ -13,8 +13,9 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
+import { ExcelService } from '../../services/excel.service';
 import { Fornitore } from '../../models';
-import { pIvaValidator } from '../../validators/italian-validators';
+import { pIvaValidator, telefonoValidator } from '../../validators/italian-validators';
 
 @Component({
   selector: 'app-fornitore-dialog',
@@ -28,8 +29,20 @@ import { pIvaValidator } from '../../validators/italian-validators';
         <mat-form-field style="width:100%"><mat-label>Ragione Sociale *</mat-label>
           <input matInput formControlName="ragioneSociale"></mat-form-field>
         <div class="form-row">
-          <mat-form-field><mat-label>Email</mat-label><input matInput formControlName="email"></mat-form-field>
-          <mat-form-field><mat-label>Telefono</mat-label><input matInput formControlName="telefono"></mat-form-field>
+          <mat-form-field>
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" type="email">
+            @if (form.get('email')?.hasError('email') && form.get('email')?.dirty) {
+              <mat-error>Formato email non valido</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>Telefono</mat-label>
+            <input matInput formControlName="telefono">
+            @if (form.get('telefono')?.hasError('telefono') && form.get('telefono')?.dirty) {
+              <mat-error>Inserire solo cifre, +, -, spazi o parentesi</mat-error>
+            }
+          </mat-form-field>
         </div>
         <mat-form-field style="width:100%"><mat-label>Via</mat-label><input matInput formControlName="via"></mat-form-field>
         <div class="form-row">
@@ -67,7 +80,7 @@ import { pIvaValidator } from '../../validators/italian-validators';
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
+      <button mat-flat-button (click)="save()" [disabled]="!form.get('ragioneSociale')?.valid">Salva</button>
     </mat-dialog-actions>`
 })
 export class FornitoreDialogComponent implements OnInit {
@@ -81,7 +94,8 @@ export class FornitoreDialogComponent implements OnInit {
               @Inject(MAT_DIALOG_DATA) public data: Fornitore | null) {
     this.form = this.fb.group({
       ragioneSociale: [data?.ragioneSociale ?? '', Validators.required],
-      email: [data?.email ?? ''], telefono: [data?.telefono ?? ''],
+      email: [data?.email ?? '', Validators.email],
+      telefono: [data?.telefono ?? '', telefonoValidator],
       via: [data?.via ?? ''], cap: [data?.cap ?? ''],
       citta: [data?.citta ?? ''], provincia: [data?.provincia ?? ''],
       stato: [data?.stato ?? 'Italia'], pIva: [data?.pIva ?? '', pIvaValidator],
@@ -133,7 +147,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
   ngOnInit() { this.load(); }
 
@@ -174,6 +188,54 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
+  }
+
+  exportExcel() {
+    this.excel.export(this.dataSource.data, [
+      { header: 'Ragione Sociale', field: 'ragioneSociale', width: 30 },
+      { header: 'Email',           field: 'email',          width: 28 },
+      { header: 'Telefono',        field: 'telefono',       width: 16 },
+      { header: 'Via',             field: 'via',            width: 28 },
+      { header: 'CAP',             field: 'cap',            width: 8  },
+      { header: 'Città',           field: 'citta',          width: 18 },
+      { header: 'Provincia',       field: 'provincia',      width: 10 },
+      { header: 'Stato',           field: 'stato',          width: 12 },
+      { header: 'P. IVA',          field: 'pIva',           width: 14 },
+      { header: 'SDI',             field: 'sdi',            width: 10 },
+      { header: 'PEC',             field: 'pec',            width: 28 },
+    ], 'fornitori');
+  }
+
+  async importExcel(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    (event.target as HTMLInputElement).value = '';
+    try {
+      const rows = await this.excel.readFile(file);
+      let ok = 0;
+      for (const r of rows) {
+        const f: Fornitore = {
+          ragioneSociale: r['Ragione Sociale'] || r['ragioneSociale'] || '',
+          email:          r['Email']           || r['email']          || '',
+          telefono:       r['Telefono']        || r['telefono']       || '',
+          via:            r['Via']             || r['via']            || '',
+          cap:            r['CAP']             || r['cap']            || '',
+          citta:          r['Città']           || r['citta']          || '',
+          provincia:      r['Provincia']       || r['provincia']      || '',
+          stato:          r['Stato']           || r['stato']          || 'Italia',
+          pIva:           r['P. IVA']          || r['pIva']           || '',
+          sdi:            r['SDI']             || r['sdi']            || '',
+          pec:            r['PEC']             || r['pec']            || '',
+        };
+        if (!f.ragioneSociale) continue;
+        await this.ds.createFornitore(f).toPromise();
+        ok++;
+      }
+      this.load();
+      this.snack.open(`Importati ${ok} fornitori`, '', { duration: 3000 });
+    } catch {
+      this.snack.open('Errore nella lettura del file', '', { duration: 3000 });
+    }
   }
 
   delete(f: Fornitore) {

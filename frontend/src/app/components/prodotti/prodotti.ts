@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { DataService } from '../../services/data.service';
+import { ExcelService } from '../../services/excel.service';
 import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
 
 // ── Dialog ──────────────────────────────────────────────────────────────────
@@ -46,6 +47,14 @@ import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva
             <input matInput formControlName="barcode" placeholder="Scansiona o digita...">
             <mat-icon matSuffix style="color:#94a3b8">qr_code_scanner</mat-icon>
           </mat-form-field>
+        </div>
+        <div class="form-row">
+          <mat-form-field style="flex:1">
+            <mat-label>Codice fornitore</mat-label>
+            <input matInput formControlName="codiceFornitore" placeholder="Codice usato dal fornitore">
+            <mat-icon matSuffix style="color:#94a3b8">local_shipping</mat-icon>
+          </mat-form-field>
+          <div style="flex:1"></div>
         </div>
         <div class="form-row">
           <mat-form-field>
@@ -176,8 +185,9 @@ export class ProdottoDialogComponent implements OnInit {
     this.form = this.fb.group({
       nome:         [data?.nome ?? '', Validators.required],
       categoria:    [data?.categoria ?? ''],
-      codice:       [data?.codice ?? ''],
-      barcode:      [data?.barcode ?? ''],
+      codice:          [data?.codice ?? ''],
+      codiceFornitore: [data?.codiceFornitore ?? ''],
+      barcode:         [data?.barcode ?? ''],
       unitaMisura:  [data?.unitaMisura ?? 'pz'],
       prezzo:       [data?.prezzo ?? 0],
       iva:          [data?.iva ?? 22],
@@ -228,7 +238,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
   ngOnInit() { this.load(); }
 
@@ -286,6 +296,54 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
+  }
+
+  exportExcel() {
+    this.excel.export(this.dataSource.data, [
+      { header: 'Nome',             field: 'nome',            width: 30 },
+      { header: 'Categoria',        field: 'categoria',       width: 18 },
+      { header: 'Descrizione',      field: 'descrizione',     width: 32 },
+      { header: 'Codice',           field: 'codice',          width: 14 },
+      { header: 'Codice Fornitore', field: 'codiceFornitore', width: 16 },
+      { header: 'Barcode',          field: 'barcode',         width: 16 },
+      { header: 'Prezzo',           field: 'prezzo',          width: 12 },
+      { header: 'IVA',              field: 'iva',             width: 8  },
+      { header: 'Quantità',         field: 'quantita',        width: 10 },
+      { header: 'Soglia Minima',    field: 'sogliaMinima',    width: 12 },
+      { header: 'Unità Misura',     field: 'unitaMisura',     width: 12 },
+    ], 'prodotti');
+  }
+
+  async importExcel(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    (event.target as HTMLInputElement).value = '';
+    try {
+      const rows = await this.excel.readFile(file);
+      let ok = 0;
+      for (const r of rows) {
+        const p: Prodotto = {
+          nome:            r['Nome']             || r['nome']            || '',
+          categoria:       r['Categoria']        || r['categoria']       || '',
+          descrizione:     r['Descrizione']      || r['descrizione']     || '',
+          codice:          r['Codice']           || r['codice']          || '',
+          codiceFornitore: r['Codice Fornitore'] || r['codiceFornitore'] || '',
+          barcode:         r['Barcode']          || r['barcode']         || '',
+          prezzo:          parseFloat(r['Prezzo']   || r['prezzo']   || '0') || 0,
+          iva:             parseFloat(r['IVA']      || r['iva']      || '22') || 22,
+          quantita:        parseInt(  r['Quantità'] || r['quantita'] || '0', 10) || 0,
+          sogliaMinima:    parseInt(  r['Soglia Minima'] || r['sogliaMinima'] || '0', 10) || 0,
+          unitaMisura:     r['Unità Misura'] || r['unitaMisura'] || 'pz',
+        };
+        if (!p.nome) continue;
+        await this.ds.createProdotto(p).toPromise();
+        ok++;
+      }
+      this.load();
+      this.snack.open(`Importati ${ok} prodotti`, '', { duration: 3000 });
+    } catch {
+      this.snack.open('Errore nella lettura del file', '', { duration: 3000 });
+    }
   }
 
   delete(p: Prodotto) {

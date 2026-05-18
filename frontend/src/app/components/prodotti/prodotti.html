@@ -5,6 +5,9 @@
       <mat-icon>add</mat-icon> Aggiungi
     </button>
     <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+    <button mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+    <button mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+    <input #importInput type="file" accept=".xlsx,.xls" class="hidden-input" (change)="importExcel($event)">
   </div>
 
   <div class="filter-bar">

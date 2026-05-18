@@ -27,6 +27,7 @@ export interface Prodotto {
   sogliaMinima?: number;
   unitaMisura?: string;
   codice?: string;
+  codiceFornitore?: string;
   iva: number;
   barcode?: string;
   haVarianti?: boolean;
@@ -287,6 +288,34 @@ export interface GiacenzaStorica {
   unitaMisura?: string;
   sogliaMinima?: number;
   quantita: number;
+}
+
+export interface RigaArrivoMerce {
+  id?: number;
+  prodottoId?: number | null;
+  prodottoNome?: string;
+  varianteId?: number | null;
+  descrizione: string;
+  codiceFornitore?: string;
+  quantita: number;
+  unitaMisura?: string;
+  prezzoAcquisto?: number;
+  varianteTaglia?: string;
+  varianteColore?: string;
+}
+
+export interface ArrivoMerce {
+  id?: number;
+  numero: string;
+  data: string;
+  fornitoreId?: number | null;
+  fornitoreNome?: string;
+  acquistoId?: number | null;
+  numeroDocumentoFornitore?: string;
+  note?: string;
+  stato: string;
+  totale?: number;
+  righe?: RigaArrivoMerce[];
 }
 
 export interface ScadenzarioEntry {

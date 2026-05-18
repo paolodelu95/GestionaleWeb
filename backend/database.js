@@ -324,6 +324,8 @@ const migrations = [
   'ALTER TABLE movimenti_magazzino ADD COLUMN variante_id INTEGER',
   'ALTER TABLE movimenti_magazzino ADD COLUMN variante_taglia TEXT DEFAULT ""',
   'ALTER TABLE movimenti_magazzino ADD COLUMN variante_colore TEXT DEFAULT ""',
+  // Codice fornitore sul prodotto
+  'ALTER TABLE prodotti ADD COLUMN codice_fornitore TEXT DEFAULT ""',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
@@ -411,6 +413,42 @@ try {
     );
     INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id)
       SELECT id, ddt_id FROM fatture WHERE ddt_id IS NOT NULL;
+  `);
+} catch(_) {}
+
+// Arrivi merce (entrata merci a magazzino)
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS arrivi_merce (
+      id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero                   TEXT NOT NULL,
+      data                     TEXT NOT NULL,
+      fornitore_id             INTEGER,
+      acquisto_id              INTEGER,
+      numero_documento_fornitore TEXT DEFAULT '',
+      note                     TEXT DEFAULT '',
+      stato                    TEXT DEFAULT 'RICEVUTO',
+      FOREIGN KEY (fornitore_id) REFERENCES fornitori(id),
+      FOREIGN KEY (acquisto_id)  REFERENCES acquisti(id)
+    );
+    CREATE TABLE IF NOT EXISTS arrivi_merce_righe (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      arrivo_merce_id  INTEGER NOT NULL,
+      prodotto_id      INTEGER,
+      variante_id      INTEGER,
+      descrizione      TEXT DEFAULT '',
+      codice_fornitore TEXT DEFAULT '',
+      quantita         REAL DEFAULT 1,
+      unita_misura     TEXT DEFAULT '',
+      prezzo_acquisto  REAL DEFAULT 0,
+      variante_taglia  TEXT DEFAULT '',
+      variante_colore  TEXT DEFAULT '',
+      FOREIGN KEY (arrivo_merce_id) REFERENCES arrivi_merce(id) ON DELETE CASCADE,
+      FOREIGN KEY (prodotto_id)     REFERENCES prodotti(id),
+      FOREIGN KEY (variante_id)     REFERENCES prodotto_varianti(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_arr_fornitore ON arrivi_merce(fornitore_id);
+    CREATE INDEX IF NOT EXISTS idx_arr_data      ON arrivi_merce(data);
   `);
 } catch(_) {}
 

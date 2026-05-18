@@ -21,6 +21,7 @@ body {
 .page { padding: 24px; background: #f1f5f9; min-height: 100%; box-sizing: border-box; }
 .page-header { display: flex; align-items: center; margin-bottom: 20px; gap: 12px; }
 .page-title { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0; flex: 1; }
+.hidden-input { display: none; }
 
 // Card
 .card {

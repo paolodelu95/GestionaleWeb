@@ -69,7 +69,13 @@ export class App implements OnInit {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
     { label: 'Prodotti',     icon: 'inventory_2',    route: '/prodotti' },
-    { label: 'Magazzino',   icon: 'warehouse',      route: '/magazzino' },
+    {
+      label: 'Magazzino', icon: 'warehouse',
+      children: [
+        { label: 'Movimenti',     icon: 'warehouse',       route: '/magazzino' },
+        { label: 'Arrivi Merce',  icon: 'move_to_inbox',   route: '/arrivi-merce' },
+      ]
+    },
     { label: 'Clienti',      icon: 'people',         route: '/clienti' },
     { label: 'Fornitori',    icon: 'local_shipping', route: '/fornitori' },
     {

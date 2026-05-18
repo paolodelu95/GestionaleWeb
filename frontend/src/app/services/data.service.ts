@@ -6,7 +6,8 @@ import {
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, UnitaMisura, AliquotaIva,
-  MovimentoMagazzino, GiacenzaStorica, VenditaBanco
+  MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
+  ArrivoMerce
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -151,6 +152,17 @@ export class DataService {
   createVenditaBanco(v: VenditaBanco): Observable<any> { return this.api.post('vendite-banco', v); }
   deleteVenditaBanco(id: number): Observable<any> { return this.api.delete(`vendite-banco/${id}`); }
   getNextNumberVenditaBanco(): Observable<{ numero: number }> { return this.api.get('next-number/vendite-banco'); }
+
+  // Arrivi Merce
+  getArriviMerce(): Observable<ArrivoMerce[]> { return this.api.get('arrivi-merce'); }
+  getArrivoMerceById(id: number): Observable<ArrivoMerce> { return this.api.get(`arrivi-merce/${id}`); }
+  createArrivoMerce(a: ArrivoMerce): Observable<any> { return this.api.post('arrivi-merce', a); }
+  updateArrivoMerce(a: ArrivoMerce): Observable<any> { return this.api.put(`arrivi-merce/${a.id}`, a); }
+  deleteArrivoMerce(id: number): Observable<any> { return this.api.delete(`arrivi-merce/${id}`); }
+  setArrivoMerceStato(id: number, stato: string): Observable<any> { return this.api.patch(`arrivi-merce/${id}/stato`, { stato }); }
+  importArrivoMerceFromAcquisto(acquistoId: number): Observable<Partial<ArrivoMerce>> {
+    return this.api.post(`arrivi-merce/from-acquisto/${acquistoId}`, {});
+  }
 
   // Magazzino
   getMovimentiMagazzino(filters: Record<string, any> = {}): Observable<MovimentoMagazzino[]> {

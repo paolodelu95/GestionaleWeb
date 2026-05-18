@@ -68,7 +68,7 @@ app.get('/api/prezzi-recenti', (req, res) => {
 });
 
 app.get('/api/next-number/:tipo', (req, res) => {
-  const map = { ddt: 'ddt', fatture: 'fatture', ordini: 'ordini', preventivi: 'preventivi', 'note-credito': 'note_credito', acquisti: 'acquisti', 'vendite-banco': 'vendite_banco' };
+  const map = { ddt: 'ddt', fatture: 'fatture', ordini: 'ordini', preventivi: 'preventivi', 'note-credito': 'note_credito', acquisti: 'acquisti', 'vendite-banco': 'vendite_banco', 'arrivi-merce': 'arrivi_merce' };
   const table = map[req.params.tipo];
   if (!table) return res.status(400).json({ error: 'tipo non valido' });
   const row = db.prepare(`SELECT COUNT(*) as n FROM "${table}"`).get();
@@ -94,6 +94,7 @@ app.use('/api/categorie-prodotto', require('./routes/categorieProdotto'));
 app.use('/api/unita-misura',     require('./routes/unitaMisura'));
 app.use('/api/aliquote-iva',     require('./routes/aliquoteIva'));
 app.use('/api/fattura-xml',      require('./routes/fatturaXml'));
+app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
