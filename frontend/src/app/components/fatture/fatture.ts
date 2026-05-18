@@ -726,6 +726,24 @@ export class FattureComponent implements OnInit, AfterViewInit {
     a.click();
   }
 
+  inviaEmail(f: Fattura) {
+    const dest = prompt(`Email destinatario per fattura n. ${f.numero}:`, '');
+    if (dest === null) return;
+    const note = prompt('Note aggiuntive (opzionale):', '') ?? '';
+    this.ds.sendFatturaEmail(f.id!, dest || undefined, note || undefined).subscribe({
+      next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+    });
+  }
+
+  inviaSdi(f: Fattura) {
+    if (!confirm(`Inviare la fattura n. ${f.numero} all'SDI?`)) return;
+    this.ds.inviaFatturaSdi(f.id!).subscribe({
+      next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000 }); },
+      error: e => this.snack.open('Errore SDI: ' + (e.error?.error || e.message), '', { duration: 5000 })
+    });
+  }
+
   delete(f: Fattura) {
     if (!confirm(`Eliminare Fattura ${f.numero}?`)) return;
     this.ds.deleteFattura(f.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });

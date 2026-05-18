@@ -25,11 +25,12 @@ router.get('/valore', (req, res) => {
 router.post('/', (req, res) => {
   const p = req.body;
   const result = db.prepare(`INSERT INTO prodotti
-    (nome, categoria, descrizione, prezzo, quantita, soglia_minima, unita_misura, codice, codice_fornitore, iva, barcode, ha_varianti)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+    (nome, categoria, descrizione, prezzo, quantita, soglia_minima, unita_misura, codice, codice_fornitore, iva, barcode, ha_varianti, fornitore_id_preferito, riordino_quantita)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.quantita ?? 0,
          p.sogliaMinima ?? 0, p.unitaMisura, p.codice, p.codiceFornitore || '',
-         p.iva, p.barcode || '', p.haVarianti ? 1 : 0);
+         p.iva, p.barcode || '', p.haVarianti ? 1 : 0,
+         p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0);
   const id = result.lastInsertRowid;
   if (p.haVarianti && p.varianti?.length) {
     saveVarianti(id, p.varianti);
@@ -41,10 +42,12 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   const p = req.body;
   db.prepare(`UPDATE prodotti SET nome=?, categoria=?, descrizione=?, prezzo=?,
-    quantita=?, soglia_minima=?, unita_misura=?, codice=?, codice_fornitore=?, iva=?, barcode=?, ha_varianti=? WHERE id=?`)
+    quantita=?, soglia_minima=?, unita_misura=?, codice=?, codice_fornitore=?, iva=?, barcode=?, ha_varianti=?,
+    fornitore_id_preferito=?, riordino_quantita=? WHERE id=?`)
     .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.quantita ?? 0,
          p.sogliaMinima ?? 0, p.unitaMisura, p.codice, p.codiceFornitore || '',
-         p.iva, p.barcode || '', p.haVarianti ? 1 : 0, req.params.id);
+         p.iva, p.barcode || '', p.haVarianti ? 1 : 0,
+         p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0, req.params.id);
   if (p.haVarianti) {
     db.prepare('DELETE FROM prodotto_varianti WHERE prodotto_id=?').run(req.params.id);
     if (p.varianti?.length) saveVarianti(req.params.id, p.varianti);
@@ -81,6 +84,8 @@ function toDto(r) {
     prezzo: r.prezzo, quantita: r.quantita, sogliaMinima: r.soglia_minima,
     unitaMisura: r.unita_misura, codice: r.codice, codiceFornitore: r.codice_fornitore || '',
     iva: r.iva, barcode: r.barcode || '', haVarianti: r.ha_varianti === 1,
+    fornitoreIdPreferito: r.fornitore_id_preferito || null,
+    riordinoQuantita: r.riordino_quantita ?? 0,
   };
   if (r.ha_varianti === 1) {
     dto.varianti = db.prepare(

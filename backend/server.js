@@ -95,6 +95,9 @@ app.use('/api/unita-misura',     require('./routes/unitaMisura'));
 app.use('/api/aliquote-iva',     require('./routes/aliquoteIva'));
 app.use('/api/fattura-xml',      require('./routes/fatturaXml'));
 app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
+app.use('/api/email',            require('./routes/email'));
+app.use('/api/stats',            require('./routes/stats'));
+app.use('/api/utenti',           require('./routes/utenti'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

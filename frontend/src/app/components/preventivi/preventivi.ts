@@ -424,6 +424,22 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
 
   printDoc(p: Preventivo) { this.printSvc.printPreventivo(p.id!); }
 
+  convertiInDdt(p: Preventivo) {
+    if (!confirm(`Convertire il preventivo ${p.numero} in DDT? Il preventivo verrà marcato come CONFERMATO.`)) return;
+    this.ds.preventivoToDdt(p.id!).subscribe({
+      next: r => { this.load(); this.snack.open(`DDT n. ${r.numero} creato`, '', { duration: 3000 }); },
+      error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
+    });
+  }
+
+  convertiInOrdine(p: Preventivo) {
+    if (!confirm(`Convertire il preventivo ${p.numero} in ordine cliente? Il preventivo verrà marcato come CONFERMATO.`)) return;
+    this.ds.preventivoToOrdine(p.id!).subscribe({
+      next: r => { this.load(); this.snack.open(`Ordine n. ${r.numero} creato`, '', { duration: 3000 }); },
+      error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
+    });
+  }
+
   delete(p: Preventivo) {
     if (!confirm(`Eliminare Preventivo ${p.numero}?`)) return;
     this.ds.deletePreventivo(p.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });

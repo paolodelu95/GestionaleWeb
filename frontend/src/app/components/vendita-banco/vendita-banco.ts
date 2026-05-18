@@ -33,10 +33,6 @@ interface RigaVendita extends RigaDocumento {
   ],
   templateUrl: './vendita-banco.html',
   styles: [`
-    .page { padding: 24px; max-width: 1100px; margin: 0 auto; }
-    .page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-    .page-title { font-size: 22px; font-weight: 700; color: #1a1a2e; flex: 1; margin: 0; }
-    .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 20px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .form-field { display: flex; flex-direction: column; gap: 4px; }
     .form-field label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }

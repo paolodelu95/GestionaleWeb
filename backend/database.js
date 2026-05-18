@@ -326,6 +326,29 @@ const migrations = [
   'ALTER TABLE movimenti_magazzino ADD COLUMN variante_colore TEXT DEFAULT ""',
   // Codice fornitore sul prodotto
   'ALTER TABLE prodotti ADD COLUMN codice_fornitore TEXT DEFAULT ""',
+  // Riordino automatico per prodotto
+  'ALTER TABLE prodotti ADD COLUMN fornitore_id_preferito INTEGER',
+  'ALTER TABLE prodotti ADD COLUMN riordino_quantita REAL DEFAULT 0',
+  // Email/SMTP config azienda
+  'ALTER TABLE azienda ADD COLUMN smtp_host TEXT DEFAULT ""',
+  'ALTER TABLE azienda ADD COLUMN smtp_port INTEGER DEFAULT 587',
+  'ALTER TABLE azienda ADD COLUMN smtp_user TEXT DEFAULT ""',
+  'ALTER TABLE azienda ADD COLUMN smtp_pass TEXT DEFAULT ""',
+  'ALTER TABLE azienda ADD COLUMN smtp_from TEXT DEFAULT ""',
+  'ALTER TABLE azienda ADD COLUMN smtp_secure INTEGER DEFAULT 0',
+  // SDI intermediario
+  'ALTER TABLE azienda ADD COLUMN sdi_api_url TEXT DEFAULT ""',
+  'ALTER TABLE azienda ADD COLUMN sdi_api_key TEXT DEFAULT ""',
+  // Funzionalità opzionali azienda
+  'ALTER TABLE azienda ADD COLUMN riordino_automatico INTEGER DEFAULT 0',
+  'ALTER TABLE azienda ADD COLUMN multi_utente_attivo INTEGER DEFAULT 0',
+  // SDI tracking su fatture
+  'ALTER TABLE fatture ADD COLUMN stato_sdi TEXT DEFAULT ""',
+  'ALTER TABLE fatture ADD COLUMN data_invio_sdi TEXT DEFAULT ""',
+  'ALTER TABLE fatture ADD COLUMN id_trasmissione_sdi TEXT DEFAULT ""',
+  // Collegamento preventivo → documenti catena
+  'ALTER TABLE ddt ADD COLUMN preventivo_id INTEGER',
+  'ALTER TABLE ordini ADD COLUMN preventivo_id INTEGER',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
@@ -413,6 +436,36 @@ try {
     );
     INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id)
       SELECT id, ddt_id FROM fatture WHERE ddt_id IS NOT NULL;
+  `);
+} catch(_) {}
+
+// Utenti (multi-utente opzionale)
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS utenti (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      username      TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      nome          TEXT DEFAULT '',
+      email         TEXT DEFAULT '',
+      ruolo         TEXT DEFAULT 'OPERATORE',
+      attivo        INTEGER DEFAULT 1
+    );
+  `);
+} catch(_) {}
+
+// Solleciti pagamento (log invii)
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS solleciti (
+      id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+      documento_tipo      TEXT NOT NULL,
+      documento_id        INTEGER NOT NULL,
+      email_destinatario  TEXT DEFAULT '',
+      data_invio          TEXT NOT NULL,
+      esito               TEXT DEFAULT 'INVIATO'
+    );
+    CREATE INDEX IF NOT EXISTS idx_sol_doc ON solleciti(documento_tipo, documento_id);
   `);
 } catch(_) {}
 

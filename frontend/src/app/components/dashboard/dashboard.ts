@@ -1,11 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
+import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
-import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento } from '../../models';
+import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento,
+         StatsVenditeMensili, StatsTopProdotto, StatsCashflow, StatsKpiAnno } from '../../models';
+
+Chart.register(...registerables);
 
 @Component({
   selector: 'app-dashboard',
@@ -14,11 +18,17 @@ import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento } from '../../models';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('chartVendite') chartVenditeRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartTop')     chartTopRef!: ElementRef<HTMLCanvasElement>;
+
   prodottiCount = 0;
   valoremagazzino = 0;
   ordiniAperti = 0;
   clientiCount = 0;
+
+  kpi: StatsKpiAnno = { fatturato: 0, costi: 0, margine: 0 };
+  cashflow: StatsCashflow = { daIncassare: 0, daPagare: 0 };
 
   prodottiSottoSoglia: Prodotto[] = [];
   ddtDaFatturare: Ddt[] = [];
@@ -28,10 +38,17 @@ export class DashboardComponent implements OnInit {
 
   ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
   fattureCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
-  acquistiCols = ['numero', 'dataEmissione','fornitoreNome', 'totale'];
+  acquistiCols = ['numero', 'dataEmissione', 'fornitoreNome', 'totale'];
   prodottiCols = ['nome', 'categoria', 'quantita', 'sogliaMinima'];
 
   readonly oggi = new Date().toISOString().substring(0, 10);
+
+  private venditeMensili: StatsVenditeMensili[] = [];
+  private topProdotti: StatsTopProdotto[] = [];
+  private chartsReady = false;
+  private dataReady = false;
+  private chartVendite?: Chart;
+  private chartTop?: Chart;
 
   constructor(private ds: DataService) {}
 
@@ -46,6 +63,10 @@ export class DashboardComponent implements OnInit {
       fatture: this.ds.getFatture(),
       acquisti: this.ds.getAcquisti(),
       tipi: this.ds.getTipiPagamento(),
+      vendite: this.ds.getVenditeMensili(),
+      top: this.ds.getTopProdotti(),
+      cashflow: this.ds.getCashflow(),
+      kpi: this.ds.getKpiAnno(),
     }).subscribe(r => {
       this.prodottiCount = r.count;
       this.valoremagazzino = r.valore;
@@ -53,6 +74,10 @@ export class DashboardComponent implements OnInit {
       this.clientiCount = r.clienti;
       this.prodottiSottoSoglia = r.sotto;
       this.tipiPagamento = r.tipi;
+      this.kpi = r.kpi;
+      this.cashflow = r.cashflow;
+      this.venditeMensili = r.vendite;
+      this.topProdotti = r.top;
       this.ddtDaFatturare = r.ddt
         .filter(d => !d.fatturaId && d.stato !== 'ANNULLATO')
         .slice(0, 10);
@@ -62,6 +87,72 @@ export class DashboardComponent implements OnInit {
       this.fattureDaPagare = r.acquisti
         .filter(a => a.stato !== 'PAGATA' && a.stato !== 'ANNULLATA')
         .slice(0, 10);
+      this.dataReady = true;
+      this.tryRenderCharts();
+    });
+  }
+
+  ngAfterViewInit() {
+    this.chartsReady = true;
+    this.tryRenderCharts();
+  }
+
+  ngOnDestroy() {
+    this.chartVendite?.destroy();
+    this.chartTop?.destroy();
+  }
+
+  private tryRenderCharts() {
+    if (!this.chartsReady || !this.dataReady) return;
+    setTimeout(() => {
+      this.renderVenditeChart();
+      this.renderTopChart();
+    }, 0);
+  }
+
+  private renderVenditeChart() {
+    if (!this.chartVenditeRef) return;
+    this.chartVendite?.destroy();
+    const labels = this.venditeMensili.map(v => v.mese);
+    const data = this.venditeMensili.map(v => v.imponibile);
+    this.chartVendite = new Chart(this.chartVenditeRef.nativeElement, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Imponibile (€)',
+          data,
+          backgroundColor: 'rgba(99,102,241,0.7)',
+          borderColor: '#6366f1',
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: (v: any) => `€${Number(v).toLocaleString('it-IT')}` } } }
+      }
+    });
+  }
+
+  private renderTopChart() {
+    if (!this.chartTopRef || !this.topProdotti.length) return;
+    this.chartTop?.destroy();
+    const top5 = this.topProdotti.slice(0, 5);
+    const colors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6'];
+    this.chartTop = new Chart(this.chartTopRef.nativeElement, {
+      type: 'doughnut',
+      data: {
+        labels: top5.map(p => p.nome || 'N/D'),
+        datasets: [{ data: top5.map(p => p.fatturato), backgroundColor: colors }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
     });
   }
 
@@ -71,16 +162,12 @@ export class DashboardComponent implements OnInit {
     if (!tp) return null;
     const d = new Date(f.dataEmissione);
     d.setDate(d.getDate() + (tp.giorniScadenza || 0));
-    if (tp.fineMese) {
-      d.setMonth(d.getMonth() + 1);
-      d.setDate(0);
-    }
+    if (tp.fineMese) { d.setMonth(d.getMonth() + 1); d.setDate(0); }
     return d.toISOString().substring(0, 10);
   }
 
   isScaduta(f: Fattura): boolean {
     const scadenza = this.getScadenza(f);
-    if (!scadenza) return false;
-    return scadenza < this.oggi;
+    return !!scadenza && scadenza < this.oggi;
   }
 }

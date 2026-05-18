@@ -15,6 +15,16 @@ export interface Azienda {
   banca?: string;
   iban?: string;
   logo?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFrom?: string;
+  smtpSecure?: boolean;
+  sdiApiUrl?: string;
+  sdiApiKey?: string;
+  riordinoAutomatico?: boolean;
+  multiUtenteAttivo?: boolean;
 }
 
 export interface Prodotto {
@@ -32,6 +42,8 @@ export interface Prodotto {
   barcode?: string;
   haVarianti?: boolean;
   varianti?: ProdottoVariante[];
+  fornitoreIdPreferito?: number | null;
+  riordinoQuantita?: number;
 }
 
 export interface ProdottoVariante {
@@ -140,6 +152,9 @@ export interface Fattura {
   imponibile?: number;
   tipoPagamentoId?: number | null;
   righe?: RigaDocumento[];
+  statoSdi?: string;
+  dataInvioSdi?: string;
+  idTrasmissioneSdi?: string;
 }
 
 export interface NotaCredito {
@@ -330,4 +345,56 @@ export interface ScadenzarioEntry {
   importoPagato: number;
   rimanente: number;
   tipoEntry: 'FATTURA' | 'ACQUISTO';
+}
+
+export interface Utente {
+  id?: number;
+  username: string;
+  password?: string;
+  nome?: string;
+  email?: string;
+  ruolo: 'ADMIN' | 'COMMERCIALE' | 'MAGAZZINIERE' | 'CONTABILE' | 'OPERATORE';
+  attivo?: boolean;
+}
+
+export interface StatsVenditeMensili {
+  mese: string;
+  imponibile: number;
+  totale: number;
+}
+
+export interface StatsAcquistiMensili {
+  mese: string;
+  imponibile: number;
+}
+
+export interface StatsTopProdotto {
+  nome: string;
+  fatturato: number;
+  quantitaVenduta: number;
+}
+
+export interface StatsTopCliente {
+  nome: string;
+  fatturato: number;
+}
+
+export interface StatsCashflow {
+  daIncassare: number;
+  daPagare: number;
+}
+
+export interface StatsKpiAnno {
+  fatturato: number;
+  costi: number;
+  margine: number;
+}
+
+export interface Sollecito {
+  id: number;
+  documentoTipo: string;
+  documentoId: number;
+  emailDestinatario: string;
+  dataInvio: string;
+  esito: string;
 }

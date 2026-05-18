@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { checkRiordino } = require('../utils/riordino');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -48,6 +49,7 @@ router.post('/', (req, res) => {
       documentoId: ddtId, documentoNumero: d.numero,
       clienteId: d.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
     });
+    checkRiordino(d.righe.map(r => r.prodottoId).filter(Boolean));
   }
   res.json({ id: ddtId });
 });
@@ -173,6 +175,28 @@ router.get('/:id/print', (req, res) => {
     email: row.c_email, telefono: row.c_telefono,
   };
   res.json(dto);
+});
+
+// ── POST /:id/to-fattura – converti DDT in fattura ───────────────────────────
+router.post('/:id/to-fattura', (req, res) => {
+  const ddt = db.prepare('SELECT * FROM ddt WHERE id=?').get(req.params.id);
+  if (!ddt) return res.status(404).json({ error: 'DDT non trovato' });
+  const righe = getRighe(ddt.id);
+  const count = db.prepare('SELECT COUNT(*) as n FROM fatture').get();
+  const numero = String(count.n + 1);
+  const data = new Date().toISOString().split('T')[0];
+  const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato)
+    VALUES (?,?,?,?,?,?)`)
+    .run(numero, data, ddt.cliente_id, ddt.id, `Da DDT n. ${ddt.numero}`, 'BOZZA');
+  const fatturaId = result.lastInsertRowid;
+  db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)').run(fatturaId, ddt.id);
+  const stmt = db.prepare(`INSERT INTO fatture_righe
+    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+  for (const r of righe)
+    stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+             r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+  res.json({ id: fatturaId, numero });
 });
 
 router.patch('/:id/stato', (req, res) => {

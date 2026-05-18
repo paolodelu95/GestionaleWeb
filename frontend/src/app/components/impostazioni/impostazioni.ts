@@ -1,21 +1,23 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator } from '../../validators/italian-validators';
 
 // ── Tipo Pagamento Dialog ────────────────────────────────────────────────────
@@ -185,6 +187,68 @@ export class AliquotaIvaDialogComponent {
   }
 }
 
+// ── Utente Dialog ────────────────────────────────────────────────────────────
+@Component({
+  selector: 'app-utente-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
+            MatButtonModule, MatSelectModule, MatCheckboxModule],
+  template: `
+    <h2 mat-dialog-title>{{ data?.id ? 'Modifica utente' : 'Nuovo utente' }}</h2>
+    <mat-dialog-content style="min-width:440px">
+      <div class="dialog-form" style="padding-top:8px">
+        <mat-form-field style="width:100%">
+          <mat-label>Username *</mat-label>
+          <input matInput [(ngModel)]="u.username" autocomplete="off">
+        </mat-form-field>
+        <mat-form-field style="width:100%">
+          <mat-label>{{ data?.id ? 'Nuova password (lascia vuoto per non cambiare)' : 'Password *' }}</mat-label>
+          <input matInput type="password" [(ngModel)]="u.password" autocomplete="new-password">
+        </mat-form-field>
+        <div class="form-row">
+          <mat-form-field style="flex:2">
+            <mat-label>Nome</mat-label>
+            <input matInput [(ngModel)]="u.nome">
+          </mat-form-field>
+          <mat-form-field style="flex:1">
+            <mat-label>Ruolo</mat-label>
+            <mat-select [(ngModel)]="u.ruolo">
+              <mat-option value="ADMIN">Admin</mat-option>
+              <mat-option value="COMMERCIALE">Commerciale</mat-option>
+              <mat-option value="MAGAZZINIERE">Magazziniere</mat-option>
+              <mat-option value="CONTABILE">Contabile</mat-option>
+              <mat-option value="OPERATORE">Operatore</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <mat-form-field style="width:100%">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" [(ngModel)]="u.email">
+        </mat-form-field>
+        @if (data?.id) {
+          <mat-checkbox [(ngModel)]="u.attivo">Utente attivo</mat-checkbox>
+        }
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button (click)="save()" [disabled]="!u.username || (!data?.id && !u.password)">Salva</button>
+    </mat-dialog-actions>`
+})
+export class UtenteDialogComponent {
+  u: Utente & { password?: string };
+  constructor(
+    public dialogRef: MatDialogRef<UtenteDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: Utente | null
+  ) {
+    this.u = data ? { ...data, password: '' } : { username: '', password: '', nome: '', email: '', ruolo: 'OPERATORE', attivo: true };
+  }
+  save() {
+    if (this.u.username && (this.data?.id || this.u.password))
+      this.dialogRef.close(this.u);
+  }
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 @Component({
   selector: 'app-impostazioni',
@@ -192,7 +256,8 @@ export class AliquotaIvaDialogComponent {
   imports: [CommonModule, FormsModule, ReactiveFormsModule,
             MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
             MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
-            MatAutocompleteModule],
+            MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
+            MatSlideToggleModule, MatProgressSpinnerModule],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })
@@ -214,6 +279,11 @@ export class ImpostazioniComponent implements OnInit {
   aliquoteIva: AliquotaIva[] = [];
   ivaColumns = ['nome', 'valore', 'attiva', 'azioni'];
 
+  utenti: Utente[] = [];
+  utenteColumns = ['username', 'nome', 'ruolo', 'attivo', 'azioni'];
+
+  emailTesting = false;
+
   constructor(
     private fb: FormBuilder,
     private ds: DataService,
@@ -226,6 +296,9 @@ export class ImpostazioniComponent implements OnInit {
       indirizzo: [''], cap: [''], citta: [''], provincia: [''], stato: [''],
       telefono: [''], email: [''], pec: [''], sdi: [''],
       iban: [''], banca: [''], logo: [''],
+      smtpHost: [''], smtpPort: [587], smtpUser: [''], smtpPass: [''], smtpFrom: [''], smtpSecure: [false],
+      sdiApiUrl: [''], sdiApiKey: [''],
+      riordinoAutomatico: [false], multiUtenteAttivo: [false],
     });
   }
 
@@ -260,6 +333,7 @@ export class ImpostazioniComponent implements OnInit {
     this.loadCategorie();
     this.loadUnitaMisura();
     this.loadAliquoteIva();
+    this.loadUtenti();
   }
 
   onCitySelected(name: string) {
@@ -287,6 +361,17 @@ export class ImpostazioniComponent implements OnInit {
     this.ds.saveAzienda({ ...this.form.value, logo: this.logoPreview } as Azienda).subscribe({
       next: () => this.snack.open('Dati salvati', '', { duration: 2000 }),
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
+    });
+  }
+
+  testSmtp() {
+    this.emailTesting = true;
+    this.ds.saveAzienda({ ...this.form.value, logo: this.logoPreview } as Azienda).subscribe({
+      next: () => this.ds.testSmtp().subscribe({
+        next: () => { this.emailTesting = false; this.snack.open('Connessione SMTP riuscita!', '', { duration: 3000 }); },
+        error: e => { this.emailTesting = false; this.snack.open('Errore SMTP: ' + e.error?.error, '', { duration: 5000 }); }
+      }),
+      error: () => { this.emailTesting = false; }
     });
   }
 
@@ -378,5 +463,36 @@ export class ImpostazioniComponent implements OnInit {
       next: () => { this.loadAliquoteIva(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
     });
+  }
+
+  // ── Utenti ──────────────────────────────────────────────────────────────────
+  loadUtenti() { this.ds.getUtenti().subscribe(u => { this.utenti = u; }); }
+
+  openUtente(u?: Utente) {
+    this.dialog.open(UtenteDialogComponent, { data: u ?? null, width: '480px' })
+      .afterClosed().subscribe(result => {
+        if (!result) return;
+        const op = result.id ? this.ds.updateUtente(result) : this.ds.createUtente(result);
+        op.subscribe({
+          next: () => { this.loadUtenti(); this.snack.open('Salvato', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
+        });
+      });
+  }
+
+  deleteUtente(u: Utente) {
+    if (!confirm(`Eliminare l'utente "${u.username}"?`)) return;
+    this.ds.deleteUtente(u.id!).subscribe({
+      next: () => { this.loadUtenti(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
+    });
+  }
+
+  ruoloLabel(ruolo: string): string {
+    const map: Record<string, string> = {
+      ADMIN: 'Admin', COMMERCIALE: 'Commerciale',
+      MAGAZZINIERE: 'Magazziniere', CONTABILE: 'Contabile', OPERATORE: 'Operatore'
+    };
+    return map[ruolo] ?? ruolo;
   }
 }

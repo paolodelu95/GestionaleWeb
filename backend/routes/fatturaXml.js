@@ -2,6 +2,46 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 
+// ── POST /:id/invia-sdi – invia XML all'SDI tramite API intermediario ──────────
+router.post('/:id/invia-sdi', async (req, res) => {
+  const az = db.prepare('SELECT * FROM azienda WHERE id=1').get();
+  if (!az?.sdi_api_url || !az?.sdi_api_key)
+    return res.status(400).json({ error: 'API SDI non configurata. Vai in Impostazioni → SDI.' });
+  try {
+    const xml = buildFatturaPA(req.params.id);
+    const fattura = db.prepare('SELECT numero FROM fatture WHERE id=?').get(req.params.id);
+    if (!fattura) return res.status(404).json({ error: 'Fattura non trovata' });
+    const pIva = String(az.p_iva || '').replace(/^IT/i, '').replace(/\s/g, '');
+    const safeName = String(fattura.numero).replace(/[^A-Za-z0-9_\-]/g, '_');
+    const filename = `IT${pIva}_${safeName}.xml`;
+
+    const response = await fetch(az.sdi_api_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Authorization': `Bearer ${az.sdi_api_key}`,
+        'X-Filename': filename,
+      },
+      body: xml,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(502).json({ error: `Errore API SDI: ${errText}` });
+    }
+
+    const data = await response.json().catch(() => ({}));
+    const idTrasmissione = data.id || data.identifier || data.progressivo || String(Date.now());
+
+    db.prepare(`UPDATE fatture SET stato_sdi='INVIATA', data_invio_sdi=?, id_trasmissione_sdi=? WHERE id=?`)
+      .run(new Date().toISOString().split('T')[0], idTrasmissione, req.params.id);
+
+    res.json({ ok: true, idTrasmissione });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', (req, res) => {
   try {
     const fattura = db.prepare('SELECT numero FROM fatture WHERE id=?').get(req.params.id);

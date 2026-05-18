@@ -442,6 +442,16 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
 
   printDoc(a: Acquisto) { this.printSvc.printAcquisto(a.id!); }
 
+  inviaEmail(a: Acquisto) {
+    const dest = prompt(`Email destinatario per acquisto n. ${a.numero}:`, '');
+    if (dest === null) return;
+    const note = prompt('Note aggiuntive (opzionale):', '') ?? '';
+    this.ds.sendAcquistoEmail(a.id!, dest || undefined, note || undefined).subscribe({
+      next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+    });
+  }
+
   delete(a: Acquisto) {
     if (!confirm(`Eliminare acquisto ${a.numero}?`)) return;
     this.ds.deleteAcquisto(a.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });

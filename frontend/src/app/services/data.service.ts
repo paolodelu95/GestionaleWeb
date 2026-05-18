@@ -7,7 +7,8 @@ import {
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, UnitaMisura, AliquotaIva,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
-  ArrivoMerce
+  ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
+  StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -173,5 +174,60 @@ export class DataService {
   }
   getMagazzinoStorico(data: string): Observable<GiacenzaStorica[]> {
     return this.api.get(`movimenti-magazzino/storico?data=${data}`);
+  }
+
+  // Stats / Dashboard
+  getVenditeMensili(): Observable<StatsVenditeMensili[]> { return this.api.get('stats/vendite-mensili'); }
+  getAcquistiMensili(): Observable<StatsAcquistiMensili[]> { return this.api.get('stats/acquisti-mensili'); }
+  getTopProdotti(anno?: number): Observable<StatsTopProdotto[]> {
+    return this.api.get(anno ? `stats/top-prodotti?anno=${anno}` : 'stats/top-prodotti');
+  }
+  getTopClienti(anno?: number): Observable<StatsTopCliente[]> {
+    return this.api.get(anno ? `stats/top-clienti?anno=${anno}` : 'stats/top-clienti');
+  }
+  getCashflow(): Observable<StatsCashflow> { return this.api.get('stats/cashflow'); }
+  getKpiAnno(anno?: number): Observable<StatsKpiAnno> {
+    return this.api.get(anno ? `stats/kpi-anno?anno=${anno}` : 'stats/kpi-anno');
+  }
+
+  // Email
+  testSmtp(): Observable<any> { return this.api.post('email/test', {}); }
+  sendEmail(to: string, subject: string, html?: string): Observable<any> {
+    return this.api.post('email/send', { to, subject, html });
+  }
+  sendFatturaEmail(id: number, to?: string, note?: string): Observable<any> {
+    return this.api.post(`email/fattura/${id}`, { to, note });
+  }
+  sendAcquistoEmail(id: number, to?: string, note?: string): Observable<any> {
+    return this.api.post(`email/acquisto/${id}`, { to, note });
+  }
+  sendSollecito(tipo: 'fattura' | 'acquisto', id: number, to?: string, note?: string): Observable<any> {
+    return this.api.post(`email/sollecito/${tipo}/${id}`, { to, note });
+  }
+  getSolleciti(tipo: 'fattura' | 'acquisto', id: number): Observable<Sollecito[]> {
+    return this.api.get(`email/solleciti/${tipo}/${id}`);
+  }
+
+  // Utenti
+  getUtenti(): Observable<Utente[]> { return this.api.get('utenti'); }
+  createUtente(u: Utente): Observable<any> { return this.api.post('utenti', u); }
+  updateUtente(u: Utente): Observable<any> { return this.api.put(`utenti/${u.id}`, u); }
+  deleteUtente(id: number): Observable<any> { return this.api.delete(`utenti/${id}`); }
+  loginUtente(username: string, password: string): Observable<{ token: string; user: Utente }> {
+    return this.api.post('utenti/login', { username, password });
+  }
+
+  // SDI
+  inviaFatturaSdi(id: number): Observable<any> { return this.api.post(`fattura-xml/${id}/invia-sdi`, {}); }
+
+  // Catena documentale
+  preventivoToDdt(id: number): Observable<{ id: number; numero: string }> {
+    return this.api.post(`preventivi/${id}/to-ddt`, {});
+  }
+  preventivoToOrdine(id: number): Observable<{ id: number; numero: string }> {
+    return this.api.post(`preventivi/${id}/to-ordine`, {});
+  }
+  ddtToFattura(id: number): Observable<{ id: number; numero: string }> {
+    return this.api.post(`ddt/${id}/to-fattura`, {});
   }
 }

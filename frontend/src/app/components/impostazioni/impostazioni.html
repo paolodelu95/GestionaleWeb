@@ -23,7 +23,7 @@
                 </div>
               }
               <label style="cursor:pointer">
-                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none" (change)="onLogoSelected($event)">
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="hidden-input" (change)="onLogoSelected($event)">
                 <span mat-stroked-button style="display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(0,0,0,.12);padding:6px 14px;border-radius:4px;font-size:14px;cursor:pointer">
                   <mat-icon style="font-size:18px;height:18px;width:18px">upload</mat-icon>
                   {{ logoPreview ? 'Cambia logo' : 'Carica logo' }}
@@ -92,6 +92,164 @@
           <div style="display:flex; justify-content:flex-end; padding:8px 0 0">
             <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
           </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Email / SMTP ───────────────────────────────────────────────────────── -->
+    <mat-tab label="Email">
+      <div class="tab-content">
+        <div class="card" style="max-width:700px">
+          <h3 class="section-title">Configurazione SMTP</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:16px">
+            Configura il server di posta per inviare fatture, acquisti e solleciti direttamente dal gestionale.
+          </p>
+          <form [formGroup]="form" class="dialog-form">
+            <div class="form-row">
+              <mat-form-field style="flex:2">
+                <mat-label>Host SMTP</mat-label>
+                <input matInput formControlName="smtpHost" placeholder="es. smtp.gmail.com">
+              </mat-form-field>
+              <mat-form-field style="max-width:120px">
+                <mat-label>Porta</mat-label>
+                <input matInput type="number" formControlName="smtpPort">
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field>
+                <mat-label>Utente SMTP</mat-label>
+                <input matInput formControlName="smtpUser" autocomplete="off">
+              </mat-form-field>
+              <mat-form-field>
+                <mat-label>Password SMTP</mat-label>
+                <input matInput type="password" formControlName="smtpPass" autocomplete="new-password">
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field style="flex:2">
+                <mat-label>Mittente (From)</mat-label>
+                <input matInput formControlName="smtpFrom" placeholder="es. fatture@miazienda.it">
+              </mat-form-field>
+              <div style="display:flex;align-items:center;padding:0 8px">
+                <mat-slide-toggle formControlName="smtpSecure">SSL/TLS</mat-slide-toggle>
+              </div>
+            </div>
+          </form>
+          <div style="display:flex;gap:12px;justify-content:flex-end;padding:8px 0 0">
+            <button mat-stroked-button type="button" (click)="testSmtp()" [disabled]="emailTesting">
+              @if (emailTesting) { <mat-spinner diameter="16" style="display:inline-block;margin-right:6px"></mat-spinner> }
+              <mat-icon>wifi</mat-icon> Testa connessione
+            </button>
+            <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── SDI ────────────────────────────────────────────────────────────────── -->
+    <mat-tab label="SDI / e-Fattura">
+      <div class="tab-content">
+        <div class="card" style="max-width:700px">
+          <h3 class="section-title">API intermediario SDI</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:16px">
+            Configura l'API dell'intermediario per l'invio delle e-fatture al Sistema di Interscambio (SDI).
+            Il gestionale genererà il file XML FatturaPA e lo invierà all'URL configurato.
+          </p>
+          <form [formGroup]="form" class="dialog-form">
+            <mat-form-field style="width:100%">
+              <mat-label>URL API SDI</mat-label>
+              <input matInput formControlName="sdiApiUrl" placeholder="https://api.intermediario.it/v1/fatture">
+            </mat-form-field>
+            <mat-form-field style="width:100%">
+              <mat-label>API Key</mat-label>
+              <input matInput type="password" formControlName="sdiApiKey" autocomplete="new-password">
+            </mat-form-field>
+          </form>
+          <div style="display:flex;justify-content:flex-end;padding:8px 0 0">
+            <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Avanzate ───────────────────────────────────────────────────────────── -->
+    <mat-tab label="Avanzate">
+      <div class="tab-content">
+        <div class="card" style="max-width:600px">
+          <h3 class="section-title">Funzionalità opzionali</h3>
+          <form [formGroup]="form" class="dialog-form">
+            <div style="padding:12px 0;border-bottom:1px solid #e2e8f0">
+              <mat-slide-toggle formControlName="riordinoAutomatico">
+                <span style="font-weight:600">Riordino automatico magazzino</span>
+              </mat-slide-toggle>
+              <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
+                Crea automaticamente un ordine fornitore quando la quantità di un prodotto scende sotto la soglia minima
+                (richiede: fornitore preferito impostato sul prodotto).
+              </p>
+            </div>
+            <div style="padding:12px 0">
+              <mat-slide-toggle formControlName="multiUtenteAttivo">
+                <span style="font-weight:600">Multi-utente</span>
+              </mat-slide-toggle>
+              <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
+                Abilita la gestione di più utenti con ruoli diversi (Admin, Commerciale, Magazziniere, Contabile, Operatore).
+                Gestisci gli utenti nel tab "Utenti".
+              </p>
+            </div>
+          </form>
+          <div style="display:flex;justify-content:flex-end;padding:8px 0 0">
+            <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Utenti ─────────────────────────────────────────────────────────────── -->
+    <mat-tab label="Utenti">
+      <div class="tab-content">
+        <div class="card" style="max-width:800px">
+          <div class="tab-section-header">
+            <h2 class="tab-section-title">Utenti</h2>
+            <button mat-flat-button type="button" (click)="openUtente()">
+              <mat-icon>person_add</mat-icon> Nuovo utente
+            </button>
+          </div>
+          <p style="color:#64748b;font-size:13px;margin-bottom:12px">
+            Attiva la funzione "Multi-utente" nel tab Avanzate per utilizzare il login utente.
+          </p>
+          <table mat-table [dataSource]="utenti" class="mat-mdc-table">
+            <ng-container matColumnDef="username">
+              <th mat-header-cell *matHeaderCellDef>Username</th>
+              <td mat-cell *matCellDef="let u"><b>{{ u.username }}</b></td>
+            </ng-container>
+            <ng-container matColumnDef="nome">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let u">{{ u.nome || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="ruolo">
+              <th mat-header-cell *matHeaderCellDef>Ruolo</th>
+              <td mat-cell *matCellDef="let u">
+                <span class="stato-chip" [class]="u.ruolo.toLowerCase()">{{ ruoloLabel(u.ruolo) }}</span>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="attivo">
+              <th mat-header-cell *matHeaderCellDef>Attivo</th>
+              <td mat-cell *matCellDef="let u">
+                @if (u.attivo) { <mat-icon style="color:#16a34a">check_circle</mat-icon> }
+                @else { <mat-icon style="color:#94a3b8">cancel</mat-icon> }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="azioni">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let u" class="table-actions">
+                <button mat-icon-button type="button" (click)="openUtente(u)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button type="button" color="warn" (click)="deleteUtente(u)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="utenteColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: utenteColumns;"></tr>
+          </table>
+          @if (!utenti.length) { <p class="empty-msg">Nessun utente configurato</p> }
         </div>
       </div>
     </mat-tab>

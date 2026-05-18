@@ -91,6 +91,10 @@
               <mat-icon>payments</mat-icon>
             </button>
           }
+          <button mat-icon-button type="button" title="Invia per email" (click)="inviaEmail(f)"><mat-icon>email</mat-icon></button>
+          <button mat-icon-button type="button" title="Invia all'SDI" (click)="inviaSdi(f)">
+            <mat-icon [style.color]="f.statoSdi === 'INVIATA' ? '#16a34a' : undefined">send_time_extension</mat-icon>
+          </button>
           <button mat-icon-button type="button" title="Scarica XML (FatturaPA)" (click)="downloadXml(f)"><mat-icon>code</mat-icon></button>
           <button mat-icon-button type="button" title="Stampa fattura" (click)="printDoc(f)"><mat-icon>print</mat-icon></button>
           <button mat-icon-button type="button" title="Modifica" (click)="open(f)"><mat-icon>edit</mat-icon></button>

@@ -25,10 +25,7 @@ import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente } from '../../mo
   ],
   templateUrl: './magazzino.html',
   styles: [`
-    .page { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    .page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-    .page-title { font-size: 22px; font-weight: 700; color: #1a1a2e; flex: 1; margin: 0; }
-    .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; }
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.08); overflow-x: auto; padding: 0; }
     .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid #f1f5f9; align-items: center; }
     .filter-bar mat-select { min-width: 150px; }
     .filter-bar input[type=date] { border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #334155; height: 36px; }

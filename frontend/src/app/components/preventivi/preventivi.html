@@ -99,6 +99,14 @@
               <mat-icon>thumb_down</mat-icon>
             </button>
           }
+          @if (p.stato === 'ACCETTATO') {
+            <button mat-icon-button type="button" title="Converti in DDT" (click)="convertiInDdt(p)">
+              <mat-icon>local_shipping</mat-icon>
+            </button>
+            <button mat-icon-button type="button" title="Converti in Ordine" (click)="convertiInOrdine(p)">
+              <mat-icon>assignment</mat-icon>
+            </button>
+          }
           <button mat-icon-button type="button" title="Stampa" (click)="printDoc(p)"><mat-icon>print</mat-icon></button>
           <button mat-icon-button type="button" title="Modifica" (click)="open(p)"><mat-icon>edit</mat-icon></button>
           <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(p)"><mat-icon>delete</mat-icon></button>

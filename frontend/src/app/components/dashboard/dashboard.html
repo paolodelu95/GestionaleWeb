@@ -1,7 +1,7 @@
 <div class="page">
-  <h1 class="page-title" style="margin-bottom:20px">Dashboard</h1>
+  <h1 class="page-title">Dashboard</h1>
 
-  <!-- KPI -->
+  <!-- KPI row 1: contatori -->
   <div class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-accent" style="background:#3b82f6"></div>
@@ -25,8 +25,61 @@
     </div>
   </div>
 
+  <!-- KPI row 2: anno corrente + cashflow -->
+  <div class="kpi-grid kpi-row2">
+    <div class="kpi-card">
+      <div class="kpi-accent" style="background:#6366f1"></div>
+      <div class="kpi-label">Fatturato anno</div>
+      <div class="kpi-value" style="color:#6366f1">{{ kpi.fatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent" style="background:#ef4444"></div>
+      <div class="kpi-label">Costi anno</div>
+      <div class="kpi-value" style="color:#ef4444">{{ kpi.costi | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent" [style.background]="kpi.margine >= 0 ? '#22c55e' : '#ef4444'"></div>
+      <div class="kpi-label">Margine anno</div>
+      <div class="kpi-value" [class]="kpi.margine >= 0 ? 'kpi-margine-pos' : 'kpi-margine-neg'">
+        {{ kpi.margine | currency:'EUR':'symbol':'1.2-2':'it' }}
+      </div>
+    </div>
+    <div class="kpi-card cashflow-card">
+      <div class="cashflow-row">
+        <div class="cashflow-accent" style="background:#16a34a"></div>
+        <div>
+          <div class="kpi-label">Da incassare</div>
+          <div class="cashflow-val-pos">{{ cashflow.daIncassare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
+        </div>
+      </div>
+      <div class="cashflow-row">
+        <div class="cashflow-accent" style="background:#dc2626"></div>
+        <div>
+          <div class="kpi-label">Da pagare</div>
+          <div class="cashflow-val-neg">{{ cashflow.daPagare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="dash-tables chart-row">
+    <div class="card chart-card-wide">
+      <h3 class="section-title">Vendite mensili (ultimi 12 mesi)</h3>
+      <div class="chart-container">
+        <canvas #chartVendite></canvas>
+      </div>
+    </div>
+    <div class="card chart-card-narrow">
+      <h3 class="section-title">Top 5 prodotti per fatturato</h3>
+      <div class="chart-container-centered">
+        <canvas #chartTop></canvas>
+      </div>
+    </div>
+  </div>
+
   <!-- Tables row -->
-  <div class="dash-tables">
+  <div class="dash-tables table-row">
     <!-- Prodotti sotto soglia -->
     <div class="card">
       <h3 class="section-title" style="color:#ef4444">Prodotti sotto soglia minima</h3>
@@ -72,7 +125,7 @@
           <td mat-cell *matCellDef="let d">{{ d.clienteNome || '-' }}</td>
         </ng-container>
         <ng-container matColumnDef="totale">
-          <th mat-header-cell *matHeaderCellDef style="justify-content:flex-end">Importo</th>
+          <th mat-header-cell *matHeaderCellDef>Importo</th>
           <td mat-cell *matCellDef="let d" class="euro">{{ (d.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="ddtCols"></tr>
@@ -91,7 +144,9 @@
         </ng-container>
         <ng-container matColumnDef="dataEmissione">
           <th mat-header-cell *matHeaderCellDef>Data</th>
-          <td mat-cell *matCellDef="let f" [style.color]="isScaduta(f) ? '#dc2626' : null" [style.fontWeight]="isScaduta(f) ? '700' : null">
+          <td mat-cell *matCellDef="let f"
+              [style.color]="isScaduta(f) ? '#dc2626' : null"
+              [style.fontWeight]="isScaduta(f) ? '700' : null">
             {{ f.dataEmissione | date:'dd/MM/yyyy' }}
           </td>
         </ng-container>
@@ -100,7 +155,7 @@
           <td mat-cell *matCellDef="let f">{{ f.clienteNome || '-' }}</td>
         </ng-container>
         <ng-container matColumnDef="totale">
-          <th mat-header-cell *matHeaderCellDef style="justify-content:flex-end">Importo</th>
+          <th mat-header-cell *matHeaderCellDef>Importo</th>
           <td mat-cell *matCellDef="let f" class="euro">{{ (f.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="fattureCols"></tr>
@@ -126,7 +181,7 @@
           <td mat-cell *matCellDef="let a">{{ a.fornitoreNome || '-' }}</td>
         </ng-container>
         <ng-container matColumnDef="totale">
-          <th mat-header-cell *matHeaderCellDef style="justify-content:flex-end">Importo</th>
+          <th mat-header-cell *matHeaderCellDef>Importo</th>
           <td mat-cell *matCellDef="let a" class="euro-neg">{{ (a.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="acquistiCols"></tr>
