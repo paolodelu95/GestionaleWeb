@@ -195,6 +195,25 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 .righe-table th { background: #f8fafc; font-weight: 600; }
 .righe-total { text-align: right; padding: 12px 16px; font-size: 16px; font-weight: 700; color: #1e293b; background: #f8fafc; border-top: 2px solid #e2e8f0; }
 
+// ── Dark mode ─────────────────────────────────────────────────────────────────
+.dark-mode {
+  .content-area { background: #0f172a !important; }
+  .page { background: #0f172a !important; }
+  .card { background: #1e293b !important; color: #e2e8f0 !important; box-shadow: 0 2px 8px rgba(0,0,0,.3) !important; }
+  .kpi-card { background: #1e293b !important; .kpi-label { color: #94a3b8 !important; } .kpi-value { color: #f1f5f9 !important; } }
+  .page-title { color: #f1f5f9 !important; }
+  .mat-mdc-table { background: #1e293b !important; }
+  .mat-mdc-row { background: #1e293b !important; color: #e2e8f0 !important; }
+  .mat-mdc-row:hover { background: #334155 !important; }
+  .mat-mdc-header-row { background: #0f172a !important; }
+  th.mat-mdc-header-cell { color: #94a3b8 !important; background: #0f172a !important; }
+  td.mat-mdc-cell { color: #e2e8f0 !important; border-bottom-color: #334155 !important; }
+  .mat-mdc-paginator { background: #1e293b !important; color: #94a3b8 !important; }
+  .filter-bar mat-select { background: #1e293b; }
+  .search-field .mat-mdc-text-field-wrapper { background: #1e293b !important; }
+  body { background: #0f172a; color-scheme: dark; }
+}
+
 // ── Mobile responsive ─────────────────────────────────────────────────────────
 @media (max-width: 767px) {
   .page { padding: 12px; }

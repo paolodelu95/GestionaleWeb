@@ -349,6 +349,9 @@ const migrations = [
   // Collegamento preventivo → documenti catena
   'ALTER TABLE ddt ADD COLUMN preventivo_id INTEGER',
   'ALTER TABLE ordini ADD COLUMN preventivo_id INTEGER',
+  // Numerazione progressiva annuale
+  'ALTER TABLE azienda ADD COLUMN numerazione_annuale INTEGER DEFAULT 1',
+  'ALTER TABLE azienda ADD COLUMN numero_prefissi TEXT DEFAULT "{}"',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
@@ -467,6 +470,41 @@ try {
     );
     CREATE INDEX IF NOT EXISTS idx_sol_doc ON solleciti(documento_tipo, documento_id);
   `);
+} catch(_) {}
+
+// Contatori numerazione progressiva annuale
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS contatori (
+      tipo     TEXT NOT NULL,
+      anno     INTEGER NOT NULL,
+      contatore INTEGER DEFAULT 0,
+      PRIMARY KEY (tipo, anno)
+    );
+  `);
+  // Inizializza contatori da documenti esistenti (per anno)
+  const tipi = [
+    { tipo: 'fatture',       table: 'fatture',       dateCol: 'data_emissione' },
+    { tipo: 'ddt',           table: 'ddt',           dateCol: 'data_emissione' },
+    { tipo: 'acquisti',      table: 'acquisti',      dateCol: 'data_emissione' },
+    { tipo: 'ordini',        table: 'ordini',        dateCol: 'data_ordine' },
+    { tipo: 'preventivi',    table: 'preventivi',    dateCol: 'data_emissione' },
+    { tipo: 'note_credito',  table: 'note_credito',  dateCol: 'data_emissione' },
+    { tipo: 'vendite_banco', table: 'vendite_banco', dateCol: 'data' },
+    { tipo: 'arrivi_merce',  table: 'arrivi_merce',  dateCol: 'data' },
+  ];
+  for (const t of tipi) {
+    try {
+      const rows = db.prepare(
+        `SELECT strftime('%Y', ${t.dateCol}) as anno, COUNT(*) as n FROM "${t.table}" GROUP BY anno`
+      ).all();
+      for (const r of rows) {
+        if (r.anno) db.prepare(
+          'INSERT OR IGNORE INTO contatori (tipo, anno, contatore) VALUES (?,?,?)'
+        ).run(t.tipo, parseInt(r.anno), r.n);
+      }
+    } catch(_) {}
+  }
 } catch(_) {}
 
 // Arrivi merce (entrata merci a magazzino)

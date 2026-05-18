@@ -13,13 +13,15 @@ router.put('/', (req, res) => {
     p_iva=?, cod_fiscale=?, email=?, telefono=?, pec=?, sdi=?, banca=?, iban=?, logo=?,
     smtp_host=?, smtp_port=?, smtp_user=?, smtp_pass=?, smtp_from=?, smtp_secure=?,
     sdi_api_url=?, sdi_api_key=?,
-    riordino_automatico=?, multi_utente_attivo=?
+    riordino_automatico=?, multi_utente_attivo=?,
+    numerazione_annuale=?, numero_prefissi=?
     WHERE id=1`)
     .run(a.ragioneSociale, a.indirizzo, a.cap, a.citta, a.provincia, a.stato,
          a.pIva, a.codFiscale, a.email, a.telefono, a.pec, a.sdi, a.banca, a.iban, a.logo || '',
          a.smtpHost || '', a.smtpPort || 587, a.smtpUser || '', a.smtpPass || '', a.smtpFrom || '', a.smtpSecure ? 1 : 0,
          a.sdiApiUrl || '', a.sdiApiKey || '',
-         a.riordinoAutomatico ? 1 : 0, a.multiUtenteAttivo ? 1 : 0);
+         a.riordinoAutomatico ? 1 : 0, a.multiUtenteAttivo ? 1 : 0,
+         a.numerazioneAnnuale ? 1 : 0, JSON.stringify(a.numeroPrefissi || {}));
   res.json({ success: true });
 });
 
@@ -36,6 +38,8 @@ function toDto(r) {
     sdiApiUrl: r.sdi_api_url || '', sdiApiKey: r.sdi_api_key || '',
     riordinoAutomatico: r.riordino_automatico === 1,
     multiUtenteAttivo: r.multi_utente_attivo === 1,
+    numerazioneAnnuale: (r.numerazione_annuale ?? 1) !== 0,
+    numeroPrefissi: (() => { try { return JSON.parse(r.numero_prefissi || '{}'); } catch(_) { return {}; } })(),
   };
 }
 

@@ -25,6 +25,8 @@ export interface Azienda {
   sdiApiKey?: string;
   riordinoAutomatico?: boolean;
   multiUtenteAttivo?: boolean;
+  numerazioneAnnuale?: boolean;
+  numeroPrefissi?: { [key: string]: string };
 }
 
 export interface Prodotto {

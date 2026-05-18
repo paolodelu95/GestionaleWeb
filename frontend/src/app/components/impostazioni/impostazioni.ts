@@ -299,6 +299,10 @@ export class ImpostazioniComponent implements OnInit {
       smtpHost: [''], smtpPort: [587], smtpUser: [''], smtpPass: [''], smtpFrom: [''], smtpSecure: [false],
       sdiApiUrl: [''], sdiApiKey: [''],
       riordinoAutomatico: [false], multiUtenteAttivo: [false],
+      numerazioneAnnuale: [true],
+      prefissoDdt: [''], prefissoFatture: [''], prefissoOrdini: [''],
+      prefissoPreventivi: [''], prefissoNoteCredito: [''], prefissoAcquisti: [''],
+      prefissoVenditeBanco: [''], prefissoArriviMerce: [''],
     });
   }
 
@@ -307,6 +311,13 @@ export class ImpostazioniComponent implements OnInit {
       if (a) {
         this.form.patchValue(a);
         this.logoPreview = a.logo || '';
+        const p = a.numeroPrefissi || {};
+        this.form.patchValue({
+          prefissoDdt: p['ddt'] || '', prefissoFatture: p['fatture'] || '',
+          prefissoOrdini: p['ordini'] || '', prefissoPreventivi: p['preventivi'] || '',
+          prefissoNoteCredito: p['note_credito'] || '', prefissoAcquisti: p['acquisti'] || '',
+          prefissoVenditeBanco: p['vendite_banco'] || '', prefissoArriviMerce: p['arrivi_merce'] || '',
+        });
       }
     });
 
@@ -358,7 +369,14 @@ export class ImpostazioniComponent implements OnInit {
   }
 
   save() {
-    this.ds.saveAzienda({ ...this.form.value, logo: this.logoPreview } as Azienda).subscribe({
+    const v = this.form.value;
+    const numeroPrefissi = {
+      ddt: v.prefissoDdt || '', fatture: v.prefissoFatture || '',
+      ordini: v.prefissoOrdini || '', preventivi: v.prefissoPreventivi || '',
+      note_credito: v.prefissoNoteCredito || '', acquisti: v.prefissoAcquisti || '',
+      vendite_banco: v.prefissoVenditeBanco || '', arrivi_merce: v.prefissoArriviMerce || '',
+    };
+    this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi } as Azienda).subscribe({
       next: () => this.snack.open('Dati salvati', '', { duration: 2000 }),
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });

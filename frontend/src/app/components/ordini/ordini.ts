@@ -14,6 +14,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
@@ -350,7 +351,7 @@ export class OrdineDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule],
   templateUrl: './ordini.html',
   styleUrl: './ordini.scss'
 })
@@ -369,6 +370,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   get ordini() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
@@ -376,6 +378,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
         case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
@@ -409,6 +412,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     if (this.filtroMese) data = data.filter(o => +o.dataOrdine.substring(5, 7) === this.filtroMese);
     if (this.filtroTipo) data = data.filter(o => o.tipo === this.filtroTipo);
     this.dataSource.data = data;
+    if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {

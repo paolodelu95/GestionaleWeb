@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatRadioModule } from '@angular/material/radio';
@@ -468,7 +469,7 @@ export class ArrivoMerceDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatSortModule,
-            MatFormFieldModule, MatInputModule, MatSelectModule, MatTooltipModule],
+            MatFormFieldModule, MatInputModule, MatSelectModule, MatTooltipModule, MatPaginatorModule],
   templateUrl: './arrivi-merce.html',
 })
 export class ArriviMerceComponent implements OnInit, AfterViewInit {
@@ -489,6 +490,7 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
   acquisti: { id: number; numero: string; fornitoreNome: string }[] = [];
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
 
@@ -501,6 +503,7 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
         case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
@@ -529,6 +532,7 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
     if (this.filtroAnno) data = data.filter(a => +a.data.substring(0, 4) === this.filtroAnno);
     if (this.filtroFornitore) data = data.filter(a => a.fornitoreId === this.filtroFornitore);
     this.dataSource.data = data;
+    if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {

@@ -14,6 +14,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatTabsModule } from '@angular/material/tabs';
 import { SelectionModel } from '@angular/cdk/collections';
 import { forkJoin } from 'rxjs';
@@ -488,7 +489,7 @@ export class DdtDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule],
+            MatSelectModule, MatPaginatorModule],
   templateUrl: './ddt.html',
   styleUrl: './ddt.scss'
 })
@@ -512,6 +513,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
   get ddt() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
@@ -519,6 +521,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
         case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
@@ -541,6 +544,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
     if (this.filtroMese) data = data.filter(d => +d.dataEmissione.substring(5, 7) === this.filtroMese);
     if (this.filtroCliente) data = data.filter(d => d.clienteId === this.filtroCliente);
     this.dataSource.data = data;
+    if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {

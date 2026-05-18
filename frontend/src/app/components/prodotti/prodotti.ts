@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
@@ -223,7 +224,7 @@ export class ProdottoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
-            MatSortModule, MatSelectModule],
+            MatSortModule, MatSelectModule, MatPaginatorModule],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
@@ -237,6 +238,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   get prodotti() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
@@ -244,6 +246,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
         case 'id': return item.id ?? 0;
@@ -272,6 +275,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     let data = this.allProdotti;
     if (this.filtroCategoria) data = data.filter(p => p.categoria === this.filtroCategoria);
     this.dataSource.data = data;
+    if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() { this.filtroCategoria = null; this.dataSource.filter = ''; this.applyFilters(); }

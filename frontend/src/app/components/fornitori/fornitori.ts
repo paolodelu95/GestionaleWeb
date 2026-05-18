@@ -10,6 +10,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
@@ -21,7 +24,8 @@ import { pIvaValidator, telefonoValidator } from '../../validators/italian-valid
   selector: 'app-fornitore-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule,
+            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule],
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica fornitore' : 'Nuovo fornitore' }}</h2>
     <mat-dialog-content>
@@ -59,14 +63,26 @@ import { pIvaValidator, telefonoValidator } from '../../validators/italian-valid
             <input matInput formControlName="provincia" maxlength="2" style="text-transform:uppercase">
             <mat-hint>sigla</mat-hint></mat-form-field>
         </div>
-        <div class="form-row">
+        <div class="form-row" style="align-items:flex-start">
           <mat-form-field><mat-label>Stato</mat-label><input matInput formControlName="stato"></mat-form-field>
-          <mat-form-field><mat-label>P. IVA</mat-label>
-            <input matInput formControlName="pIva">
-            @if (form.get('pIva')?.hasError('pIva')) {
-              <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
-            }
-          </mat-form-field>
+          <div style="display:flex;gap:8px;align-items:flex-start;flex:1">
+            <mat-form-field style="flex:1"><mat-label>P. IVA</mat-label>
+              <input matInput formControlName="pIva">
+              @if (form.get('pIva')?.hasError('pIva')) {
+                <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
+              }
+            </mat-form-field>
+            <button mat-icon-button type="button" style="margin-top:4px"
+                    matTooltip="Carica dati da P.IVA (VIES)"
+                    [disabled]="lookupLoading || (form.get('pIva')?.value?.replace(/\s/g,'')?.length !== 11)"
+                    (click)="lookupPiva()">
+              @if (lookupLoading) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <mat-icon>search</mat-icon>
+              }
+            </button>
+          </div>
         </div>
         <div class="form-row">
           <mat-form-field><mat-label>Codice SDI</mat-label>
@@ -86,10 +102,13 @@ import { pIvaValidator, telefonoValidator } from '../../validators/italian-valid
 export class FornitoreDialogComponent implements OnInit {
   form: FormGroup;
   filteredCities: CityResult[] = [];
+  lookupLoading = false;
   private cityMap = new Map<string, CityResult>();
 
   constructor(private fb: FormBuilder,
+              private ds: DataService,
               private cityService: CityService,
+              private snack: MatSnackBar,
               public dialogRef: MatDialogRef<FornitoreDialogComponent>,
               @Inject(MAT_DIALOG_DATA) public data: Fornitore | null) {
     this.form = this.fb.group({
@@ -129,6 +148,30 @@ export class FornitoreDialogComponent implements OnInit {
     if (r) this.form.patchValue({ cap: r.cap, provincia: r.provincia, stato: 'Italia' }, { emitEvent: false });
   }
 
+  lookupPiva() {
+    const piva = this.form.get('pIva')?.value?.replace(/\s/g, '');
+    if (!piva || piva.length !== 11) return;
+    this.lookupLoading = true;
+    this.ds.lookupPiva(piva).subscribe({
+      next: result => {
+        this.lookupLoading = false;
+        const patch: any = {};
+        if (result.ragioneSociale) patch.ragioneSociale = result.ragioneSociale;
+        if (result.via)            patch.via = result.via;
+        if (result.cap)            patch.cap = result.cap;
+        if (result.citta)          patch.citta = result.citta;
+        if (result.provincia)      patch.provincia = result.provincia;
+        if (result.stato)          patch.stato = result.stato;
+        this.form.patchValue(patch);
+        this.snack.open('Dati caricati da VIES', '', { duration: 2500 });
+      },
+      error: () => {
+        this.lookupLoading = false;
+        this.snack.open('P.IVA non trovata nel registro VIES', '', { duration: 3000 });
+      }
+    });
+  }
+
   save() { if (this.form.valid) this.dialogRef.close({ ...this.data, ...this.form.value }); }
 }
 
@@ -136,7 +179,7 @@ export class FornitoreDialogComponent implements OnInit {
   selector: 'app-fornitori',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule],
+            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
@@ -146,6 +189,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
   displayedColumns = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'pIva', 'azioni'];
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
@@ -153,6 +197,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
         case 'id': return item.id ?? 0;
@@ -170,7 +215,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     };
   }
 
-  load() { this.ds.getFornitori().subscribe(f => { this.fornitori = f; this.dataSource.data = f; }); }
+  load() { this.ds.getFornitori().subscribe(f => { this.fornitori = f; this.dataSource.data = f; if (this.paginator) this.dataSource.paginator = this.paginator; }); }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();

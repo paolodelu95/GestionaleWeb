@@ -2,6 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const cron = require('node-cron');
+const { runBackup } = require('./utils/backup');
+const { inviaSOllecitiAutomatici } = require('./utils/solleciti');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DIST = path.join(__dirname, 'public');
@@ -69,10 +72,26 @@ app.get('/api/prezzi-recenti', (req, res) => {
 
 app.get('/api/next-number/:tipo', (req, res) => {
   const map = { ddt: 'ddt', fatture: 'fatture', ordini: 'ordini', preventivi: 'preventivi', 'note-credito': 'note_credito', acquisti: 'acquisti', 'vendite-banco': 'vendite_banco', 'arrivi-merce': 'arrivi_merce' };
-  const table = map[req.params.tipo];
-  if (!table) return res.status(400).json({ error: 'tipo non valido' });
-  const row = db.prepare(`SELECT COUNT(*) as n FROM "${table}"`).get();
-  res.json({ numero: row.n + 1 });
+  const tipo = map[req.params.tipo];
+  if (!tipo) return res.status(400).json({ error: 'tipo non valido' });
+
+  const az = db.prepare('SELECT numerazione_annuale, numero_prefissi FROM azienda WHERE id=1').get();
+  const annuale = (az?.numerazione_annuale ?? 1) !== 0;
+  let prefissi = {};
+  try { prefissi = JSON.parse(az?.numero_prefissi || '{}'); } catch(_) {}
+  const prefisso = prefissi[tipo] || '';
+  const anno = new Date().getFullYear();
+
+  // Incrementa contatore atomicamente
+  db.prepare('INSERT OR IGNORE INTO contatori (tipo, anno, contatore) VALUES (?,?,0)').run(tipo, anno);
+  db.prepare('UPDATE contatori SET contatore = contatore + 1 WHERE tipo=? AND anno=?').run(tipo, anno);
+  const { contatore } = db.prepare('SELECT contatore FROM contatori WHERE tipo=? AND anno=?').get(tipo, anno);
+
+  const numero = annuale
+    ? `${prefisso}${anno}/${String(contatore).padStart(4, '0')}`
+    : `${prefisso}${contatore}`;
+
+  res.json({ numero, contatore });
 });
 
 app.use('/api/azienda',          require('./routes/azienda'));
@@ -98,6 +117,43 @@ app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
 app.use('/api/email',            require('./routes/email'));
 app.use('/api/stats',            require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
+app.use('/api/piva',             require('./routes/piva'));
+app.use('/api/notifications',    require('./routes/notifications'));
+
+// ── Ricerca globale ────────────────────────────────────────────────────────────
+app.get('/api/search', (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 2) return res.json({ clienti: [], prodotti: [], fatture: [], ddt: [] });
+  const like = `%${q}%`;
+  const clienti = db.prepare(
+    `SELECT id, ragione_sociale as label, 'cliente' as tipo, '/clienti' as route FROM clienti WHERE ragione_sociale LIKE ? OR p_iva LIKE ? OR codice_fiscale LIKE ? LIMIT 5`
+  ).all(like, like, like);
+  const prodotti = db.prepare(
+    `SELECT id, nome as label, 'prodotto' as tipo, '/prodotti' as route FROM prodotti WHERE nome LIKE ? OR codice LIKE ? OR barcode LIKE ? LIMIT 5`
+  ).all(like, like, like);
+  const fatture = db.prepare(
+    `SELECT f.id, f.numero as label, 'fattura' as tipo, '/fatture' as route FROM fatture f WHERE f.numero LIKE ? LIMIT 5`
+  ).all(like);
+  const ddt = db.prepare(
+    `SELECT d.id, d.numero as label, 'ddt' as tipo, '/ddt' as route FROM ddt d WHERE d.numero LIKE ? LIMIT 5`
+  ).all(like);
+  res.json({ clienti, prodotti, fatture, ddt });
+});
+
+// ── Cron jobs ─────────────────────────────────────────────────────────────────
+// Backup giornaliero alle 02:00
+cron.schedule('0 2 * * *', () => {
+  console.log('[Cron] Avvio backup giornaliero');
+  runBackup();
+});
+// Backup all'avvio
+setTimeout(runBackup, 5000);
+
+// Solleciti automatici ogni mattina alle 08:00
+cron.schedule('0 8 * * *', () => {
+  console.log('[Cron] Avvio invio solleciti automatici');
+  inviaSOllecitiAutomatici().catch(err => console.error('[Solleciti] Errore cron:', err.message));
+});
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

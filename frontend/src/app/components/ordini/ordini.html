@@ -121,6 +121,7 @@
         <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
       </tr>
     </table>
+    <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
     @if (!ordini.length) { <p class="empty-msg">Nessun ordine</p> }
   </div>
 </div>

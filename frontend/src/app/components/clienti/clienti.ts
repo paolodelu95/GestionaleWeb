@@ -11,6 +11,9 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
@@ -23,7 +26,8 @@ import { pIvaValidator, codiceFiscaleValidator, telefonoValidator } from '../../
   selector: 'app-cliente-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule,
+            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule],
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica cliente' : 'Nuovo cliente' }}</h2>
     <mat-dialog-content>
@@ -74,12 +78,24 @@ import { pIvaValidator, codiceFiscaleValidator, telefonoValidator } from '../../
             }
           </mat-form-field>
         </div>
-        <mat-form-field style="width:100%"><mat-label>P. IVA</mat-label>
-          <input matInput formControlName="pIva">
-          @if (form.get('pIva')?.hasError('pIva')) {
-            <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
-          }
-        </mat-form-field>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <mat-form-field style="flex:1"><mat-label>P. IVA</mat-label>
+            <input matInput formControlName="pIva">
+            @if (form.get('pIva')?.hasError('pIva')) {
+              <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
+            }
+          </mat-form-field>
+          <button mat-icon-button type="button" style="margin-top:4px"
+                  matTooltip="Carica dati da P.IVA (VIES)"
+                  [disabled]="lookupLoading || (form.get('pIva')?.value?.replace(/\\s/g,'')?.length !== 11)"
+                  (click)="lookupPiva()">
+            @if (lookupLoading) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              <mat-icon>search</mat-icon>
+            }
+          </button>
+        </div>
         <div class="form-row">
           <mat-form-field><mat-label>Codice SDI</mat-label>
             <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
@@ -108,12 +124,14 @@ export class ClienteDialogComponent implements OnInit {
   form: FormGroup;
   filteredCities: CityResult[] = [];
   tipiPagamento: TipoPagamento[] = [];
+  lookupLoading = false;
   private cityMap = new Map<string, CityResult>();
 
   constructor(
     private fb: FormBuilder,
     private ds: DataService,
     private cityService: CityService,
+    private snack: MatSnackBar,
     public dialogRef: MatDialogRef<ClienteDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Cliente | null
   ) {
@@ -162,6 +180,30 @@ export class ClienteDialogComponent implements OnInit {
     if (r) this.form.patchValue({ cap: r.cap, provincia: r.provincia, stato: 'Italia' }, { emitEvent: false });
   }
 
+  lookupPiva() {
+    const piva = this.form.get('pIva')?.value?.replace(/\s/g, '');
+    if (!piva || piva.length !== 11) return;
+    this.lookupLoading = true;
+    this.ds.lookupPiva(piva).subscribe({
+      next: result => {
+        this.lookupLoading = false;
+        const patch: any = {};
+        if (result.ragioneSociale) patch.ragioneSociale = result.ragioneSociale;
+        if (result.via)            patch.via = result.via;
+        if (result.cap)            patch.cap = result.cap;
+        if (result.citta)          patch.citta = result.citta;
+        if (result.provincia)      patch.provincia = result.provincia;
+        if (result.stato)          patch.stato = result.stato;
+        this.form.patchValue(patch);
+        this.snack.open('Dati caricati da VIES', '', { duration: 2500 });
+      },
+      error: () => {
+        this.lookupLoading = false;
+        this.snack.open('P.IVA non trovata nel registro VIES', '', { duration: 3000 });
+      }
+    });
+  }
+
   save() { if (this.form.valid) this.dialogRef.close({ ...this.data, ...this.form.value }); }
 }
 
@@ -170,7 +212,7 @@ export class ClienteDialogComponent implements OnInit {
   selector: 'app-clienti',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule],
+            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })
@@ -186,6 +228,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   displayedColumns = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'codiceFiscale', 'azioni'];
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
@@ -193,6 +236,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
         case 'id': return item.id ?? 0;
@@ -211,7 +255,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     };
   }
 
-  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.dataSource.data = c; }); }
+  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.dataSource.data = c; if (this.paginator) this.dataSource.paginator = this.paginator; }); }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();

@@ -230,4 +230,12 @@ export class DataService {
   ddtToFattura(id: number): Observable<{ id: number; numero: string }> {
     return this.api.post(`ddt/${id}/to-fattura`, {});
   }
+
+  lookupPiva(piva: string): Observable<{ pIva: string; ragioneSociale: string | null; via: string | null; cap: string | null; citta: string | null; provincia: string | null; stato: string }> {
+    return this.api.get(`piva/${piva.replace(/\s/g, '')}`);
+  }
+
+  searchGlobal(q: string): Observable<{ clienti: any[]; prodotti: any[]; fatture: any[]; ddt: any[] }> {
+    return this.api.get(`search?q=${encodeURIComponent(q)}`);
+  }
 }

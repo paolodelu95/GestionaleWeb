@@ -187,7 +187,7 @@
                 (richiede: fornitore preferito impostato sul prodotto).
               </p>
             </div>
-            <div style="padding:12px 0">
+            <div style="padding:12px 0;border-bottom:1px solid #e2e8f0">
               <mat-slide-toggle formControlName="multiUtenteAttivo">
                 <span style="font-weight:600">Multi-utente</span>
               </mat-slide-toggle>
@@ -195,6 +195,45 @@
                 Abilita la gestione di più utenti con ruoli diversi (Admin, Commerciale, Magazziniere, Contabile, Operatore).
                 Gestisci gli utenti nel tab "Utenti".
               </p>
+            </div>
+          </form>
+          <div style="display:flex;justify-content:flex-end;padding:8px 0 0">
+            <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
+          </div>
+        </div>
+
+        <div class="card" style="max-width:600px;margin-top:16px">
+          <h3 class="section-title">Numerazione documenti</h3>
+          <form [formGroup]="form" class="dialog-form">
+            <div style="padding:8px 0 16px;border-bottom:1px solid #e2e8f0">
+              <mat-slide-toggle formControlName="numerazioneAnnuale">
+                <span style="font-weight:600">Numerazione annuale</span>
+              </mat-slide-toggle>
+              <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
+                Se attiva: <code style="background:#f1f5f9;padding:2px 5px;border-radius:3px">2025/0001</code>.
+                Se disattiva: numerazione progressiva semplice <code style="background:#f1f5f9;padding:2px 5px;border-radius:3px">0001</code>.
+              </p>
+            </div>
+            <p style="color:#64748b;font-size:13px;margin:12px 0 4px">
+              Prefissi facoltativi per ogni tipo di documento (es. <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">DDT</code> → DDT2025/0001).
+            </p>
+            <div class="form-row" style="flex-wrap:wrap;gap:8px">
+              <mat-form-field style="max-width:130px"><mat-label>DDT</mat-label>
+                <input matInput formControlName="prefissoDdt" maxlength="6" placeholder="es. DDT"></mat-form-field>
+              <mat-form-field style="max-width:130px"><mat-label>Fatture</mat-label>
+                <input matInput formControlName="prefissoFatture" maxlength="6" placeholder="es. FAT"></mat-form-field>
+              <mat-form-field style="max-width:130px"><mat-label>Ordini</mat-label>
+                <input matInput formControlName="prefissoOrdini" maxlength="6" placeholder="es. ORD"></mat-form-field>
+              <mat-form-field style="max-width:130px"><mat-label>Preventivi</mat-label>
+                <input matInput formControlName="prefissoPreventivi" maxlength="6" placeholder="es. PRE"></mat-form-field>
+              <mat-form-field style="max-width:130px"><mat-label>Note di Credito</mat-label>
+                <input matInput formControlName="prefissoNoteCredito" maxlength="6" placeholder="es. NC"></mat-form-field>
+              <mat-form-field style="max-width:130px"><mat-label>Acquisti</mat-label>
+                <input matInput formControlName="prefissoAcquisti" maxlength="6" placeholder="es. ACQ"></mat-form-field>
+              <mat-form-field style="max-width:130px"><mat-label>Vendita al banco</mat-label>
+                <input matInput formControlName="prefissoVenditeBanco" maxlength="6" placeholder="es. VB"></mat-form-field>
+              <mat-form-field style="max-width:130px"><mat-label>Arrivi merce</mat-label>
+                <input matInput formControlName="prefissoArriviMerce" maxlength="6" placeholder="es. AM"></mat-form-field>
             </div>
           </form>
           <div style="display:flex;justify-content:flex-end;padding:8px 0 0">

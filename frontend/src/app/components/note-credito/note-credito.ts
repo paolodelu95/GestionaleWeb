@@ -14,6 +14,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
@@ -361,7 +362,7 @@ export class NotaCreditoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule],
   templateUrl: './note-credito.html',
   styleUrl: './note-credito.scss'
 })
@@ -385,6 +386,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   get noteCredito() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
@@ -392,6 +394,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
         case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
@@ -422,6 +425,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     if (this.filtroMese) data = data.filter(n => +n.dataEmissione.substring(5, 7) === this.filtroMese);
     if (this.filtroCliente) data = data.filter(n => n.clienteId === this.filtroCliente);
     this.dataSource.data = data;
+    if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {

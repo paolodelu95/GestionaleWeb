@@ -30,7 +30,23 @@
           @if (!item.children) {
             <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-              <span matListItemTitle>{{ item.label }}</span>
+              @if (item.route === '/pagamenti') {
+                <span matListItemTitle class="nav-item-with-badge">
+                  Pagamenti
+                  @if (badges.scadenzeScadute > 0) {
+                    <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
+                  }
+                </span>
+              } @else if (item.route === '/prodotti') {
+                <span matListItemTitle class="nav-item-with-badge">
+                  Prodotti
+                  @if (badges.prodottiSottoSoglia > 0) {
+                    <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
+                  }
+                </span>
+              } @else {
+                <span matListItemTitle>{{ item.label }}</span>
+              }
             </a>
           } @else {
             <mat-expansion-panel class="sidenav-panel">
@@ -66,6 +82,26 @@
         <span class="topbar-sub">&nbsp;—&nbsp;{{ azienda!.citta }}</span>
       }
       <span class="topbar-spacer"></span>
+
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input" type="text" placeholder="Cerca clienti, prodotti, fatture..."
+               [(ngModel)]="searchQuery" (input)="onSearchInput(searchQuery)" autocomplete="off">
+        @if (showSearch) {
+          <div class="search-dropdown">
+            @for (r of searchResults; track r.id + r.tipo) {
+              <div class="search-result" (click)="navigateToResult(r)">
+                <span class="search-result-tipo">{{ r.tipo }}</span>
+                <span class="search-result-label">{{ r.label }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <button mat-icon-button type="button" [title]="darkMode ? 'Modalità chiara' : 'Modalità scura'" (click)="toggleDark()">
+        <mat-icon>{{ darkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
       <button mat-icon-button type="button" title="Esci" (click)="logout()">
         <mat-icon>logout</mat-icon>
       </button>
