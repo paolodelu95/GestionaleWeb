@@ -376,6 +376,19 @@ const migrations = [
   mime_type TEXT DEFAULT '',
   created_at TEXT DEFAULT (datetime('now'))
 )`,
+  // Tipo riga documento (PRODOTTO | NOTA)
+  'ALTER TABLE ddt_righe ADD COLUMN tipo TEXT DEFAULT "PRODOTTO"',
+  'ALTER TABLE fatture_righe ADD COLUMN tipo TEXT DEFAULT "PRODOTTO"',
+  'ALTER TABLE note_credito_righe ADD COLUMN tipo TEXT DEFAULT "PRODOTTO"',
+  'ALTER TABLE ordini_righe ADD COLUMN tipo TEXT DEFAULT "PRODOTTO"',
+  'ALTER TABLE preventivi_righe ADD COLUMN tipo TEXT DEFAULT "PRODOTTO"',
+  'ALTER TABLE acquisti_righe ADD COLUMN tipo TEXT DEFAULT "PRODOTTO"',
+  // Note rapide (testi predefiniti per note tra righe)
+  `CREATE TABLE IF NOT EXISTS note_rapide (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  testo TEXT NOT NULL,
+  ordine INTEGER DEFAULT 0
+)`,
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

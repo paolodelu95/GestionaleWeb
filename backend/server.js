@@ -123,6 +123,7 @@ app.use('/api/prima-nota',       require('./routes/primaNota'));
 app.use('/api/scadenzario',      require('./routes/scadenzario'));
 app.use('/api/fatture-ricorrenti', require('./routes/fattureRicorrenti').router);
 app.use('/api/allegati',          require('./routes/allegati'));
+app.use('/api/note-rapide',       require('./routes/noteRapide'));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

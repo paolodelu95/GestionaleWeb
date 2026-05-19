@@ -17,7 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 
 // ── Tipo Pagamento Dialog ────────────────────────────────────────────────────
@@ -249,6 +249,38 @@ export class UtenteDialogComponent {
   }
 }
 
+// ── Nota Rapida Dialog ───────────────────────────────────────────────────────
+@Component({
+  selector: 'app-nota-rapida-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  template: `
+    <h2 mat-dialog-title>{{ data?.id ? 'Modifica nota rapida' : 'Nuova nota rapida' }}</h2>
+    <mat-dialog-content style="min-width:400px">
+      <mat-form-field style="width:100%; margin-top:8px">
+        <mat-label>Testo *</mat-label>
+        <input matInput [(ngModel)]="testo" autofocus placeholder="es. Prezzi IVA esclusa, Trasporto incluso…">
+      </mat-form-field>
+      <mat-form-field style="width:120px; margin-top:4px">
+        <mat-label>Ordine</mat-label>
+        <input matInput type="number" [(ngModel)]="ordine" min="0">
+      </mat-form-field>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button (click)="save()" [disabled]="!testo.trim()">Salva</button>
+    </mat-dialog-actions>`
+})
+export class NotaRapidaDialogComponent {
+  testo = '';
+  ordine = 0;
+  constructor(
+    public dialogRef: MatDialogRef<NotaRapidaDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: NotaRapida | null
+  ) { this.testo = data?.testo ?? ''; this.ordine = data?.ordine ?? 0; }
+  save() { if (this.testo.trim()) this.dialogRef.close({ ...this.data, testo: this.testo.trim(), ordine: this.ordine }); }
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 @Component({
   selector: 'app-impostazioni',
@@ -281,6 +313,9 @@ export class ImpostazioniComponent implements OnInit {
 
   utenti: Utente[] = [];
   utenteColumns = ['username', 'nome', 'ruolo', 'attivo', 'azioni'];
+
+  noteRapide: NotaRapida[] = [];
+  notaRapidaColumns = ['testo', 'ordine', 'azioni'];
 
   emailTesting = false;
 
@@ -345,6 +380,7 @@ export class ImpostazioniComponent implements OnInit {
     this.loadUnitaMisura();
     this.loadAliquoteIva();
     this.loadUtenti();
+    this.loadNoteRapide();
   }
 
   onCitySelected(name: string) {
@@ -512,5 +548,28 @@ export class ImpostazioniComponent implements OnInit {
       MAGAZZINIERE: 'Magazziniere', CONTABILE: 'Contabile', OPERATORE: 'Operatore'
     };
     return map[ruolo] ?? ruolo;
+  }
+
+  // ── Note Rapide ─────────────────────────────────────────────────────────────
+  loadNoteRapide() { this.ds.getNoteRapide().subscribe(n => { this.noteRapide = n; }); }
+
+  openNotaRapida(n?: NotaRapida) {
+    this.dialog.open(NotaRapidaDialogComponent, { data: n ?? null, width: '440px' })
+      .afterClosed().subscribe(result => {
+        if (!result) return;
+        const op = result.id ? this.ds.updateNotaRapida(result) : this.ds.createNotaRapida(result);
+        op.subscribe({
+          next: () => { this.loadNoteRapide(); this.snack.open('Salvato', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.message, '', { duration: 3000 })
+        });
+      });
+  }
+
+  deleteNotaRapida(n: NotaRapida) {
+    if (!confirm(`Eliminare la nota rapida "${n.testo}"?`)) return;
+    this.ds.deleteNotaRapida(n.id!).subscribe({
+      next: () => { this.loadNoteRapide(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      error: e => this.snack.open(e.message, '', { duration: 3000 })
+    });
   }
 }

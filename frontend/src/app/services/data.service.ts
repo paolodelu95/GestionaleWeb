@@ -8,7 +8,8 @@ import {
   CategoriaProdotto, UnitaMisura, AliquotaIva,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
-  StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito
+  StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
+  NotaRapida
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -237,6 +238,12 @@ export class DataService {
 
   // SDI
   inviaFatturaSdi(id: number): Observable<any> { return this.api.post(`fattura-xml/${id}/invia-sdi`, {}); }
+
+  // Note Rapide
+  getNoteRapide(): Observable<NotaRapida[]> { return this.api.get('note-rapide'); }
+  createNotaRapida(n: NotaRapida): Observable<any> { return this.api.post('note-rapide', n); }
+  updateNotaRapida(n: NotaRapida): Observable<any> { return this.api.put(`note-rapide/${n.id}`, n); }
+  deleteNotaRapida(id: number): Observable<any> { return this.api.delete(`note-rapide/${id}`); }
 
   // Catena documentale
   preventivoToDdt(id: number): Observable<{ id: number; numero: string }> {

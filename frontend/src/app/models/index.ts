@@ -102,6 +102,13 @@ export interface RigaDocumento {
   varianteId?: number | null;
   varianteTaglia?: string;
   varianteColore?: string;
+  tipo?: 'PRODOTTO' | 'NOTA';
+}
+
+export interface NotaRapida {
+  id?: number;
+  testo: string;
+  ordine?: number;
 }
 
 export interface PrezzoRecente {

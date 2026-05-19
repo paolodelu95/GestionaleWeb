@@ -19,7 +19,7 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento } from '../../models';
+import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 
@@ -36,6 +36,8 @@ const RIGHE_STYLES = `
   .td-search { width: 36px; padding: 0 !important; }
   .td-history { width: 28px; padding: 0 !important; }
   .prezzo-cell { display: flex; align-items: center; gap: 2px; }
+  .riga-nota td { background: #fefce8; }
+  .riga-nota input { font-style: italic; color: #78716c; }
 `;
 
 @Component({
@@ -127,6 +129,20 @@ const RIGHE_STYLES = `
                   <button mat-stroked-button type="button" (click)="addRiga()">
                     <mat-icon>add</mat-icon> Aggiungi riga
                   </button>
+                  <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
+                    <mat-icon>note_add</mat-icon> Aggiungi nota
+                  </button>
+                  <mat-menu #menuNota="matMenu">
+                    <button mat-menu-item type="button" (click)="addNota('')">
+                      <mat-icon>edit_note</mat-icon> Nota libera
+                    </button>
+                    @if (noteRapideList.length) {
+                      <div style="padding:4px 16px;font-size:11px;font-weight:600;color:#94a3b8;pointer-events:none;text-transform:uppercase">Note rapide</div>
+                      @for (nr of noteRapideList; track nr.id) {
+                        <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
+                      }
+                    }
+                  </mat-menu>
                 </div>
               </div>
               <table class="righe-table">
@@ -146,6 +162,18 @@ const RIGHE_STYLES = `
                 </thead>
                 <tbody>
                   @for (riga of righe; track $index) {
+                    @if (riga.tipo === 'NOTA') {
+                      <tr class="riga-nota">
+                        <td colspan="9">
+                          <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                        </td>
+                        <td>
+                          <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </td>
+                      </tr>
+                    } @else {
                     <tr>
                       <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
                       <td class="td-search">
@@ -187,7 +215,7 @@ const RIGHE_STYLES = `
                       <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
                       <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
                       <td style="padding:4px 8px; white-space:nowrap">
-                        {{ isRigaNota(riga) ? '' : (rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it') }}
+                        {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
                       <td>
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -195,6 +223,7 @@ const RIGHE_STYLES = `
                         </button>
                       </td>
                     </tr>
+                    }
                   }
                 </tbody>
               </table>
@@ -206,7 +235,7 @@ const RIGHE_STYLES = `
             </div>
             <div [formGroup]="form" style="margin-top:16px">
               <mat-form-field style="width:100%">
-                <mat-label>Note</mat-label>
+                <mat-label>Note ad uso interno</mat-label>
                 <textarea matInput rows="2" formControlName="note"></textarea>
               </mat-form-field>
             </div>
@@ -350,6 +379,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   linkedDdts: Ddt[] = [];
   ddtSelezione: number | null = null;
   righe: RigaDocumento[] = [];
+  noteRapideList: NotaRapida[] = [];
   prodotti: Prodotto[] = [];
   unitaMisura: UnitaMisura[] = [];
   tipiPagamento: TipoPagamento[] = [];
@@ -399,7 +429,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     return this.showNetto ? net : net * (1 + riga.iva / 100);
   }
   isRigaNota(riga: RigaDocumento) {
-    return riga.quantita === 0 && riga.prezzo === 0 && riga.iva === 0;
+    return riga.tipo === 'NOTA';
   }
 
   get tipoPagamentoSelezionato(): TipoPagamento | null {
@@ -560,6 +590,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.ds.getProdotti().subscribe(p => this.prodotti = p);
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
     this.ds.getTipiPagamento().subscribe(t => this.tipiPagamento = t.filter(x => x.attivo));
+    this.ds.getNoteRapide().subscribe(n => this.noteRapideList = n);
     this.loadPagamenti();
 
     if (this.isNew && !this.data?.numero) {
@@ -602,7 +633,11 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   }
 
   addRiga() {
-    this.righe.push({ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 });
+    this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 });
+    this.prezziRecenti.push([]);
+  }
+  addNota(testo: string) {
+    this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 });
     this.prezziRecenti.push([]);
   }
   removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); }

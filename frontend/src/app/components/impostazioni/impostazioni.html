@@ -461,5 +461,42 @@
       </div>
     </mat-tab>
 
+    <!-- ── Note Rapide ──────────────────────────────────────────────────────── -->
+    <mat-tab label="Note rapide">
+      <div class="tab-content">
+        <div class="card" style="max-width:560px">
+          <div class="tab-section-header">
+            <h2 class="tab-section-title">Note rapide</h2>
+            <button mat-flat-button type="button" (click)="openNotaRapida()">
+              <mat-icon>add</mat-icon> Nuova
+            </button>
+          </div>
+          <p style="font-size:13px;color:#64748b;margin:0 0 12px">
+            Le note rapide appaiono nel menu "Aggiungi nota" di tutti i documenti (DDT, fatture, preventivi ecc.).
+          </p>
+          <table mat-table [dataSource]="noteRapide" class="mat-mdc-table">
+            <ng-container matColumnDef="testo">
+              <th mat-header-cell *matHeaderCellDef>Testo</th>
+              <td mat-cell *matCellDef="let n">{{ n.testo }}</td>
+            </ng-container>
+            <ng-container matColumnDef="ordine">
+              <th mat-header-cell *matHeaderCellDef>Ordine</th>
+              <td mat-cell *matCellDef="let n">{{ n.ordine }}</td>
+            </ng-container>
+            <ng-container matColumnDef="azioni">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let n" class="table-actions">
+                <button mat-icon-button type="button" (click)="openNotaRapida(n)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button type="button" color="warn" (click)="deleteNotaRapida(n)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="notaRapidaColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: notaRapidaColumns;"></tr>
+          </table>
+          @if (!noteRapide.length) { <p class="empty-msg">Nessuna nota rapida. Aggiungine una per velocizzare la compilazione dei documenti.</p> }
+        </div>
+      </div>
+    </mat-tab>
+
   </mat-tab-group>
 </div>

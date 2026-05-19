@@ -136,12 +136,13 @@ function aggiornaQuantita(righe, delta, ctx = {}) {
 
 function saveRighe(ddtId, righe) {
   const stmt = db.prepare(`INSERT INTO ddt_righe
-    (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+    (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
     stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.unitaMisura || '',
-             r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+             r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
+             r.tipo || 'PRODOTTO');
 }
 
 function getRighe(ddtId) {
@@ -152,7 +153,8 @@ function getRighe(ddtId) {
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
     prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
-    varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || ''
+    varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
+    tipo: r.tipo || 'PRODOTTO'
   }));
 }
 
