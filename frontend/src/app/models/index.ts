@@ -35,6 +35,7 @@ export interface Prodotto {
   categoria: string;
   descrizione?: string;
   prezzo: number;
+  prezzoAcquisto?: number;
   quantita?: number;
   sogliaMinima?: number;
   unitaMisura?: string;

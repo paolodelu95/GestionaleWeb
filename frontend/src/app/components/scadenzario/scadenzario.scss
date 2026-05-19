@@ -66,6 +66,7 @@
   display: flex;
   gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
 
   button {
     font-size: 13px;
@@ -85,4 +86,8 @@
       border-color: #6366f1;
     }
   }
+}
+
+@media (max-width: 480px) {
+  .vista-buttons button { font-size: 12px; padding: 0 8px; }
 }

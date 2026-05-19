@@ -163,8 +163,13 @@ const RIGHE_STYLES = `
                 </td>
                 <td class="td-history">
                   @if (prezziRecenti[$index]?.length) {
-                    <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti">
+                    <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti - questo cliente">
                       <mat-icon style="font-size:18px;color:#7c3aed">history</mat-icon>
+                    </button>
+                  }
+                  @if (riga.prodottoId) {
+                    <button mat-icon-button type="button" [matMenuTriggerFor]="menuPRTutti" [matMenuTriggerData]="{idx: $index}" (click)="loadTuttiPrezzi($index, riga.prodottoId)" title="Prezzi tutti i clienti">
+                      <mat-icon style="font-size:18px;color:#94a3b8">groups</mat-icon>
                     </button>
                   }
                 </td>
@@ -211,6 +216,26 @@ const RIGHE_STYLES = `
             }
           </ng-template>
         </mat-menu>
+        <mat-menu #menuPRTutti="matMenu">
+          <ng-template matMenuContent let-idx="idx">
+            <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Tutti i clienti</div>
+            @if (!tuttiCaricati[idx]) {
+              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Clicca per caricare...</div>
+            }
+            @if (tuttiCaricati[idx] && !prezziRecentiTutti[idx]?.length) {
+              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
+            }
+            @for (pr of prezziRecentiTutti[idx] ?? []; track $index) {
+              <button mat-menu-item type="button" (click)="usaPrezzo(idx, pr.prezzo, pr.sconto)">
+                <div class="prezzo-recente-item">
+                  <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                  <b>{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                  @if (pr.sconto) { <span style="color:#d97706">&nbsp;(-{{ pr.sconto }}%)</span> }
+                </div>
+              </button>
+            }
+          </ng-template>
+        </mat-menu>
         <div class="righe-total">
           <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
           <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
@@ -242,6 +267,8 @@ export class NotaCreditoDialogComponent implements OnInit {
   prodotti: Prodotto[] = [];
   unitaMisura: UnitaMisura[] = [];
   prezziRecenti: any[][] = [];
+  prezziRecentiTutti: any[][] = [];
+  tuttiCaricati: boolean[] = [];
   readonly isNew: boolean;
 
   get selectedClienteId(): number | null {
@@ -285,8 +312,8 @@ export class NotaCreditoDialogComponent implements OnInit {
       fatturaId: [data?.fatturaId ?? null],
       note: [data?.note ?? ''],
     });
-    if (data?.id) { this.ds.getNotaCreditoById(data.id).subscribe(n => { this.righe = (n.righe ?? []).map((r: any) => ({ ...r, sconto: r.sconto ?? 0 })); }); }
-    else { this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }]; }
+    if (data?.id) { this.ds.getNotaCreditoById(data.id).subscribe(n => { this.righe = (n.righe ?? []).map((r: any) => ({ ...r, sconto: r.sconto ?? 0 })); this.prezziRecenti = new Array(this.righe.length).fill([]); this.prezziRecentiTutti = new Array(this.righe.length).fill([]); this.tuttiCaricati = new Array(this.righe.length).fill(false); }); }
+    else { this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }]; this.prezziRecenti = [[]]; this.prezziRecentiTutti = [[]]; this.tuttiCaricati = [false]; }
   }
 
   ngOnInit() {
@@ -336,6 +363,8 @@ export class NotaCreditoDialogComponent implements OnInit {
         ...(f.righe ?? []).map(r => ({ ...r, id: undefined, quantita: -(r.quantita ?? 0) }))
       ];
       this.prezziRecenti = new Array(this.righe.length).fill([]);
+      this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
+      this.tuttiCaricati = new Array(this.righe.length).fill(false);
     });
   }
 
@@ -381,17 +410,31 @@ export class NotaCreditoDialogComponent implements OnInit {
     });
   }
 
+  loadTuttiPrezzi(index: number, prodottoId: number | null) {
+    if (!prodottoId || this.tuttiCaricati[index]) return;
+    this.tuttiCaricati[index] = true;
+    this.ds.getPrezziRecenti(prodottoId, null).subscribe({
+      next: p => {
+        const cid = this.selectedClienteId ?? null;
+        this.prezziRecentiTutti[index] = cid ? p.filter((x: any) => x.clienteId !== cid) : p;
+      },
+      error: () => { this.prezziRecentiTutti[index] = []; }
+    });
+  }
+
   usaPrezzo(index: number, prezzo: number, sconto: number) {
     this.righe[index].prezzo = prezzo;
     this.righe[index].sconto = sconto;
   }
 
-  addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }
-  addNota(testo: string) { this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 }); }
-  removeRiga(i: number) { this.righe.splice(i, 1); }
+  addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); this.prezziRecenti.push([]); this.prezziRecentiTutti.push([]); this.tuttiCaricati.push(false); }
+  addNota(testo: string) { this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 }); this.prezziRecenti.push([]); this.prezziRecentiTutti.push([]); this.tuttiCaricati.push(false); }
+  removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); this.prezziRecentiTutti.splice(i, 1); this.tuttiCaricati.splice(i, 1); }
   dropRiga(event: CdkDragDrop<any[]>) {
     moveItemInArray(this.righe, event.previousIndex, event.currentIndex);
     moveItemInArray(this.prezziRecenti, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.prezziRecentiTutti, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.tuttiCaricati, event.previousIndex, event.currentIndex);
   }
 
   save() {

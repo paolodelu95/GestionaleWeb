@@ -204,7 +204,7 @@ const RIGHE_STYLES = `
                         (change)="setPrezzoFromInput(riga, $event)"></td>
                       <td class="td-history">
                         @if (prezziRecenti[$index]?.length) {
-                          <button mat-icon-button type="button" title="Prezzi recenti" [matMenuTriggerFor]="menuPrezzi">
+                          <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
                             <mat-icon style="font-size:16px;color:#6366f1">history</mat-icon>
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
@@ -214,6 +214,29 @@ const RIGHE_STYLES = `
                                 <span style="font-size:12px;color:#64748b">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
                                 <b style="margin-left:8px;color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
                                 @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                              </button>
+                            }
+                          </mat-menu>
+                        }
+                        @if (riga.prodottoId) {
+                          <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
+                            <mat-icon style="font-size:16px;color:#94a3b8">groups</mat-icon>
+                          </button>
+                          <mat-menu #menuTutti="matMenu">
+                            <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Tutti i clienti</div>
+                            @if (!tuttiCaricati[$index]) {
+                              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Clicca per caricare...</div>
+                            }
+                            @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
+                              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
+                            }
+                            @for (pr of prezziRecentiTutti[$index] ?? []; track $index) {
+                              <button mat-menu-item type="button" (click)="usaPrezzo($index, pr.prezzo, pr.sconto)">
+                                <div>
+                                  <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                                  <b style="color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                                  @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                                </div>
                               </button>
                             }
                           </mat-menu>
@@ -393,6 +416,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   selectedTipoPagamentoId: number | null = null;
   pagamenti: Pagamento[] = [];
   prezziRecenti: any[][] = [];
+  prezziRecentiTutti: any[][] = [];
+  tuttiCaricati: boolean[] = [];
   nuovoAcconto = { dataPagamento: new Date().toISOString().substring(0, 10), importo: 0, metodo: 'Bonifico', note: '' };
   readonly isNew: boolean;
 
@@ -462,6 +487,18 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     });
   }
 
+  loadTuttiPrezzi(index: number, prodottoId: number | null) {
+    if (!prodottoId || this.tuttiCaricati[index]) return;
+    this.tuttiCaricati[index] = true;
+    this.ds.getPrezziRecenti(prodottoId, null).subscribe({
+      next: p => {
+        const cid = this.clienteId ?? null;
+        this.prezziRecentiTutti[index] = cid ? p.filter((x: any) => x.clienteId !== cid) : p;
+      },
+      error: () => { this.prezziRecentiTutti[index] = []; }
+    });
+  }
+
   usaPrezzo(index: number, prezzo: number, sconto: number) {
     this.righe[index].prezzo = prezzo;
     this.righe[index].sconto = sconto;
@@ -514,6 +551,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         if (!r.descrizione?.trim() && !r.prodottoId) {
           this.righe.splice(0, 1);
           this.prezziRecenti.splice(0, 1);
+          this.prezziRecentiTutti.splice(0, 1);
+          this.tuttiCaricati.splice(0, 1);
         }
       }
 
@@ -523,11 +562,15 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       // Riga di intestazione con il riferimento al DDT
       this.righe.push({ descrizione: `Riferimento DDT n. ${ddt.numero} del ${dataFmt}`, quantita: 0, prezzo: 0, sconto: 0, iva: 0, unitaMisura: '' });
       this.prezziRecenti.push([]);
+      this.prezziRecentiTutti.push([]);
+      this.tuttiCaricati.push(false);
 
       // Righe prodotti del DDT
       if (ddt.righe?.length) {
         this.righe.push(...ddt.righe.map(r => ({ ...r, id: undefined })));
         this.prezziRecenti.push(...new Array(ddt.righe.length).fill([]));
+        this.prezziRecentiTutti.push(...new Array(ddt.righe.length).fill([]));
+        this.tuttiCaricati.push(...new Array(ddt.righe.length).fill(false));
       }
     });
   }
@@ -556,6 +599,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       this.ds.getFatturaById(data.id).subscribe(f => {
         this.righe = f.righe ?? [];
         this.prezziRecenti = new Array(this.righe.length).fill([]);
+        this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
+        this.tuttiCaricati = new Array(this.righe.length).fill(false);
         // Carica i DDT collegati per visualizzarli
         if (f.ddtIds?.length) {
           f.ddtIds.forEach(ddtId => {
@@ -566,11 +611,15 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     } else if (data?.righe?.length) {
       this.righe = [...data.righe];
       this.prezziRecenti = new Array(this.righe.length).fill([]);
+      this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
+      this.tuttiCaricati = new Array(this.righe.length).fill(false);
       const preIds: number[] = data.ddtIds?.length ? data.ddtIds : (data.ddtId ? [data.ddtId] : []);
       preIds.forEach(id => this.ds.getDdtById(id).subscribe(ddt => this.linkedDdts.push(ddt)));
     } else {
       this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 }];
       this.prezziRecenti = [[]];
+      this.prezziRecentiTutti = [[]];
+      this.tuttiCaricati = [false];
     }
   }
 
@@ -642,15 +691,21 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   addRiga() {
     this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 });
     this.prezziRecenti.push([]);
+    this.prezziRecentiTutti.push([]);
+    this.tuttiCaricati.push(false);
   }
   addNota(testo: string) {
     this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 });
     this.prezziRecenti.push([]);
+    this.prezziRecentiTutti.push([]);
+    this.tuttiCaricati.push(false);
   }
-  removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); }
+  removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); this.prezziRecentiTutti.splice(i, 1); this.tuttiCaricati.splice(i, 1); }
   dropRiga(event: CdkDragDrop<any[]>) {
     moveItemInArray(this.righe, event.previousIndex, event.currentIndex);
     moveItemInArray(this.prezziRecenti, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.prezziRecentiTutti, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.tuttiCaricati, event.previousIndex, event.currentIndex);
   }
 
   save() {

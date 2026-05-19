@@ -75,9 +75,16 @@ import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva
             </mat-select>
           </mat-form-field>
         </div>
-        <div class="form-row" style="align-items:center">
-          <mat-form-field><mat-label>Prezzo (€)</mat-label>
+        <div class="form-row" style="align-items:flex-start">
+          <mat-form-field><mat-label>Prezzo vendita (€)</mat-label>
             <input matInput type="number" step="0.01" formControlName="prezzo"></mat-form-field>
+          <mat-form-field>
+            <mat-label>Prezzo acquisto (€)</mat-label>
+            <input matInput type="number" step="0.01" formControlName="prezzoAcquisto" placeholder="0.00">
+            <mat-hint>Usato per calcolo margini</mat-hint>
+          </mat-form-field>
+        </div>
+        <div class="form-row" style="align-items:center">
           <div style="padding-top:4px">
             <mat-checkbox formControlName="haVarianti">Gestisci taglie / colori</mat-checkbox>
             <div style="font-size:11px;color:#94a3b8;margin-top:2px">Se attivo, la quantità è gestita per variante</div>
@@ -190,8 +197,9 @@ export class ProdottoDialogComponent implements OnInit {
       codiceFornitore: [data?.codiceFornitore ?? ''],
       barcode:         [data?.barcode ?? ''],
       unitaMisura:  [data?.unitaMisura ?? 'pz'],
-      prezzo:       [data?.prezzo ?? 0, [Validators.min(0)]],
-      iva:          [data?.iva ?? 22, [Validators.min(0), Validators.max(100)]],
+      prezzo:         [data?.prezzo ?? 0, [Validators.min(0)]],
+      prezzoAcquisto: [data?.prezzoAcquisto ?? null, [Validators.min(0)]],
+      iva:            [data?.iva ?? 22, [Validators.min(0), Validators.max(100)]],
       quantita:     [data?.quantita ?? 0, [Validators.min(0)]],
       sogliaMinima: [data?.sogliaMinima ?? 0, [Validators.min(0)]],
       descrizione:  [data?.descrizione ?? ''],
@@ -310,7 +318,8 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       { header: 'Codice',           field: 'codice',          width: 14 },
       { header: 'Codice Fornitore', field: 'codiceFornitore', width: 16 },
       { header: 'Barcode',          field: 'barcode',         width: 16 },
-      { header: 'Prezzo',           field: 'prezzo',          width: 12 },
+      { header: 'Prezzo vendita',   field: 'prezzo',          width: 12 },
+      { header: 'Prezzo acquisto', field: 'prezzoAcquisto',  width: 14 },
       { header: 'IVA',              field: 'iva',             width: 8  },
       { header: 'Quantità',         field: 'quantita',        width: 10 },
       { header: 'Soglia Minima',    field: 'sogliaMinima',    width: 12 },
@@ -333,7 +342,8 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
           codice:          r['Codice']           || r['codice']          || '',
           codiceFornitore: r['Codice Fornitore'] || r['codiceFornitore'] || '',
           barcode:         r['Barcode']          || r['barcode']         || '',
-          prezzo:          parseFloat(r['Prezzo']   || r['prezzo']   || '0') || 0,
+          prezzo:          parseFloat(r['Prezzo vendita'] || r['Prezzo'] || r['prezzo'] || '0') || 0,
+          prezzoAcquisto:  parseFloat(r['Prezzo acquisto'] || r['prezzoAcquisto'] || '0') || null!,
           iva:             parseFloat(r['IVA']      || r['iva']      || '22') || 22,
           quantita:        parseInt(  r['Quantità'] || r['quantita'] || '0', 10) || 0,
           sogliaMinima:    parseInt(  r['Soglia Minima'] || r['sogliaMinima'] || '0', 10) || 0,

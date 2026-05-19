@@ -228,6 +228,21 @@
     background: rgba(0, 0, 0, 0.45);
     z-index: 999;
   }
+
+  // Topbar: hide secondary info to free horizontal space
+  .topbar-sub { display: none; }
+  .topbar-company {
+    font-size: 13px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  // On very small phones hide the global search box; each page has its own search
+  .search-box { display: none; }
 }
 
 .search-box {

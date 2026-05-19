@@ -17,7 +17,10 @@
       "Bash(git push *)",
       "Read(//private/tmp/**)",
       "Bash(node -e ' *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm rebuild *)",
+      "Bash(node -e \"require\\('./server.js'\\)\")",
+      "Bash(kill %1)"
     ]
   }
 }

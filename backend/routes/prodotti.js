@@ -25,9 +25,9 @@ router.get('/valore', (req, res) => {
 router.post('/', (req, res) => {
   const p = req.body;
   const result = db.prepare(`INSERT INTO prodotti
-    (nome, categoria, descrizione, prezzo, quantita, soglia_minima, unita_misura, codice, codice_fornitore, iva, barcode, ha_varianti, fornitore_id_preferito, riordino_quantita)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.quantita ?? 0,
+    (nome, categoria, descrizione, prezzo, prezzo_acquisto, quantita, soglia_minima, unita_misura, codice, codice_fornitore, iva, barcode, ha_varianti, fornitore_id_preferito, riordino_quantita)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.prezzoAcquisto ?? null, p.quantita ?? 0,
          p.sogliaMinima ?? 0, p.unitaMisura, p.codice, p.codiceFornitore || '',
          p.iva, p.barcode || '', p.haVarianti ? 1 : 0,
          p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0);
@@ -41,10 +41,10 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const p = req.body;
-  db.prepare(`UPDATE prodotti SET nome=?, categoria=?, descrizione=?, prezzo=?,
+  db.prepare(`UPDATE prodotti SET nome=?, categoria=?, descrizione=?, prezzo=?, prezzo_acquisto=?,
     quantita=?, soglia_minima=?, unita_misura=?, codice=?, codice_fornitore=?, iva=?, barcode=?, ha_varianti=?,
     fornitore_id_preferito=?, riordino_quantita=? WHERE id=?`)
-    .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.quantita ?? 0,
+    .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.prezzoAcquisto ?? null, p.quantita ?? 0,
          p.sogliaMinima ?? 0, p.unitaMisura, p.codice, p.codiceFornitore || '',
          p.iva, p.barcode || '', p.haVarianti ? 1 : 0,
          p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0, req.params.id);
@@ -81,7 +81,7 @@ function syncQuantita(prodottoId) {
 function toDto(r) {
   const dto = {
     id: r.id, nome: r.nome, categoria: r.categoria, descrizione: r.descrizione,
-    prezzo: r.prezzo, quantita: r.quantita, sogliaMinima: r.soglia_minima,
+    prezzo: r.prezzo, prezzoAcquisto: r.prezzo_acquisto ?? null, quantita: r.quantita, sogliaMinima: r.soglia_minima,
     unitaMisura: r.unita_misura, codice: r.codice, codiceFornitore: r.codice_fornitore || '',
     iva: r.iva, barcode: r.barcode || '', haVarianti: r.ha_varianti === 1,
     fornitoreIdPreferito: r.fornitore_id_preferito || null,

@@ -1,70 +1,257 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { forkJoin } from 'rxjs';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
+import { ExcelService } from '../../services/excel.service';
 
-interface ReportData {
-  totaleFatturato: number;
-  totalePagato: number;
-  totaleAperto: number;
-  fatturePerStato: { stato: string; count: number; totale: number }[];
-  topClienti: { nome: string; fatturato: number }[];
-  prodottiLow: { nome: string; quantita: number; soglia: number }[];
-}
+Chart.register(...registerables);
+
+const MESI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
 @Component({
   selector: 'app-report',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatTabsModule,
+            MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule],
   templateUrl: './report.html',
   styleUrl: './report.scss'
 })
-export class ReportComponent implements OnInit {
-  data: ReportData | null = null;
-  loading = true;
+export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('chartYoy')      chartYoyRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartMargine')  chartMargineRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartCategorie') chartCatRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartStagione') chartStagRef!: ElementRef<HTMLCanvasElement>;
 
-  constructor(private ds: DataService) {}
+  loading = true;
+  bi: any = null;
+  annoSel = new Date().getFullYear();
+  anni = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  abcFiltro: 'A' | 'B' | 'C' | 'tutti' = 'tutti';
+
+  private charts: Chart[] = [];
+  private viewReady = false;
+  private dataReady = false;
+
+  constructor(private ds: DataService, private excel: ExcelService) {}
 
   ngOnInit() { this.load(); }
 
+  ngAfterViewInit() {
+    this.viewReady = true;
+    if (this.dataReady) this.buildCharts();
+  }
+
+  ngOnDestroy() { this.destroyCharts(); }
+
   load() {
     this.loading = true;
-    forkJoin({
-      fatture: this.ds.getFatture(),
-      pagamenti: this.ds.getPagamenti(),
-      clienti: this.ds.getClienti(),
-      prodotti: this.ds.getProdotti(),
-      scadenzario: this.ds.getScadenzario(),
-    }).subscribe(({ fatture, pagamenti, prodotti, scadenzario }) => {
-      const totaleFatturato = fatture.filter(f => f.stato !== 'ANNULLATA')
-        .reduce((s, f) => s + (f.totale ?? 0), 0);
-      const totalePagato = pagamenti.reduce((s, p) => s + p.importo, 0);
-      const totaleAperto = scadenzario.reduce((s, e) => s + (e.rimanente ?? 0), 0);
-
-      const statiMap = new Map<string, { count: number; totale: number }>();
-      fatture.forEach(f => {
-        const cur = statiMap.get(f.stato) ?? { count: 0, totale: 0 };
-        statiMap.set(f.stato, { count: cur.count + 1, totale: cur.totale + (f.totale ?? 0) });
-      });
-      const fatturePerStato = Array.from(statiMap.entries()).map(([stato, v]) => ({ stato, ...v }));
-
-      const clientiMap = new Map<string, number>();
-      fatture.filter(f => f.stato !== 'ANNULLATA' && f.clienteNome).forEach(f => {
-        clientiMap.set(f.clienteNome!, (clientiMap.get(f.clienteNome!) ?? 0) + (f.totale ?? 0));
-      });
-      const topClienti = Array.from(clientiMap.entries())
-        .map(([nome, fatturato]) => ({ nome, fatturato }))
-        .sort((a, b) => b.fatturato - a.fatturato)
-        .slice(0, 10);
-
-      const prodottiLow = prodotti
-        .filter(p => p.quantita != null && p.sogliaMinima != null && p.quantita <= p.sogliaMinima)
-        .map(p => ({ nome: p.nome, quantita: p.quantita!, soglia: p.sogliaMinima! }));
-
-      this.data = { totaleFatturato, totalePagato, totaleAperto, fatturePerStato, topClienti, prodottiLow };
-      this.loading = false;
+    this.dataReady = false;
+    this.destroyCharts();
+    this.ds.getBiStats(this.annoSel).subscribe({
+      next: data => {
+        this.bi = data;
+        this.loading = false;
+        this.dataReady = true;
+        if (this.viewReady) setTimeout(() => this.buildCharts(), 50);
+      },
+      error: () => { this.loading = false; }
     });
+  }
+
+  get abcVisibili() {
+    if (!this.bi?.abcClienti) return [];
+    return this.abcFiltro === 'tutti'
+      ? this.bi.abcClienti
+      : this.bi.abcClienti.filter((c: any) => c.classe === this.abcFiltro);
+  }
+
+  get kpiFatturato() {
+    if (!this.bi?.fatturaMensile) return 0;
+    return this.bi.fatturaMensile
+      .filter((r: any) => r.mese.startsWith(this.annoSel.toString()))
+      .reduce((s: number, r: any) => s + r.fatturato, 0);
+  }
+
+  get kpiFatturatoPrec() {
+    if (!this.bi?.fatturaMensile) return 0;
+    return this.bi.fatturaMensile
+      .filter((r: any) => r.mese.startsWith(this.bi.annoPrec))
+      .reduce((s: number, r: any) => s + r.fatturato, 0);
+  }
+
+  get kpiCosti() {
+    if (!this.bi?.acquistiMensili) return 0;
+    return this.bi.acquistiMensili
+      .filter((r: any) => r.mese.startsWith(this.annoSel.toString()))
+      .reduce((s: number, r: any) => s + r.costi, 0);
+  }
+
+  get kpiMargine() { return this.kpiFatturato - this.kpiCosti; }
+  get kpiMarginePerc() { return this.kpiFatturato > 0 ? (this.kpiMargine / this.kpiFatturato) * 100 : 0; }
+  get kpiVariazione() {
+    if (!this.kpiFatturatoPrec) return null;
+    return ((this.kpiFatturato - this.kpiFatturatoPrec) / this.kpiFatturatoPrec) * 100;
+  }
+
+  get maxStagionalita(): number {
+    if (!this.bi?.stagionalita?.length) return 1;
+    return Math.max(...this.bi.stagionalita.map((s: any) => s.media ?? 0)) || 1;
+  }
+
+  private buildCharts() {
+    this.destroyCharts();
+    this.buildYoyChart();
+    this.buildMargineChart();
+    this.buildCategorieChart();
+    this.buildStagionalitaChart();
+  }
+
+  private buildYoyChart() {
+    if (!this.chartYoyRef) return;
+    const annoStr = this.annoSel.toString();
+    const precStr = this.bi.annoPrec;
+
+    const mesiFattura = (mese: string) => {
+      const m = this.bi.fatturaMensile.find((r: any) => r.mese === mese);
+      return m?.fatturato ?? 0;
+    };
+
+    const labels = MESI;
+    const dataCorr = labels.map((_, i) => mesiFattura(`${annoStr}-${String(i+1).padStart(2,'0')}`));
+    const dataPrec = labels.map((_, i) => mesiFattura(`${precStr}-${String(i+1).padStart(2,'0')}`));
+
+    this.charts.push(new Chart(this.chartYoyRef.nativeElement, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: `${annoStr}`, data: dataCorr, backgroundColor: 'rgba(99,102,241,0.8)', borderRadius: 4 },
+          { label: `${precStr}`, data: dataPrec, backgroundColor: 'rgba(99,102,241,0.2)', borderRadius: 4 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: { ticks: { callback: (v: any) => '€' + (v/1000).toFixed(0) + 'k' } }
+        }
+      }
+    }));
+  }
+
+  private buildMargineChart() {
+    if (!this.chartMargineRef) return;
+    const annoStr = this.annoSel.toString();
+    const labels = MESI;
+    const fat = labels.map((_, i) => {
+      const m = this.bi.fatturaMensile.find((r: any) => r.mese === `${annoStr}-${String(i+1).padStart(2,'0')}`);
+      return m?.imponibile ?? 0;
+    });
+    const acq = labels.map((_, i) => {
+      const m = this.bi.acquistiMensili.find((r: any) => r.mese === `${annoStr}-${String(i+1).padStart(2,'0')}`);
+      return m?.costi ?? 0;
+    });
+    const margini = fat.map((f, i) => f - acq[i]);
+
+    this.charts.push(new Chart(this.chartMargineRef.nativeElement, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Ricavi', data: fat, backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4, stack: 'a' },
+          { label: 'Costi', data: acq, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4, stack: 'b' },
+          { type: 'line', label: 'Margine', data: margini, borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,0.1)', tension: 0.4, fill: true, pointRadius: 3 } as any,
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: { ticks: { callback: (v: any) => '€' + (v/1000).toFixed(0) + 'k' } }
+        }
+      }
+    }));
+  }
+
+  private buildCategorieChart() {
+    if (!this.chartCatRef || !this.bi?.categorie?.length) return;
+    const top = this.bi.categorie.slice(0, 8);
+    const colors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6'];
+    this.charts.push(new Chart(this.chartCatRef.nativeElement, {
+      type: 'doughnut',
+      data: {
+        labels: top.map((c: any) => c.categoria),
+        datasets: [{ data: top.map((c: any) => c.imponibile), backgroundColor: colors, borderWidth: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (ctx) => ` €${(ctx.raw as number).toLocaleString('it')}` } }
+        }
+      }
+    }));
+  }
+
+  private buildStagionalitaChart() {
+    if (!this.chartStagRef || !this.bi?.stagionalita?.length) return;
+    const byMese = new Array(12).fill(0);
+    this.bi.stagionalita.forEach((s: any) => { byMese[parseInt(s.mese_num) - 1] = s.media ?? 0; });
+    this.charts.push(new Chart(this.chartStagRef.nativeElement, {
+      type: 'radar',
+      data: {
+        labels: MESI,
+        datasets: [{
+          label: 'Media mensile',
+          data: byMese,
+          backgroundColor: 'rgba(99,102,241,0.2)',
+          borderColor: '#6366f1',
+          pointBackgroundColor: '#6366f1',
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { r: { ticks: { callback: (v: any) => '€' + (v/1000).toFixed(0) + 'k' } } }
+      }
+    }));
+  }
+
+  private destroyCharts() {
+    this.charts.forEach(c => c.destroy());
+    this.charts = [];
+  }
+
+  exportAbc() {
+    if (!this.bi?.abcClienti) return;
+    this.excel.export(this.bi.abcClienti, [
+      { header: 'Cliente', field: 'nome', width: 35 },
+      { header: 'Fatturato', field: 'fatturato', width: 14 },
+      { header: '% sul totale', field: 'pct', width: 12 },
+      { header: '% cumulativa', field: 'pctCumulativa', width: 14 },
+      { header: 'Classe', field: 'classe', width: 8 },
+      { header: 'N° Fatture', field: 'numFatture', width: 10 },
+    ], `abc-clienti-${this.annoSel}`);
+  }
+
+  exportMargini() {
+    if (!this.bi?.prodottiMargini) return;
+    this.excel.export(this.bi.prodottiMargini, [
+      { header: 'Prodotto', field: 'nome', width: 35 },
+      { header: 'Ricavi', field: 'ricavi', width: 14 },
+      { header: 'Costi stimati', field: 'costiStimati', width: 14 },
+      { header: 'Margine €', field: 'margine', width: 12 },
+      { header: 'Margine %', field: 'marginePerc', width: 12 },
+      { header: 'Qta venduta', field: 'qtaVenduta', width: 12 },
+    ], `margini-prodotti-${this.annoSel}`);
   }
 }

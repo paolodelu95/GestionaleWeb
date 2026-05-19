@@ -198,6 +198,10 @@ export class DataService {
     return this.api.get(anno ? `stats/kpi-anno?anno=${anno}` : 'stats/kpi-anno');
   }
 
+  getBiStats(anno?: number): Observable<any> {
+    return this.api.get(anno ? `stats/bi?anno=${anno}` : 'stats/bi');
+  }
+
   // Email
   testSmtp(): Observable<any> { return this.api.post('email/test', {}); }
   sendEmail(to: string, subject: string, html?: string): Observable<any> {

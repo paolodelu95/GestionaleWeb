@@ -69,6 +69,7 @@ body {
 
 // KPI
 .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.kpi-3col { grid-template-columns: repeat(3, 1fr); }
 .kpi-card {
   background: white;
   border-radius: 10px;
@@ -217,16 +218,37 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 // ── Mobile responsive ─────────────────────────────────────────────────────────
 @media (max-width: 767px) {
   .page { padding: 12px; }
-  .page-header { margin-bottom: 12px; }
+
+  // Page header: title on first row, action buttons wrap below
+  .page-header {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+    .page-title { flex: 0 0 100%; font-size: 18px; margin-bottom: 0; }
+    // Icon-only buttons already small; text buttons shrink gracefully
+    button[mat-flat-button], button[mat-stroked-button] {
+      font-size: 13px;
+      padding: 0 10px;
+    }
+  }
   .page-title { font-size: 18px; }
 
   // KPI: 2 colonne
   .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .kpi-card .kpi-value { font-size: 20px; }
+  .kpi-card { padding: 14px; .kpi-value { font-size: 20px; } }
 
   // Card con scroll orizzontale per tabelle
   .card { padding: 10px; overflow-x: auto; }
   .mat-mdc-table { min-width: unset; }
+
+  // Filter bar: wrap selects on small screens, reduce min-width
+  .filter-bar {
+    gap: 6px;
+    mat-select { min-width: 90px; font-size: 13px; }
+  }
+
+  // Search field: full width on mobile
+  .search-field { max-width: 100%; }
 
   // Form nei dialoghi: campi impilati verticalmente
   .form-row {
@@ -265,4 +287,15 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   .mat-mdc-dialog-content {
     max-height: calc(100dvh - 160px) !important;
   }
+
+  // Bulk selection bar: wrap on small screens
+  .bulk-bar { flex-wrap: wrap; gap: 6px; }
+}
+
+// Very small screens (≤480px): hide global search to free topbar space
+@media (max-width: 480px) {
+  .page { padding: 8px; }
+  .kpi-grid { gap: 8px; }
+  .kpi-3col { grid-template-columns: repeat(2, 1fr); }
+  .kpi-card { padding: 10px; .kpi-value { font-size: 18px; } }
 }

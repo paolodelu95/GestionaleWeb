@@ -30,3 +30,8 @@
   color: #1e293b;
   margin: 0;
 }
+
+@media (max-width: 767px) {
+  .tab-content { padding: 12px 0; }
+  .tab-section-header { flex-wrap: wrap; gap: 8px; }
+}

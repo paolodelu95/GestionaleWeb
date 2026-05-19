@@ -1,77 +1,228 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Report</h1>
-    <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Aggiorna</button>
+    <h1 class="page-title">Business Intelligence</h1>
+    <div style="display:flex;gap:12px;align-items:center">
+      <mat-form-field style="width:110px" subscriptSizing="dynamic">
+        <mat-label>Anno</mat-label>
+        <mat-select [(ngModel)]="annoSel" (ngModelChange)="load()">
+          @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <button mat-stroked-button (click)="load()">
+        <mat-icon>refresh</mat-icon> Aggiorna
+      </button>
+    </div>
   </div>
 
-  @if (loading) { <p style="padding:16px;color:#94a3b8">Caricamento...</p> }
+  @if (loading) {
+    <div style="display:flex;justify-content:center;padding:64px">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
 
-  @if (data && !loading) {
+  @if (bi && !loading) {
+
+    <!-- KPI Cards -->
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">Fatturato totale</div>
-        <div class="kpi-value">{{ data.totaleFatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Incassato</div>
-        <div class="kpi-value" style="color:#22c55e">{{ data.totalePagato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Da incassare</div>
-        <div class="kpi-value" style="color:#ef4444">{{ data.totaleAperto | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
-      </div>
-    </div>
-
-    <div class="report-grid">
-      <div class="card">
-        <div class="card-title">Fatture per stato</div>
-        <table class="report-table">
-          <thead><tr><th>Stato</th><th>N°</th><th>Totale</th></tr></thead>
-          <tbody>
-            @for (s of data.fatturePerStato; track s.stato) {
-              <tr>
-                <td><span class="stato-chip" [class]="s.stato.toLowerCase()">{{s.stato}}</span></td>
-                <td>{{s.count}}</td>
-                <td>{{s.totale | currency:'EUR':'symbol':'1.2-2':'it'}}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Top clienti per fatturato</div>
-        <table class="report-table">
-          <thead><tr><th>Cliente</th><th>Fatturato</th></tr></thead>
-          <tbody>
-            @for (c of data.topClienti; track c.nome) {
-              <tr>
-                <td>{{c.nome}}</td>
-                <td><b>{{c.fatturato | currency:'EUR':'symbol':'1.2-2':'it'}}</b></td>
-              </tr>
-            }
-            @if (!data.topClienti.length) { <tr><td colspan="2" style="color:#94a3b8">Nessun dato</td></tr> }
-          </tbody>
-        </table>
-      </div>
-
-      @if (data.prodottiLow.length) {
-        <div class="card">
-          <div class="card-title" style="color:#ef4444"><mat-icon style="vertical-align:middle;font-size:18px">warning</mat-icon> Prodotti sotto soglia</div>
-          <table class="report-table">
-            <thead><tr><th>Prodotto</th><th>Disponibile</th><th>Soglia</th></tr></thead>
-            <tbody>
-              @for (p of data.prodottiLow; track p.nome) {
-                <tr>
-                  <td>{{p.nome}}</td>
-                  <td style="color:#ef4444"><b>{{p.quantita}}</b></td>
-                  <td>{{p.soglia}}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <div class="kpi-icon" style="background:#eef2ff;color:#6366f1"><mat-icon>euro</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Fatturato {{ annoSel }}</div>
+          <div class="kpi-value">{{ kpiFatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
+          @if (kpiVariazione !== null) {
+            <div class="kpi-delta" [class.positivo]="kpiVariazione >= 0" [class.negativo]="kpiVariazione < 0">
+              <mat-icon style="font-size:14px">{{ kpiVariazione >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+              {{ kpiVariazione >= 0 ? '+' : '' }}{{ kpiVariazione | number:'1.1-1' }}% vs {{ bi.annoPrec }}
+            </div>
+          }
         </div>
-      }
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#f0fdf4;color:#22c55e"><mat-icon>savings</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Margine lordo</div>
+          <div class="kpi-value" [style.color]="kpiMargine >= 0 ? '#22c55e' : '#ef4444'">
+            {{ kpiMargine | currency:'EUR':'symbol':'1.0-0':'it' }}
+          </div>
+          <div class="kpi-sub">{{ kpiMarginePerc | number:'1.1-1' }}% del fatturato</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#fff7ed;color:#f59e0b"><mat-icon>schedule</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">DSO medio</div>
+          <div class="kpi-value">
+            @if (bi.dsoMedio !== null) { {{ bi.dsoMedio }} gg }
+            @else { — }
+          </div>
+          <div class="kpi-sub">giorni medi di incasso</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#fef2f2;color:#ef4444"><mat-icon>account_balance_wallet</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Tasso incasso</div>
+          <div class="kpi-value" [style.color]="bi.incassoStats?.tassoIncasso >= 80 ? '#22c55e' : '#f59e0b'">
+            {{ bi.incassoStats?.tassoIncasso | number:'1.1-1' }}%
+          </div>
+          <div class="kpi-sub">{{ bi.incassoStats?.incassato | currency:'EUR':'symbol':'1.0-0':'it' }} / {{ bi.incassoStats?.emesso | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
+        </div>
+      </div>
     </div>
+
+    <mat-tab-group animationDuration="200ms" style="margin-top:24px">
+
+      <!-- TAB: Andamento -->
+      <mat-tab label="Andamento">
+        <div class="tab-content report-grid">
+          <div class="card" style="grid-column:1/-1">
+            <div class="card-title">
+              <mat-icon>bar_chart</mat-icon> Confronto anno su anno
+            </div>
+            <div style="height:280px"><canvas #chartYoy></canvas></div>
+          </div>
+          <div class="card" style="grid-column:1/-1">
+            <div class="card-title">
+              <mat-icon>show_chart</mat-icon> Ricavi vs Costi vs Margine
+            </div>
+            <div style="height:280px"><canvas #chartMargine></canvas></div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB: Clienti ABC -->
+      <mat-tab label="Analisi ABC Clienti">
+        <div class="tab-content">
+          <div class="card">
+            <div class="card-title" style="justify-content:space-between">
+              <span><mat-icon>people</mat-icon> Analisi Pareto — Clienti per fatturato {{ annoSel }}</span>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div class="classe-badge A" (click)="abcFiltro='A'" [class.active]="abcFiltro==='A'" matTooltip="Classe A: top 80% del fatturato">A</div>
+                <div class="classe-badge B" (click)="abcFiltro='B'" [class.active]="abcFiltro==='B'" matTooltip="Classe B: 80–95%">B</div>
+                <div class="classe-badge C" (click)="abcFiltro='C'" [class.active]="abcFiltro==='C'" matTooltip="Classe C: bottom 5%">C</div>
+                <div class="classe-badge" (click)="abcFiltro='tutti'" [class.active]="abcFiltro==='tutti'">Tutti</div>
+                <button mat-icon-button (click)="exportAbc()" matTooltip="Esporta Excel">
+                  <mat-icon>download</mat-icon>
+                </button>
+              </div>
+            </div>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Cliente</th>
+                  <th style="text-align:right">Fatturato</th>
+                  <th style="text-align:right">% sul tot.</th>
+                  <th style="text-align:right">% cum.</th>
+                  <th>Classe</th>
+                  <th>N° Fatt.</th>
+                  <th style="min-width:120px">Pareto</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of abcVisibili; track c.nome; let i = $index) {
+                  <tr [class]="'riga-classe-' + c.classe">
+                    <td style="color:#94a3b8;font-size:12px">{{ i + 1 }}</td>
+                    <td><b>{{ c.nome }}</b></td>
+                    <td style="text-align:right">{{ c.fatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
+                    <td style="text-align:right;color:#64748b">{{ c.pct | number:'1.1-1' }}%</td>
+                    <td style="text-align:right;color:#64748b">{{ c.pctCumulativa | number:'1.1-1' }}%</td>
+                    <td><span class="classe-badge {{ c.classe }}">{{ c.classe }}</span></td>
+                    <td style="text-align:center">{{ c.numFatture }}</td>
+                    <td>
+                      <div class="pareto-bar">
+                        <div class="pareto-fill classe-{{ c.classe }}" [style.width]="c.pct + '%'"></div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+                @if (!abcVisibili.length) {
+                  <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB: Prodotti e Categorie -->
+      <mat-tab label="Prodotti">
+        <div class="tab-content report-grid">
+          <div class="card">
+            <div class="card-title"><mat-icon>donut_large</mat-icon> Fatturato per categoria</div>
+            <div style="height:300px"><canvas #chartCategorie></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="justify-content:space-between">
+              <span><mat-icon>trending_up</mat-icon> Top prodotti per margine</span>
+              <button mat-icon-button (click)="exportMargini()" matTooltip="Esporta Excel">
+                <mat-icon>download</mat-icon>
+              </button>
+            </div>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Prodotto</th>
+                  <th style="text-align:right">Ricavi</th>
+                  <th style="text-align:right">Margine %</th>
+                  <th style="min-width:80px">Bar</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of bi.prodottiMargini; track p.nome) {
+                  <tr>
+                    <td>{{ p.nome }}</td>
+                    <td style="text-align:right">{{ p.ricavi | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
+                    <td style="text-align:right" [style.color]="p.marginePerc >= 30 ? '#22c55e' : p.marginePerc >= 10 ? '#f59e0b' : '#ef4444'">
+                      <b>{{ p.marginePerc | number:'1.0-0' }}%</b>
+                    </td>
+                    <td>
+                      <div class="pareto-bar">
+                        <div class="pareto-fill" [style.width]="p.marginePerc + '%'"
+                             [style.background]="p.marginePerc >= 30 ? '#22c55e' : p.marginePerc >= 10 ? '#f59e0b' : '#ef4444'"></div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+                @if (!bi.prodottiMargini?.length) {
+                  <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB: Stagionalità -->
+      <mat-tab label="Stagionalità">
+        <div class="tab-content report-grid">
+          <div class="card">
+            <div class="card-title"><mat-icon>calendar_month</mat-icon> Radar stagionalità pluriennale</div>
+            <div style="height:320px"><canvas #chartStagione></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><mat-icon>insights</mat-icon> Media mensile storica</div>
+            <table class="report-table">
+              <thead><tr><th>Mese</th><th style="text-align:right">Media mensile</th><th style="min-width:100px">Intensità</th></tr></thead>
+              <tbody>
+                @for (s of bi.stagionalita; track s.mese_num) {
+                  <tr>
+                    <td><b>{{ ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][+s.mese_num - 1] }}</b></td>
+                    <td class="text-right">{{ s.media | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
+                    <td>
+                      <div class="pareto-bar">
+                        <div class="pareto-fill stag"
+                             [style.width]="((s.media / maxStagionalita) * 100) + '%'"></div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
   }
 </div>
