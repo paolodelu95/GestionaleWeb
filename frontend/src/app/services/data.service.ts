@@ -157,6 +157,9 @@ export class DataService {
   createVenditaBanco(v: VenditaBanco): Observable<any> { return this.api.post('vendite-banco', v); }
   deleteVenditaBanco(id: number): Observable<any> { return this.api.delete(`vendite-banco/${id}`); }
   getNextNumberVenditaBanco(): Observable<{ numero: number }> { return this.api.get('next-number/vendite-banco'); }
+  generaFatturaFromVendita(venditaId: number, clienteId: number): Observable<{ id: number; numero: string }> {
+    return this.api.post(`vendite-banco/${venditaId}/genera-fattura`, { clienteId });
+  }
 
   // Arrivi Merce
   getArriviMerce(): Observable<ArrivoMerce[]> { return this.api.get('arrivi-merce'); }

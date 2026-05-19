@@ -1,7 +1,13 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
+export function normalizePiva(raw: string): string {
+  let v = (raw ?? '').replace(/\s/g, '').toUpperCase();
+  if (v.startsWith('IT')) v = v.slice(2);
+  return v;
+}
+
 export function pIvaValidator(control: AbstractControl): ValidationErrors | null {
-  const v: string = (control.value ?? '').replace(/\s/g, '');
+  const v = normalizePiva(control.value ?? '');
   if (!v) return null;
   return /^\d{11}$/.test(v) ? null : { pIva: true };
 }

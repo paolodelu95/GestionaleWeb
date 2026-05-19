@@ -20,7 +20,7 @@ import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
 import { Fornitore } from '../../models';
-import { pIvaValidator, telefonoValidator, capValidator } from '../../validators/italian-validators';
+import { pIvaValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 
 // ── Azienda Search Dialog ──────────────────────────────────────────────────────
 @Component({
@@ -189,7 +189,7 @@ export class AziendaSearchDialogFComponent {
             </mat-form-field>
             <button mat-icon-button type="button" style="margin-top:4px"
                     matTooltip="Carica dati da P.IVA"
-                    [disabled]="lookupLoading || (form.get('pIva')?.value?.replace(/\\s/g,'')?.length !== 11)"
+                    [disabled]="lookupLoading || !canLookupPiva"
                     (click)="lookupPiva()">
               @if (lookupLoading) {
                 <mat-spinner diameter="20"></mat-spinner>
@@ -238,9 +238,11 @@ export class FornitoreDialogComponent implements OnInit {
     });
   }
 
+  get canLookupPiva(): boolean { return normalizePiva(this.form.get('pIva')?.value ?? '').length === 11; }
+
   private pivaAsyncValidator(tipo: 'clienti' | 'fornitori', excludeId?: number): AsyncValidatorFn {
     return (control: AbstractControl): Observable<ValidationErrors | null> => {
-      const piva = (control.value ?? '').replace(/\s/g, '');
+      const piva = normalizePiva(control.value ?? '');
       if (!piva || piva.length !== 11) return of(null);
       return timer(500).pipe(
         switchMap(() => this.ds.checkPivaDuplicate(piva, tipo, excludeId)),
@@ -293,7 +295,7 @@ export class FornitoreDialogComponent implements OnInit {
   }
 
   lookupPiva() {
-    const piva = this.form.get('pIva')?.value?.replace(/\s/g, '');
+    const piva = normalizePiva(this.form.get('pIva')?.value ?? '');
     if (!piva || piva.length !== 11) return;
     this.lookupLoading = true;
     this.ds.lookupPiva(piva).subscribe({

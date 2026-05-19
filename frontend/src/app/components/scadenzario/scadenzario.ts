@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DataService } from '../../services/data.service';
 
 interface ScadenzarioItem {
@@ -35,7 +36,7 @@ interface ScadenzarioItem {
     MatTableModule, MatSortModule, MatPaginatorModule,
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule, MatInputModule,
-    MatTooltipModule,
+    MatTooltipModule, MatSnackBarModule,
   ],
   templateUrl: './scadenzario.html',
   styleUrl: './scadenzario.scss',
@@ -75,7 +76,7 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
     ).length;
   }
 
-  constructor(private ds: DataService, private router: Router) {}
+  constructor(private ds: DataService, private router: Router, private snack: MatSnackBar) {}
 
   ngOnInit() {
     this.load();
@@ -118,8 +119,23 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
     this.applyVista();
   }
 
-  goToPagamenti(item: ScadenzarioItem) {
-    this.router.navigate(['/pagamenti']);
+  segnaPagato(item: ScadenzarioItem) {
+    const label = item.tipo === 'fattura' ? 'fattura' : 'acquisto';
+    const importoFmt = item.totale.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+    if (!confirm(`Segnare come pagato/a la ${label} N. ${item.numero} per ${importoFmt}?`)) return;
+    const today = new Date().toISOString().substring(0, 10);
+    this.ds.createPagamento({
+      dataPagamento: today,
+      importo: item.totale,
+      metodo: 'Bonifico',
+      tipo: item.direzione,
+      conto: 'BANCA',
+      fatturaId: item.tipo === 'fattura' ? item.id : null,
+      acquistoId: item.tipo === 'acquisto' ? item.id : null,
+    }).subscribe({
+      next: () => { this.snack.open('Pagamento registrato', '', { duration: 2500 }); this.load(); },
+      error: () => this.snack.open('Errore durante il pagamento', '', { duration: 3000 }),
+    });
   }
 
   giorniBadgeClass(item: ScadenzarioItem): string {

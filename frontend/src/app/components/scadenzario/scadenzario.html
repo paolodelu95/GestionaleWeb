@@ -133,9 +133,9 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let item" class="table-actions">
-          <button mat-stroked-button type="button" color="primary" (click)="goToPagamenti(item)"
-                  matTooltip="Vai a Pagamenti per registrare il saldo">
-            <mat-icon>payments</mat-icon> Segna come pagato
+          <button mat-stroked-button type="button" color="primary" (click)="segnaPagato(item)"
+                  matTooltip="Registra il pagamento completo per questo documento">
+            <mat-icon>check_circle</mat-icon> Segna come pagato
           </button>
         </td>
       </ng-container>

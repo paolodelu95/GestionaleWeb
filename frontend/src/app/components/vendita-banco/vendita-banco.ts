@@ -11,15 +11,23 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { VenditaBanco, Prodotto, ProdottoVariante, RigaDocumento, AliquotaIva, UnitaMisura } from '../../models';
+import { VenditaBanco, Prodotto, ProdottoVariante, RigaDocumento, AliquotaIva, UnitaMisura, Cliente } from '../../models';
+import { normalizePiva } from '../../validators/italian-validators';
 
 interface RigaVendita extends RigaDocumento {
   varianteId?: number | null;
   varianteTaglia?: string;
   varianteColore?: string;
   haVarianti?: boolean;
+}
+
+interface MetodoPagamento {
+  valore: string;
+  label: string;
+  icon: string;
 }
 
 @Component({
@@ -30,14 +38,31 @@ interface RigaVendita extends RigaDocumento {
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatTabsModule, MatSnackBarModule, MatAutocompleteModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './vendita-banco.html',
   styles: [`
     .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .form-field { display: flex; flex-direction: column; gap: 4px; }
     .form-field label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
     .form-field input, .form-field select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; transition: border-color .15s; }
     .form-field input:focus, .form-field select:focus { border-color: #4f46e5; }
+
+    /* Metodi pagamento */
+    .metodi-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    .metodo-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; width: 110px; height: 80px; border: 2px solid #e2e8f0;
+      border-radius: 12px; background: #fff; cursor: pointer; transition: all .15s;
+      font-size: 12px; font-weight: 700; color: #475569; padding: 8px 4px;
+    }
+    .metodo-btn mat-icon { font-size: 26px; width: 26px; height: 26px; }
+    .metodo-btn:hover { border-color: #4f46e5; background: #f5f3ff; color: #4f46e5; }
+    .metodo-btn.selected { border-color: #4f46e5; background: #4f46e5; color: #fff; }
+    .metodo-btn.selected mat-icon { color: #fff; }
+
+    /* Tabella righe */
     .righe-header { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px; }
     .righe-title { font-size: 13px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: .5px; }
     .righe-table { width: 100%; border-collapse: collapse; }
@@ -46,14 +71,14 @@ interface RigaVendita extends RigaDocumento {
     .riga-input { border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
     .riga-input:focus { outline: none; border-color: #4f46e5; }
     .riga-input.num { width: 70px; text-align: right; }
+
+    /* Totali */
     .totali-box { display: flex; justify-content: flex-end; margin-top: 16px; }
     .totali-inner { min-width: 260px; }
     .totali-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: #64748b; border-bottom: 1px solid #f1f5f9; }
     .totali-finale { display: flex; justify-content: space-between; padding: 10px 14px; background: #4f46e5; color: #fff; border-radius: 8px; font-size: 16px; font-weight: 700; margin-top: 8px; }
-    .actions-bar { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-    mat-table { width: 100%; }
-    th.mat-header-cell { font-weight: 700; font-size: 12px; color: #64748b; text-transform: uppercase; background: #f8fafc; }
-    td.mat-cell { font-size: 13px; }
+
+    /* Calcolatrice resto */
     .resto-box { border: 1px solid #e0e7ff; border-radius: 12px; background: #f5f3ff; margin-top: 16px; overflow: hidden; }
     .resto-header { background: #ede9fe; padding: 10px 16px; font-size: 13px; font-weight: 700; color: #4f46e5; display: flex; align-items: center; }
     .resto-body { padding: 14px 16px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
@@ -74,20 +99,62 @@ interface RigaVendita extends RigaDocumento {
     .resto-ok { background: #dcfce7; color: #15803d; }
     .resto-err { background: #fee2e2; color: #dc2626; }
     .resto-risultato mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    /* Sezione fattura */
+    .fattura-toggle-row { display: flex; align-items: center; gap: 12px; margin: 20px 0 0; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; user-select: none; }
+    .fattura-toggle-row mat-icon { font-size: 22px; width: 22px; height: 22px; color: #4f46e5; }
+    .fattura-toggle-label { font-size: 14px; font-weight: 700; color: #1e293b; flex: 1; }
+    .fattura-toggle-sub { font-size: 12px; color: #64748b; }
+    .fattura-section { border: 1px solid #c7d2fe; border-top: none; border-radius: 0 0 12px 12px; background: #fff; padding: 16px; }
+    .piva-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .piva-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; text-transform: uppercase; }
+    .piva-input:focus { border-color: #4f46e5; }
+    .cliente-trovato { display: flex; align-items: center; gap: 12px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 10px 14px; }
+    .cliente-trovato mat-icon { color: #16a34a; }
+    .cliente-trovato-nome { font-weight: 700; color: #15803d; flex: 1; }
+    .cliente-trovato-piva { font-size: 12px; color: #64748b; }
+
+    /* Note e azioni */
+    .note-row { margin-top: 16px; }
+    .note-input { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; box-sizing: border-box; resize: vertical; min-height: 60px; font-family: inherit; }
+    .note-input:focus { border-color: #4f46e5; }
+    .actions-bar { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+    /* Storico */
+    mat-table { width: 100%; }
+    th.mat-header-cell { font-weight: 700; font-size: 12px; color: #64748b; text-transform: uppercase; background: #f8fafc; }
+    td.mat-cell { font-size: 13px; }
   `]
 })
 export class VenditaBancoComponent implements OnInit, AfterViewInit {
 
   today = new Date().toISOString().substring(0, 10);
-  vendita: VenditaBanco = { numero: '', data: this.today, clienteNome: '', metodoPagamento: 'CONTANTI' };
+  vendita: VenditaBanco = { numero: '', data: this.today, metodoPagamento: 'CONTANTI' };
   righe: RigaVendita[] = [];
   prodottiList: Prodotto[] = [];
   filteredProdotti: (Prodotto[] | undefined)[] = [];
   variantiPerRiga: ProdottoVariante[][] = [];
   aliquoteIva: AliquotaIva[] = [];
   unitaMisura: UnitaMisura[] = [];
-  metodi = ['CONTANTI', 'BANCOMAT', 'CARTA DI CREDITO', 'BONIFICO', 'ASSEGNO'];
+  clientiList: Cliente[] = [];
 
+  readonly metodiPagamento: MetodoPagamento[] = [
+    { valore: 'CONTANTI',         label: 'Contanti',         icon: 'payments' },
+    { valore: 'BANCOMAT',         label: 'Bancomat',         icon: 'credit_card' },
+    { valore: 'CARTA DI CREDITO', label: 'Carta credito',    icon: 'contactless' },
+    { valore: 'BONIFICO',         label: 'Bonifico',         icon: 'account_balance' },
+    { valore: 'ASSEGNO',          label: 'Assegno',          icon: 'receipt_long' },
+  ];
+
+  // ── Fattura ──────────────────────────────────────────────────────────────
+  vuoleFattura = false;
+  cercaPivaStr = '';
+  cercandoPiva = false;
+  clienteSelezionato: { id?: number; ragioneSociale: string; pIva?: string } | null = null;
+  mostraFormManuale = false;
+  nuovoCliente = { ragioneSociale: '', pIva: '', via: '', cap: '', citta: '', provincia: '', stato: 'IT' };
+
+  // ── Totali ────────────────────────────────────────────────────────────────
   get imponibile(): number {
     return this.righe.reduce((s, r) => s + (r.quantita || 0) * (r.prezzo || 0) * (1 - (r.sconto || 0) / 100), 0);
   }
@@ -99,6 +166,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
   get totale(): number { return this.imponibile + this.ivaTotal; }
 
+  // ── Calcolatrice resto ────────────────────────────────────────────────────
   importoPagato: number | null = null;
   selectedBanconote: number[] = [];
   get resto(): number | null {
@@ -110,13 +178,8 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     this.selectedBanconote.push(b);
     this.importoPagato = this.selectedBanconote.reduce((a, x) => a + x, 0);
   }
-  countBanconota(b: number): number {
-    return this.selectedBanconote.filter(x => x === b).length;
-  }
-  clearImporto() {
-    this.importoPagato = null;
-    this.selectedBanconote = [];
-  }
+  countBanconota(b: number): number { return this.selectedBanconote.filter(x => x === b).length; }
+  clearImporto() { this.importoPagato = null; this.selectedBanconote = []; }
 
   ivaBreakdown(): { aliquota: number; imp: number; iva: number }[] {
     const map = new Map<number, { imp: number; iva: number }>();
@@ -128,6 +191,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     return [...map.entries()].map(([a, v]) => ({ aliquota: a, ...v })).filter(x => x.imp > 0);
   }
 
+  // ── Storico ───────────────────────────────────────────────────────────────
   storico: VenditaBanco[] = [];
   dsStorico = new MatTableDataSource<VenditaBanco>([]);
   colStorico = ['data', 'numero', 'cliente', 'metodo', 'totale', 'azioni'];
@@ -139,6 +203,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     this.ds.getProdotti().subscribe(p => this.prodottiList = p);
     this.ds.getAliquoteIva().subscribe(a => this.aliquoteIva = a.filter(x => x.attiva));
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
+    this.ds.getClienti().subscribe(c => this.clientiList = c);
     this.loadNextNumber();
     this.loadStorico();
   }
@@ -162,6 +227,64 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     this.ds.getVenditeBanco().subscribe(v => { this.storico = v; this.dsStorico.data = v; });
   }
 
+  // ── Metodo pagamento ──────────────────────────────────────────────────────
+  setMetodo(m: string) { this.vendita.metodoPagamento = m; this.clearImporto(); }
+
+  // ── Fattura ───────────────────────────────────────────────────────────────
+  toggleFattura() {
+    this.vuoleFattura = !this.vuoleFattura;
+    if (!this.vuoleFattura) this.resetClienteFattura();
+  }
+
+  cercaPerPiva() {
+    const piva = normalizePiva(this.cercaPivaStr);
+    if (!piva) return;
+    this.cercandoPiva = true;
+    this.clienteSelezionato = null;
+    this.mostraFormManuale = false;
+
+    this.ds.checkPivaDuplicate(piva, 'clienti').subscribe({
+      next: check => {
+        if (check.exists && check.id) {
+          const c = this.clientiList.find(x => x.id === check.id);
+          this.clienteSelezionato = { id: c?.id, ragioneSociale: c?.ragioneSociale || '', pIva: c?.pIva };
+          this.cercandoPiva = false;
+        } else {
+          this.ds.lookupPiva(piva).subscribe({
+            next: data => {
+              this.nuovoCliente = {
+                ragioneSociale: data.ragioneSociale || '',
+                pIva: piva, via: data.via || '', cap: data.cap || '',
+                citta: data.citta || '', provincia: data.provincia || '', stato: data.stato || 'IT',
+              };
+              this.mostraFormManuale = true;
+              this.cercandoPiva = false;
+            },
+            error: () => {
+              this.nuovoCliente = { ragioneSociale: '', pIva: piva, via: '', cap: '', citta: '', provincia: '', stato: 'IT' };
+              this.mostraFormManuale = true;
+              this.cercandoPiva = false;
+            },
+          });
+        }
+      },
+      error: () => {
+        this.nuovoCliente = { ragioneSociale: '', pIva: piva, via: '', cap: '', citta: '', provincia: '', stato: 'IT' };
+        this.mostraFormManuale = true;
+        this.cercandoPiva = false;
+      },
+    });
+  }
+
+  resetClienteFattura() {
+    this.cercaPivaStr = '';
+    this.clienteSelezionato = null;
+    this.mostraFormManuale = false;
+    this.cercandoPiva = false;
+    this.nuovoCliente = { ragioneSociale: '', pIva: '', via: '', cap: '', citta: '', provincia: '', stato: 'IT' };
+  }
+
+  // ── Righe ─────────────────────────────────────────────────────────────────
   addRiga() {
     const idx = this.righe.length;
     this.righe.push({ descrizione: '', quantita: 1, prezzo: 0, sconto: 0, iva: 22 });
@@ -183,47 +306,34 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
       (p.codice || '').toLowerCase().includes(v) ||
       (p.barcode || '').toLowerCase().includes(v)
     );
-    // Barcode exact match → auto-select immediately
     const match = this.prodottiList.find(p => p.barcode && p.barcode === value);
-    if (match) {
-      this.selectProdotto(i, match);
-      this.righe[i].descrizione = match.nome;
-    }
+    if (match) { this.selectProdotto(i, match); this.righe[i].descrizione = match.nome; }
   }
 
   onBarcodeKeydown(i: number, event: KeyboardEvent) {
     if (event.key !== 'Enter') return;
     const val = this.righe[i].descrizione?.trim();
     if (!val) return;
-    // Try product-level barcode first
     const match = this.prodottiList.find(p => p.barcode === val);
     if (match) { this.selectProdotto(i, match); this.righe[i].descrizione = match.nome; return; }
-    // Try API (variant barcode)
     this.ds.searchByBarcode(val).subscribe({
       next: res => {
         this.selectProdotto(i, res.prodotto);
         this.righe[i].descrizione = res.prodotto.nome;
         if (res.variante) this.selectVariante(i, res.variante);
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   selectProdotto(i: number, p: Prodotto) {
     const r = this.righe[i];
-    r.descrizione = p.nome;
-    r.prezzo = p.prezzo;
-    r.iva = p.iva;
-    r.prodottoId = p.id;
-    r.unitaMisura = p.unitaMisura;
-    r.haVarianti = p.haVarianti;
-    r.varianteId = null;
-    r.varianteTaglia = '';
-    r.varianteColore = '';
+    r.descrizione = p.nome; r.prezzo = p.prezzo; r.iva = p.iva;
+    r.prodottoId = p.id; r.unitaMisura = p.unitaMisura;
+    r.haVarianti = p.haVarianti; r.varianteId = null;
+    r.varianteTaglia = ''; r.varianteColore = '';
     this.variantiPerRiga[i] = [];
-    if (p.haVarianti && p.id) {
-      this.ds.getProdottoVarianti(p.id).subscribe(v => { this.variantiPerRiga[i] = v; });
-    }
+    if (p.haVarianti && p.id) this.ds.getProdottoVarianti(p.id).subscribe(v => { this.variantiPerRiga[i] = v; });
   }
 
   selectVariante(i: number, v: ProdottoVariante) {
@@ -233,8 +343,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
 
   onVarianteChange(i: number) {
-    const raw = this.righe[i].varianteId;
-    const id = raw != null ? +raw : null;
+    const id = this.righe[i].varianteId != null ? +this.righe[i].varianteId! : null;
     const v = this.variantiPerRiga[i]?.find(x => x.id === id);
     if (v) {
       this.righe[i].varianteId = v.id;
@@ -256,43 +365,89 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     if (r.unitaMisura === 'pz') r.quantita = Math.max(1, Math.round(r.quantita || 1));
     else r.quantita = Math.max(0.001, r.quantita || 0.001);
   }
-  clampSconto(r: any) {
-    r.sconto = Math.min(100, Math.max(0, r.sconto ?? 0));
-  }
+  clampSconto(r: any) { r.sconto = Math.min(100, Math.max(0, r.sconto ?? 0)); }
 
   prezzoIvato(r: RigaVendita): number {
     return +((r.prezzo || 0) * (1 + (r.iva || 0) / 100)).toFixed(2);
   }
-
   setPrezzoFromGross(r: RigaVendita, event: Event) {
     const gross = Math.max(0, +(event.target as HTMLInputElement).value || 0);
     r.prezzo = gross > 0 ? +(gross / (1 + (r.iva || 0) / 100)).toFixed(6) : 0;
   }
-
   rigaImporto(r: RigaVendita): number {
     return (r.quantita || 0) * (r.prezzo || 0) * (1 + (r.iva || 0) / 100) * (1 - (r.sconto || 0) / 100);
   }
 
+  // ── Salva ─────────────────────────────────────────────────────────────────
   salvaEStampa() {
     if (!this.righe.length) { this.snack.open('Aggiungi almeno un prodotto', '', { duration: 2000 }); return; }
-    const payload: VenditaBanco = { ...this.vendita, righe: this.righe };
+
+    if (this.vuoleFattura) {
+      if (!this.clienteSelezionato && !this.mostraFormManuale) {
+        this.snack.open('Cerca la P.IVA del cliente per generare la fattura', '', { duration: 2500 }); return;
+      }
+      if (this.mostraFormManuale && !this.nuovoCliente.ragioneSociale.trim()) {
+        this.snack.open('Inserisci la ragione sociale del cliente', '', { duration: 2500 }); return;
+      }
+    }
+
+    if (this.vuoleFattura && !this.clienteSelezionato) {
+      this.ds.createCliente(this.nuovoCliente as unknown as Cliente).subscribe({
+        next: r => this.procediSalvataggio(r.id),
+        error: e => this.snack.open('Errore creazione cliente: ' + e.message, '', { duration: 3000 }),
+      });
+    } else {
+      this.procediSalvataggio(this.clienteSelezionato?.id);
+    }
+  }
+
+  private procediSalvataggio(clienteId?: number) {
+    const nomeCliente = this.clienteSelezionato?.ragioneSociale || this.nuovoCliente.ragioneSociale || '';
+    const payload: VenditaBanco = {
+      ...this.vendita,
+      clienteNome: this.vuoleFattura ? nomeCliente : '',
+      righe: this.righe,
+    };
+
     this.ds.createVenditaBanco(payload).subscribe({
       next: res => {
-        this.snack.open('Vendita registrata', '', { duration: 2000 });
         this.printSvc.printDocumentale(res.id);
-        this.loadStorico();
-        this.righe = [];
-        this.filteredProdotti = [];
-        this.variantiPerRiga = [];
-        this.importoPagato = null;
-        this.selectedBanconote = [];
-        this.vendita = { numero: '', data: this.today, clienteNome: '', metodoPagamento: 'CONTANTI' };
-        this.loadNextNumber();
+        if (this.vuoleFattura && clienteId) {
+          this.ds.generaFatturaFromVendita(res.id, clienteId).subscribe({
+            next: fat => {
+              this.snack.open(`Vendita registrata · Fattura ${fat.numero} generata`, '', { duration: 3500 });
+              this.loadStorico();
+              this.resetForm();
+            },
+            error: () => {
+              this.snack.open('Vendita salvata, errore nella generazione fattura', '', { duration: 3500 });
+              this.loadStorico();
+              this.resetForm();
+            },
+          });
+        } else {
+          this.snack.open('Vendita registrata', '', { duration: 2000 });
+          this.loadStorico();
+          this.resetForm();
+        }
       },
-      error: e => this.snack.open(e.message, '', { duration: 3000 })
+      error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });
   }
 
+  private resetForm() {
+    this.righe = [];
+    this.filteredProdotti = [];
+    this.variantiPerRiga = [];
+    this.importoPagato = null;
+    this.selectedBanconote = [];
+    this.vuoleFattura = false;
+    this.resetClienteFattura();
+    this.vendita = { numero: '', data: this.today, metodoPagamento: 'CONTANTI' };
+    this.loadNextNumber();
+  }
+
+  // ── Storico ───────────────────────────────────────────────────────────────
   stampa(v: VenditaBanco) { this.printSvc.printDocumentale(v.id!); }
 
   elimina(v: VenditaBanco) {

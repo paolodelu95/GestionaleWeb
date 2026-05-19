@@ -51,6 +51,49 @@ router.post('/', (req, res) => {
   res.json({ id: vendita_id });
 });
 
+router.post('/:id/genera-fattura', (req, res) => {
+  const { clienteId } = req.body;
+  const vendita = db.prepare('SELECT * FROM vendite_banco WHERE id=?').get(req.params.id);
+  if (!vendita) return res.status(404).json({ error: 'Vendita non trovata' });
+
+  const righe = getRighe(req.params.id);
+
+  // Genera numero fattura usando gli stessi contatori del sistema
+  const az = db.prepare('SELECT numerazione_annuale, numero_prefissi FROM azienda WHERE id=1').get();
+  const annuale = (az?.numerazione_annuale ?? 1) !== 0;
+  let prefissi = {};
+  try { prefissi = JSON.parse(az?.numero_prefissi || '{}'); } catch (_) {}
+  const prefisso = prefissi['fatture'] || '';
+  const anno = new Date().getFullYear();
+  db.prepare('INSERT OR IGNORE INTO contatori (tipo, anno, contatore) VALUES (?,?,0)').run('fatture', anno);
+  db.prepare('UPDATE contatori SET contatore = contatore + 1 WHERE tipo=? AND anno=?').run('fatture', anno);
+  const { contatore } = db.prepare('SELECT contatore FROM contatori WHERE tipo=? AND anno=?').get('fatture', anno);
+  const numero = annuale
+    ? `${prefisso}${anno}/${String(contatore).padStart(4, '0')}`
+    : `${prefisso}${contatore}`;
+
+  // Crea fattura subito come PAGATA (il pagamento è già in pagamenti tramite vendita al banco)
+  const result = db.prepare(`
+    INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
+    VALUES (?,?,?,?,?,?,?)
+  `).run(numero, vendita.data, clienteId || null, null, vendita.note || '', 'PAGATA', null);
+  const fatturaId = result.lastInsertRowid;
+
+  // Copia righe nella fattura (NO movimenti magazzino: già registrati dalla vendita al banco)
+  const stmtRiga = db.prepare(`
+    INSERT INTO fatture_righe
+    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+  `);
+  for (const r of righe) {
+    stmtRiga.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+                 r.sconto ?? 0, r.iva, r.unitaMisura || '',
+                 r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+  }
+
+  res.json({ id: fatturaId, numero });
+});
+
 router.delete('/:id', (req, res) => {
   const vendita = db.prepare(`SELECT numero, cliente_nome FROM vendite_banco WHERE id=?`).get(req.params.id);
   const righe = getRighe(req.params.id);

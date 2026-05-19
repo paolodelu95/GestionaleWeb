@@ -9,7 +9,8 @@
     <mat-tab label="Nuova vendita">
       <div class="card" style="margin-top:16px">
 
-        <div class="form-row">
+        <!-- Data + numero -->
+        <div class="form-row" style="grid-template-columns:1fr 1fr">
           <div class="form-field">
             <label>Data</label>
             <input type="date" [(ngModel)]="vendita.data">
@@ -18,23 +19,23 @@
             <label>N. documento</label>
             <input type="text" [(ngModel)]="vendita.numero" readonly style="background:#f8fafc;color:#64748b">
           </div>
-          <div class="form-field">
-            <label>Metodo di pagamento</label>
-            <select [(ngModel)]="vendita.metodoPagamento">
-              @for (m of metodi; track m) { <option [value]="m">{{ m }}</option> }
-            </select>
-          </div>
         </div>
 
-        <div class="form-row" style="grid-template-columns:2fr 1fr">
-          <div class="form-field">
-            <label>Cliente (opzionale)</label>
-            <input type="text" [(ngModel)]="vendita.clienteNome" placeholder="Nome cliente o lascia vuoto">
-          </div>
-          <div class="form-field">
-            <label>Note</label>
-            <input type="text" [(ngModel)]="vendita.note" placeholder="Note interne">
-          </div>
+        <!-- Metodi di pagamento -->
+        <div style="margin-bottom:4px">
+          <span style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px">
+            Metodo di pagamento
+          </span>
+        </div>
+        <div class="metodi-grid">
+          @for (m of metodiPagamento; track m.valore) {
+            <button type="button" class="metodo-btn"
+                    [class.selected]="vendita.metodoPagamento === m.valore"
+                    (click)="setMetodo(m.valore)">
+              <mat-icon>{{ m.icon }}</mat-icon>
+              {{ m.label }}
+            </button>
+          }
         </div>
 
         <!-- Righe prodotto -->
@@ -202,9 +203,106 @@
           </div>
         }
 
+        <!-- Toggle fattura -->
+        <div class="fattura-toggle-row" (click)="toggleFattura()">
+          <mat-icon>{{ vuoleFattura ? 'receipt_long' : 'receipt' }}</mat-icon>
+          <div style="flex:1">
+            <div class="fattura-toggle-label">Il cliente vuole la fattura?</div>
+            <div class="fattura-toggle-sub">
+              {{ vuoleFattura ? 'Sì — verrà generata una fattura collegata alla vendita' : 'No — solo documento di vendita al banco' }}
+            </div>
+          </div>
+          <mat-icon style="color:#94a3b8">{{ vuoleFattura ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </div>
+
+        @if (vuoleFattura) {
+          <div class="fattura-section">
+            @if (!clienteSelezionato) {
+              <!-- Ricerca per P.IVA -->
+              <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+                Cerca cliente per P.IVA
+              </div>
+              <div class="piva-row">
+                <input class="piva-input" type="text" placeholder="es. 01234567890"
+                       [(ngModel)]="cercaPivaStr"
+                       (keydown.enter)="cercaPerPiva()">
+                <button mat-flat-button type="button" (click)="cercaPerPiva()" [disabled]="cercandoPiva || !cercaPivaStr.trim()">
+                  @if (cercandoPiva) {
+                    <mat-spinner diameter="18" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner>
+                  } @else {
+                    <mat-icon>search</mat-icon>
+                  }
+                  Cerca
+                </button>
+              </div>
+
+              @if (mostraFormManuale) {
+                <div style="font-size:12px;color:#64748b;margin-bottom:12px">
+                  @if (nuovoCliente.ragioneSociale) {
+                    Cliente non presente in archivio — dati pre-compilati da registro imprese. Verifica e completa.
+                  } @else {
+                    P.IVA non trovata nel registro — inserisci i dati manualmente.
+                  }
+                </div>
+                <div class="form-row" style="grid-template-columns:2fr 1fr">
+                  <div class="form-field">
+                    <label>Ragione sociale *</label>
+                    <input type="text" [(ngModel)]="nuovoCliente.ragioneSociale" placeholder="Nome o ragione sociale">
+                  </div>
+                  <div class="form-field">
+                    <label>P.IVA</label>
+                    <input type="text" [(ngModel)]="nuovoCliente.pIva" readonly style="background:#f8fafc;color:#64748b">
+                  </div>
+                </div>
+                <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
+                  <div class="form-field">
+                    <label>Via</label>
+                    <input type="text" [(ngModel)]="nuovoCliente.via">
+                  </div>
+                  <div class="form-field">
+                    <label>CAP</label>
+                    <input type="text" [(ngModel)]="nuovoCliente.cap">
+                  </div>
+                  <div class="form-field">
+                    <label>Città</label>
+                    <input type="text" [(ngModel)]="nuovoCliente.citta">
+                  </div>
+                  <div class="form-field">
+                    <label>Prov.</label>
+                    <input type="text" [(ngModel)]="nuovoCliente.provincia" maxlength="2" style="text-transform:uppercase">
+                  </div>
+                </div>
+              }
+            } @else {
+              <!-- Cliente trovato -->
+              <div class="cliente-trovato">
+                <mat-icon>check_circle</mat-icon>
+                <div style="flex:1">
+                  <div class="cliente-trovato-nome">{{ clienteSelezionato.ragioneSociale }}</div>
+                  @if (clienteSelezionato.pIva) {
+                    <div class="cliente-trovato-piva">P.IVA {{ clienteSelezionato.pIva }}</div>
+                  }
+                </div>
+                <button mat-stroked-button type="button" (click)="resetClienteFattura()">
+                  <mat-icon>edit</mat-icon> Cambia
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Note -->
+        <div class="note-row">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">
+            Note interne
+          </div>
+          <textarea class="note-input" [(ngModel)]="vendita.note" placeholder="Note opzionali…" rows="2"></textarea>
+        </div>
+
         <div class="actions-bar">
           <button mat-flat-button type="button" [disabled]="!righe.length" (click)="salvaEStampa()">
-            <mat-icon>receipt_long</mat-icon> Salva e stampa documento
+            <mat-icon>receipt_long</mat-icon>
+            {{ vuoleFattura ? 'Salva, stampa e genera fattura' : 'Salva e stampa documento' }}
           </button>
         </div>
       </div>
