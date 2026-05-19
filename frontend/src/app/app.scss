@@ -348,3 +348,29 @@
   &.warn { background: #ef4444; color: white; }
   &.info { background: #3b82f6; color: white; }
 }
+
+.pwa-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+
+  mat-icon { flex-shrink: 0; font-size: 20px; width: 20px; height: 20px; }
+  span { flex: 1; }
+  button[mat-flat-button] { white-space: nowrap; font-size: 12px; }
+
+  &--install {
+    background: #eef2ff;
+    color: #3730a3;
+    border-bottom: 1px solid #c7d2fe;
+    mat-icon { color: #6366f1; }
+  }
+  &--update {
+    background: #f0fdf4;
+    color: #14532d;
+    border-bottom: 1px solid #bbf7d0;
+    mat-icon { color: #16a34a; }
+  }
+}

@@ -108,6 +108,22 @@
       </button>
     </mat-toolbar>
     <div class="content-area">
+      @if (showUpdateBanner) {
+        <div class="pwa-banner pwa-banner--update">
+          <mat-icon>system_update</mat-icon>
+          <span>È disponibile una nuova versione di Invoxa.</span>
+          <button mat-flat-button type="button" (click)="reloadForUpdate()">Aggiorna ora</button>
+          <button mat-icon-button type="button" (click)="showUpdateBanner = false"><mat-icon>close</mat-icon></button>
+        </div>
+      }
+      @if (showInstallBanner) {
+        <div class="pwa-banner pwa-banner--install">
+          <mat-icon>install_mobile</mat-icon>
+          <span>Installa Invoxa sul tuo dispositivo per accedervi come app.</span>
+          <button mat-flat-button type="button" (click)="installApp()">Installa</button>
+          <button mat-icon-button type="button" (click)="dismissInstall()"><mat-icon>close</mat-icon></button>
+        </div>
+      }
       <router-outlet />
     </div>
   </div>

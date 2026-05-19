@@ -18,6 +18,7 @@ import { AuthService } from './services/auth.service';
 import { NotificationService, NotificationBadges } from './services/notifications.service';
 import { LoginComponent } from './components/login/login';
 import { Azienda } from './models';
+import { SwUpdate } from '@angular/service-worker';
 
 interface NavItem {
   label: string;
@@ -50,14 +51,18 @@ export class App implements OnInit {
   searchQuery = '';
   searchResults: { label: string; tipo: string; route: string; id: number }[] = [];
   showSearch = false;
+  showInstallBanner = false;
+  showUpdateBanner = false;
   private searchSubject = new Subject<string>();
+  private installPromptEvent: any = null;
 
   constructor(
     private ds: DataService,
     private authSvc: AuthService,
     private notifSvc: NotificationService,
     private router: Router,
-    private elRef: ElementRef
+    private elRef: ElementRef,
+    private swUpdate: SwUpdate,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
   }
@@ -65,6 +70,20 @@ export class App implements OnInit {
   ngOnInit() {
     this.darkMode = localStorage.getItem('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
+
+    window.addEventListener('beforeinstallprompt', (e: Event) => {
+      e.preventDefault();
+      this.installPromptEvent = e;
+      if (localStorage.getItem('pwa-install-dismissed') !== '1') {
+        this.showInstallBanner = true;
+      }
+    });
+
+    if (this.swUpdate.isEnabled) {
+      this.swUpdate.versionUpdates.subscribe(evt => {
+        if (evt.type === 'VERSION_READY') this.showUpdateBanner = true;
+      });
+    }
 
     if (!this.loggedIn) return;
     this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
@@ -149,6 +168,23 @@ export class App implements OnInit {
     this.darkMode = !this.darkMode;
     document.body.classList.toggle('dark-mode', this.darkMode);
     localStorage.setItem('dark-mode', this.darkMode ? '1' : '0');
+  }
+
+  installApp() {
+    this.installPromptEvent?.prompt();
+    this.installPromptEvent?.userChoice.then(() => {
+      this.showInstallBanner = false;
+      this.installPromptEvent = null;
+    });
+  }
+
+  dismissInstall() {
+    this.showInstallBanner = false;
+    localStorage.setItem('pwa-install-dismissed', '1');
+  }
+
+  reloadForUpdate() {
+    this.swUpdate.activateUpdate().then(() => window.location.reload());
   }
 
   readonly navItems: NavItem[] = [
