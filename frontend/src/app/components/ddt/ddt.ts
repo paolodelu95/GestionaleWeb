@@ -17,6 +17,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatTabsModule } from '@angular/material/tabs';
 import { SelectionModel } from '@angular/cdk/collections';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
@@ -43,6 +44,9 @@ const RIGHE_STYLES = `
   .colli-calc-btn { margin-bottom:20px; flex-shrink:0; }
   .riga-nota td { background: #fefce8; }
   .riga-nota input { font-style: italic; color: #78716c; }
+  .td-drag { width: 28px; padding: 0 !important; cursor: grab; color: #94a3b8; }
+  .cdk-drag-placeholder { opacity: 0.4; }
+  .cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
 `;
 
 @Component({
@@ -52,7 +56,7 @@ const RIGHE_STYLES = `
     CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
     MatAutocompleteModule, MatTableModule, MatIconModule,
-    MatButtonToggleModule, MatMenuModule, MatTabsModule,
+    MatButtonToggleModule, MatMenuModule, MatTabsModule, DragDropModule,
   ],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica DDT' : 'Nuovo DDT' }}</h2>
@@ -125,6 +129,7 @@ const RIGHE_STYLES = `
               <table class="righe-table">
                 <thead>
                   <tr>
+                    <th class="td-drag"></th>
                     <th>Codice / Descrizione</th>
                     <th class="td-search"></th>
                     <th>Qtà</th>
@@ -137,10 +142,11 @@ const RIGHE_STYLES = `
                     <th></th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
                   @for (riga of righe; track $index) {
                     @if (riga.tipo === 'NOTA') {
-                      <tr class="riga-nota">
+                      <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
+                        <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                         <td colspan="9">
                           <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
                         </td>
@@ -151,7 +157,8 @@ const RIGHE_STYLES = `
                         </td>
                       </tr>
                     } @else {
-                    <tr>
+                    <tr cdkDrag cdkDragPreviewContainer="parent">
+                      <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                       <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
                       <td class="td-search">
                         <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
@@ -503,6 +510,10 @@ export class DdtDialogComponent implements OnInit {
     this.prezziRecenti.push([]);
   }
   removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); }
+  dropRiga(event: CdkDragDrop<any[]>) {
+    moveItemInArray(this.righe, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.prezziRecenti, event.previousIndex, event.currentIndex);
+  }
 
   save() {
     this.submitted = true;

@@ -16,6 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
@@ -37,6 +38,9 @@ const RIGHE_STYLES = `
   .pr-meta { color:#64748b; font-size:11px; }
   .riga-nota td { background: #fefce8; }
   .riga-nota input { font-style: italic; color: #78716c; }
+  .td-drag { width: 28px; padding: 0 !important; cursor: grab; color: #94a3b8; }
+  .cdk-drag-placeholder { opacity: 0.4; }
+  .cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
 `;
 
 @Component({
@@ -44,7 +48,7 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Nota di Credito' : 'Nuova Nota di Credito' }}</h2>
     <mat-dialog-content>
@@ -121,6 +125,7 @@ const RIGHE_STYLES = `
         <table class="righe-table">
           <thead>
             <tr>
+              <th class="td-drag"></th>
               <th>Codice / Descrizione</th>
               <th class="td-search"></th>
               <th class="td-history"></th>
@@ -133,10 +138,11 @@ const RIGHE_STYLES = `
               <th></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
             @for (riga of righe; track $index) {
               @if (riga.tipo === 'NOTA') {
-                <tr class="riga-nota">
+                <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
+                  <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                   <td colspan="9">
                     <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
                   </td>
@@ -147,7 +153,8 @@ const RIGHE_STYLES = `
                   </td>
                 </tr>
               } @else {
-              <tr>
+              <tr cdkDrag cdkDragPreviewContainer="parent">
+                <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                 <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
@@ -382,6 +389,10 @@ export class NotaCreditoDialogComponent implements OnInit {
   addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }
   addNota(testo: string) { this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 }); }
   removeRiga(i: number) { this.righe.splice(i, 1); }
+  dropRiga(event: CdkDragDrop<any[]>) {
+    moveItemInArray(this.righe, event.previousIndex, event.currentIndex);
+    moveItemInArray(this.prezziRecenti, event.previousIndex, event.currentIndex);
+  }
 
   save() {
     if (!this.form.valid) return;
