@@ -148,11 +148,39 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
 
   // ── Fattura ──────────────────────────────────────────────────────────────
   vuoleFattura = false;
-  cercaPivaStr = '';
+  cercaStr = '';
   cercandoPiva = false;
   clienteSelezionato: { id?: number; ragioneSociale: string; pIva?: string } | null = null;
   mostraFormManuale = false;
   nuovoCliente = { ragioneSociale: '', pIva: '', via: '', cap: '', citta: '', provincia: '', stato: 'IT' };
+
+  /** Clears autocomplete display value after selection */
+  readonly displayNone = (_: any) => '';
+
+  get filteredClienti(): Cliente[] {
+    const q = (this.cercaStr ?? '').trim().toLowerCase();
+    if (q.length < 2) return [];
+    const norm = normalizePiva(this.cercaStr);
+    return this.clientiList.filter(c =>
+      c.ragioneSociale.toLowerCase().includes(q) ||
+      normalizePiva(c.pIva || '').includes(norm)
+    ).slice(0, 8);
+  }
+
+  get isPivaInput(): boolean {
+    return normalizePiva(this.cercaStr).length === 11;
+  }
+
+  selectClienteDaLista(c: Cliente) {
+    if (!c) return;
+    this.clienteSelezionato = { id: c.id, ragioneSociale: c.ragioneSociale, pIva: c.pIva };
+    this.mostraFormManuale = false;
+  }
+
+  inserisciManualmente() {
+    this.nuovoCliente = { ragioneSociale: this.cercaStr.trim(), pIva: normalizePiva(this.cercaStr), via: '', cap: '', citta: '', provincia: '', stato: 'IT' };
+    this.mostraFormManuale = true;
+  }
 
   // ── Totali ────────────────────────────────────────────────────────────────
   get imponibile(): number {
@@ -237,7 +265,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
 
   cercaPerPiva() {
-    const piva = normalizePiva(this.cercaPivaStr);
+    const piva = normalizePiva(this.cercaStr);
     if (!piva) return;
     this.cercandoPiva = true;
     this.clienteSelezionato = null;
@@ -277,7 +305,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
 
   resetClienteFattura() {
-    this.cercaPivaStr = '';
+    this.cercaStr = '';
     this.clienteSelezionato = null;
     this.mostraFormManuale = false;
     this.cercandoPiva = false;

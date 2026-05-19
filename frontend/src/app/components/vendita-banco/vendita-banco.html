@@ -218,30 +218,55 @@
         @if (vuoleFattura) {
           <div class="fattura-section">
             @if (!clienteSelezionato) {
-              <!-- Ricerca per P.IVA -->
+              <!-- Ricerca unificata: per nome o P.IVA -->
               <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
-                Cerca cliente per P.IVA
+                Cerca cliente
               </div>
               <div class="piva-row">
-                <input class="piva-input" type="text" placeholder="es. 01234567890"
-                       [(ngModel)]="cercaPivaStr"
-                       (keydown.enter)="cercaPerPiva()">
-                <button mat-flat-button type="button" (click)="cercaPerPiva()" [disabled]="cercandoPiva || !cercaPivaStr.trim()">
-                  @if (cercandoPiva) {
-                    <mat-spinner diameter="18" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner>
-                  } @else {
-                    <mat-icon>search</mat-icon>
+                <mat-autocomplete #autoCliente="matAutocomplete"
+                                  [displayWith]="displayNone"
+                                  (optionSelected)="selectClienteDaLista($event.option.value)">
+                  @for (c of filteredClienti; track c.id) {
+                    <mat-option [value]="c">
+                      <span style="font-weight:600">{{ c.ragioneSociale }}</span>
+                      @if (c.pIva) { <span style="color:#94a3b8;font-size:11px"> · {{ c.pIva }}</span> }
+                      @if (c.citta) { <span style="color:#94a3b8;font-size:11px"> · {{ c.citta }}</span> }
+                    </mat-option>
                   }
-                  Cerca
-                </button>
+                </mat-autocomplete>
+                <input class="piva-input" type="text"
+                       placeholder="Nome, ragione sociale o P.IVA…"
+                       [(ngModel)]="cercaStr"
+                       [matAutocomplete]="autoCliente"
+                       (keydown.enter)="isPivaInput && cercaPerPiva()">
+                @if (isPivaInput) {
+                  <button mat-flat-button type="button" (click)="cercaPerPiva()" [disabled]="cercandoPiva">
+                    @if (cercandoPiva) {
+                      <mat-spinner diameter="18" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner>
+                    } @else {
+                      <mat-icon>travel_explore</mat-icon>
+                    }
+                    Registro imprese
+                  </button>
+                }
               </div>
 
+              @if (!mostraFormManuale && cercaStr.trim().length >= 2 && filteredClienti.length === 0) {
+                <div style="margin-top:6px;font-size:12px;color:#64748b">
+                  Nessun cliente trovato in archivio.
+                  <button mat-button type="button" style="font-size:12px;padding:0 4px;min-width:0;vertical-align:baseline"
+                          (click)="inserisciManualmente()">
+                    Inserisci manualmente
+                  </button>
+                </div>
+              }
+
               @if (mostraFormManuale) {
-                <div style="font-size:12px;color:#64748b;margin-bottom:12px">
+                <div style="font-size:12px;color:#64748b;margin:8px 0 12px">
                   @if (nuovoCliente.ragioneSociale) {
-                    Cliente non presente in archivio — dati pre-compilati da registro imprese. Verifica e completa.
+                    Dati pre-compilati dal registro imprese — verifica e completa.
                   } @else {
-                    P.IVA non trovata nel registro — inserisci i dati manualmente.
+                    Inserisci i dati del cliente.
                   }
                 </div>
                 <div class="form-row" style="grid-template-columns:2fr 1fr">
