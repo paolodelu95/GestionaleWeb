@@ -543,6 +543,14 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   printDoc(o: Ordine) { this.printSvc.printOrdine(o.id!); }
 
+  convertiInDdt(o: Ordine) {
+    if (!confirm(`Convertire l'ordine ${o.numero} in DDT?`)) return;
+    this.ds.ordineToDD(o.id!).subscribe({
+      next: r => { this.load(); this.snack.open(`DDT ${r.numero} creato`, '', { duration: 3000 }); },
+      error: e => this.snack.open(e.message || 'Errore conversione', '', { duration: 3000 }),
+    });
+  }
+
   delete(o: Ordine) {
     if (!confirm(`Eliminare Ordine ${o.numero}?`)) return;
     this.ds.deleteOrdine(o.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });

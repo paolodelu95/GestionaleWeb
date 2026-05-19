@@ -21,6 +21,50 @@ import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
 import { Fornitore } from '../../models';
 import { pIvaValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
+import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
+
+const FORNITORI_FIELDS: FieldDef[] = [
+  { key: 'ragioneSociale', label: 'Ragione Sociale', required: true, aliases: [
+    'Ragione Sociale', 'ragioneSociale', 'Denominazione', 'Azienda', 'Nome Azienda',
+    'Ragione sociale', 'Company', 'Company Name', 'Fornitore', 'Supplier', 'Nome',
+    'Intestazione', 'Intestatario',
+  ]},
+  { key: 'email', label: 'Email', aliases: [
+    'Email', 'email', 'E-mail', 'E_mail', 'Email Address', 'Indirizzo Email',
+    'Posta Elettronica', 'Mail',
+  ]},
+  { key: 'telefono', label: 'Telefono', aliases: [
+    'Telefono', 'telefono', 'Tel', 'Tel.', 'Telefono 1', 'Telefono fisso',
+    'Cell', 'Cellulare', 'Phone', 'Mobile', 'Phone Number', 'Numero di telefono',
+  ]},
+  { key: 'via', label: 'Via / Indirizzo', aliases: [
+    'Via', 'via', 'Indirizzo', 'Indirizzo 1', 'Street', 'Address',
+    'Indirizzo stradale', 'Sede', 'Via e numero',
+  ]},
+  { key: 'cap', label: 'CAP', aliases: [
+    'CAP', 'cap', 'Codice Postale', 'ZIP', 'Postal Code', 'ZIP Code', 'C.A.P.',
+  ]},
+  { key: 'citta', label: 'Città', aliases: [
+    'Città', 'Citta', 'citta', 'Comune', 'City', 'Town', 'Localita', 'Località',
+  ]},
+  { key: 'provincia', label: 'Provincia', aliases: [
+    'Provincia', 'provincia', 'Prov', 'Prov.', 'Province', 'Sigla Provincia',
+  ]},
+  { key: 'stato', label: 'Stato / Paese', aliases: [
+    'Stato', 'stato', 'Country', 'Nazione', 'Paese', 'Naz.',
+  ]},
+  { key: 'pIva', label: 'P. IVA', aliases: [
+    'P. IVA', 'pIva', 'P.IVA', 'Partita IVA', 'Partita_IVA', 'VAT',
+    'VAT Number', 'P IVA', 'PIVA', 'CF/PIVA', 'Partita iva',
+  ]},
+  { key: 'sdi', label: 'SDI', aliases: [
+    'SDI', 'sdi', 'Codice SDI', 'Codice Destinatario', 'Destinatario SDI',
+    'Codice Univoco', 'Cod. Destinatario',
+  ]},
+  { key: 'pec', label: 'PEC', aliases: [
+    'PEC', 'pec', 'Posta Certificata', 'PEC Address', 'Indirizzo PEC',
+  ]},
+];
 
 // ── Azienda Search Dialog ──────────────────────────────────────────────────────
 @Component({
@@ -407,20 +451,29 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     (event.target as HTMLInputElement).value = '';
     try {
       const rows = await this.excel.readFile(file);
+      if (!rows.length) { this.snack.open('File vuoto o non leggibile', '', { duration: 3000 }); return; }
+
+      const result: MappingResult | null = await this.dialog.open(ImportMappingDialogComponent, {
+        data: { rows, fields: FORNITORI_FIELDS, entityType: 'fornitori', entityLabel: 'Fornitori' },
+        disableClose: true,
+      }).afterClosed().toPromise();
+      if (!result) return;
+
+      const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
       let ok = 0;
       for (const r of rows) {
         const f: Fornitore = {
-          ragioneSociale: r['Ragione Sociale'] || r['ragioneSociale'] || '',
-          email:          r['Email']           || r['email']          || '',
-          telefono:       r['Telefono']        || r['telefono']       || '',
-          via:            r['Via']             || r['via']            || '',
-          cap:            r['CAP']             || r['cap']            || '',
-          citta:          r['Città']           || r['citta']          || '',
-          provincia:      r['Provincia']       || r['provincia']      || '',
-          stato:          r['Stato']           || r['stato']          || 'Italia',
-          pIva:           r['P. IVA']          || r['pIva']           || '',
-          sdi:            r['SDI']             || r['sdi']            || '',
-          pec:            r['PEC']             || r['pec']            || '',
+          ragioneSociale: v('ragioneSociale', r),
+          email:          v('email', r),
+          telefono:       v('telefono', r),
+          via:            v('via', r),
+          cap:            v('cap', r),
+          citta:          v('citta', r),
+          provincia:      v('provincia', r),
+          stato:          v('stato', r) || 'Italia',
+          pIva:           v('pIva', r),
+          sdi:            v('sdi', r),
+          pec:            v('pec', r),
         };
         if (!f.ragioneSociale) continue;
         await this.ds.createFornitore(f).toPromise();

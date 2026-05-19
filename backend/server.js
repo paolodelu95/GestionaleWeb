@@ -134,21 +134,30 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ── Ricerca globale ────────────────────────────────────────────────────────────
 app.get('/api/search', (req, res) => {
   const q = (req.query.q || '').trim();
-  if (q.length < 2) return res.json({ clienti: [], prodotti: [], fatture: [], ddt: [] });
+  if (q.length < 2) return res.json({ clienti: [], fornitori: [], prodotti: [], fatture: [], ddt: [], ordini: [], preventivi: [] });
   const like = `%${q}%`;
   const clienti = db.prepare(
     `SELECT id, ragione_sociale as label, 'cliente' as tipo, '/clienti' as route FROM clienti WHERE ragione_sociale LIKE ? OR p_iva LIKE ? OR codice_fiscale LIKE ? LIMIT 5`
   ).all(like, like, like);
+  const fornitori = db.prepare(
+    `SELECT id, ragione_sociale as label, 'fornitore' as tipo, '/fornitori' as route FROM fornitori WHERE ragione_sociale LIKE ? OR p_iva LIKE ? LIMIT 5`
+  ).all(like, like);
   const prodotti = db.prepare(
     `SELECT id, nome as label, 'prodotto' as tipo, '/prodotti' as route FROM prodotti WHERE nome LIKE ? OR codice LIKE ? OR barcode LIKE ? LIMIT 5`
   ).all(like, like, like);
   const fatture = db.prepare(
-    `SELECT f.id, f.numero as label, 'fattura' as tipo, '/fatture' as route FROM fatture f WHERE f.numero LIKE ? LIMIT 5`
-  ).all(like);
+    `SELECT f.id, f.numero || COALESCE(' – ' || c.ragione_sociale, '') as label, 'fattura' as tipo, '/fatture' as route FROM fatture f LEFT JOIN clienti c ON f.cliente_id=c.id WHERE f.numero LIKE ? OR c.ragione_sociale LIKE ? LIMIT 5`
+  ).all(like, like);
   const ddt = db.prepare(
-    `SELECT d.id, d.numero as label, 'ddt' as tipo, '/ddt' as route FROM ddt d WHERE d.numero LIKE ? LIMIT 5`
-  ).all(like);
-  res.json({ clienti, prodotti, fatture, ddt });
+    `SELECT d.id, d.numero || COALESCE(' – ' || c.ragione_sociale, '') as label, 'ddt' as tipo, '/ddt' as route FROM ddt d LEFT JOIN clienti c ON d.cliente_id=c.id WHERE d.numero LIKE ? OR c.ragione_sociale LIKE ? LIMIT 5`
+  ).all(like, like);
+  const ordini = db.prepare(
+    `SELECT o.id, o.numero || COALESCE(' – ' || c.ragione_sociale, '') as label, 'ordine' as tipo, '/ordini' as route FROM ordini o LEFT JOIN clienti c ON o.cliente_id=c.id WHERE o.numero LIKE ? OR c.ragione_sociale LIKE ? LIMIT 5`
+  ).all(like, like);
+  const preventivi = db.prepare(
+    `SELECT p.id, p.numero || COALESCE(' – ' || c.ragione_sociale, '') as label, 'preventivo' as tipo, '/preventivi' as route FROM preventivi p LEFT JOIN clienti c ON p.cliente_id=c.id WHERE p.numero LIKE ? OR c.ragione_sociale LIKE ? LIMIT 5`
+  ).all(like, like);
+  res.json({ clienti, fornitori, prodotti, fatture, ddt, ordini, preventivi });
 });
 
 // ── Cron jobs ─────────────────────────────────────────────────────────────────

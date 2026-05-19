@@ -15,6 +15,57 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
+import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
+
+const PRODOTTI_FIELDS: FieldDef[] = [
+  { key: 'nome', label: 'Nome', required: true, aliases: [
+    'Nome', 'nome', 'Prodotto', 'Articolo', 'Descrizione Articolo', 'Product Name',
+    'Item Name', 'Denominazione', 'Name', 'Desc.', 'Descrizione Breve',
+  ]},
+  { key: 'categoria', label: 'Categoria', aliases: [
+    'Categoria', 'categoria', 'Categoria Merceologica', 'Category', 'Gruppo',
+    'Tipo', 'Famiglia', 'Linea',
+  ]},
+  { key: 'descrizione', label: 'Descrizione', aliases: [
+    'Descrizione', 'descrizione', 'Descrizione Estesa', 'Note', 'Description',
+    'Note Prodotto', 'Annotazioni',
+  ]},
+  { key: 'codice', label: 'Codice', aliases: [
+    'Codice', 'codice', 'Codice Articolo', 'Cod. Articolo', 'SKU', 'Cod.',
+    'Item Code', 'Codice Prodotto', 'Art.', 'Articolo', 'Riferimento',
+  ]},
+  { key: 'codiceFornitore', label: 'Codice Fornitore', aliases: [
+    'Codice Fornitore', 'codiceFornitore', 'Cod. Fornitore', 'Supplier Code',
+    'Codice Interno Fornitore', 'Ref. Fornitore',
+  ]},
+  { key: 'barcode', label: 'Barcode', aliases: [
+    'Barcode', 'barcode', 'EAN', 'EAN13', 'Codice a Barre', 'UPC', 'GTIN',
+    'Cod. Barre', 'EAN-13',
+  ]},
+  { key: 'prezzo', label: 'Prezzo vendita', type: 'number', aliases: [
+    'Prezzo vendita', 'Prezzo', 'prezzo', 'Prezzo di Vendita', 'Prezzo Vendita',
+    'Selling Price', 'Price', 'Listino', 'Prezzo al pubblico', 'Prezzo Cliente',
+  ]},
+  { key: 'prezzoAcquisto', label: 'Prezzo acquisto', type: 'number', aliases: [
+    'Prezzo acquisto', 'prezzoAcquisto', 'Prezzo di Acquisto', 'Costo',
+    'Purchase Price', 'Cost', 'Costo Acquisto', 'Prezzo Fornitore',
+  ]},
+  { key: 'iva', label: 'IVA (%)', type: 'number', defaultValue: 22, aliases: [
+    'IVA', 'iva', 'Aliquota IVA', 'VAT Rate', 'IVA %', 'IVA%', 'Aliquota',
+  ]},
+  { key: 'quantita', label: 'Quantità', type: 'integer', defaultValue: 0, aliases: [
+    'Quantità', 'quantita', 'Qty', 'Quantity', 'Giacenza', 'Stock',
+    'Disponibile', 'Qtà', 'Qta', 'Scorta',
+  ]},
+  { key: 'sogliaMinima', label: 'Soglia Minima', type: 'integer', defaultValue: 0, aliases: [
+    'Soglia Minima', 'sogliaMinima', 'Riordino', 'Min Stock', 'Minimo',
+    'Stock Minimo', 'Soglia di Riordino', 'Scorta Minima',
+  ]},
+  { key: 'unitaMisura', label: 'Unità Misura', defaultValue: 'pz', aliases: [
+    'Unità Misura', 'unitaMisura', 'U.M.', 'UM', 'UdM', 'Unit',
+    'Unit of Measure', 'Unita di Misura', 'Unità di misura',
+  ]},
+];
 
 // ── Dialog ──────────────────────────────────────────────────────────────────
 @Component({
@@ -333,21 +384,30 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     (event.target as HTMLInputElement).value = '';
     try {
       const rows = await this.excel.readFile(file);
+      if (!rows.length) { this.snack.open('File vuoto o non leggibile', '', { duration: 3000 }); return; }
+
+      const result: MappingResult | null = await this.dialog.open(ImportMappingDialogComponent, {
+        data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti' },
+        disableClose: true,
+      }).afterClosed().toPromise();
+      if (!result) return;
+
+      const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
       let ok = 0;
       for (const r of rows) {
         const p: Prodotto = {
-          nome:            r['Nome']             || r['nome']            || '',
-          categoria:       r['Categoria']        || r['categoria']       || '',
-          descrizione:     r['Descrizione']      || r['descrizione']     || '',
-          codice:          r['Codice']           || r['codice']          || '',
-          codiceFornitore: r['Codice Fornitore'] || r['codiceFornitore'] || '',
-          barcode:         r['Barcode']          || r['barcode']         || '',
-          prezzo:          parseFloat(r['Prezzo vendita'] || r['Prezzo'] || r['prezzo'] || '0') || 0,
-          prezzoAcquisto:  parseFloat(r['Prezzo acquisto'] || r['prezzoAcquisto'] || '0') || null!,
-          iva:             parseFloat(r['IVA']      || r['iva']      || '22') || 22,
-          quantita:        parseInt(  r['Quantità'] || r['quantita'] || '0', 10) || 0,
-          sogliaMinima:    parseInt(  r['Soglia Minima'] || r['sogliaMinima'] || '0', 10) || 0,
-          unitaMisura:     r['Unità Misura'] || r['unitaMisura'] || 'pz',
+          nome:            v('nome', r),
+          categoria:       v('categoria', r),
+          descrizione:     v('descrizione', r),
+          codice:          v('codice', r),
+          codiceFornitore: v('codiceFornitore', r),
+          barcode:         v('barcode', r),
+          prezzo:          parseFloat(v('prezzo', r) || '0') || 0,
+          prezzoAcquisto:  parseFloat(v('prezzoAcquisto', r) || '0') || null!,
+          iva:             parseFloat(v('iva', r) || '22') || 22,
+          quantita:        parseInt(v('quantita', r) || '0', 10) || 0,
+          sogliaMinima:    parseInt(v('sogliaMinima', r) || '0', 10) || 0,
+          unitaMisura:     v('unitaMisura', r) || 'pz',
         };
         if (!p.nome) continue;
         await this.ds.createProdotto(p).toPromise();

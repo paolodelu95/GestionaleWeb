@@ -104,6 +104,11 @@
               <mat-icon>local_shipping</mat-icon>
             </button>
           }
+          @if (o.tipo === 'CLIENTE' && o.stato !== 'ANNULLATO' && o.stato !== 'EVASO') {
+            <button mat-icon-button type="button" title="Converti in DDT" class="btn-converti-ddt" (click)="convertiInDdt(o)">
+              <mat-icon>receipt_long</mat-icon>
+            </button>
+          }
           @if (o.stato !== 'ANNULLATO' && o.stato !== 'EVASO') {
             <button mat-icon-button type="button" title="Annulla ordine" (click)="setStato(o, 'ANNULLATO')">
               <mat-icon>cancel</mat-icon>

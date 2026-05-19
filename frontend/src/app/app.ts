@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ElementRef } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -40,6 +40,8 @@ interface NavItem {
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
+  @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
+
   azienda: Azienda | null = null;
   collapsed = false;
   loggedIn = false;
@@ -73,13 +75,16 @@ export class App implements OnInit {
 
     this.searchSubject.pipe(
       debounceTime(250), distinctUntilChanged(),
-      switchMap(q => q.length >= 2 ? this.ds.searchGlobal(q) : [{ clienti: [], prodotti: [], fatture: [], ddt: [] }])
+      switchMap(q => q.length >= 2 ? this.ds.searchGlobal(q) : [{ clienti: [], fornitori: [], prodotti: [], fatture: [], ddt: [], ordini: [], preventivi: [] }])
     ).subscribe(r => {
       this.searchResults = [
-        ...r.clienti.map((x: any) => ({ ...x, tipo: 'Cliente' })),
-        ...r.prodotti.map((x: any) => ({ ...x, tipo: 'Prodotto' })),
-        ...r.fatture.map((x: any) => ({ ...x, tipo: 'Fattura' })),
-        ...r.ddt.map((x: any)    => ({ ...x, tipo: 'DDT' })),
+        ...r.clienti.map((x: any)    => ({ ...x, tipo: 'Cliente' })),
+        ...r.fornitori.map((x: any)  => ({ ...x, tipo: 'Fornitore' })),
+        ...r.prodotti.map((x: any)   => ({ ...x, tipo: 'Prodotto' })),
+        ...r.fatture.map((x: any)    => ({ ...x, tipo: 'Fattura' })),
+        ...r.ddt.map((x: any)        => ({ ...x, tipo: 'DDT' })),
+        ...r.ordini.map((x: any)     => ({ ...x, tipo: 'Ordine' })),
+        ...r.preventivi.map((x: any) => ({ ...x, tipo: 'Preventivo' })),
       ];
       this.showSearch = this.searchResults.length > 0;
     });
@@ -102,6 +107,20 @@ export class App implements OnInit {
   @HostListener('window:resize')
   onResize() {
     if (window.innerWidth < 768) this.collapsed = true;
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      this.searchInputRef?.nativeElement.focus();
+      this.searchInputRef?.nativeElement.select();
+    }
+    if (e.key === 'Escape' && this.showSearch) {
+      this.showSearch = false;
+      this.searchQuery = '';
+      this.searchResults = [];
+    }
   }
 
   toggleSidebar() { this.collapsed = !this.collapsed; }

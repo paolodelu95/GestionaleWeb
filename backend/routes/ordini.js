@@ -100,4 +100,28 @@ router.patch('/:id/stato', (req, res) => {
   res.json({ success: true });
 });
 
+// ── POST /:id/to-ddt – converti ordine cliente in DDT ────────────────────────
+router.post('/:id/to-ddt', (req, res) => {
+  const ordine = db.prepare('SELECT * FROM ordini WHERE id=?').get(req.params.id);
+  if (!ordine) return res.status(404).json({ error: 'Ordine non trovato' });
+  if (ordine.tipo !== 'CLIENTE') return res.status(400).json({ error: 'Solo gli ordini cliente possono essere convertiti in DDT' });
+  const righe = getRighe(ordine.id);
+  const count = db.prepare('SELECT COUNT(*) as n FROM ddt').get();
+  const numero = String(count.n + 1);
+  const data = new Date().toISOString().split('T')[0];
+  const result = db.prepare(`
+    INSERT INTO ddt (numero, data_emissione, cliente_id, causale, stato)
+    VALUES (?,?,?,?,?)`)
+    .run(numero, data, ordine.cliente_id, `Da ordine n. ${ordine.numero}`, 'BOZZA');
+  const ddtId = result.lastInsertRowid;
+  const stmt = db.prepare(`INSERT INTO ddt_righe
+    (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+  for (const r of righe)
+    stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+             r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+  db.prepare('UPDATE ordini SET stato=? WHERE id=?').run('EVASO', ordine.id);
+  res.json({ id: ddtId, numero });
+});
+
 module.exports = router;

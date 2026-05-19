@@ -259,6 +259,9 @@ export class DataService {
   ddtToFattura(id: number): Observable<{ id: number; numero: string }> {
     return this.api.post(`ddt/${id}/to-fattura`, {});
   }
+  ordineToDD(id: number): Observable<{ id: number; numero: string }> {
+    return this.api.post(`ordini/${id}/to-ddt`, {});
+  }
 
   lookupPiva(piva: string): Observable<{ pIva: string; ragioneSociale: string | null; via: string | null; cap: string | null; citta: string | null; provincia: string | null; stato: string }> {
     return this.api.get(`piva/${piva.replace(/\s/g, '')}`);
@@ -273,7 +276,7 @@ export class DataService {
     return this.api.get(`piva/search-name?q=${encodeURIComponent(q)}`);
   }
 
-  searchGlobal(q: string): Observable<{ clienti: any[]; prodotti: any[]; fatture: any[]; ddt: any[] }> {
+  searchGlobal(q: string): Observable<{ clienti: any[]; fornitori: any[]; prodotti: any[]; fatture: any[]; ddt: any[]; ordini: any[]; preventivi: any[] }> {
     return this.api.get(`search?q=${encodeURIComponent(q)}`);
   }
 

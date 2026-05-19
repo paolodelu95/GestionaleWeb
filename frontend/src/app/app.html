@@ -85,7 +85,8 @@
 
       <div class="search-box">
         <mat-icon class="search-icon">search</mat-icon>
-        <input class="search-input" type="text" placeholder="Cerca clienti, prodotti, fatture..."
+        <input #searchInput class="search-input" type="text"
+               placeholder="Cerca… (⌘K)"
                [(ngModel)]="searchQuery" (input)="onSearchInput(searchQuery)" autocomplete="off">
         @if (showSearch) {
           <div class="search-dropdown">

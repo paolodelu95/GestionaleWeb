@@ -1,8 +1,11 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { forkJoin } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
@@ -14,7 +17,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatTableModule, MatIconModule],
+  imports: [CommonModule, RouterLink, MatCardModule, MatTableModule, MatIconModule, MatButtonModule, MatSnackBarModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -36,7 +39,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   fattureDaPagare: Acquisto[] = [];
   tipiPagamento: TipoPagamento[] = [];
 
-  ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
+  ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale', 'azione'];
   fattureCols = ['numero', 'dataEmissione', 'clienteNome', 'totale'];
   acquistiCols = ['numero', 'dataEmissione', 'fornitoreNome', 'totale'];
   prodottiCols = ['nome', 'categoria', 'quantita', 'sogliaMinima'];
@@ -50,7 +53,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private chartVendite?: Chart;
   private chartTop?: Chart;
 
-  constructor(private ds: DataService) {}
+  constructor(private ds: DataService, private snack: MatSnackBar) {}
 
   ngOnInit() {
     forkJoin({
@@ -169,5 +172,26 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   isScaduta(f: Fattura): boolean {
     const scadenza = this.getScadenza(f);
     return !!scadenza && scadenza < this.oggi;
+  }
+
+  giorniRitardo(f: Fattura): number {
+    const scadenza = this.getScadenza(f);
+    if (!scadenza) return 0;
+    const ms = new Date(this.oggi).getTime() - new Date(scadenza).getTime();
+    return Math.max(0, Math.floor(ms / 86400000));
+  }
+
+  get fattureSCadute(): number {
+    return this.fattureDaIncassare.filter(f => this.isScaduta(f)).length;
+  }
+
+  convertiDdtInFattura(d: Ddt) {
+    this.ds.ddtToFattura(d.id!).subscribe({
+      next: r => {
+        this.ddtDaFatturare = this.ddtDaFatturare.filter(x => x.id !== d.id);
+        this.snack.open(`Fattura ${r.numero} creata`, '', { duration: 3000 });
+      },
+      error: () => this.snack.open('Errore nella creazione fattura', '', { duration: 3000 }),
+    });
   }
 }
