@@ -95,6 +95,38 @@ router.delete('/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ── Indirizzi cliente ─────────────────────────────────────────────────────────
+
+router.get('/:id/indirizzi', (req, res) => {
+  const rows = db.prepare('SELECT * FROM clienti_indirizzi WHERE cliente_id=? ORDER BY id').all(req.params.id);
+  res.json(rows.map(r => ({
+    id: r.id, clienteId: r.cliente_id, nome: r.nome,
+    via: r.via, cap: r.cap, citta: r.citta, provincia: r.provincia, stato: r.stato,
+  })));
+});
+
+router.post('/:id/indirizzi', (req, res) => {
+  const a = req.body;
+  const result = db.prepare(
+    'INSERT INTO clienti_indirizzi (cliente_id, nome, via, cap, citta, provincia, stato) VALUES (?,?,?,?,?,?,?)'
+  ).run(req.params.id, a.nome || 'Sede', a.via || '', a.cap || '', a.citta || '', a.provincia || '', a.stato || 'Italia');
+  res.json({ id: result.lastInsertRowid });
+});
+
+router.put('/:clienteId/indirizzi/:id', (req, res) => {
+  const a = req.body;
+  db.prepare(
+    'UPDATE clienti_indirizzi SET nome=?, via=?, cap=?, citta=?, provincia=?, stato=? WHERE id=? AND cliente_id=?'
+  ).run(a.nome || 'Sede', a.via || '', a.cap || '', a.citta || '', a.provincia || '', a.stato || 'Italia', req.params.id, req.params.clienteId);
+  res.json({ success: true });
+});
+
+router.delete('/:clienteId/indirizzi/:id', (req, res) => {
+  db.prepare('UPDATE ddt SET destinazione_id=NULL WHERE destinazione_id=?').run(req.params.id);
+  db.prepare('DELETE FROM clienti_indirizzi WHERE id=? AND cliente_id=?').run(req.params.id, req.params.clienteId);
+  res.json({ success: true });
+});
+
 function normalizePiva(piva) {
   if (!piva) return piva;
   let v = String(piva).replace(/\s/g, '').toUpperCase();

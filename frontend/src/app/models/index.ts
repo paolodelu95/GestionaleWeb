@@ -58,6 +58,17 @@ export interface ProdottoVariante {
   barcode: string;
 }
 
+export interface ClienteIndirizzo {
+  id?: number;
+  clienteId?: number;
+  nome: string;
+  via?: string;
+  cap?: string;
+  citta?: string;
+  provincia?: string;
+  stato?: string;
+}
+
 export interface Cliente {
   id?: number;
   ragioneSociale: string;
@@ -148,6 +159,7 @@ export interface Ddt {
   vettore?: string;
   destinazioneDiversa?: string;
   noteTrasporto?: string;
+  destinazioneId?: number | null;
 }
 
 export interface Fattura {

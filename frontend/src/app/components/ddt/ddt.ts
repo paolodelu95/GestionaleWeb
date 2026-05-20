@@ -21,7 +21,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Ddt, Fattura, Cliente, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
+import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
 
@@ -345,6 +345,18 @@ const RIGHE_STYLES = `
                 }
               </div>
 
+              @if (indirizziCliente.length) {
+                <mat-form-field style="width:100%">
+                  <mat-label>Destinazione salvata</mat-label>
+                  <mat-select [(ngModel)]="destinazioneId" [ngModelOptions]="{standalone:true}" (ngModelChange)="onDestinazioneChange($event)">
+                    <mat-option [value]="null">— indirizzo principale cliente —</mat-option>
+                    @for (addr of indirizziCliente; track addr.id) {
+                      <mat-option [value]="addr.id">{{ addr.nome }} — {{ [addr.via, addr.cap, addr.citta].filter(v => !!v).join(', ') }}</mat-option>
+                    }
+                    <mat-option [value]="-1">Altra destinazione (manuale)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              }
               <mat-form-field style="width:100%">
                 <mat-label>Destinazione (se diversa dall'indirizzo cliente)</mat-label>
                 <input matInput formControlName="destinazioneDiversa" placeholder="Via, Città, CAP...">
@@ -382,6 +394,8 @@ export class DdtDialogComponent implements OnInit {
   prezziRecenti: any[][] = [];
   prezziRecentiTutti: any[][] = [];
   tuttiCaricati: boolean[] = [];
+  indirizziCliente: ClienteIndirizzo[] = [];
+  destinazioneId: number | null = null;
   readonly isNew: boolean;
 
   submitted = false;
@@ -449,6 +463,7 @@ export class DdtDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: Ddt | null
   ) {
     this.isNew = !data?.id;
+    this.destinazioneId = (data as any)?.destinazioneId ?? null;
 
     this.documentoForm = this.fb.group({
       numero: [data?.numero ?? '', Validators.required],
@@ -484,10 +499,35 @@ export class DdtDialogComponent implements OnInit {
     }
   }
 
+  onDestinazioneChange(id: number | null) {
+    if (id === null) {
+      this.trasportoForm.patchValue({ destinazioneDiversa: '' });
+    } else if (id === -1) {
+      // manual: leave destinazioneDiversa as-is
+    } else {
+      const addr = this.indirizziCliente.find(a => a.id === id);
+      if (addr) {
+        const formatted = [addr.via, addr.cap, addr.citta, addr.provincia, addr.stato !== 'Italia' ? addr.stato : ''].filter(Boolean).join(', ');
+        this.trasportoForm.patchValue({ destinazioneDiversa: formatted });
+      }
+    }
+  }
+
+  private loadIndirizziCliente(clienteId: number | null) {
+    if (!clienteId) { this.indirizziCliente = []; return; }
+    this.ds.getClienteIndirizzi(clienteId).subscribe({
+      next: a => this.indirizziCliente = a,
+      error: () => this.indirizziCliente = [],
+    });
+  }
+
   ngOnInit() {
     this.clienteCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredClienti = this.clienti.filter(c => c.ragioneSociale.toLowerCase().includes(q));
+      if (v && typeof v !== 'string') {
+        this.loadIndirizziCliente((v as Cliente).id ?? null);
+      }
     });
 
     this.ds.getClienti().subscribe(c => {
@@ -495,7 +535,10 @@ export class DdtDialogComponent implements OnInit {
       this.filteredClienti = c;
       if (this.data?.clienteId) {
         const found = c.find(x => x.id === this.data!.clienteId);
-        if (found) this.clienteCtrl.setValue(found, { emitEvent: false });
+        if (found) {
+          this.clienteCtrl.setValue(found, { emitEvent: false });
+          this.loadIndirizziCliente(found.id ?? null);
+        }
       }
     });
 
@@ -575,6 +618,7 @@ export class DdtDialogComponent implements OnInit {
       ...this.documentoForm.value,
       ...this.trasportoForm.value,
       clienteId: this.clienteId,
+      destinazioneId: this.destinazioneId && this.destinazioneId > 0 ? this.destinazioneId : null,
       stato: this.data?.stato ?? 'EMESSO',
       righe: this.righe,
     });

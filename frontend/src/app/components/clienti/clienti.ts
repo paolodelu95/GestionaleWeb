@@ -15,12 +15,13 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTabsModule } from '@angular/material/tabs';
 import { Observable, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
-import { Cliente, TipoPagamento } from '../../models';
+import { Cliente, ClienteIndirizzo, TipoPagamento } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
@@ -177,11 +178,13 @@ export class AziendaSearchDialogComponent {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule,
-            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule],
+            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, MatTabsModule],
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica cliente' : 'Nuovo cliente' }}</h2>
     <mat-dialog-content>
-      <form [formGroup]="form" class="dialog-form">
+      <mat-tab-group>
+        <mat-tab label="Anagrafica">
+      <form [formGroup]="form" class="dialog-form" style="padding-top:16px">
         <div style="display:flex;gap:8px;align-items:flex-start">
           <mat-form-field style="flex:1"><mat-label>Ragione Sociale *</mat-label>
             <input matInput formControlName="ragioneSociale">
@@ -285,11 +288,145 @@ export class AziendaSearchDialogComponent {
           </mat-select>
         </mat-form-field>
       </form>
+        </mat-tab>
+
+        <!-- ── Tab Indirizzi ──────────────────────────────────── -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">place</mat-icon>
+            Indirizzi
+          </ng-template>
+          <div style="padding-top:16px;min-height:200px">
+            @if (!data?.id) {
+              <div style="color:#94a3b8;text-align:center;padding:32px 0;font-size:14px">
+                <mat-icon style="font-size:40px;width:40px;height:40px;display:block;margin:0 auto 8px">info_outline</mat-icon>
+                Salva prima il cliente per gestire gli indirizzi aggiuntivi
+              </div>
+            } @else {
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <span style="font-size:13px;color:#64748b">Destinazioni di consegna salvate per questo cliente</span>
+                <button mat-stroked-button type="button" (click)="addIndirizzo()">
+                  <mat-icon>add</mat-icon> Aggiungi
+                </button>
+              </div>
+              @if (!indirizzi.length) {
+                <div style="color:#94a3b8;text-align:center;padding:24px 0;font-size:13px">Nessun indirizzo aggiuntivo</div>
+              }
+              @for (addr of indirizzi; track addr.id ?? $index) {
+                @if (editingId === addr.id) {
+                  <div class="addr-card addr-card--editing">
+                    <div class="addr-edit-row">
+                      <mat-form-field style="flex:1">
+                        <mat-label>Nome / Etichetta</mat-label>
+                        <input matInput [(ngModel)]="editBuf.nome" placeholder="es. Sede operativa">
+                      </mat-form-field>
+                    </div>
+                    <div class="addr-edit-row">
+                      <mat-form-field style="flex:2">
+                        <mat-label>Via</mat-label>
+                        <input matInput [(ngModel)]="editBuf.via">
+                      </mat-form-field>
+                      <mat-form-field style="max-width:90px">
+                        <mat-label>CAP</mat-label>
+                        <input matInput [(ngModel)]="editBuf.cap" maxlength="5">
+                      </mat-form-field>
+                    </div>
+                    <div class="addr-edit-row">
+                      <mat-form-field style="flex:2">
+                        <mat-label>Città</mat-label>
+                        <input matInput [(ngModel)]="editBuf.citta">
+                      </mat-form-field>
+                      <mat-form-field style="max-width:70px">
+                        <mat-label>Prov.</mat-label>
+                        <input matInput [(ngModel)]="editBuf.provincia" maxlength="2" style="text-transform:uppercase">
+                      </mat-form-field>
+                      <mat-form-field style="max-width:100px">
+                        <mat-label>Stato</mat-label>
+                        <input matInput [(ngModel)]="editBuf.stato">
+                      </mat-form-field>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+                      <button mat-button type="button" (click)="cancelEdit()">Annulla</button>
+                      <button mat-flat-button type="button" (click)="saveIndirizzo(addr)">Salva</button>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="addr-card">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                      <div>
+                        <div style="font-weight:600;font-size:13px;color:#1e293b">{{ addr.nome }}</div>
+                        <div style="font-size:12px;color:#64748b;margin-top:2px">
+                          {{ [addr.via, addr.cap, addr.citta, addr.provincia].filter(v => !!v).join(', ') }}
+                        </div>
+                      </div>
+                      <div style="display:flex;gap:2px">
+                        <button mat-icon-button type="button" (click)="startEdit(addr)" title="Modifica">
+                          <mat-icon style="font-size:18px">edit</mat-icon>
+                        </button>
+                        <button mat-icon-button color="warn" type="button" (click)="deleteIndirizzo(addr)" title="Elimina">
+                          <mat-icon style="font-size:18px">delete</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+              @if (editingId === 'new') {
+                <div class="addr-card addr-card--editing" style="margin-top:8px">
+                  <div class="addr-edit-row">
+                    <mat-form-field style="flex:1">
+                      <mat-label>Nome / Etichetta *</mat-label>
+                      <input matInput [(ngModel)]="editBuf.nome" placeholder="es. Magazzino, Sede distaccata">
+                    </mat-form-field>
+                  </div>
+                  <div class="addr-edit-row">
+                    <mat-form-field style="flex:2">
+                      <mat-label>Via</mat-label>
+                      <input matInput [(ngModel)]="editBuf.via">
+                    </mat-form-field>
+                    <mat-form-field style="max-width:90px">
+                      <mat-label>CAP</mat-label>
+                      <input matInput [(ngModel)]="editBuf.cap" maxlength="5">
+                    </mat-form-field>
+                  </div>
+                  <div class="addr-edit-row">
+                    <mat-form-field style="flex:2">
+                      <mat-label>Città</mat-label>
+                      <input matInput [(ngModel)]="editBuf.citta">
+                    </mat-form-field>
+                    <mat-form-field style="max-width:70px">
+                      <mat-label>Prov.</mat-label>
+                      <input matInput [(ngModel)]="editBuf.provincia" maxlength="2" style="text-transform:uppercase">
+                    </mat-form-field>
+                    <mat-form-field style="max-width:100px">
+                      <mat-label>Stato</mat-label>
+                      <input matInput [(ngModel)]="editBuf.stato">
+                    </mat-form-field>
+                  </div>
+                  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+                    <button mat-button type="button" (click)="cancelEdit()">Annulla</button>
+                    <button mat-flat-button type="button" (click)="createIndirizzo()">Aggiungi</button>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </mat-tab>
+
+      </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
       <button mat-flat-button (click)="save()" [disabled]="!form.get('ragioneSociale')?.valid || form.pending">Salva</button>
-    </mat-dialog-actions>`
+    </mat-dialog-actions>`,
+  styles: [`
+    .addr-card {
+      border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;
+      margin-bottom: 8px; background: #fff;
+    }
+    .addr-card--editing { background: #f8fafc; border-color: #3b82f6; }
+    .addr-edit-row { display:flex; gap:8px; }
+  `]
 })
 export class ClienteDialogComponent implements OnInit {
   form: FormGroup;
@@ -298,6 +435,55 @@ export class ClienteDialogComponent implements OnInit {
   lookupLoading = false;
   get canLookupPiva(): boolean { return normalizePiva(this.form.get('pIva')?.value ?? '').length === 11; }
   private cityMap = new Map<string, CityResult>();
+
+  // Address management
+  indirizzi: ClienteIndirizzo[] = [];
+  editingId: number | 'new' | null = null;
+  editBuf: ClienteIndirizzo = { nome: '', via: '', cap: '', citta: '', provincia: '', stato: 'Italia' };
+
+  addIndirizzo() {
+    this.editingId = 'new';
+    this.editBuf = { nome: '', via: '', cap: '', citta: '', provincia: '', stato: 'Italia' };
+  }
+
+  startEdit(addr: ClienteIndirizzo) {
+    this.editingId = addr.id!;
+    this.editBuf = { ...addr };
+  }
+
+  cancelEdit() {
+    this.editingId = null;
+    this.editBuf = { nome: '', via: '', cap: '', citta: '', provincia: '', stato: 'Italia' };
+  }
+
+  createIndirizzo() {
+    if (!this.data?.id || !this.editBuf.nome.trim()) return;
+    this.ds.createClienteIndirizzo(this.data.id, this.editBuf).subscribe({
+      next: () => { this.loadIndirizzi(); this.cancelEdit(); },
+      error: () => this.snack.open('Errore salvataggio indirizzo', '', { duration: 3000 }),
+    });
+  }
+
+  saveIndirizzo(addr: ClienteIndirizzo) {
+    if (!this.data?.id) return;
+    this.ds.updateClienteIndirizzo(this.data.id, { ...this.editBuf, id: addr.id }).subscribe({
+      next: () => { this.loadIndirizzi(); this.cancelEdit(); },
+      error: () => this.snack.open('Errore aggiornamento indirizzo', '', { duration: 3000 }),
+    });
+  }
+
+  deleteIndirizzo(addr: ClienteIndirizzo) {
+    if (!this.data?.id || !addr.id) return;
+    this.ds.deleteClienteIndirizzo(this.data.id, addr.id).subscribe({
+      next: () => this.loadIndirizzi(),
+      error: () => this.snack.open('Errore eliminazione indirizzo', '', { duration: 3000 }),
+    });
+  }
+
+  private loadIndirizzi() {
+    if (!this.data?.id) return;
+    this.ds.getClienteIndirizzi(this.data.id).subscribe(a => this.indirizzi = a);
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -340,6 +526,7 @@ export class ClienteDialogComponent implements OnInit {
 
   ngOnInit() {
     this.ds.getTipiPagamento().subscribe(t => this.tipiPagamento = t.filter(x => x.attivo));
+    this.loadIndirizzi();
 
     this.form.get('citta')!.valueChanges.pipe(
       debounceTime(300), distinctUntilChanged(),

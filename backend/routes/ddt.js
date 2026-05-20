@@ -30,15 +30,16 @@ router.post('/', (req, res) => {
   const result = db.prepare(`
     INSERT INTO ddt (numero, data_emissione, cliente_id, causale, note, stato,
       data_ora_inizio_trasporto, aspetto_beni, porto, numero_colli, peso_lordo,
-      incaricato_trasporto, vettore, destinazione_diversa, note_trasporto)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      incaricato_trasporto, vettore, destinazione_diversa, note_trasporto, destinazione_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(
       d.numero, d.dataEmissione, d.clienteId || null,
       d.causaleTrasporto || '', d.note || '', d.stato || 'BOZZA',
       d.dataOraInizioTrasporto || '', d.aspettoBeni || '',
       d.porto || 'Franco', d.numeroColli || 0, d.pesoLordo || 0,
       d.incaricatoTrasporto || 'Mittente', d.vettore || '',
-      d.destinazioneDiversa || '', d.noteTrasporto || ''
+      d.destinazioneDiversa || '', d.noteTrasporto || '',
+      d.destinazioneId || null
     );
   const ddtId = result.lastInsertRowid;
   if (d.righe?.length) {
@@ -68,7 +69,7 @@ router.put('/:id', (req, res) => {
   db.prepare(`
     UPDATE ddt SET numero=?, data_emissione=?, cliente_id=?, causale=?, note=?, stato=?,
       data_ora_inizio_trasporto=?, aspetto_beni=?, porto=?, numero_colli=?, peso_lordo=?,
-      incaricato_trasporto=?, vettore=?, destinazione_diversa=?, note_trasporto=?
+      incaricato_trasporto=?, vettore=?, destinazione_diversa=?, note_trasporto=?, destinazione_id=?
     WHERE id=?`)
     .run(
       d.numero, d.dataEmissione, d.clienteId || null,
@@ -77,6 +78,7 @@ router.put('/:id', (req, res) => {
       d.porto || 'Franco', d.numeroColli || 0, d.pesoLordo || 0,
       d.incaricatoTrasporto || 'Mittente', d.vettore || '',
       d.destinazioneDiversa || '', d.noteTrasporto || '',
+      d.destinazioneId || null,
       req.params.id
     );
   db.prepare('DELETE FROM ddt_righe WHERE ddt_id=?').run(req.params.id);
@@ -237,6 +239,7 @@ function toDto(r) {
     vettore: r.vettore || '',
     destinazioneDiversa: r.destinazione_diversa || '',
     noteTrasporto: r.note_trasporto || '',
+    destinazioneId: r.destinazione_id || null,
   };
 }
 

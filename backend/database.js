@@ -392,6 +392,19 @@ const migrations = [
   'ALTER TABLE clienti ADD COLUMN cellulare TEXT DEFAULT ""',
   'ALTER TABLE fornitori ADD COLUMN cellulare TEXT DEFAULT ""',
   'ALTER TABLE prodotti ADD COLUMN prezzo_acquisto REAL DEFAULT NULL',
+  // Indirizzi multipli per cliente
+  `CREATE TABLE IF NOT EXISTS clienti_indirizzi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id INTEGER NOT NULL,
+    nome TEXT NOT NULL DEFAULT 'Sede',
+    via TEXT DEFAULT '',
+    cap TEXT DEFAULT '',
+    citta TEXT DEFAULT '',
+    provincia TEXT DEFAULT '',
+    stato TEXT DEFAULT 'Italia',
+    FOREIGN KEY (cliente_id) REFERENCES clienti(id) ON DELETE CASCADE
+  )`,
+  'ALTER TABLE ddt ADD COLUMN destinazione_id INTEGER',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

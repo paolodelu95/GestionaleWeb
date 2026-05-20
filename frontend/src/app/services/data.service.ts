@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
-  Azienda, Prodotto, ProdottoVariante, Cliente, Fornitore,
+  Azienda, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, UnitaMisura, AliquotaIva,
@@ -45,6 +45,10 @@ export class DataService {
   updateCliente(c: Cliente): Observable<any> { return this.api.put(`clienti/${c.id}`, c); }
   deleteCliente(id: number): Observable<any> { return this.api.delete(`clienti/${id}`); }
   importClienti(records: any[]): Observable<any> { return this.api.post('clienti/import', records); }
+  getClienteIndirizzi(clienteId: number): Observable<ClienteIndirizzo[]> { return this.api.get(`clienti/${clienteId}/indirizzi`); }
+  createClienteIndirizzo(clienteId: number, a: ClienteIndirizzo): Observable<any> { return this.api.post(`clienti/${clienteId}/indirizzi`, a); }
+  updateClienteIndirizzo(clienteId: number, a: ClienteIndirizzo): Observable<any> { return this.api.put(`clienti/${clienteId}/indirizzi/${a.id}`, a); }
+  deleteClienteIndirizzo(clienteId: number, id: number): Observable<any> { return this.api.delete(`clienti/${clienteId}/indirizzi/${id}`); }
 
   // Fornitori
   getFornitori(): Observable<Fornitore[]> { return this.api.get('fornitori'); }
