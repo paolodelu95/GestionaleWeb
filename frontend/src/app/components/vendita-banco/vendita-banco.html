@@ -369,12 +369,14 @@
           <ng-container matColumnDef="azioni">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let v" class="table-actions">
-              <button mat-icon-button type="button" title="Stampa" (click)="stampa(v)">
-                <mat-icon>print</mat-icon>
-              </button>
-              <button mat-icon-button type="button" color="warn" title="Elimina" (click)="elimina(v)">
-                <mat-icon>delete</mat-icon>
-              </button>
+              <button mat-icon-button type="button" title="Scheda vendita" (click)="info(v)" style="color:#3b82f6"><mat-icon>info_outline</mat-icon></button>
+              <button mat-icon-button type="button" title="Stampa" (click)="stampa(v)"><mat-icon>print</mat-icon></button>
+              <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuVbAz"><mat-icon>more_vert</mat-icon></button>
+              <mat-menu #menuVbAz="matMenu">
+                <button mat-menu-item type="button" (click)="elimina(v)" style="color:#dc2626">
+                  <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+                </button>
+              </mat-menu>
             </td>
           </ng-container>
 

@@ -86,19 +86,39 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let f" class="table-actions">
-          @if (f.stato === 'EMESSA') {
-            <button mat-icon-button type="button" title="Segna come Pagata" (click)="setStato(f, 'PAGATA')">
-              <mat-icon>payments</mat-icon>
-            </button>
-          }
-          <button mat-icon-button type="button" title="Invia per email" (click)="inviaEmail(f)"><mat-icon>email</mat-icon></button>
-          <button mat-icon-button type="button" title="Invia all'SDI" (click)="inviaSdi(f)">
-            <mat-icon [style.color]="f.statoSdi === 'INVIATA' ? '#16a34a' : undefined">send_time_extension</mat-icon>
-          </button>
-          <button mat-icon-button type="button" title="Scarica XML (FatturaPA)" (click)="downloadXml(f)"><mat-icon>code</mat-icon></button>
+          <button mat-icon-button type="button" title="Scheda fattura" (click)="info(f)" style="color:#3b82f6"><mat-icon>info_outline</mat-icon></button>
           <button mat-icon-button type="button" title="Stampa fattura" (click)="printDoc(f)"><mat-icon>print</mat-icon></button>
-          <button mat-icon-button type="button" title="Modifica" (click)="open(f)"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(f)"><mat-icon>delete</mat-icon></button>
+          <!-- Azioni aggiuntive in menu -->
+          <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuAzioni"><mat-icon>more_vert</mat-icon></button>
+          <mat-menu #menuAzioni="matMenu">
+            @if (f.stato === 'EMESSA') {
+              <button mat-menu-item type="button" (click)="setStato(f, 'PAGATA')">
+                <mat-icon style="color:#16a34a">payments</mat-icon> Segna come pagata
+              </button>
+            }
+            @if (f.stato === 'PAGATA') {
+              <button mat-menu-item type="button" (click)="setStato(f, 'EMESSA')">
+                <mat-icon style="color:#f59e0b">undo</mat-icon> Riporta a Emessa
+              </button>
+            }
+            <button mat-menu-item type="button" (click)="inviaEmail(f)">
+              <mat-icon>email</mat-icon> Invia per email
+            </button>
+            <button mat-menu-item type="button" (click)="inviaSdi(f)">
+              <mat-icon [style.color]="f.statoSdi === 'INVIATA' ? '#16a34a' : undefined">send_time_extension</mat-icon>
+              Invia all'SDI{{ f.statoSdi === 'INVIATA' ? ' ✓' : '' }}
+            </button>
+            <button mat-menu-item type="button" (click)="downloadXml(f)">
+              <mat-icon>code</mat-icon> Scarica XML FatturaPA
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item type="button" (click)="open(f)">
+              <mat-icon>edit</mat-icon> Modifica
+            </button>
+            <button mat-menu-item type="button" (click)="delete(f)" style="color:#dc2626">
+              <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+            </button>
+          </mat-menu>
         </td>
       </ng-container>
 

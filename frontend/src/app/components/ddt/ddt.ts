@@ -24,6 +24,7 @@ import { PrintService } from '../../services/print.service';
 import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
+import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -630,7 +631,7 @@ export class DdtDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, DocInfoDialogComponent],
   templateUrl: './ddt.html',
   styleUrl: './ddt.scss'
 })
@@ -754,6 +755,32 @@ export class DdtComponent implements OnInit, AfterViewInit {
       op.subscribe({
         next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
         error: e => this.snack.open(e.message, '', { duration: 3000 })
+      });
+    });
+  }
+
+  info(d: Ddt) {
+    this.ds.getDdtPrint(d.id!).subscribe(doc => {
+      const righe = doc.righe ?? [];
+      const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
+      const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
+      const extra: { label: string; value: string }[] = [];
+      if (doc.causaleTrasporto) extra.push({ label: 'Causale', value: doc.causaleTrasporto });
+      if (doc.porto) extra.push({ label: 'Porto', value: doc.porto });
+      if (doc.fatturaNumero) extra.push({ label: 'Fattura', value: doc.fatturaNumero });
+      this.dialog.open(DocInfoDialogComponent, {
+        data: {
+          tipo: 'DDT', sottotitolo: 'Documento di Trasporto',
+          numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
+          controparteLabel: 'DESTINATARIO',
+          controparte: doc.cliente?.ragioneSociale || d.clienteNome || '—',
+          controparteInfo: [
+            [doc.cliente?.via, [doc.cliente?.cap, doc.cliente?.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+            doc.cliente?.pIva ? `P.IVA: ${doc.cliente.pIva}` : '',
+          ].filter(Boolean) as string[],
+          totale: imponibile + ivaT, imponibile, righe, extraFields: extra, note: doc.note,
+        } as DocInfoData,
+        width: '720px', maxWidth: '98vw', maxHeight: '92vh',
       });
     });
   }

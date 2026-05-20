@@ -14,6 +14,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -23,6 +24,7 @@ import { PrintService } from '../../services/print.service';
 import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { AllegatiComponent } from '../shared/allegati/allegati';
+import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -728,7 +730,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, DocInfoDialogComponent],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
@@ -857,6 +859,35 @@ export class FattureComponent implements OnInit, AfterViewInit {
     this.ds.inviaFatturaSdi(f.id!).subscribe({
       next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000 }); },
       error: e => this.snack.open('Errore SDI: ' + (e.error?.error || e.message), '', { duration: 5000 })
+    });
+  }
+
+  info(f: Fattura) {
+    this.ds.getFatturaPrint(f.id!).subscribe(doc => {
+      const righe = doc.righe ?? [];
+      const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
+      const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
+      const extra: { label: string; value: string }[] = [];
+      if (doc.tipoPagamentoNome) extra.push({ label: 'Pagamento', value: doc.tipoPagamentoNome });
+      if (doc.statoSdi) extra.push({ label: 'SDI', value: doc.statoSdi });
+      this.dialog.open(DocInfoDialogComponent, {
+        data: {
+          tipo: 'FATTURA', numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
+          controparteLabel: 'CLIENTE',
+          controparte: doc.cliente?.ragioneSociale || f.clienteNome || '—',
+          controparteInfo: [
+            [doc.cliente?.via, [doc.cliente?.cap, doc.cliente?.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+            doc.cliente?.pIva ? `P.IVA: ${doc.cliente.pIva}` : '',
+            doc.cliente?.email ?? '',
+          ].filter(Boolean) as string[],
+          totale: imponibile + ivaT,
+          imponibile,
+          righe,
+          extraFields: extra,
+          note: doc.note,
+        } as DocInfoData,
+        width: '720px', maxWidth: '98vw', maxHeight: '92vh',
+      });
     });
   }
 

@@ -94,14 +94,22 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let d" class="table-actions">
-          @if (!d.fatturaId && d.stato !== 'ANNULLATO') {
-            <button mat-icon-button type="button" title="Genera Fattura da questo DDT" (click)="generaFattura(d)">
-              <mat-icon>receipt_long</mat-icon>
-            </button>
-          }
+          <button mat-icon-button type="button" title="Scheda DDT" (click)="info(d)" style="color:#3b82f6"><mat-icon>info_outline</mat-icon></button>
           <button mat-icon-button type="button" title="Stampa DDT" (click)="printDoc(d)"><mat-icon>print</mat-icon></button>
-          <button mat-icon-button type="button" title="Modifica" (click)="open(d)"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(d)"><mat-icon>delete</mat-icon></button>
+          <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuDdtAz"><mat-icon>more_vert</mat-icon></button>
+          <mat-menu #menuDdtAz="matMenu">
+            @if (!d.fatturaId && d.stato !== 'ANNULLATO') {
+              <button mat-menu-item type="button" (click)="generaFattura(d)">
+                <mat-icon>receipt_long</mat-icon> Genera Fattura
+              </button>
+            }
+            <button mat-menu-item type="button" (click)="open(d)">
+              <mat-icon>edit</mat-icon> Modifica
+            </button>
+            <button mat-menu-item type="button" (click)="delete(d)" style="color:#dc2626">
+              <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+            </button>
+          </mat-menu>
         </td>
       </ng-container>
 

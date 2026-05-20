@@ -21,6 +21,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Ordine, Cliente, Fornitore, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
+import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -436,8 +437,9 @@ export class OrdineDialogComponent implements OnInit {
   selector: 'app-ordini',
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule],
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule,
+            DocInfoDialogComponent],
   templateUrl: './ordini.html',
   styleUrl: './ordini.scss'
 })
@@ -548,6 +550,31 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     this.ds.ordineToDD(o.id!).subscribe({
       next: r => { this.load(); this.snack.open(`DDT ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.message || 'Errore conversione', '', { duration: 3000 }),
+    });
+  }
+
+  info(o: Ordine) {
+    this.ds.getOrdinePrint(o.id!).subscribe(doc => {
+      const isCliente = o.tipo === 'CLIENTE';
+      const righe = doc.righe ?? [];
+      const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
+      const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
+      const cp = isCliente ? doc.cliente : doc.fornitore;
+      this.dialog.open(DocInfoDialogComponent, {
+        data: {
+          tipo: 'ORDINE', sottotitolo: isCliente ? 'Ordine cliente' : 'Ordine fornitore',
+          numero: doc.numero, data: doc.dataOrdine, stato: doc.stato,
+          controparteLabel: isCliente ? 'CLIENTE' : 'FORNITORE',
+          controparte: cp?.ragioneSociale || (isCliente ? o.clienteNome : o.fornitoreNome) || '—',
+          controparteInfo: cp ? [
+            [cp.via, [cp.cap, cp.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+            cp.pIva ? `P.IVA: ${cp.pIva}` : '',
+          ].filter(Boolean) as string[] : [],
+          totale: imponibile + ivaT, imponibile, righe,
+          note: doc.note,
+        } as DocInfoData,
+        width: '720px', maxWidth: '98vw', maxHeight: '92vh',
+      });
     });
   }
 

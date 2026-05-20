@@ -21,6 +21,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
+import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -321,8 +322,9 @@ export class AcquistoDialogComponent implements OnInit {
   selector: 'app-acquisti',
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule],
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule,
+            DocInfoDialogComponent],
   templateUrl: './acquisti.html',
   styleUrl: './acquisti.scss'
 })
@@ -500,6 +502,29 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     this.ds.sendAcquistoEmail(a.id!, dest || undefined, note || undefined).subscribe({
       next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
       error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+    });
+  }
+
+  info(a: Acquisto) {
+    this.ds.getAcquistoPrint(a.id!).subscribe(doc => {
+      const righe = doc.righe ?? [];
+      const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
+      const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
+      const extra: { label: string; value: string }[] = [];
+      if (doc.tipoPagamentoNome) extra.push({ label: 'Pagamento', value: doc.tipoPagamentoNome });
+      this.dialog.open(DocInfoDialogComponent, {
+        data: {
+          tipo: 'ACQUISTO', numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
+          controparteLabel: 'FORNITORE',
+          controparte: doc.fornitore?.ragioneSociale || a.fornitoreNome || '—',
+          controparteInfo: doc.fornitore ? [
+            [doc.fornitore.via, [doc.fornitore.cap, doc.fornitore.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+            doc.fornitore.pIva ? `P.IVA: ${doc.fornitore.pIva}` : '',
+          ].filter(Boolean) as string[] : [],
+          totale: imponibile + ivaT, imponibile, righe, extraFields: extra, note: doc.note,
+        } as DocInfoData,
+        width: '720px', maxWidth: '98vw', maxHeight: '92vh',
+      });
     });
   }
 

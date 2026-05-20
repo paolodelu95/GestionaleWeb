@@ -16,6 +16,9 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { VenditaBanco, Prodotto, ProdottoVariante, RigaDocumento, AliquotaIva, UnitaMisura, Cliente } from '../../models';
 import { normalizePiva } from '../../validators/italian-validators';
+import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 
 interface RigaVendita extends RigaDocumento {
   varianteId?: number | null;
@@ -38,7 +41,7 @@ interface MetodoPagamento {
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatTabsModule, MatSnackBarModule, MatAutocompleteModule,
-    MatProgressSpinnerModule,
+    MatProgressSpinnerModule, MatMenuModule, MatDialogModule, DocInfoDialogComponent,
   ],
   templateUrl: './vendita-banco.html',
   styles: [`
@@ -225,7 +228,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   colStorico = ['data', 'numero', 'cliente', 'metodo', 'totale', 'azioni'];
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private ds: DataService, private printSvc: PrintService, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private printSvc: PrintService, private snack: MatSnackBar, private dialog: MatDialog) {}
 
   ngOnInit() {
     this.ds.getProdotti().subscribe(p => this.prodottiList = p);
@@ -477,6 +480,24 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
 
   // ── Storico ───────────────────────────────────────────────────────────────
   stampa(v: VenditaBanco) { this.printSvc.printDocumentale(v.id!); }
+
+  info(v: VenditaBanco) {
+    this.ds.getVenditaBancoPrint(v.id!).subscribe(doc => {
+      const righe = doc.righe ?? [];
+      const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
+      const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
+      this.dialog.open(DocInfoDialogComponent, {
+        data: {
+          tipo: 'DOCUMENTO COMMERCIALE', sottotitolo: `Pagamento: ${v.metodoPagamento ?? 'CONTANTI'}`,
+          numero: doc.numero, data: doc.data, stato: doc.stato ?? 'EMESSA',
+          controparte: doc.clienteNome || undefined,
+          totale: imponibile + ivaT, imponibile, righe,
+          note: doc.note,
+        } as DocInfoData,
+        width: '720px', maxWidth: '98vw', maxHeight: '92vh',
+      });
+    });
+  }
 
   elimina(v: VenditaBanco) {
     if (!confirm(`Eliminare la vendita ${v.numero}?`)) return;

@@ -21,6 +21,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
+import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -451,8 +452,9 @@ export class NotaCreditoDialogComponent implements OnInit {
   selector: 'app-note-credito',
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatCheckboxModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule],
+            MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule,
+            DocInfoDialogComponent],
   templateUrl: './note-credito.html',
   styleUrl: './note-credito.scss'
 })
@@ -565,6 +567,29 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   }
 
   printDoc(n: NotaCredito) { this.printSvc.printNotaCredito(n.id!); }
+
+  info(n: NotaCredito) {
+    this.ds.getNotaCreditoPrint(n.id!).subscribe(doc => {
+      const righe = doc.righe ?? [];
+      const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
+      const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
+      const extra: { label: string; value: string }[] = [];
+      if (doc.fatturaNumeroColl) extra.push({ label: 'Rif. Fattura', value: doc.fatturaNumeroColl });
+      this.dialog.open(DocInfoDialogComponent, {
+        data: {
+          tipo: 'NOTA DI CREDITO', numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
+          controparteLabel: 'CLIENTE',
+          controparte: doc.cliente?.ragioneSociale || n.clienteNome || '—',
+          controparteInfo: doc.cliente ? [
+            [doc.cliente.via, [doc.cliente.cap, doc.cliente.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+            doc.cliente.pIva ? `P.IVA: ${doc.cliente.pIva}` : '',
+          ].filter(Boolean) as string[] : [],
+          totale: imponibile + ivaT, imponibile, righe, extraFields: extra, note: doc.note,
+        } as DocInfoData,
+        width: '720px', maxWidth: '98vw', maxHeight: '92vh',
+      });
+    });
+  }
 
   delete(n: NotaCredito) {
     if (!confirm(`Eliminare Nota di Credito ${n.numero}?`)) return;
