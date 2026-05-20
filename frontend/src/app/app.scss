@@ -245,7 +245,7 @@
     align-items: center;
     gap: 10px;
     min-width: 0;
-    flex-shrink: 1;
+    flex: 1 1 auto;
   }
 
   .company-avatar {
@@ -295,7 +295,7 @@
     letter-spacing: 0.01em;
   }
 
-  .topbar-spacer { flex: 1; min-width: 0; }
+  .topbar-spacer { flex: 0 1 auto; min-width: 0; }
 
   // Topbar action icon buttons (theme, logout)
   button.mat-mdc-icon-button {
@@ -361,10 +361,25 @@
     animation: fade-in 0.2s ease;
   }
 
-  .topbar-company {
-    font-size: 14px;
-    max-width: 180px;
+  // Topbar mobile: padding ridotto, avatar più piccolo, no search-box (ogni pagina ha la sua),
+  // niente max-width sul nome aziendale (lo gestisce il flex + ellipsis)
+  .topbar {
+    padding: 0 8px !important;
+    gap: 4px !important;
   }
+  .topbar .company-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+  .topbar .topbar-company-wrap {
+    gap: 8px;
+  }
+  .topbar .topbar-company {
+    font-size: 14px;
+    /* max-width rimosso: ora si adatta allo spazio disponibile con ellipsis */
+  }
+  .search-box { display: none; }
 }
 
 @keyframes fade-in {
@@ -372,8 +387,10 @@
   to { opacity: 1; }
 }
 
-@media (max-width: 480px) {
-  .search-box { display: none; }
+// Schermi minuscoli (<360px): ulteriore compressione, avatar nascosto per liberare spazio
+@media (max-width: 360px) {
+  .topbar .company-avatar { display: none; }
+  .topbar .topbar-company { font-size: 13px; }
 }
 
 // ── Topbar Search ────────────────────────────────────────────────────────────
