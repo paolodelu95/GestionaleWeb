@@ -122,6 +122,7 @@ app.use('/api/scadenzario',      require('./routes/scadenzario'));
 app.use('/api/fatture-ricorrenti', require('./routes/fattureRicorrenti').router);
 app.use('/api/allegati',          require('./routes/allegati'));
 app.use('/api/note-rapide',       require('./routes/noteRapide'));
+app.use('/api/bug-reports',       require('./routes/bugReports'));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

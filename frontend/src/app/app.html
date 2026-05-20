@@ -69,6 +69,10 @@
     }
   </aside>
 
+  <button class="bug-fab" (click)="openBugReport()" matTooltip="Segnala un problema" matTooltipPosition="left">
+    <mat-icon>bug_report</mat-icon>
+  </button>
+
   <div class="main-content">
     <mat-toolbar class="topbar">
       <button mat-icon-button type="button" class="toggle-btn" (click)="toggleSidebar()" [title]="collapsed ? 'Espandi menu' : 'Comprimi menu'">

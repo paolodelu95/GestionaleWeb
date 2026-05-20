@@ -293,4 +293,11 @@ export class DataService {
   createPrimaNotaEntry(e: any): Observable<any> { return this.api.post('prima-nota', e); }
   updatePrimaNotaEntry(e: any): Observable<any> { return this.api.put(`prima-nota/${e.id}`, e); }
   deletePrimaNotaEntry(id: number): Observable<any> { return this.api.delete(`prima-nota/${id}`); }
+
+  // Bug Reports
+  getBugReports(): Observable<any[]> { return this.api.get('bug-reports'); }
+  createBugReport(r: { titolo: string; descrizione: string; pagina?: string; priorita?: string }): Observable<any> { return this.api.post('bug-reports', r); }
+  resolveBugReport(id: number): Observable<any> { return this.api.patch(`bug-reports/${id}/risolto`, {}); }
+  reopenBugReport(id: number): Observable<any> { return this.api.patch(`bug-reports/${id}/riapri`, {}); }
+  deleteBugReport(id: number): Observable<any> { return this.api.delete(`bug-reports/${id}`); }
 }

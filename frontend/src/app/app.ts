@@ -12,11 +12,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatDialog } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { DataService } from './services/data.service';
 import { AuthService } from './services/auth.service';
 import { NotificationService, NotificationBadges } from './services/notifications.service';
 import { LoginComponent } from './components/login/login';
+import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
 import { Azienda } from './models';
 import { SwUpdate } from '@angular/service-worker';
 
@@ -35,7 +37,7 @@ interface NavItem {
     MatToolbarModule, MatListModule,
     MatIconModule, MatExpansionModule, MatButtonModule, MatTooltipModule,
     MatBadgeModule, MatInputModule, MatFormFieldModule, FormsModule,
-    LoginComponent
+    LoginComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'
@@ -63,6 +65,7 @@ export class App implements OnInit {
     private router: Router,
     private elRef: ElementRef,
     private swUpdate: SwUpdate,
+    private dialog: MatDialog,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
   }
@@ -185,6 +188,11 @@ export class App implements OnInit {
 
   reloadForUpdate() {
     this.swUpdate.activateUpdate().then(() => window.location.reload());
+  }
+
+  openBugReport() {
+    const pagina = this.router.url.replace(/^\//, '').split('/')[0];
+    this.dialog.open(BugReportDialogComponent, { data: { pagina }, width: '540px' });
   }
 
   readonly navItems: NavItem[] = [

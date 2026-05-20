@@ -317,6 +317,9 @@ export class ImpostazioniComponent implements OnInit {
   noteRapide: NotaRapida[] = [];
   notaRapidaColumns = ['testo', 'ordine', 'azioni'];
 
+  bugReports: any[] = [];
+  bugColumns = ['priorita', 'titolo', 'pagina', 'stato', 'data', 'azioni'];
+
   emailTesting = false;
 
   templateConfig: TemplateConfig = { stile: 'classico' };
@@ -397,6 +400,7 @@ export class ImpostazioniComponent implements OnInit {
     this.loadAliquoteIva();
     this.loadUtenti();
     this.loadNoteRapide();
+    this.loadBugReports();
   }
 
   onCitySelected(name: string) {
@@ -608,6 +612,31 @@ export class ImpostazioniComponent implements OnInit {
     if (!confirm(`Eliminare la nota rapida "${n.testo}"?`)) return;
     this.ds.deleteNotaRapida(n.id!).subscribe({
       next: () => { this.loadNoteRapide(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      error: e => this.snack.open(e.message, '', { duration: 3000 })
+    });
+  }
+
+  // ── Bug Reports ─────────────────────────────────────────────────────────────
+  loadBugReports() { this.ds.getBugReports().subscribe(r => { this.bugReports = r; }); }
+
+  resolveBug(r: any) {
+    this.ds.resolveBugReport(r.id).subscribe({
+      next: () => { this.loadBugReports(); this.snack.open('Segnalazione risolta', '', { duration: 2000 }); },
+      error: e => this.snack.open(e.message, '', { duration: 3000 })
+    });
+  }
+
+  reopenBug(r: any) {
+    this.ds.reopenBugReport(r.id).subscribe({
+      next: () => { this.loadBugReports(); this.snack.open('Segnalazione riaperta', '', { duration: 2000 }); },
+      error: e => this.snack.open(e.message, '', { duration: 3000 })
+    });
+  }
+
+  deleteBug(r: any) {
+    if (!confirm(`Eliminare la segnalazione "${r.titolo}"?`)) return;
+    this.ds.deleteBugReport(r.id).subscribe({
+      next: () => { this.loadBugReports(); this.snack.open('Eliminata', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
     });
   }

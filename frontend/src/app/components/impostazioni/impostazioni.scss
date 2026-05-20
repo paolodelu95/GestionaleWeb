@@ -74,3 +74,17 @@
   .tab-section-header { flex-wrap: wrap; gap: 8px; }
   .template-card { width: 100%; }
 }
+
+.prio-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.prio-bassa  { background: #dcfce7; color: #15803d; }
+  &.prio-media  { background: #fef9c3; color: #a16207; }
+  &.prio-alta   { background: #fee2e2; color: #b91c1c; }
+}

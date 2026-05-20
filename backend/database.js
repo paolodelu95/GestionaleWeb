@@ -406,6 +406,17 @@ const migrations = [
   )`,
   'ALTER TABLE ddt ADD COLUMN destinazione_id INTEGER',
   'ALTER TABLE azienda ADD COLUMN template_config TEXT DEFAULT NULL',
+  // Segnalazioni bug
+  `CREATE TABLE IF NOT EXISTS bug_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    titolo TEXT NOT NULL,
+    descrizione TEXT NOT NULL,
+    pagina TEXT DEFAULT '',
+    priorita TEXT DEFAULT 'MEDIA' CHECK(priorita IN ('BASSA','MEDIA','ALTA')),
+    stato TEXT DEFAULT 'APERTO' CHECK(stato IN ('APERTO','RISOLTO')),
+    created_at TEXT DEFAULT (datetime('now')),
+    resolved_at TEXT DEFAULT NULL
+  )`,
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
