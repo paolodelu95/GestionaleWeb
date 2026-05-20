@@ -21,8 +21,8 @@
         <td mat-cell *matCellDef="let c">{{ c.id }}</td>
       </ng-container>
       <ng-container matColumnDef="ragioneSociale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Ragione Sociale</th>
-        <td mat-cell *matCellDef="let c"><b>{{ c.ragioneSociale }}</b></td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-rag-soc">Ragione Sociale</th>
+        <td mat-cell *matCellDef="let c" class="col-rag-soc"><b>{{ c.ragioneSociale }}</b></td>
       </ng-container>
       <ng-container matColumnDef="email">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
@@ -33,8 +33,10 @@
         <td mat-cell *matCellDef="let c">{{ c.telefono }}</td>
       </ng-container>
       <ng-container matColumnDef="indirizzo">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Indirizzo</th>
-        <td mat-cell *matCellDef="let c">{{ indirizzo(c) }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-citta">Città</th>
+        <td mat-cell *matCellDef="let c" class="col-citta" [matTooltip]="indirizzo(c)" matTooltipPosition="above">
+          {{ c.citta || '—' }}@if (c.provincia) { <span class="provincia">&nbsp;({{ c.provincia }})</span> }
+        </td>
       </ng-container>
       <ng-container matColumnDef="codiceFiscale">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Cod. Fiscale</th>

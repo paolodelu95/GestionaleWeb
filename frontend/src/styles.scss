@@ -831,26 +831,36 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 }
 
 @media (max-width: 767px) {
-  .page { padding: 16px 14px; }
+  .page { padding: 16px 12px; }
 
   .page-header {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 14px;
-    .page-title { flex: 0 0 100%; font-size: 20px; margin-bottom: 0; }
+    .page-title { flex: 0 0 100%; font-size: 20px; margin-bottom: 4px; }
     button[mat-flat-button], button[mat-stroked-button] {
       font-size: 13px;
-      padding: 0 12px !important;
+      padding: 0 10px !important;
       height: 36px !important;
+      min-width: 0 !important;
+      // Stringi spaziatura icona-testo
+      .mat-mdc-button-touch-target + mat-icon,
+      mat-icon { margin-right: 4px !important; font-size: 18px; width: 18px; height: 18px; }
     }
+    // Stripped layout per icon-buttons standalone
+    button.mat-mdc-icon-button { width: 36px; height: 36px; }
   }
   .page-title { font-size: 20px; }
 
-  // KPI: 2 colonne, compatti
+  // KPI: 2 colonne, compatti, icona più piccola che non collide col valore
   .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .kpi-card { padding: 14px 16px;
-    .kpi-value { font-size: 20px; }
-    .kpi-label { font-size: 11px; }
+  .kpi-card {
+    padding: 14px 14px 12px;
+    .kpi-value { font-size: 19px; padding-right: 32px; word-break: break-word; }
+    .kpi-label { font-size: 11px; padding-right: 32px; }
+    .kpi-icon { top: 12px; right: 12px; width: 30px; height: 30px;
+      mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+    .kpi-accent { margin-bottom: 10px; }
   }
 
   // Card con scroll orizzontale per tabelle
@@ -870,15 +880,56 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   .form-row { flex-direction: column; gap: 0; }
   .dialog-form { gap: 0; }
 
+  // Form sections: rimuovi hint che ruba spazio
+  .form-section {
+    padding: 12px 12px;
+    gap: 8px;
+  }
+  .form-section-header {
+    .section-hint { display: none; }
+  }
+  // Input con bottone action (es. lookup P.IVA): tight gap
+  .input-with-action { gap: 4px; }
+
+  // Dialog hero: più compatto, no border-bottom doppio
+  .dialog-hero {
+    gap: 10px;
+    padding: 4px 0 12px;
+    margin-bottom: 4px;
+    .dialog-hero-icon {
+      width: 36px; height: 36px;
+      mat-icon { font-size: 20px; width: 20px; height: 20px; }
+    }
+    .dialog-hero-title { font-size: 15px; }
+    .dialog-hero-sub { font-size: 11px; line-height: 1.3;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+  }
+
+  // Suffix icons negli input: nascosti su mobile per dare più larghezza al campo
+  .mat-mdc-form-field-icon-suffix mat-icon { display: none; }
+  // Eccezione: search input e bottoni action (i bottoni mat-icon-button restano visibili)
+  .mat-mdc-form-field-icon-suffix mat-icon[matSuffix][title*="erca"],
+  .mat-mdc-form-field-icon-suffix mat-icon.search-icon-keep { display: inline-block; }
+
   // Righe table
   .righe-section { overflow-x: auto; }
+
+  // Doc totals strip: stack su mobile
+  .doc-totals-strip {
+    padding: 12px;
+    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    .totals-spacer { display: none; }
+    .totals-grand { padding-left: 0; border-left: none; border-top: 1px solid var(--border); padding-top: 8px; width: 100%; }
+  }
 
   // Dialog padding
   .mat-mdc-dialog-content { padding: 0 14px 14px !important; }
   .mat-mdc-dialog-surface { padding: 18px 0 0 !important; border-radius: 0 !important; }
   .mat-mdc-dialog-actions { padding: 10px 14px !important; }
 
-  // Full screen dialogs
+  // Full screen dialogs + override min-width inline (es. listino-dialog usa 680px)
   .cdk-overlay-pane:has(.mat-mdc-dialog-container) {
     width: 100vw !important;
     max-width: 100vw !important;
@@ -899,17 +950,67 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   }
   .mat-mdc-dialog-content {
     max-height: calc(100dvh - 160px) !important;
+    // Override degli inline min-width: posti su <mat-dialog-content style="min-width:680px">
+    min-width: 0 !important;
   }
+  // Override anche per i div interni con style inline
+  .mat-mdc-dialog-content > * { min-width: 0 !important; max-width: 100%; }
 
   .bulk-bar { flex-wrap: wrap; gap: 6px; }
 
-  // Tables on mobile: smaller padding
-  th.mat-mdc-header-cell, td.mat-mdc-cell { padding: 10px 10px !important; font-size: 13px !important; }
+  // Tables on mobile: padding ridotto
+  th.mat-mdc-header-cell, td.mat-mdc-cell { padding: 10px 8px !important; font-size: 13px !important; }
+  th.mat-mdc-header-cell { font-size: 10px !important; padding: 8px !important; }
+
+  // Mat tabs scrollable su mobile (impedisce overflow)
+  .mat-mdc-tab-header { border-bottom: 1px solid var(--border-subtle); }
+  .mat-mdc-tab-labels { gap: 0 !important; }
+  .mdc-tab { min-width: auto !important; padding: 0 12px !important; }
+  .mdc-tab__text-label { font-size: 13px !important; }
+
+  // Card "max-width" inline (impostazioni usa style="max-width:560px"): full-width su mobile
+  .tab-content .card[style*="max-width"] { max-width: 100% !important; }
+
+  // Snackbar: tieni dentro la viewport
+  .mat-mdc-snack-bar-container { margin: 12px !important; }
 }
 
 @media (max-width: 480px) {
-  .page { padding: 12px 10px; }
+  .page { padding: 12px 8px; }
+
+  .page-header {
+    .page-title { font-size: 18px; }
+    // Bottoni "Aggiungi/Importa/Esporta": compact, icona+testo corto
+    button[mat-flat-button], button[mat-stroked-button] {
+      font-size: 12px !important;
+      padding: 0 8px !important;
+      height: 34px !important;
+    }
+  }
+
   .kpi-grid { gap: 8px; }
   .kpi-3col { grid-template-columns: repeat(2, 1fr); }
-  .kpi-card { padding: 12px 14px; .kpi-value { font-size: 18px; } }
+  .kpi-card {
+    padding: 12px 12px 10px;
+    .kpi-value { font-size: 16px; padding-right: 28px; }
+    .kpi-label { font-size: 10px; padding-right: 28px; letter-spacing: 0.02em; }
+    .kpi-icon { top: 10px; right: 10px; width: 26px; height: 26px;
+      mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+  }
+
+  // Dialog ancora più compatto
+  .mat-mdc-dialog-content { padding: 0 10px 12px !important; }
+  .mat-mdc-dialog-actions { padding: 8px 10px !important; }
+  .form-section { padding: 10px; gap: 6px; }
+  .dialog-hero {
+    .dialog-hero-icon { width: 32px; height: 32px;
+      mat-icon { font-size: 18px; width: 18px; height: 18px; } }
+    .dialog-hero-title { font-size: 14px; }
+    .dialog-hero-sub { font-size: 10px; }
+  }
+
+  // Status chips più piccoli
+  .stato-chip { font-size: 11px; padding: 3px 8px 3px 7px;
+    &::before { width: 5px; height: 5px; }
+  }
 }

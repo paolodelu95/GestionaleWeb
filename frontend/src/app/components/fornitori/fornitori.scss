@@ -1,0 +1,26 @@
+// ── Anti-squish: dai respiro alle colonne più dense ────────────────────────
+.col-rag-soc {
+  min-width: 220px;
+  max-width: 360px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-citta {
+  min-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .provincia {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 500;
+  }
+}
+
+@media (max-width: 767px) {
+  .col-rag-soc { min-width: 160px; max-width: 220px; }
+  .col-citta   { min-width: 100px; }
+}

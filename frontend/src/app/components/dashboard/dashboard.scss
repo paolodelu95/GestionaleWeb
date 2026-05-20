@@ -415,4 +415,57 @@
   .chart-container-centered { height: 200px; }
   .cashflow-val-pos, .cashflow-val-neg { font-size: 16px; }
   .alert-chip { padding: 8px 12px; font-size: 12px; }
+
+  // Edit mode: bordo + padding compatti per non comprimere ulteriormente i widget
+  .widget-list {
+    gap: 12px;
+    &.edit-mode .widget {
+      padding: 4px;
+      border-width: 1px;
+    }
+  }
+  .widget-edit-overlay {
+    padding: 2px 4px 8px;
+    margin-bottom: 8px;
+  }
+  .widget-drag-handle {
+    padding: 2px 6px;
+    font-size: 12px;
+    .widget-edit-label { font-size: 12px; }
+  }
+
+  // Edit banner più stretto
+  .edit-banner {
+    padding: 10px 12px;
+    font-size: 12px;
+    gap: 8px;
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  }
+
+  // Section title (con accent bar) un filo più piccolo
+  .section-title {
+    font-size: 14px;
+    &::before { height: 14px; }
+  }
+
+  // Cashflow card: compatta
+  .cashflow-card { padding: 12px 14px; }
+  .cashflow-accent { width: 3px; height: 24px; }
+}
+
+@media (max-width: 480px) {
+  .chart-container { height: 180px; }
+  .chart-container-centered { height: 180px; }
+
+  // KPI cashflow: testo ancora più piccolo
+  .cashflow-val-pos, .cashflow-val-neg { font-size: 14px; }
+  .cashflow-row { gap: 8px; }
+
+  // Alert chip: ancora più compatto
+  .alert-chip { padding: 6px 10px; font-size: 11px;
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  }
+
+  // Widget edit menu (count button): full text fit
+  .widget-edit-label { display: none; }
 }

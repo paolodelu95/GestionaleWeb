@@ -150,6 +150,49 @@ Drag&drop con CDK (`cdkDropList`/`cdkDrag`). Preferenze salvate in `localStorage
 
 ---
 
+### 7. Fix tabelle clienti/fornitori (post-feedback utente)
+
+**Sintomo**: nome e indirizzo "schiacciati" nella vista lista.
+
+**Modifiche**:
+- Colonna "Indirizzo" rinominata in "Città" → mostra `Roma (RM)` invece di tutto l'indirizzo
+- Tooltip on hover con indirizzo completo per riferimento veloce
+- Indirizzo completo resta nel dialog info (non modificato)
+- CSS in [clienti.scss](../frontend/src/app/components/clienti/clienti.scss) e [fornitori.scss](../frontend/src/app/components/fornitori/fornitori.scss): `.col-rag-soc` min-width 220px / max 360px, `.col-citta` min-width 140px
+- Mobile: min-width ridotti (160px / 100px)
+- Aggiunto `MatTooltipModule` ai 2 ListComponent
+- Label nel column picker aggiornato a "Città"
+- Metodo `indirizzo()` resta intatto perché usato da search, print, export, tooltip
+
+### 8. Pass responsive mobile completo (post-feedback utente)
+
+**Sintomo**: visualizzazione smartphone "incasinata" su molte pagine dopo le recenti modifiche.
+
+**Modifiche in [styles.scss](../frontend/src/styles.scss)** (espanso `@media (max-width: 767px)` e `@media (max-width: 480px)`):
+- **KPI cards**: icona absolute ridotta (30px → 26px su <480px), top/right ridotti (12px → 10px), `padding-right` su label/valore per evitare overlap, word-break su valore lungo
+- **Page-header**: bottoni più compatti (10px padding, 18px icon), icon-only `mat-icon-button` 36x36, titolo 20px → 18px su <480px
+- **Form sections**: `.section-hint` nascosto, padding ridotto, gap stretto
+- **Dialog hero**: icona 36px (32px su <480px), titolo 15px (14px), subtitle troncato a 2 righe con `-webkit-line-clamp`
+- **MatSuffix icons negli input**: `display: none` su mobile per dare larghezza ai campi (eccezione search e action buttons)
+- **Doc totals strip**: stack verticale, separatore "grand total" ridiventa border-top
+- **Override min-width**: `.mat-mdc-dialog-content { min-width: 0 !important }` + `.mat-mdc-dialog-content > * { min-width: 0 !important; max-width: 100% }` → batte inline `style="min-width:680px"` di tutti i dialog
+- **Tab labels**: padding 12px e font 13px (impedisce overflow)
+- **Card con inline `max-width`**: full-width su mobile (`max-width: 100% !important`)
+- **Snackbar**: margin 12px (no overflow)
+- **Table cells header**: 10px font, 8px padding
+
+**Modifiche in [dashboard.scss](../frontend/src/app/components/dashboard/dashboard.scss)**:
+- **Widget edit mode mobile**: border 2px → 1px, padding 8px → 4px, drag-handle font 12px
+- **Edit banner**: padding e font compatti
+- **Section title accent bar**: altezza ridotta
+- **Cashflow**: card più compatta, accent 4px → 3px, val 16px → 14px su <480px
+- **Alert chip**: padding e icon ridotti su <480px
+- **Widget edit label**: hide su <480px (resta solo l'icona)
+
+**Modifiche in [listino-dialog.ts](../frontend/src/app/components/impostazioni/listino-dialog.ts)**:
+- `mat-dialog-content` rinominato `class="listino-dialog-content"` (era inline `style="min-width:680px"`)
+- Media query `@767px`: min-width 0, add-row column, tabella prezzi font 12px, input override width 70px
+
 ## Debiti tecnici / TODO aperti
 
 - **Warning preesistenti** (non miei) in compilation: `DocInfoDialogComponent`/`InfoDialogComponent` importati ma non usati in vari componenti list (fatture, ddt, ordini, preventivi, note-credito, acquisti, fornitori, prodotti, vendita-banco, clienti). Da pulire in una sessione "cleanup imports".

@@ -27,7 +27,7 @@ import { Listino, ListinoPrezzo, Prodotto } from '../../models';
   ],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica listino' : 'Nuovo listino' }}</h2>
-    <mat-dialog-content style="min-width:680px">
+    <mat-dialog-content class="listino-dialog-content">
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%)">
           <mat-icon>price_change</mat-icon>
@@ -178,6 +178,20 @@ import { Listino, ListinoPrezzo, Prodotto } from '../../models';
     </mat-dialog-actions>
   `,
   styles: [`
+    .listino-dialog-content { min-width: 680px; }
+    @media (max-width: 767px) {
+      .listino-dialog-content { min-width: 0; }
+      .add-row { flex-direction: column; gap: 0; }
+      .prezzi-table {
+        font-size: 12px;
+        th, td { padding: 6px 6px !important; }
+        th { font-size: 10px !important; }
+      }
+      .prz-input { width: 70px !important; padding: 4px 6px !important; font-size: 12px !important; }
+      .prz-hint { padding: 10px 12px; font-size: 11px;
+        mat-icon { font-size: 16px; width: 16px; height: 16px; }
+      }
+    }
     .empty-tab {
       text-align: center; padding: 40px 16px; color: #94a3b8;
       mat-icon { font-size: 40px; width: 40px; height: 40px; opacity: 0.5; margin-bottom: 8px; }

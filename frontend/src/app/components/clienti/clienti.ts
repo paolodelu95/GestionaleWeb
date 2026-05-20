@@ -685,7 +685,7 @@ export class ClienteDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            ColumnPickerComponent, InfoDialogComponent],
+            MatTooltipModule, ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })
@@ -706,7 +706,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     { key: 'email', label: 'Email' },
     { key: 'telefono', label: 'Telefono' },
     { key: 'cellulare', label: 'Cellulare' },
-    { key: 'indirizzo', label: 'Indirizzo' },
+    { key: 'indirizzo', label: 'Città' },
     { key: 'codiceFiscale', label: 'Cod. Fiscale' },
     { key: 'pIva', label: 'P. IVA' },
     { key: 'sdi', label: 'SDI' },

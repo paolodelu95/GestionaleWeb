@@ -433,7 +433,7 @@ export class FornitoreDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            ColumnPickerComponent, InfoDialogComponent],
+            MatTooltipModule, ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
@@ -448,7 +448,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     { key: 'email', label: 'Email' },
     { key: 'telefono', label: 'Telefono' },
     { key: 'cellulare', label: 'Cellulare' },
-    { key: 'indirizzo', label: 'Indirizzo' },
+    { key: 'indirizzo', label: 'Città' },
     { key: 'pIva', label: 'P. IVA' },
     { key: 'sdi', label: 'SDI' },
     { key: 'pec', label: 'PEC' },
