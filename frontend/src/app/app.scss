@@ -188,6 +188,7 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   flex-shrink: 0;
   gap: 4px;
+  overflow: hidden;
 
   .toggle-btn {
     color: #94a3b8;
@@ -198,14 +199,27 @@
   .topbar-company {
     font-weight: 700;
     font-size: 15px;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .topbar-sub {
     color: #94a3b8;
     font-size: 13px;
+    flex-shrink: 1;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
-  .topbar-spacer { flex: 1; }
+  .topbar-spacer { flex: 1; min-width: 0; }
+}
+
+// Hide company extra info on medium screens where space is tight
+@media (max-width: 1024px) {
+  .topbar-sub { display: none !important; }
 }
 
 .content-area {
@@ -244,14 +258,10 @@
     z-index: 999;
   }
 
-  // Topbar: hide secondary info to free horizontal space
-  .topbar-sub { display: none; }
+  // Topbar: compact company name on mobile
   .topbar-company {
     font-size: 13px;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    max-width: 160px;
   }
 }
 

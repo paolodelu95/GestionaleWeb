@@ -391,6 +391,7 @@ const migrations = [
 )`,
   'ALTER TABLE clienti ADD COLUMN cellulare TEXT DEFAULT ""',
   'ALTER TABLE fornitori ADD COLUMN cellulare TEXT DEFAULT ""',
+  'ALTER TABLE prodotti ADD COLUMN prezzo_acquisto REAL DEFAULT NULL',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

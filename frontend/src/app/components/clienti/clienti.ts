@@ -15,7 +15,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Observable, of, timer, firstValueFrom } from 'rxjs';
+import { Observable, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
@@ -515,40 +515,47 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     ], 'clienti');
   }
 
-  async importExcel(event: Event) {
+  importExcel(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     (event.target as HTMLInputElement).value = '';
-    let rows: Record<string, string>[];
-    try { rows = await this.excel.readFile(file); }
-    catch { this.snack.open('File non leggibile', '', { duration: 3000 }); return; }
-    if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
-    const result: MappingResult | null = await firstValueFrom(
+    this.excel.readFile(file).then(rows => {
+      if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
       this.dialog.open(ImportMappingDialogComponent, {
         data: { rows, fields: CLIENTI_FIELDS, entityType: 'clienti', entityLabel: 'Clienti' },
         disableClose: true,
-      }).afterClosed()
-    );
-    if (!result) return;
-    const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
-    const records = rows.map(r => ({
-      ragioneSociale: v('ragioneSociale', r),
-      email:          v('email', r),
-      telefono:       v('telefono', r),
-      cellulare:      v('cellulare', r),
-      via:            v('via', r),
-      cap:            v('cap', r),
-      citta:          v('citta', r),
-      provincia:      v('provincia', r),
-      stato:          v('stato', r) || 'Italia',
-      codiceFiscale:  v('codiceFiscale', r),
-      pIva:           v('pIva', r),
-      sdi:            v('sdi', r),
-      pec:            v('pec', r),
-    })).filter(c => c.ragioneSociale.trim());
-    const { created, updated, skipped } = await firstValueFrom(this.ds.importClienti(records));
-    this.load();
-    this.snack.open(`Importati: ${created} nuovi, ${updated} aggiornati, ${skipped} saltati`, '', { duration: 5000 });
+      }).afterClosed().subscribe((result: MappingResult | null) => {
+        if (!result) return;
+        const v = (key: string, row: Record<string, any>) => String(row[result.mapping[key]] ?? '').trim();
+        const records = rows.map(r => ({
+          ragioneSociale: v('ragioneSociale', r),
+          email:          v('email', r),
+          telefono:       v('telefono', r),
+          cellulare:      v('cellulare', r),
+          via:            v('via', r),
+          cap:            v('cap', r),
+          citta:          v('citta', r),
+          provincia:      v('provincia', r),
+          stato:          v('stato', r) || 'Italia',
+          codiceFiscale:  v('codiceFiscale', r),
+          pIva:           v('pIva', r),
+          sdi:            v('sdi', r),
+          pec:            v('pec', r),
+        })).filter(c => c.ragioneSociale.length > 0);
+        if (!records.length) { this.snack.open('Nessun cliente valido: controlla la colonna Ragione Sociale', '', { duration: 5000 }); return; }
+        this.ds.importClienti(records).subscribe({
+          next: (res: any) => {
+            this.load();
+            this.snack.open(`Importati: ${res.created} nuovi, ${res.updated} aggiornati, ${res.skipped} saltati`, '', { duration: 5000 });
+          },
+          error: (err: any) => {
+            this.snack.open('Errore import: ' + (err?.error?.message || err?.message || 'errore sconosciuto'), '', { duration: 6000 });
+          }
+        });
+      });
+    }).catch(() => {
+      this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 });
+    });
   }
 
   delete(c: Cliente) {

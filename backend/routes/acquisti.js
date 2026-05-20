@@ -67,7 +67,10 @@ router.get('/:id/print', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM acquisti WHERE id=?').run(req.params.id);
+  const id = Number(req.params.id);
+  db.prepare('DELETE FROM pagamenti WHERE acquisto_id=?').run(id);
+  db.prepare('UPDATE arrivi_merce SET acquisto_id=NULL WHERE acquisto_id=?').run(id);
+  db.prepare('DELETE FROM acquisti WHERE id=?').run(id);
   res.json({ success: true });
 });
 

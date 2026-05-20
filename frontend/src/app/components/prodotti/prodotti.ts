@@ -1,7 +1,6 @@
 import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -397,41 +396,51 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     ], 'prodotti');
   }
 
-  async importExcel(event: Event) {
+  importExcel(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     (event.target as HTMLInputElement).value = '';
-    let rows: Record<string, string>[];
-    try { rows = await this.excel.readFile(file); }
-    catch { this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 }); return; }
-    if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
-    const result: MappingResult | null = await firstValueFrom(
+    this.excel.readFile(file).then(rows => {
+      if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
       this.dialog.open(ImportMappingDialogComponent, {
         data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti' },
         disableClose: true,
-      }).afterClosed()
-    );
-    if (!result) return;
-    const toNum = (s: string) => parseFloat(s.replace(',', '.') || '0') || 0;
-    const toInt = (s: string) => parseInt(s.replace(',', '.') || '0', 10) || 0;
-    const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
-    const records = rows.map(r => ({
-      nome:            v('nome', r),
-      categoria:       v('categoria', r),
-      descrizione:     v('descrizione', r),
-      codice:          v('codice', r),
-      codiceFornitore: v('codiceFornitore', r),
-      barcode:         v('barcode', r),
-      prezzo:          toNum(v('prezzo', r)),
-      prezzoAcquisto:  toNum(v('prezzoAcquisto', r)) || null,
-      iva:             toNum(v('iva', r)) || 22,
-      quantita:        toInt(v('quantita', r)),
-      sogliaMinima:    toInt(v('sogliaMinima', r)),
-      unitaMisura:     v('unitaMisura', r) || 'pz',
-    })).filter(p => p.nome.trim());
-    const { created, updated, skipped } = await firstValueFrom(this.ds.importProdotti(records));
-    this.load();
-    this.snack.open(`Importati: ${created} nuovi, ${updated} aggiornati, ${skipped} saltati`, '', { duration: 5000 });
+      }).afterClosed().subscribe((result: MappingResult | null) => {
+        if (!result) return;
+        const toNum = (s: any) => parseFloat(String(s ?? '').replace(',', '.') || '0') || 0;
+        const toInt = (s: any) => parseInt(String(s ?? '').replace(',', '.') || '0', 10) || 0;
+        const v = (key: string, row: Record<string, any>) => row[result.mapping[key]] ?? '';
+        const records = rows.map(r => ({
+          nome:            String(v('nome', r)).trim(),
+          categoria:       String(v('categoria', r)).trim(),
+          descrizione:     String(v('descrizione', r)).trim(),
+          codice:          String(v('codice', r)).trim(),
+          codiceFornitore: String(v('codiceFornitore', r)).trim(),
+          barcode:         String(v('barcode', r)).trim(),
+          prezzo:          toNum(v('prezzo', r)),
+          prezzoAcquisto:  toNum(v('prezzoAcquisto', r)) || null,
+          iva:             toNum(v('iva', r)) || 22,
+          quantita:        toInt(v('quantita', r)),
+          sogliaMinima:    toInt(v('sogliaMinima', r)),
+          unitaMisura:     String(v('unitaMisura', r)).trim() || 'pz',
+        })).filter(p => p.nome.length > 0);
+        if (!records.length) {
+          this.snack.open('Nessun prodotto valido: controlla che la colonna Nome sia mappata correttamente', '', { duration: 5000 });
+          return;
+        }
+        this.ds.importProdotti(records).subscribe({
+          next: (res: any) => {
+            this.load();
+            this.snack.open(`Importati: ${res.created} nuovi, ${res.updated} aggiornati, ${res.skipped} saltati`, '', { duration: 5000 });
+          },
+          error: (err: any) => {
+            this.snack.open('Errore import: ' + (err?.error?.message || err?.message || JSON.stringify(err?.error) || 'errore sconosciuto'), '', { duration: 6000 });
+          }
+        });
+      });
+    }).catch(() => {
+      this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 });
+    });
   }
 
   delete(p: Prodotto) {
