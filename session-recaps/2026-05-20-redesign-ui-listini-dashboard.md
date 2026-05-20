@@ -193,6 +193,82 @@ Drag&drop con CDK (`cdkDropList`/`cdkDrag`). Preferenze salvate in `localStorage
 - `mat-dialog-content` rinominato `class="listino-dialog-content"` (era inline `style="min-width:680px"`)
 - Media query `@767px`: min-width 0, add-row column, tabella prezzi font 12px, input override width 70px
 
+### 9. Aggiunta rapida prodotti + Report migliorato (post-feedback utente)
+
+**Aggiunta rapida prodotti** — [quick-add-prodotto-dialog.ts](../frontend/src/app/components/prodotti/quick-add-prodotto-dialog.ts)
+
+Dialog "mini" pensato per inserimento veloce a raffica:
+- Solo i campi essenziali: Nome (obbligatorio + autofocus), Codice, Categoria, Prezzo (toggle Netto/Ivato), IVA, Quantità, U.M.
+- 3 bottoni: **Chiudi** / **Salva e chiudi** / **Salva e nuovo** (primario, indigo)
+- **Enter** nel campo Nome → "Salva e nuovo" (lavoro senza mouse)
+- **Sticky defaults**: dopo ogni save, Categoria/IVA/U.M. restano memorizzate per il prossimo prodotto
+- **Recap inline**: card verde sotto al form con ultimi 8 prodotti creati nella sessione + contatore
+- **Hero verde** lampo (`flash_on`) per richiamare "velocità"
+- Autofocus su Nome dopo ogni salvataggio (timeout 50ms per dare tempo al reset)
+
+Bottone "Rapido" (mat-stroked) accanto a "Aggiungi" in [prodotti.html](../frontend/src/app/components/prodotti/prodotti.html). Aggiunto `MatTooltipModule` agli imports del ProdottiComponent.
+
+**Report — empty state + highlight cards** — [report.ts](../frontend/src/app/components/report/report.ts), [report.html](../frontend/src/app/components/report/report.html), [report.scss](../frontend/src/app/components/report/report.scss)
+
+Nuovi getter:
+- `hasData`: true se kpiFatturato > 0 OR kpiCosti > 0
+- `clienteTop`: primo elemento di `bi.abcClienti` (già ordinato)
+- `prodottoTop`: primo per ricavi (re-sort di `bi.prodottiMargini`)
+- `meseTop`: mese top dell'anno selezionato (max su `fatturaMensile`)
+
+**Empty state** (mostrato quando `!hasData`):
+- Icona grande indigo + h2 "Nessun dato per il {anno}"
+- Spiegazione del perché + 2 CTA: "Vai alle fatture" (mat-flat primary), "Vai agli acquisti" (stroked)
+- Hint "cambia anno dal selettore" se ci sono anni alternativi
+- Aggiunto `RouterLink` agli imports di ReportComponent
+
+**3 highlight cards** (mostrate quando `hasData`, sopra ai tab):
+- **Cliente top**: nome + fatturato + numero fatture, accent indigo
+- **Prodotto più venduto**: nome + ricavi + margine %, accent verde (`highlight-card--success`)
+- **Mese record**: mese + fatturato, accent giallo (`highlight-card--warning`)
+
+Stile: card con bordo top gradient 3px che identifica la categoria, hover lift, label uppercase, valore bold tabular-nums, mobile 1-col stack.
+
+### 10. Fix endpoint `/api/stats/bi` (post-feedback utente)
+
+**Sintomo**: pagina Report mostrava "Impossibile caricare i dati" (empty state error variant ora corretto).
+
+**Causa**: 3 bug SQL preesistenti in [backend/routes/stats.js](../backend/routes/stats.js) → better-sqlite3 fa throw a `prepare()` su colonne inesistenti → endpoint crasha → 500 al frontend.
+
+**Bug trovati**:
+1. **`categorie`** join `categorie_prodotto cat ON cat.id=p.categoria_id` — la colonna `prodotti.categoria_id` non esiste; `prodotti.categoria` è TEXT. Fix: `GROUP BY p.categoria` direttamente, con `COALESCE(NULLIF(TRIM(p.categoria),''),'Senza categoria')` per gestire vuoti.
+2. **`dso`** usa `p.data` e `substr(p.data,1,4)` — su `pagamenti` la colonna è `data_pagamento`. Fix: rinominato tutto.
+3. **`incassoStats`** subquery `substr(pg.data,1,4)` — stesso problema, fix identico.
+
+**Hardening**: wrappato tutto in try/catch con `console.error` e response 500 JSON con `error` + `message` per visibilità futura.
+
+Verificato con `node -e "..."`: tutte le query ora passano contro lo schema reale (ritornano array vuoti se non ci sono dati, ma non crashano).
+
+### 11. Hardening dark mode (post-feedback utente)
+
+**Sintomo**: "la modalità scura non fa diventare le scritte bianche e si vede male il grigio sul violetto".
+
+**Causa principale**: Material 3 in dark mode usa il sistema **tonal**: i bottoni `mat-flat-button` (default + `color="primary"`) renderizzano con bg indigo CHIARO + testo SCURO indigo (sembra grigio). Ovunque c'era un bottone primario, in dark mode si vedeva "grigio su violetto". Inoltre erano sparse decine di `style="color:#xxxxxx"` inline nei template che non si adattano al tema.
+
+**Modifiche in [styles.scss](../frontend/src/styles.scss)** (sezione `.dark-mode`):
+1. **Bottoni primari forzati a bianco**: override esplicito di `--mdc-filled-button-container-color: var(--primary)` + `--mdc-filled-button-label-text-color: #ffffff` + fallback `background-color: var(--primary) !important; color: #ffffff !important` su `.mat-mdc-flat-button` / `.mat-mdc-unelevated-button` / `.mat-mdc-raised-button`. Inclusi tutti i selettori (`.mat-primary`, `[color="primary"]`, default no-color). Stessa logica per `.mat-warn` (rosso + bianco).
+2. **Mat-menu icons**: `.mat-mdc-menu-item mat-icon` → `var(--text-tertiary)`, hover `var(--text-secondary)`.
+3. **Checkbox / Radio / Slide-toggle**: label esplicitamente `var(--text-primary)`, icon colors mappate a CSS variables.
+4. **Tabs**: `--mat-tab-header-inactive-label-text-color: var(--text-tertiary)`, active → `var(--primary-hover)`.
+5. **Mat-select**: `--mat-select-enabled-trigger-text-color` + `-placeholder-text-color` + arrow color tutti mappati.
+6. **Native input**: forza `color: var(--text-primary)` su tutti i `<input>` e `<textarea>`, più `filter: invert(0.8)` sull'icona del date picker (default è nera).
+7. **Form field hints/errors**: mappati a `var(--text-tertiary)`.
+
+**Attribute selectors per inline styles** (cattura colori hardcoded nei template):
+- `[style*="color:#94a3b8"]` → `var(--text-tertiary)` (e varianti con e senza spazio)
+- `[style*="color:#64748b"]` → `var(--text-secondary)`
+- `[style*="color:#475569"]`, `#374151`, `#6b7280` → idem secondario/terziario
+- `[style*="color:#1e293b"]` → `var(--text-primary)`
+- Verdi/rossi/blu semantici (#22c55e, #16a34a, #ef4444, #dc2626, #3b82f6, #6366f1) → rimappati a `--success-on`, `--danger-on`, `--info-on`, `--primary-hover` (versioni più luminose per dark)
+- Background pastello hardcoded (`#eef2ff`, `#f0fdf4`, `#fff7ed`, `#fef2f2`) → versioni rgba con alpha 0.18 su scuro
+
+Tutto via `!important` per battere gli inline styles. Build pulito, 6.7s.
+
 ## Debiti tecnici / TODO aperti
 
 - **Warning preesistenti** (non miei) in compilation: `DocInfoDialogComponent`/`InfoDialogComponent` importati ma non usati in vari componenti list (fatture, ddt, ordini, preventivi, note-credito, acquisti, fornitori, prodotti, vendita-banco, clienti). Da pulire in una sessione "cleanup imports".

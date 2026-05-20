@@ -119,136 +119,141 @@ router.get('/kpi-anno', (req, res) => {
 
 // ── GET /bi – Business Intelligence completa ──────────────────────────────────
 router.get('/bi', (req, res) => {
-  const anno = String(req.query.anno || new Date().getFullYear());
-  const annoPrec = String(parseInt(anno) - 1);
+  try {
+    const anno = String(req.query.anno || new Date().getFullYear());
+    const annoPrec = String(parseInt(anno) - 1);
 
-  // Fatturato mensile anno corrente e precedente
-  const fatturaMensile = db.prepare(`
-    SELECT substr(f.data_emissione,1,7) as mese,
-           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0) as fatturato,
-           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile
-    FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
-    WHERE substr(f.data_emissione,1,4) IN (?,?)
-      AND f.stato != 'ANNULLATA'
-    GROUP BY mese ORDER BY mese`).all(anno, annoPrec);
-
-  // Acquisti mensili anno corrente e precedente
-  const acquistiMensili = db.prepare(`
-    SELECT substr(a.data_emissione,1,7) as mese,
-           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(1+ar.iva/100)),0) as costi
-    FROM acquisti a JOIN acquisti_righe ar ON ar.acquisto_id=a.id
-    WHERE substr(a.data_emissione,1,4) IN (?,?)
-    GROUP BY mese ORDER BY mese`).all(anno, annoPrec);
-
-  // ABC analysis – tutti i clienti per fatturato anno corrente
-  const abcClienti = db.prepare(`
-    SELECT c.ragione_sociale as nome,
-           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0) as fatturato,
-           COUNT(DISTINCT f.id) as numFatture
-    FROM fatture f
-    JOIN fatture_righe fr ON fr.fattura_id=f.id
-    LEFT JOIN clienti c ON c.id=f.cliente_id
-    WHERE substr(f.data_emissione,1,4)=?
-      AND f.stato != 'ANNULLATA'
-      AND f.cliente_id IS NOT NULL
-    GROUP BY f.cliente_id
-    ORDER BY fatturato DESC`).all(anno);
-
-  // Calcola cumulative % per Pareto
-  const totFatturato = abcClienti.reduce((s, r) => s + r.fatturato, 0);
-  let cumulativo = 0;
-  const abc = abcClienti.map(r => {
-    cumulativo += r.fatturato;
-    const pct = totFatturato > 0 ? (r.fatturato / totFatturato) * 100 : 0;
-    const pctCum = totFatturato > 0 ? (cumulativo / totFatturato) * 100 : 0;
-    return { ...r, pct: +pct.toFixed(1), pctCumulativa: +pctCum.toFixed(1),
-             classe: pctCum <= 80 ? 'A' : pctCum <= 95 ? 'B' : 'C' };
-  });
-
-  // Breakdown per categoria prodotto
-  const categorie = db.prepare(`
-    SELECT COALESCE(cat.nome,'Senza categoria') as categoria,
-           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile,
-           COALESCE(SUM(fr.quantita),0) as quantita
-    FROM fatture_righe fr
-    JOIN fatture f ON f.id=fr.fattura_id
-    LEFT JOIN prodotti p ON p.id=fr.prodotto_id
-    LEFT JOIN categorie_prodotto cat ON cat.id=p.categoria_id
-    WHERE substr(f.data_emissione,1,4)=? AND f.stato!='ANNULLATA'
-    GROUP BY COALESCE(cat.id, -1)
-    ORDER BY imponibile DESC`).all(anno);
-
-  // DSO – Days Sales Outstanding (giorni medi incasso)
-  const dso = db.prepare(`
-    SELECT AVG(julianday(p.data) - julianday(f.data_emissione)) as giorni
-    FROM pagamenti p
-    JOIN fatture f ON f.id=p.fattura_id
-    WHERE substr(p.data,1,4)=?
-      AND p.data IS NOT NULL AND f.data_emissione IS NOT NULL`).get(anno);
-
-  // Tasso incasso – % fatturato incassato vs emesso
-  const incassoStats = db.prepare(`
-    SELECT
-      COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0) as emesso,
-      COALESCE((SELECT SUM(importo) FROM pagamenti pg
-                JOIN fatture ff ON ff.id=pg.fattura_id
-                WHERE substr(pg.data,1,4)=? AND ff.stato!='ANNULLATA'),0) as incassato
-    FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
-    WHERE substr(f.data_emissione,1,4)=? AND f.stato!='ANNULLATA'`).get(anno, anno);
-
-  // Prodotti top & bottom per margine (fatturato - costo acquisto medio)
-  const prodottiMargini = db.prepare(`
-    SELECT p.nome,
-           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as ricavi,
-           COALESCE(SUM(fr.quantita * COALESCE(NULLIF(p.prezzo_acquisto,0), NULL)),0) as costi_stimati,
-           COALESCE(SUM(fr.quantita),0) as qta_venduta
-    FROM fatture_righe fr
-    JOIN fatture f ON f.id=fr.fattura_id
-    JOIN prodotti p ON p.id=fr.prodotto_id
-    WHERE substr(f.data_emissione,1,4)=? AND f.stato!='ANNULLATA'
-    GROUP BY fr.prodotto_id
-    HAVING ricavi > 0
-    ORDER BY (ricavi - costi_stimati) DESC LIMIT 10`).all(anno);
-
-  // Stagionalità – media mensile pluriennale (tutti gli anni disponibili)
-  const stagionalita = db.prepare(`
-    SELECT substr(f.data_emissione,6,2) as mese_num,
-           AVG(mensile) as media
-    FROM (
-      SELECT substr(f.data_emissione,1,7) as ym,
-             substr(f.data_emissione,6,2) as mese_num,
-             SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)) as mensile
+    // Fatturato mensile anno corrente e precedente
+    const fatturaMensile = db.prepare(`
+      SELECT substr(f.data_emissione,1,7) as mese,
+             COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0) as fatturato,
+             COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile
       FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
-      WHERE f.stato!='ANNULLATA'
-      GROUP BY ym
-    ) f
-    GROUP BY mese_num ORDER BY mese_num`).all();
+      WHERE substr(f.data_emissione,1,4) IN (?,?)
+        AND f.stato != 'ANNULLATA'
+      GROUP BY mese ORDER BY mese`).all(anno, annoPrec);
 
-  res.json({
-    anno,
-    annoPrec,
-    fatturaMensile,
-    acquistiMensili,
-    abcClienti: abc,
-    categorie,
-    dsoMedio: dso?.giorni ? +dso.giorni.toFixed(1) : null,
-    incassoStats: {
-      emesso: incassoStats?.emesso || 0,
-      incassato: incassoStats?.incassato || 0,
-      tassoIncasso: incassoStats?.emesso > 0
-        ? +((incassoStats.incassato / incassoStats.emesso) * 100).toFixed(1)
-        : 0,
-    },
-    prodottiMargini: prodottiMargini.map(p => ({
-      nome: p.nome,
-      ricavi: +p.ricavi.toFixed(2),
-      costiStimati: +p.costi_stimati.toFixed(2),
-      margine: +(p.ricavi - p.costi_stimati).toFixed(2),
-      marginePerc: p.ricavi > 0 ? +((1 - p.costi_stimati / p.ricavi) * 100).toFixed(1) : 0,
-      qtaVenduta: p.qta_venduta,
-    })),
-    stagionalita,
-  });
+    // Acquisti mensili anno corrente e precedente
+    const acquistiMensili = db.prepare(`
+      SELECT substr(a.data_emissione,1,7) as mese,
+             COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(1+ar.iva/100)),0) as costi
+      FROM acquisti a JOIN acquisti_righe ar ON ar.acquisto_id=a.id
+      WHERE substr(a.data_emissione,1,4) IN (?,?)
+      GROUP BY mese ORDER BY mese`).all(anno, annoPrec);
+
+    // ABC analysis – tutti i clienti per fatturato anno corrente
+    const abcClienti = db.prepare(`
+      SELECT c.ragione_sociale as nome,
+             COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0) as fatturato,
+             COUNT(DISTINCT f.id) as numFatture
+      FROM fatture f
+      JOIN fatture_righe fr ON fr.fattura_id=f.id
+      LEFT JOIN clienti c ON c.id=f.cliente_id
+      WHERE substr(f.data_emissione,1,4)=?
+        AND f.stato != 'ANNULLATA'
+        AND f.cliente_id IS NOT NULL
+      GROUP BY f.cliente_id
+      ORDER BY fatturato DESC`).all(anno);
+
+    // Calcola cumulative % per Pareto
+    const totFatturato = abcClienti.reduce((s, r) => s + r.fatturato, 0);
+    let cumulativo = 0;
+    const abc = abcClienti.map(r => {
+      cumulativo += r.fatturato;
+      const pct = totFatturato > 0 ? (r.fatturato / totFatturato) * 100 : 0;
+      const pctCum = totFatturato > 0 ? (cumulativo / totFatturato) * 100 : 0;
+      return { ...r, pct: +pct.toFixed(1), pctCumulativa: +pctCum.toFixed(1),
+               classe: pctCum <= 80 ? 'A' : pctCum <= 95 ? 'B' : 'C' };
+    });
+
+    // Breakdown per categoria prodotto — prodotti.categoria è TEXT (no FK)
+    const categorie = db.prepare(`
+      SELECT COALESCE(NULLIF(TRIM(p.categoria),''),'Senza categoria') as categoria,
+             COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile,
+             COALESCE(SUM(fr.quantita),0) as quantita
+      FROM fatture_righe fr
+      JOIN fatture f ON f.id=fr.fattura_id
+      LEFT JOIN prodotti p ON p.id=fr.prodotto_id
+      WHERE substr(f.data_emissione,1,4)=? AND f.stato!='ANNULLATA'
+      GROUP BY categoria
+      ORDER BY imponibile DESC`).all(anno);
+
+    // DSO – Days Sales Outstanding (giorni medi incasso)
+    // NB: la colonna su pagamenti è data_pagamento, non data
+    const dso = db.prepare(`
+      SELECT AVG(julianday(p.data_pagamento) - julianday(f.data_emissione)) as giorni
+      FROM pagamenti p
+      JOIN fatture f ON f.id=p.fattura_id
+      WHERE substr(p.data_pagamento,1,4)=?
+        AND p.data_pagamento IS NOT NULL AND f.data_emissione IS NOT NULL`).get(anno);
+
+    // Tasso incasso – % fatturato incassato vs emesso
+    const incassoStats = db.prepare(`
+      SELECT
+        COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0) as emesso,
+        COALESCE((SELECT SUM(importo) FROM pagamenti pg
+                  JOIN fatture ff ON ff.id=pg.fattura_id
+                  WHERE substr(pg.data_pagamento,1,4)=? AND ff.stato!='ANNULLATA'),0) as incassato
+      FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
+      WHERE substr(f.data_emissione,1,4)=? AND f.stato!='ANNULLATA'`).get(anno, anno);
+
+    // Prodotti top & bottom per margine (fatturato - costo acquisto medio)
+    const prodottiMargini = db.prepare(`
+      SELECT p.nome,
+             COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as ricavi,
+             COALESCE(SUM(fr.quantita * COALESCE(NULLIF(p.prezzo_acquisto,0), NULL)),0) as costi_stimati,
+             COALESCE(SUM(fr.quantita),0) as qta_venduta
+      FROM fatture_righe fr
+      JOIN fatture f ON f.id=fr.fattura_id
+      JOIN prodotti p ON p.id=fr.prodotto_id
+      WHERE substr(f.data_emissione,1,4)=? AND f.stato!='ANNULLATA'
+      GROUP BY fr.prodotto_id
+      HAVING ricavi > 0
+      ORDER BY (ricavi - costi_stimati) DESC LIMIT 10`).all(anno);
+
+    // Stagionalità – media mensile pluriennale (tutti gli anni disponibili)
+    const stagionalita = db.prepare(`
+      SELECT substr(f.data_emissione,6,2) as mese_num,
+             AVG(mensile) as media
+      FROM (
+        SELECT substr(f.data_emissione,1,7) as ym,
+               substr(f.data_emissione,6,2) as mese_num,
+               SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)) as mensile
+        FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
+        WHERE f.stato!='ANNULLATA'
+        GROUP BY ym
+      ) f
+      GROUP BY mese_num ORDER BY mese_num`).all();
+
+    res.json({
+      anno,
+      annoPrec,
+      fatturaMensile,
+      acquistiMensili,
+      abcClienti: abc,
+      categorie,
+      dsoMedio: dso?.giorni ? +dso.giorni.toFixed(1) : null,
+      incassoStats: {
+        emesso: incassoStats?.emesso || 0,
+        incassato: incassoStats?.incassato || 0,
+        tassoIncasso: incassoStats?.emesso > 0
+          ? +((incassoStats.incassato / incassoStats.emesso) * 100).toFixed(1)
+          : 0,
+      },
+      prodottiMargini: prodottiMargini.map(p => ({
+        nome: p.nome,
+        ricavi: +p.ricavi.toFixed(2),
+        costiStimati: +p.costi_stimati.toFixed(2),
+        margine: +(p.ricavi - p.costi_stimati).toFixed(2),
+        marginePerc: p.ricavi > 0 ? +((1 - p.costi_stimati / p.ricavi) * 100).toFixed(1) : 0,
+        qtaVenduta: p.qta_venduta,
+      })),
+      stagionalita,
+    });
+  } catch (e) {
+    console.error('[stats/bi] error:', e.message);
+    res.status(500).json({ error: 'bi_query_failed', message: e.message });
+  }
 });
 
 module.exports = router;

@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -19,7 +20,7 @@ const MESI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov',
 @Component({
   selector: 'app-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatTabsModule,
+  imports: [CommonModule, FormsModule, RouterLink, MatButtonModule, MatIconModule, MatTabsModule,
             MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule],
   templateUrl: './report.html',
   styleUrl: './report.scss'
@@ -31,6 +32,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('chartStagione') chartStagRef!: ElementRef<HTMLCanvasElement>;
 
   loading = true;
+  loadError = false;
   bi: any = null;
   annoSel = new Date().getFullYear();
   anni = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -53,16 +55,21 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
 
   load() {
     this.loading = true;
+    this.loadError = false;
     this.dataReady = false;
     this.destroyCharts();
     this.ds.getBiStats(this.annoSel).subscribe({
       next: data => {
-        this.bi = data;
+        this.bi = data ?? {};
         this.loading = false;
         this.dataReady = true;
         if (this.viewReady) setTimeout(() => this.buildCharts(), 50);
       },
-      error: () => { this.loading = false; }
+      error: () => {
+        this.loading = false;
+        this.loadError = true;
+        this.bi = {};
+      }
     });
   }
 
@@ -104,6 +111,32 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
   get maxStagionalita(): number {
     if (!this.bi?.stagionalita?.length) return 1;
     return Math.max(...this.bi.stagionalita.map((s: any) => s.media ?? 0)) || 1;
+  }
+
+  // ── Highlight cards ─────────────────────────────────────────────────────────
+  get clienteTop(): { nome: string; fatturato: number; numFatture?: number } | null {
+    const arr = this.bi?.abcClienti;
+    if (!arr?.length) return null;
+    return arr[0];
+  }
+
+  get prodottoTop(): { nome: string; ricavi: number; marginePerc?: number } | null {
+    const arr = this.bi?.prodottiMargini;
+    if (!arr?.length) return null;
+    return arr.slice().sort((a: any, b: any) => (b.ricavi ?? 0) - (a.ricavi ?? 0))[0];
+  }
+
+  get meseTop(): { mese: string; fatturato: number } | null {
+    const arr = this.bi?.fatturaMensile?.filter((r: any) => r.mese.startsWith(this.annoSel.toString()));
+    if (!arr?.length) return null;
+    const top = arr.slice().sort((a: any, b: any) => (b.fatturato ?? 0) - (a.fatturato ?? 0))[0];
+    if (!top?.fatturato) return null;
+    const idx = parseInt(top.mese.split('-')[1], 10) - 1;
+    return { mese: MESI[idx] || top.mese, fatturato: top.fatturato };
+  }
+
+  get hasData(): boolean {
+    return (this.kpiFatturato || 0) > 0 || (this.kpiCosti || 0) > 0;
   }
 
   private buildCharts() {

@@ -18,9 +18,41 @@
     <div style="display:flex;justify-content:center;padding:64px">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
-  }
-
-  @if (bi && !loading) {
+  } @else if (!hasData) {
+    <!-- ── Empty state quando non ci sono fatture/acquisti per l'anno ─── -->
+    <div class="report-empty">
+      <div class="report-empty-icon"><mat-icon>insights</mat-icon></div>
+      @if (loadError) {
+        <h2>Impossibile caricare i dati</h2>
+        <p>
+          C'è stato un problema nel recupero delle statistiche.<br>
+          Verifica la connessione e riprova.
+        </p>
+        <div class="report-empty-actions">
+          <button mat-flat-button color="primary" type="button" (click)="load()">
+            <mat-icon>refresh</mat-icon> Riprova
+          </button>
+        </div>
+      } @else {
+        <h2>Nessun dato per il {{ annoSel }}</h2>
+        <p>
+          Per vedere statistiche e grafici servono fatture o acquisti registrati nell'anno selezionato.<br>
+          Crea il tuo primo documento per iniziare a tracciare l'andamento del business.
+        </p>
+        <div class="report-empty-actions">
+          <a mat-flat-button color="primary" routerLink="/fatture">
+            <mat-icon>receipt</mat-icon> Vai alle fatture
+          </a>
+          <a mat-stroked-button routerLink="/acquisti">
+            <mat-icon>shopping_bag</mat-icon> Vai agli acquisti
+          </a>
+          @if (anni.length > 1) {
+            <span class="report-empty-hint">oppure cambia anno dal selettore in alto</span>
+          }
+        </div>
+      }
+    </div>
+  } @else {
 
     <!-- KPI Cards -->
     <div class="kpi-grid">
@@ -67,6 +99,64 @@
           </div>
           <div class="kpi-sub">{{ bi.incassoStats?.incassato | currency:'EUR':'symbol':'1.0-0':'it' }} / {{ bi.incassoStats?.emesso | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── Highlight cards: i protagonisti dell'anno ──────────────────── -->
+    <div class="highlight-grid">
+      <!-- Cliente Top -->
+      <div class="highlight-card">
+        <div class="highlight-header">
+          <mat-icon>emoji_events</mat-icon>
+          <span>Cliente top {{ annoSel }}</span>
+        </div>
+        @if (clienteTop) {
+          <div class="highlight-value">{{ clienteTop.nome }}</div>
+          <div class="highlight-sub">
+            <span class="highlight-amount">{{ clienteTop.fatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</span>
+            @if (clienteTop.numFatture) {
+              <span class="highlight-meta">· {{ clienteTop.numFatture }} {{ clienteTop.numFatture === 1 ? 'fattura' : 'fatture' }}</span>
+            }
+          </div>
+        } @else {
+          <div class="highlight-empty">—</div>
+        }
+      </div>
+
+      <!-- Prodotto Top -->
+      <div class="highlight-card highlight-card--success">
+        <div class="highlight-header">
+          <mat-icon>star</mat-icon>
+          <span>Prodotto pi&ugrave; venduto</span>
+        </div>
+        @if (prodottoTop) {
+          <div class="highlight-value">{{ prodottoTop.nome }}</div>
+          <div class="highlight-sub">
+            <span class="highlight-amount">{{ prodottoTop.ricavi | currency:'EUR':'symbol':'1.0-0':'it' }}</span>
+            @if (prodottoTop.marginePerc != null) {
+              <span class="highlight-meta">· margine {{ prodottoTop.marginePerc | number:'1.0-0' }}%</span>
+            }
+          </div>
+        } @else {
+          <div class="highlight-empty">—</div>
+        }
+      </div>
+
+      <!-- Mese Top -->
+      <div class="highlight-card highlight-card--warning">
+        <div class="highlight-header">
+          <mat-icon>calendar_month</mat-icon>
+          <span>Mese record</span>
+        </div>
+        @if (meseTop) {
+          <div class="highlight-value">{{ meseTop.mese }} {{ annoSel }}</div>
+          <div class="highlight-sub">
+            <span class="highlight-amount">{{ meseTop.fatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</span>
+            <span class="highlight-meta">di fatturato</span>
+          </div>
+        } @else {
+          <div class="highlight-empty">—</div>
+        }
       </div>
     </div>
 

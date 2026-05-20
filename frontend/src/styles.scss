@@ -818,6 +818,129 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
     &:hover { background: var(--bg-surface-2) !important; }
   }
 
+  // ── Bottoni filled/primary: forza testo bianco su sfondo indigo ─────────────
+  // MD3 in dark mode rende "tonal" i filled button: bg indigo chiaro + testo
+  // scuro indigo. Risulta in "grigio su violetto". Forziamo bianco.
+  .mat-mdc-unelevated-button,
+  .mat-mdc-flat-button,
+  .mat-mdc-raised-button {
+    &.mat-primary,
+    &.mat-mdc-button-base[color="primary"],
+    &:not([color]):not(.mat-warn):not(.mat-accent):not(.mat-stroked-button):not(.mat-mdc-outlined-button) {
+      --mdc-filled-button-container-color: var(--primary);
+      --mdc-filled-button-label-text-color: #ffffff;
+      --mdc-protected-button-container-color: var(--primary);
+      --mdc-protected-button-label-text-color: #ffffff;
+      background-color: var(--primary) !important;
+      color: #ffffff !important;
+      .mdc-button__label, mat-icon { color: #ffffff !important; }
+    }
+    &.mat-warn {
+      --mdc-filled-button-container-color: #ef4444;
+      --mdc-filled-button-label-text-color: #ffffff;
+      background-color: #ef4444 !important;
+      color: #ffffff !important;
+    }
+  }
+
+  // Mat menu item icons: niente più "icona invisibile su scuro"
+  .mat-mdc-menu-item mat-icon,
+  .mat-mdc-menu-item .mat-icon {
+    color: var(--text-tertiary) !important;
+  }
+  .mat-mdc-menu-item:hover mat-icon { color: var(--text-secondary) !important; }
+
+  // ── Checkbox: label bianco/chiaro, non grigio scuro ──────────────────────
+  .mat-mdc-checkbox {
+    --mdc-checkbox-unselected-icon-color: var(--text-tertiary);
+    --mdc-checkbox-unselected-hover-icon-color: var(--text-secondary);
+    --mdc-checkbox-selected-icon-color: var(--primary);
+    --mdc-checkbox-selected-hover-icon-color: var(--primary-hover);
+    --mdc-checkbox-selected-focus-icon-color: var(--primary);
+    --mdc-checkbox-selected-pressed-icon-color: var(--primary);
+    --mdc-form-field-label-text-color: var(--text-primary);
+    .mdc-form-field, .mdc-label { color: var(--text-primary) !important; }
+  }
+
+  // Radio button
+  .mat-mdc-radio-button {
+    --mdc-radio-unselected-icon-color: var(--text-tertiary);
+    --mdc-radio-selected-icon-color: var(--primary);
+    --mdc-form-field-label-text-color: var(--text-primary);
+    .mdc-form-field, .mdc-label { color: var(--text-primary) !important; }
+  }
+
+  // Slide toggle
+  .mat-mdc-slide-toggle {
+    --mdc-form-field-label-text-color: var(--text-primary);
+    .mdc-form-field, .mdc-label { color: var(--text-primary) !important; }
+  }
+
+  // ── Tabs: label chiaro su scuro ──────────────────────────────────────────
+  .mat-mdc-tab {
+    --mat-tab-header-inactive-label-text-color: var(--text-tertiary);
+    --mat-tab-header-active-label-text-color: var(--primary-hover);
+    --mat-tab-header-inactive-hover-label-text-color: var(--text-secondary);
+    --mat-tab-header-active-focus-label-text-color: var(--primary-hover);
+    --mat-tab-header-active-hover-label-text-color: var(--primary-hover);
+    .mdc-tab__text-label { color: var(--text-tertiary); }
+    &.mdc-tab--active .mdc-tab__text-label { color: var(--primary-hover); }
+  }
+
+  // ── Mat select trigger / value ───────────────────────────────────────────
+  .mat-mdc-select {
+    --mat-select-enabled-trigger-text-color: var(--text-primary);
+    --mat-select-disabled-trigger-text-color: var(--text-tertiary);
+    --mat-select-placeholder-text-color: var(--text-tertiary);
+    --mat-select-enabled-arrow-color: var(--text-tertiary);
+    .mat-mdc-select-value { color: var(--text-primary); }
+    .mat-mdc-select-arrow { color: var(--text-tertiary); }
+  }
+
+  // ── Datepicker / native date input ───────────────────────────────────────
+  input[type="date"], input[type="number"], input[type="text"], input[type="email"], input[type="password"], textarea {
+    color: var(--text-primary);
+    &::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+  }
+
+  // ── Form field hints / errors ────────────────────────────────────────────
+  .mat-mdc-form-field-subscript-wrapper { color: var(--text-tertiary); }
+  .mat-mdc-form-field-hint { color: var(--text-tertiary); }
+
+  // ── Bottoni colorati custom: forza testo bianco se hanno sfondo gradient
+  // (es. dash-action-done in dashboard, login-btn, ecc.) — il gradient è
+  // intrinsecamente "primario", il testo deve essere bianco anche in dark mode
+  .dash-action-done,
+  .dash-action.dash-action-done .mdc-button__label { color: #ffffff !important; }
+
+  // ── Hardcoded greys nei template (inline style): rinforzati ──────────────
+  // Catturiamo via attribute selector i color:#94a3b8 / #64748b / #475569 / #1e293b inline
+  [style*="color:#94a3b8"], [style*="color: #94a3b8"] { color: var(--text-tertiary) !important; }
+  [style*="color:#64748b"], [style*="color: #64748b"] { color: var(--text-secondary) !important; }
+  [style*="color:#475569"], [style*="color: #475569"] { color: var(--text-secondary) !important; }
+  [style*="color:#1e293b"], [style*="color: #1e293b"] { color: var(--text-primary) !important; }
+  [style*="color:#374151"], [style*="color: #374151"] { color: var(--text-secondary) !important; }
+  [style*="color:#6b7280"], [style*="color: #6b7280"] { color: var(--text-tertiary) !important; }
+  // Verdi / Rossi semantici (importi) — restano leggibili
+  [style*="color:#16a34a"], [style*="color: #16a34a"] { color: var(--success-on) !important; }
+  [style*="color:#22c55e"], [style*="color: #22c55e"] { color: var(--success-on) !important; }
+  [style*="color:#dc2626"], [style*="color: #dc2626"] { color: var(--danger-on) !important; }
+  [style*="color:#ef4444"], [style*="color: #ef4444"] { color: var(--danger-on) !important; }
+  [style*="color:#3b82f6"], [style*="color: #3b82f6"] { color: var(--info-on) !important; }
+  [style*="color:#6366f1"], [style*="color: #6366f1"] { color: var(--primary-hover) !important; }
+
+  // ── KPI card icon overlay (background hardcoded): aggiusta opacity ───────
+  [style*="background:#eef2ff"], [style*="background: #eef2ff"] { background: rgba(99,102,241,0.18) !important; }
+  [style*="background:#f0fdf4"], [style*="background: #f0fdf4"] { background: rgba(16,185,129,0.18) !important; }
+  [style*="background:#fff7ed"], [style*="background: #fff7ed"] { background: rgba(245,158,11,0.18) !important; }
+  [style*="background:#fef2f2"], [style*="background: #fef2f2"] { background: rgba(239,68,68,0.18) !important; }
+  [style*="background:#f1f5f9"], [style*="background: #f1f5f9"] { background: var(--bg-subtle) !important; }
+  [style*="background:#f8fafc"], [style*="background: #f8fafc"] { background: var(--bg-surface-2) !important; }
+
+  // ── Borders hardcoded ───────────────────────────────────────────────────
+  [style*="border:2px dashed #e2e8f0"] { border-color: var(--border-strong) !important; }
+  [style*="1px solid #e2e8f0"] { border-color: var(--border) !important; }
+
   // Righe table
   .righe-table th { background: var(--bg-surface-2); color: var(--text-secondary); }
   .righe-total { background: var(--bg-surface-2); color: var(--text-primary); border-top-color: var(--border); }

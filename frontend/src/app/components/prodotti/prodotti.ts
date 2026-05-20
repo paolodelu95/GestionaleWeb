@@ -13,12 +13,14 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
+import { QuickAddProdottoDialogComponent } from './quick-add-prodotto-dialog';
 
 const PRODOTTI_FIELDS: FieldDef[] = [
   { key: 'nome', label: 'Nome', required: true, aliases: [
@@ -393,7 +395,8 @@ export class ProdottoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
-            MatSortModule, MatSelectModule, MatPaginatorModule, ColumnPickerComponent, InfoDialogComponent],
+            MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule,
+            ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
@@ -485,6 +488,18 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       const op = result.id ? this.ds.updateProdotto(result) : this.ds.createProdotto(result);
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
+    });
+  }
+
+  quickAdd() {
+    const ref = this.dialog.open(QuickAddProdottoDialogComponent, {
+      width: '95vw', maxWidth: '640px', autoFocus: false,
+    });
+    ref.afterClosed().subscribe((count: number) => {
+      if (count && count > 0) {
+        this.load();
+        this.snack.open(`${count} ${count === 1 ? 'prodotto aggiunto' : 'prodotti aggiunti'}`, '', { duration: 2500 });
+      }
     });
   }
 
