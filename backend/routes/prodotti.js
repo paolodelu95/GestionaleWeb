@@ -59,7 +59,12 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM prodotti WHERE id=?').run(req.params.id);
+  const id = Number(req.params.id);
+  for (const t of ['ddt_righe', 'fatture_righe', 'note_credito_righe', 'ordini_righe',
+                   'preventivi_righe', 'acquisti_righe', 'vendite_banco_righe', 'arrivi_merce_righe']) {
+    db.prepare(`UPDATE ${t} SET prodotto_id=NULL WHERE prodotto_id=?`).run(id);
+  }
+  db.prepare('DELETE FROM prodotti WHERE id=?').run(id);
   res.json({ success: true });
 });
 
