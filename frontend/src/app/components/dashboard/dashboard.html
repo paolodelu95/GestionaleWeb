@@ -2,32 +2,42 @@
   <div class="page-header">
     <h1 class="page-title">Dashboard</h1>
 
-    <button mat-stroked-button [matMenuTriggerFor]="widgetMenu" matTooltip="Mostra/nascondi widget">
-      <mat-icon>visibility</mat-icon>
-      Widget ({{ visibleCount }}/{{ widgets.length }})
+    <button mat-stroked-button type="button" [matMenuTriggerFor]="widgetMenu"
+            matTooltip="Mostra/nascondi widget" class="dash-action">
+      <mat-icon>view_module</mat-icon>
+      <span>Widget</span>
+      <span class="action-count">{{ visibleCount }}/{{ widgets.length }}</span>
     </button>
     <mat-menu #widgetMenu="matMenu" class="widget-menu">
       <div class="widget-menu-header" (click)="$event.stopPropagation()">
         <span>Mostra widget</span>
       </div>
       @for (w of widgets; track w.id) {
-        <button mat-menu-item (click)="$event.stopPropagation(); toggleVisible(w)">
+        <button mat-menu-item type="button" (click)="$event.stopPropagation(); toggleVisible(w)">
           <mat-checkbox [checked]="w.visible" (click)="$event.stopPropagation(); toggleVisible(w)"
-                        style="margin-right:8px;pointer-events:none"></mat-checkbox>
-          <mat-icon style="margin-right:6px;color:var(--text-tertiary)">{{ w.icon }}</mat-icon>
+                        class="widget-menu-check"></mat-checkbox>
+          <mat-icon class="widget-menu-icon">{{ w.icon }}</mat-icon>
           {{ w.label }}
         </button>
       }
-      <button mat-menu-item (click)="resetWidgets()" style="border-top:1px solid var(--border-subtle);margin-top:4px;color:var(--text-tertiary)">
+      <button mat-menu-item type="button" (click)="resetWidgets()" class="widget-menu-reset">
         <mat-icon>restart_alt</mat-icon> Ripristina default
       </button>
     </mat-menu>
 
-    <button mat-flat-button [color]="editMode ? 'primary' : ''" (click)="toggleEdit()"
-            [matTooltip]="editMode ? 'Termina modifica' : 'Trascina i widget per riordinarli'">
-      <mat-icon>{{ editMode ? 'done' : 'edit' }}</mat-icon>
-      {{ editMode ? 'Fatto' : 'Modifica' }}
-    </button>
+    @if (!editMode) {
+      <button mat-flat-button type="button" (click)="toggleEdit()"
+              matTooltip="Trascina i widget per riordinarli" class="dash-action">
+        <mat-icon>edit</mat-icon>
+        <span>Modifica</span>
+      </button>
+    } @else {
+      <button mat-flat-button type="button" (click)="toggleEdit()"
+              matTooltip="Termina modifica" class="dash-action dash-action-done">
+        <mat-icon>done</mat-icon>
+        <span>Fatto</span>
+      </button>
+    }
   </div>
 
   @if (editMode) {
