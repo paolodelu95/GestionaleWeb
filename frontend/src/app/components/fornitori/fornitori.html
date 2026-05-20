@@ -54,6 +54,7 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let f" class="table-actions">
+          <button mat-icon-button type="button" title="Scheda fornitore" (click)="info(f)" style="color:#3b82f6"><mat-icon>info_outline</mat-icon></button>
           <button mat-icon-button type="button" title="Modifica" (click)="open(f)"><mat-icon>edit</mat-icon></button>
           <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(f)"><mat-icon>delete</mat-icon></button>
         </td>

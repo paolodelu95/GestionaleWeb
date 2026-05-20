@@ -23,6 +23,7 @@ import { Fornitore } from '../../models';
 import { pIvaValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
+import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 
 const FORNITORI_FIELDS: FieldDef[] = [
   { key: 'ragioneSociale', label: 'Ragione Sociale', required: true, aliases: [
@@ -383,7 +384,7 @@ export class FornitoreDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            ColumnPickerComponent],
+            ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
@@ -451,6 +452,41 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
+  }
+
+  info(f: Fornitore) {
+    const data: InfoDialogData = {
+      title: f.ragioneSociale,
+      sections: [
+        {
+          title: 'Contatti',
+          rows: [
+            { label: 'Email',     value: f.email },
+            { label: 'Telefono',  value: f.telefono },
+            { label: 'Cellulare', value: f.cellulare },
+            { label: 'PEC',       value: f.pec },
+          ],
+        },
+        {
+          title: 'Sede',
+          rows: [
+            { label: 'Via',       value: f.via },
+            { label: 'CAP',       value: f.cap },
+            { label: 'Città',     value: f.citta },
+            { label: 'Provincia', value: f.provincia },
+            { label: 'Stato',     value: f.stato },
+          ],
+        },
+        {
+          title: 'Dati fiscali',
+          rows: [
+            { label: 'Partita IVA',  value: f.pIva, mono: true },
+            { label: 'Codice SDI',   value: f.sdi, mono: true },
+          ],
+        },
+      ],
+    };
+    this.dialog.open(InfoDialogComponent, { data, width: '520px', maxWidth: '95vw' });
   }
 
   exportExcel() {

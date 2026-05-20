@@ -17,6 +17,7 @@ import { ExcelService } from '../../services/excel.service';
 import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
+import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 
 const PRODOTTI_FIELDS: FieldDef[] = [
   { key: 'nome', label: 'Nome', required: true, aliases: [
@@ -284,7 +285,7 @@ export class ProdottoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
-            MatSortModule, MatSelectModule, MatPaginatorModule, ColumnPickerComponent],
+            MatSortModule, MatSelectModule, MatPaginatorModule, ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
@@ -377,6 +378,52 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
+  }
+
+  info(p: Prodotto) {
+    const fmt = (n: number | undefined) => n != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n) : undefined;
+    const data: InfoDialogData = {
+      title: p.nome,
+      subtitle: p.categoria || undefined,
+      sections: [
+        {
+          title: 'Identificazione',
+          rows: [
+            { label: 'Codice',           value: p.codice,          mono: true },
+            { label: 'Barcode',          value: p.barcode,         mono: true },
+            { label: 'Cod. fornitore',   value: p.codiceFornitore, mono: true },
+            { label: 'Descrizione',      value: p.descrizione },
+          ],
+        },
+        {
+          title: 'Prezzi',
+          rows: [
+            { label: 'Prezzo vendita',   value: fmt(p.prezzo) },
+            { label: 'Prezzo acquisto',  value: fmt(p.prezzoAcquisto) },
+            { label: 'IVA',              value: p.iva != null ? `${p.iva}%` : undefined },
+          ],
+        },
+        {
+          title: 'Magazzino',
+          rows: [
+            { label: 'Quantità',         value: p.quantita != null ? String(p.quantita) + (p.unitaMisura ? ' ' + p.unitaMisura : '') : undefined },
+            { label: 'Soglia minima',    value: p.sogliaMinima != null ? String(p.sogliaMinima) : undefined },
+            { label: 'Unità di misura',  value: p.unitaMisura },
+            { label: 'Con varianti',     value: p.haVarianti ? 'Sì' : undefined },
+          ],
+        },
+      ],
+    };
+    if (p.haVarianti && p.varianti?.length) {
+      data.sections.push({
+        title: 'Varianti',
+        rows: p.varianti.map(v => ({
+          label: [v.taglia, v.colore].filter(x => !!x).join(' / ') || `#${v.id}`,
+          value: `Qtà: ${v.quantita}${v.barcode ? ' · ' + v.barcode : ''}`,
+        })),
+      });
+    }
+    this.dialog.open(InfoDialogComponent, { data, width: '520px', maxWidth: '95vw' });
   }
 
   exportExcel() {

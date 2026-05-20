@@ -25,6 +25,7 @@ import { Cliente, ClienteIndirizzo, TipoPagamento } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
+import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 
 const CLIENTI_FIELDS: FieldDef[] = [
   { key: 'ragioneSociale', label: 'Ragione Sociale', required: true, aliases: [
@@ -606,7 +607,7 @@ export class ClienteDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            ColumnPickerComponent],
+            ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })
@@ -682,6 +683,57 @@ export class ClientiComponent implements OnInit, AfterViewInit {
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
+  }
+
+  info(c: Cliente) {
+    const baseData: InfoDialogData = {
+      title: c.ragioneSociale,
+      sections: [
+        {
+          title: 'Contatti',
+          rows: [
+            { label: 'Email',     value: c.email },
+            { label: 'Telefono',  value: c.telefono },
+            { label: 'Cellulare', value: c.cellulare },
+            { label: 'PEC',       value: c.pec },
+          ],
+        },
+        {
+          title: 'Sede legale',
+          rows: [
+            { label: 'Via',      value: c.via },
+            { label: 'CAP',      value: c.cap },
+            { label: 'Città',    value: c.citta },
+            { label: 'Provincia',value: c.provincia },
+            { label: 'Stato',    value: c.stato },
+          ],
+        },
+        {
+          title: 'Dati fiscali',
+          rows: [
+            { label: 'Partita IVA',    value: c.pIva, mono: true },
+            { label: 'Codice Fiscale', value: c.codiceFiscale, mono: true },
+            { label: 'Codice SDI',     value: c.sdi, mono: true },
+          ],
+        },
+      ],
+    };
+    if (c.id) {
+      this.ds.getClienteIndirizzi(c.id).subscribe(addrs => {
+        if (addrs.length) {
+          baseData.sections.push({
+            title: 'Destinazioni salvate',
+            rows: addrs.map(a => ({
+              label: a.nome,
+              value: [a.via, a.cap, a.citta, a.provincia].filter(v => !!v).join(', '),
+            })),
+          });
+        }
+        this.dialog.open(InfoDialogComponent, { data: baseData, width: '520px', maxWidth: '95vw' });
+      });
+    } else {
+      this.dialog.open(InfoDialogComponent, { data: baseData, width: '520px', maxWidth: '95vw' });
+    }
   }
 
   exportExcel() {
