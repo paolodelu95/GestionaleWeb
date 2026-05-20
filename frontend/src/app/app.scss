@@ -6,17 +6,18 @@
 }
 
 .sidenav {
-  width: 220px;
+  width: 240px;
   background-color: #1e293b;
   border-right: none;
   transition: width 0.25s ease;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   touch-action: pan-y;
   height: 100%;
 
   &.collapsed {
-    width: 56px;
+    width: 60px;
+    overflow-y: hidden;
   }
 
   .sidenav-header {
@@ -65,7 +66,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 56px;
+      width: 60px;
       height: 44px;
       color: #94a3b8;
       text-decoration: none;
@@ -101,6 +102,14 @@
       border-radius: 0;
       margin: 1px 0;
       white-space: nowrap;
+      overflow: hidden;
+
+      span[matListItemTitle],
+      .mdc-list-item__primary-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
       mat-icon { color: #94a3b8; font-size: 20px; }
 
@@ -144,6 +153,9 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .panel-icon {

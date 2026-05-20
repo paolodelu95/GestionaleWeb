@@ -42,7 +42,18 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM clienti WHERE id=?').run(req.params.id);
+  const id = Number(req.params.id);
+  const fatture     = db.prepare('SELECT COUNT(*) as n FROM fatture WHERE cliente_id=?').get(id).n;
+  const ddt         = db.prepare('SELECT COUNT(*) as n FROM ddt WHERE cliente_id=?').get(id).n;
+  const preventivi  = db.prepare('SELECT COUNT(*) as n FROM preventivi WHERE cliente_id=?').get(id).n;
+  const ordini      = db.prepare('SELECT COUNT(*) as n FROM ordini WHERE cliente_id=?').get(id).n;
+  const noteCredito = db.prepare('SELECT COUNT(*) as n FROM note_credito WHERE cliente_id=?').get(id).n;
+
+  if (fatture + ddt + preventivi + ordini + noteCredito > 0) {
+    return res.status(409).json({ error: 'cliente_ha_documenti', counts: { fatture, ddt, preventivi, ordini, noteCredito } });
+  }
+
+  db.prepare('DELETE FROM clienti WHERE id=?').run(id);
   res.json({ success: true });
 });
 

@@ -533,6 +533,25 @@ export class ClientiComponent implements OnInit, AfterViewInit {
 
   delete(c: Cliente) {
     if (!confirm(`Eliminare ${c.ragioneSociale}?`)) return;
-    this.ds.deleteCliente(c.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    this.ds.deleteCliente(c.id!).subscribe({
+      next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      error: (err) => {
+        if (err.status === 409 && err.error?.counts) {
+          const { fatture, ddt, preventivi, ordini, noteCredito } = err.error.counts;
+          const parts: string[] = [];
+          if (fatture > 0)     parts.push(`${fatture} fattur${fatture === 1 ? 'a' : 'e'}`);
+          if (ddt > 0)         parts.push(`${ddt} DDT`);
+          if (preventivi > 0)  parts.push(`${preventivi} preventiv${preventivi === 1 ? 'o' : 'i'}`);
+          if (ordini > 0)      parts.push(`${ordini} ordin${ordini === 1 ? 'e' : 'i'}`);
+          if (noteCredito > 0) parts.push(`${noteCredito} nota${noteCredito === 1 ? ' di credito' : ' di credito'}`);
+          this.snack.open(
+            `Impossibile eliminare: ${c.ragioneSociale} ha ${parts.join(', ')} collegati.`,
+            'OK', { duration: 8000 }
+          );
+        } else {
+          this.snack.open('Errore durante l\'eliminazione', '', { duration: 3000 });
+        }
+      }
+    });
   }
 }
