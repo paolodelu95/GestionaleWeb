@@ -31,7 +31,46 @@
   margin: 0;
 }
 
+// Template selector cards
+.template-card {
+  width: 196px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover { border-color: #a5b4fc; box-shadow: 0 2px 8px rgba(79,70,229,0.1); }
+
+  &--active {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  }
+
+  .tmpl-preview {
+    height: 80px;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    overflow: hidden;
+  }
+
+  .tmpl-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    padding: 8px 10px 2px;
+  }
+
+  .tmpl-desc {
+    font-size: 11px;
+    color: #64748b;
+    padding: 0 10px 10px;
+    line-height: 1.4;
+  }
+}
+
 @media (max-width: 767px) {
   .tab-content { padding: 12px 0; }
   .tab-section-header { flex-wrap: wrap; gap: 8px; }
+  .template-card { width: 100%; }
 }

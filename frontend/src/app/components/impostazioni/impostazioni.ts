@@ -17,7 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 
 // ── Tipo Pagamento Dialog ────────────────────────────────────────────────────
@@ -319,6 +319,18 @@ export class ImpostazioniComponent implements OnInit {
 
   emailTesting = false;
 
+  templateConfig: TemplateConfig = { stile: 'classico' };
+  readonly templateBlocks: { key: string; label: string }[] = [
+    { key: 'parti', label: 'Mittente / Destinatario' },
+    { key: 'tabella', label: 'Tabella prodotti' },
+    { key: 'totali', label: 'Totali e IVA' },
+    { key: 'pagamento', label: 'Modalità di pagamento' },
+    { key: 'trasporto', label: 'Dati trasporto (DDT)' },
+    { key: 'firme', label: 'Firme (DDT)' },
+    { key: 'note', label: 'Note' },
+    { key: 'footer', label: 'Piè di pagina' },
+  ];
+
   constructor(
     private fb: FormBuilder,
     private ds: DataService,
@@ -353,6 +365,10 @@ export class ImpostazioniComponent implements OnInit {
           prefissoNoteCredito: p['note_credito'] || '', prefissoAcquisti: p['acquisti'] || '',
           prefissoVenditeBanco: p['vendite_banco'] || '', prefissoArriviMerce: p['arrivi_merce'] || '',
         });
+        this.templateConfig = a.templateConfig
+          ? { ...a.templateConfig, blocks: { ...a.templateConfig.blocks } }
+          : { stile: 'classico' };
+        if (!this.templateConfig.blocks) this.templateConfig.blocks = {};
       }
     });
 
@@ -412,10 +428,33 @@ export class ImpostazioniComponent implements OnInit {
       note_credito: v.prefissoNoteCredito || '', acquisti: v.prefissoAcquisti || '',
       vendite_banco: v.prefissoVenditeBanco || '', arrivi_merce: v.prefissoArriviMerce || '',
     };
-    this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi } as Azienda).subscribe({
+    this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi, templateConfig: this.templateConfig } as Azienda).subscribe({
       next: () => this.snack.open('Dati salvati', '', { duration: 2000 }),
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });
+  }
+
+  // ── Template grafica ────────────────────────────────────────────────────────
+  setTemplateStile(stile: 'classico' | 'moderno' | 'minimal') {
+    this.templateConfig = { ...this.templateConfig, stile };
+  }
+
+  isBlockVisible(key: string): boolean {
+    return this.templateConfig.blocks?.[key] !== false;
+  }
+
+  toggleBlock(key: string, checked: boolean) {
+    if (!this.templateConfig.blocks) this.templateConfig.blocks = {};
+    this.templateConfig.blocks[key] = checked;
+  }
+
+  onAccentColorChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value;
+    this.templateConfig = { ...this.templateConfig, accentColor: val };
+  }
+
+  resetAccentColor() {
+    this.templateConfig = { ...this.templateConfig, accentColor: undefined };
   }
 
   testSmtp() {

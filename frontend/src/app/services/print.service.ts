@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DataService } from './data.service';
-import { Azienda } from '../models';
+import { Azienda, TemplateConfig } from '../models';
 
 @Component({
   selector: 'app-pdf-preview',
@@ -50,6 +50,8 @@ const ML = 14, PW = 210, CW = PW - ML * 2;
 
 @Injectable({ providedIn: 'root' })
 export class PrintService {
+  private currentConfig: TemplateConfig = { stile: 'classico' };
+
   constructor(private ds: DataService, private dialog: MatDialog) {}
 
   private showPreview(pdf: jsPDF, filename: string) {
@@ -62,152 +64,202 @@ export class PrintService {
     });
   }
 
+  // ── Public print methods ───────────────────────────────────────────────────
+
   printFattura(id: number) {
     forkJoin({ doc: this.ds.getFatturaPrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      this.currentConfig = this.getTemplateConfig(az);
       const logo = await this.resolveLogoInfo(az.logo);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let y = this.hdr(pdf, az, 'FATTURA', '', doc.numero, doc.dataEmissione, logo);
-      y = this.parties(pdf, y,
-        { lbl: 'VENDITORE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }
-      );
-      y = this.table(pdf, y, doc.righe || []);
-      y = this.totals(pdf, y, doc.righe || []);
-      y = this.payment(pdf, y, doc, az);
-      if (doc.note) y = this.noteBox(pdf, y, doc.note);
-      this.footer(pdf, az);
+      let y = this.doHdr(pdf, az, 'FATTURA', '', doc.numero, doc.dataEmissione, logo);
+      if (this.blockVisible('parti'))
+        y = this.doParties(pdf, y,
+          { lbl: 'VENDITORE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+          { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }
+        );
+      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
+      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('pagamento')) y = this.payment(pdf, y, doc, az);
+      if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
+      if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `Fattura_${doc.numero}.pdf`);
     });
   }
 
   printDdt(id: number) {
     forkJoin({ doc: this.ds.getDdtPrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      this.currentConfig = this.getTemplateConfig(az);
       const logo = await this.resolveLogoInfo(az.logo);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let y = this.hdr(pdf, az, 'DDT', 'Documento di Trasporto', doc.numero, doc.dataEmissione, logo);
-      y = this.parties(pdf, y,
-        { lbl: 'MITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: 'DESTINATARIO', name: doc.cliente?.ragioneSociale || '—', lines: this.ddtDestLines(doc) }
-      );
-      y = this.trasporto(pdf, y, doc);
-      y = this.table(pdf, y, doc.righe || []);
-      y = this.totals(pdf, y, doc.righe || []);
-      if (doc.note) y = this.noteBox(pdf, y, doc.note);
-      y = this.signatures(pdf, y);
-      this.footer(pdf, az);
+      let y = this.doHdr(pdf, az, 'DDT', 'Documento di Trasporto', doc.numero, doc.dataEmissione, logo);
+      if (this.blockVisible('parti'))
+        y = this.doParties(pdf, y,
+          { lbl: 'MITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+          { lbl: 'DESTINATARIO', name: doc.cliente?.ragioneSociale || '—', lines: this.ddtDestLines(doc) }
+        );
+      if (this.blockVisible('trasporto')) y = this.trasporto(pdf, y, doc);
+      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
+      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
+      if (this.blockVisible('firme')) y = this.signatures(pdf, y);
+      if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `DDT_${doc.numero}.pdf`);
     });
   }
 
   printNotaCredito(id: number) {
     forkJoin({ doc: this.ds.getNotaCreditoPrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      this.currentConfig = this.getTemplateConfig(az);
       const logo = await this.resolveLogoInfo(az.logo);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let y = this.hdr(pdf, az, 'NOTA DI CREDITO', doc.fatturaNumeroColl ? `Rif. Fattura N. ${doc.fatturaNumeroColl}` : '', doc.numero, doc.dataEmissione, logo);
-      y = this.parties(pdf, y,
-        { lbl: 'EMITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }
-      );
-      y = this.table(pdf, y, doc.righe || []);
-      y = this.totals(pdf, y, doc.righe || []);
-      if (doc.note) y = this.noteBox(pdf, y, doc.note);
-      this.footer(pdf, az);
+      let y = this.doHdr(pdf, az, 'NOTA DI CREDITO', doc.fatturaNumeroColl ? `Rif. Fattura N. ${doc.fatturaNumeroColl}` : '', doc.numero, doc.dataEmissione, logo);
+      if (this.blockVisible('parti'))
+        y = this.doParties(pdf, y,
+          { lbl: 'EMITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+          { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }
+        );
+      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
+      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
+      if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `NotaCredito_${doc.numero}.pdf`);
     });
   }
 
   printOrdine(id: number) {
     forkJoin({ doc: this.ds.getOrdinePrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      this.currentConfig = this.getTemplateConfig(az);
       const isCliente = doc.tipo === 'CLIENTE';
       const logo = await this.resolveLogoInfo(az.logo);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let y = this.hdr(pdf, az, 'ORDINE', isCliente ? 'Ordine cliente' : 'Ordine fornitore', doc.numero, doc.dataOrdine, logo);
-      y = this.parties(pdf, y,
-        { lbl: isCliente ? 'VENDITORE' : 'ACQUIRENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: isCliente ? 'CLIENTE' : 'FORNITORE', name: (isCliente ? doc.cliente?.ragioneSociale : doc.fornitore?.ragioneSociale) || '—', lines: this.contactLines(isCliente ? doc.cliente : doc.fornitore) }
-      );
-      y = this.table(pdf, y, doc.righe || []);
-      y = this.totals(pdf, y, doc.righe || []);
-      if (doc.note) y = this.noteBox(pdf, y, doc.note);
-      this.footer(pdf, az);
+      let y = this.doHdr(pdf, az, 'ORDINE', isCliente ? 'Ordine cliente' : 'Ordine fornitore', doc.numero, doc.dataOrdine, logo);
+      if (this.blockVisible('parti'))
+        y = this.doParties(pdf, y,
+          { lbl: isCliente ? 'VENDITORE' : 'ACQUIRENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+          { lbl: isCliente ? 'CLIENTE' : 'FORNITORE', name: (isCliente ? doc.cliente?.ragioneSociale : doc.fornitore?.ragioneSociale) || '—', lines: this.contactLines(isCliente ? doc.cliente : doc.fornitore) }
+        );
+      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
+      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
+      if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `Ordine_${doc.numero}.pdf`);
     });
   }
 
   printPreventivo(id: number) {
     forkJoin({ doc: this.ds.getPreventivoePrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      this.currentConfig = this.getTemplateConfig(az);
       const logo = await this.resolveLogoInfo(az.logo);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let y = this.hdr(pdf, az, 'PREVENTIVO', `Validità: ${doc.validita || 30} giorni`, doc.numero, doc.dataEmissione, logo);
-      y = this.parties(pdf, y,
-        { lbl: 'EMITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }
-      );
-      y = this.table(pdf, y, doc.righe || []);
-      y = this.totals(pdf, y, doc.righe || []);
-      if (doc.note) y = this.noteBox(pdf, y, doc.note);
-      this.footer(pdf, az);
+      let y = this.doHdr(pdf, az, 'PREVENTIVO', `Validità: ${doc.validita || 30} giorni`, doc.numero, doc.dataEmissione, logo);
+      if (this.blockVisible('parti'))
+        y = this.doParties(pdf, y,
+          { lbl: 'EMITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+          { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }
+        );
+      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
+      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
+      if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `Preventivo_${doc.numero}.pdf`);
     });
   }
 
   printDocumentale(id: number) {
     forkJoin({ doc: this.ds.getVenditaBancoPrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      this.currentConfig = this.getTemplateConfig(az);
       const logo = await this.resolveLogoInfo(az.logo);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let y = this.hdr(pdf, az, 'DOCUMENTO COMMERCIALE', `Pagamento: ${doc.metodoPagamento || 'CONTANTI'}`, doc.numero, doc.data, logo);
-      const clienteName = doc.clienteNome || 'Cliente al banco';
-      y = this.parties(pdf, y,
-        { lbl: 'VENDITORE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: 'CLIENTE', name: clienteName, lines: [] }
-      );
-      y = this.table(pdf, y, doc.righe || []);
-      y = this.totals(pdf, y, doc.righe || []);
-      if (doc.note) y = this.noteBox(pdf, y, doc.note);
-      this.footer(pdf, az);
+      let y = this.doHdr(pdf, az, 'DOCUMENTO COMMERCIALE', `Pagamento: ${doc.metodoPagamento || 'CONTANTI'}`, doc.numero, doc.data, logo);
+      if (this.blockVisible('parti'))
+        y = this.doParties(pdf, y,
+          { lbl: 'VENDITORE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+          { lbl: 'CLIENTE', name: doc.clienteNome || 'Cliente al banco', lines: [] }
+        );
+      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
+      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
+      if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `DocumentoCommerciale_${doc.numero}.pdf`);
     });
   }
 
   printAcquisto(id: number) {
     forkJoin({ doc: this.ds.getAcquistoPrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
+      this.currentConfig = this.getTemplateConfig(az);
       const logo = await this.resolveLogoInfo(az.logo);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let y = this.hdr(pdf, az, 'ACQUISTO', '', doc.numero, doc.dataEmissione, logo);
-      y = this.parties(pdf, y,
-        { lbl: 'ACQUIRENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: 'FORNITORE', name: doc.fornitore?.ragioneSociale || '—', lines: this.contactLines(doc.fornitore) }
-      );
-      y = this.table(pdf, y, doc.righe || []);
-      y = this.totals(pdf, y, doc.righe || []);
-      y = this.payment(pdf, y, doc, az);
-      if (doc.note) y = this.noteBox(pdf, y, doc.note);
-      this.footer(pdf, az);
+      let y = this.doHdr(pdf, az, 'ACQUISTO', '', doc.numero, doc.dataEmissione, logo);
+      if (this.blockVisible('parti'))
+        y = this.doParties(pdf, y,
+          { lbl: 'ACQUIRENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
+          { lbl: 'FORNITORE', name: doc.fornitore?.ragioneSociale || '—', lines: this.contactLines(doc.fornitore) }
+        );
+      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
+      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('pagamento')) y = this.payment(pdf, y, doc, az);
+      if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
+      if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `Acquisto_${doc.numero}.pdf`);
     });
   }
 
-  // ── Layout primitives ──────────────────────────────────────────────────────
+  // ── Template config helpers ────────────────────────────────────────────────
 
-  private async resolveLogoInfo(logo?: string): Promise<{ src: string; fmt: string; w: number; h: number } | null> {
-    if (!logo) return null;
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 44, maxH = 18;
-        const ratio = img.naturalWidth / img.naturalHeight;
-        let w = maxW, h = maxW / ratio;
-        if (h > maxH) { h = maxH; w = maxH * ratio; }
-        const fmt = logo.startsWith('data:image/png') ? 'PNG'
-          : logo.startsWith('data:image/gif') ? 'GIF' : 'JPEG';
-        resolve({ src: logo, fmt, w, h });
-      };
-      img.onerror = () => resolve(null);
-      img.src = logo;
-    });
+  private getTemplateConfig(az: Azienda): TemplateConfig {
+    return az.templateConfig ?? { stile: 'classico' };
   }
 
-  private hdr(doc: jsPDF, az: Azienda, type: string, subtitle: string, numero: string, data: string, logo: { src: string; fmt: string; w: number; h: number } | null = null): number {
+  private hexToRgb(hex: string): [number, number, number] {
+    const h = hex.replace('#', '');
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+
+  private ac(): [number, number, number] {
+    const hex = this.currentConfig.accentColor;
+    if (hex && /^#[0-9a-fA-F]{6}$/.test(hex)) return this.hexToRgb(hex);
+    return PR;
+  }
+
+  private blockVisible(block: string): boolean {
+    const blocks = this.currentConfig.blocks;
+    if (!blocks) return true;
+    return blocks[block] !== false;
+  }
+
+  private tableHeadFill(): [number, number, number] {
+    return this.currentConfig.stile === 'minimal' ? LG : this.ac();
+  }
+
+  private tableHeadText(): [number, number, number] {
+    return this.currentConfig.stile === 'minimal' ? DK : [255, 255, 255];
+  }
+
+  private totalBarColor(): [number, number, number] {
+    return this.currentConfig.stile === 'minimal' ? [51, 65, 85] : this.ac();
+  }
+
+  private secTitleColor(): [number, number, number] {
+    return this.currentConfig.stile === 'minimal' ? GR : this.ac();
+  }
+
+  // ── Header dispatch ────────────────────────────────────────────────────────
+
+  private doHdr(doc: jsPDF, az: Azienda, type: string, subtitle: string, numero: string, data: string, logo: any): number {
+    if (this.currentConfig.stile === 'moderno') return this.hdrModerno(doc, az, type, subtitle, numero, data, logo);
+    if (this.currentConfig.stile === 'minimal') return this.hdrMinimal(doc, az, type, subtitle, numero, data, logo);
+    return this.hdrClassico(doc, az, type, subtitle, numero, data, logo);
+  }
+
+  private doParties(doc: jsPDF, y: number, left: { lbl: string; name: string; lines: string[] }, right: { lbl: string; name: string; lines: string[] }): number {
+    if (this.currentConfig.stile === 'moderno') return this.partiesModerno(doc, y, left, right);
+    if (this.currentConfig.stile === 'minimal') return this.partiesMinimal(doc, y, left, right);
+    return this.partiesClassico(doc, y, left, right);
+  }
+
+  // ── Classico header / parties ──────────────────────────────────────────────
+
+  private hdrClassico(doc: jsPDF, az: Azienda, type: string, subtitle: string, numero: string, data: string, logo: any): number {
     let y = ML;
     let lx = ML;
 
@@ -232,7 +284,8 @@ export class PrintService {
     let iy = y + 12;
     for (const line of infoLines) { doc.text(line, lx, iy); iy += 4; }
 
-    doc.setFontSize(22); doc.setFont('helvetica', 'bold'); doc.setTextColor(...PR);
+    const ac = this.ac();
+    doc.setFontSize(22); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ac);
     doc.text(type, PW - ML, y + 8, { align: 'right' });
 
     if (subtitle) {
@@ -246,20 +299,21 @@ export class PrintService {
     doc.text(`Del ${this.fd(data)}`, PW - ML, y + metaY + 5, { align: 'right' });
 
     y = Math.max(iy, y + 28) + 2;
-    doc.setDrawColor(...PR); doc.setLineWidth(0.7);
+    doc.setDrawColor(...ac); doc.setLineWidth(0.7);
     doc.line(ML, y, PW - ML, y);
     return y + 6;
   }
 
-  private parties(doc: jsPDF, y: number, left: { lbl: string; name: string; lines: string[] }, right: { lbl: string; name: string; lines: string[] }): number {
+  private partiesClassico(doc: jsPDF, y: number, left: { lbl: string; name: string; lines: string[] }, right: { lbl: string; name: string; lines: string[] }): number {
     const bw = (CW / 2) - 3;
     const bh = Math.max(24 + left.lines.length * 4.2, 24 + right.lines.length * 4.2, 26);
     doc.setFillColor(...LG);
     doc.roundedRect(ML, y, bw, bh, 2, 2, 'F');
     doc.roundedRect(ML + bw + 6, y, bw, bh, 2, 2, 'F');
 
+    const ac = this.ac();
     const draw = (x: number, p: { lbl: string; name: string; lines: string[] }) => {
-      doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...PR);
+      doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ac);
       doc.text(p.lbl, x + 4, y + 6);
       doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DK);
       doc.text(p.name, x + 4, y + 12);
@@ -271,6 +325,160 @@ export class PrintService {
     draw(ML, left);
     draw(ML + bw + 6, right);
     return y + bh + 6;
+  }
+
+  // ── Moderno header / parties ───────────────────────────────────────────────
+
+  private hdrModerno(doc: jsPDF, az: Azienda, type: string, subtitle: string, numero: string, data: string, logo: any): number {
+    const ac = this.ac();
+    const bandH = 36;
+
+    doc.setFillColor(...ac);
+    doc.rect(0, 0, PW, bandH, 'F');
+
+    let lx = ML;
+    if (logo) {
+      try {
+        const logoY = (bandH - logo.h) / 2;
+        doc.addImage(logo.src, logo.fmt, ML, logoY, logo.w, logo.h);
+        lx = ML + logo.w + 5;
+      } catch (_) {}
+    }
+
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+    doc.text(az.ragioneSociale || '', lx, 13);
+
+    const infoLines: string[] = [];
+    const addr = [az.indirizzo, [az.cap, az.citta, az.provincia ? `(${az.provincia})` : ''].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    if (addr) infoLines.push(addr);
+    if (az.pIva) infoLines.push(`P.IVA: ${az.pIva}`);
+    if (az.email) infoLines.push(az.email);
+
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(215, 220, 255);
+    let iy = 19;
+    for (const line of infoLines.slice(0, 2)) { doc.text(line, lx, iy); iy += 4.2; }
+
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+    doc.text(type, PW - ML, 13, { align: 'right' });
+
+    if (subtitle) {
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(215, 220, 255);
+      doc.text(subtitle, PW - ML, 19, { align: 'right' });
+    }
+
+    const metaBase = subtitle ? 24 : 20;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(255, 255, 255);
+    doc.text(`N. ${numero}`, PW - ML, metaBase, { align: 'right' });
+    doc.text(`Del ${this.fd(data)}`, PW - ML, metaBase + 5, { align: 'right' });
+
+    return bandH + 6;
+  }
+
+  private partiesModerno(doc: jsPDF, y: number, left: { lbl: string; name: string; lines: string[] }, right: { lbl: string; name: string; lines: string[] }): number {
+    const ac = this.ac();
+    const bw = (CW / 2) - 3;
+    const bh = Math.max(20 + left.lines.length * 4.2, 20 + right.lines.length * 4.2, 24);
+
+    const draw = (x: number, p: { lbl: string; name: string; lines: string[] }) => {
+      doc.setDrawColor(...ac); doc.setLineWidth(1.5);
+      doc.line(x, y, x + bw, y);
+
+      doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ac);
+      doc.text(p.lbl, x + 2, y + 7);
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DK);
+      doc.text(p.name, x + 2, y + 13);
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GR);
+      let ly = y + 18;
+      for (const line of p.lines) { if (line) { doc.text(line, x + 2, ly); ly += 4.2; } }
+    };
+
+    draw(ML, left);
+    draw(ML + bw + 6, right);
+    return y + bh + 6;
+  }
+
+  // ── Minimal header / parties ───────────────────────────────────────────────
+
+  private hdrMinimal(doc: jsPDF, az: Azienda, type: string, subtitle: string, numero: string, data: string, logo: any): number {
+    let y = ML;
+    let lx = ML;
+
+    if (logo) {
+      try {
+        doc.addImage(logo.src, logo.fmt, ML, y, logo.w, logo.h);
+        lx = ML + logo.w + 5;
+      } catch (_) {}
+    }
+
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DK);
+    doc.text(az.ragioneSociale || '', lx, y + 6);
+
+    const infoLines: string[] = [];
+    const addr = [az.indirizzo, [az.cap, az.citta, az.provincia ? `(${az.provincia})` : ''].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    if (addr) infoLines.push(addr);
+    if (az.pIva) infoLines.push(`P.IVA: ${az.pIva}`);
+    if (az.email) infoLines.push(az.email);
+
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GR);
+    let iy = y + 11;
+    for (const line of infoLines) { doc.text(line, lx, iy); iy += 4; }
+
+    // Large watermark-style doc type (light gray, right side)
+    doc.setFontSize(30); doc.setFont('helvetica', 'bold'); doc.setTextColor(218, 222, 232);
+    doc.text(type, PW - ML, y + 17, { align: 'right' });
+
+    if (subtitle) {
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GR);
+      doc.text(subtitle, PW - ML, y + 23, { align: 'right' });
+    }
+    const metaY = subtitle ? 28 : 23;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...DK);
+    doc.text(`N. ${numero}`, PW - ML, y + metaY, { align: 'right' });
+    doc.text(`Del ${this.fd(data)}`, PW - ML, y + metaY + 5, { align: 'right' });
+
+    y = Math.max(iy, y + 30) + 2;
+    doc.setDrawColor(200, 205, 215); doc.setLineWidth(0.25);
+    doc.line(ML, y, PW - ML, y);
+    return y + 5;
+  }
+
+  private partiesMinimal(doc: jsPDF, y: number, left: { lbl: string; name: string; lines: string[] }, right: { lbl: string; name: string; lines: string[] }): number {
+    const bw = (CW / 2) - 3;
+    const bh = Math.max(20 + left.lines.length * 4.2, 20 + right.lines.length * 4.2, 24);
+
+    const draw = (x: number, p: { lbl: string; name: string; lines: string[] }) => {
+      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...GR);
+      doc.text(p.lbl, x, y + 5);
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DK);
+      doc.text(p.name, x, y + 11);
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GR);
+      let ly = y + 16;
+      for (const line of p.lines) { if (line) { doc.text(line, x, ly); ly += 4.2; } }
+    };
+
+    draw(ML, left);
+    draw(ML + bw + 6, right);
+    return y + bh + 6;
+  }
+
+  // ── Shared layout primitives ───────────────────────────────────────────────
+
+  private async resolveLogoInfo(logo?: string): Promise<{ src: string; fmt: string; w: number; h: number } | null> {
+    if (!logo) return null;
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 44, maxH = 18;
+        const ratio = img.naturalWidth / img.naturalHeight;
+        let w = maxW, h = maxW / ratio;
+        if (h > maxH) { h = maxH; w = maxH * ratio; }
+        const fmt = logo.startsWith('data:image/png') ? 'PNG'
+          : logo.startsWith('data:image/gif') ? 'GIF' : 'JPEG';
+        resolve({ src: logo, fmt, w, h });
+      };
+      img.onerror = () => resolve(null);
+      img.src = logo;
+    });
   }
 
   private table(doc: jsPDF, y: number, righe: any[]): number {
@@ -285,7 +493,7 @@ export class PrintService {
       head: [['#', 'Descrizione', 'Q.tà', 'UM', 'Prezzo', 'Sc.%', 'IVA', 'Importo']],
       body,
       theme: 'striped',
-      headStyles: { fillColor: PR, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+      headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: 9 },
       bodyStyles: { fontSize: 9, textColor: DK },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: {
@@ -334,7 +542,8 @@ export class PrintService {
       y += 6;
     }
 
-    doc.setFillColor(...PR);
+    const barColor = this.totalBarColor();
+    doc.setFillColor(...barColor);
     doc.rect(tx - 2, y - 3, PW - ML - tx + 2, 8, 'F');
     doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
     doc.text('TOTALE', tx, y + 2);
@@ -421,7 +630,8 @@ export class PrintService {
   }
 
   private secTitle(doc: jsPDF, y: number, title: string): number {
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...PR);
+    const tc = this.secTitleColor();
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...tc);
     doc.text(title.toUpperCase(), ML, y);
     const tw = doc.getTextWidth(title.toUpperCase());
     doc.setDrawColor(200, 205, 240); doc.setLineWidth(0.2);

@@ -498,5 +498,128 @@
       </div>
     </mat-tab>
 
+    <!-- ── Grafica documenti ───────────────────────────────────────────────── -->
+    <mat-tab label="Grafica documenti">
+      <div class="tab-content">
+        <div class="card" style="max-width:780px">
+          <h3 class="section-title">Stile grafico</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:20px">
+            Scegli l'aspetto di fatture, DDT, preventivi e tutti gli altri documenti PDF generati.
+          </p>
+
+          <div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap">
+
+            <!-- Classico -->
+            <div class="template-card" [class.template-card--active]="templateConfig.stile === 'classico'" (click)="setTemplateStile('classico')">
+              <div class="tmpl-preview">
+                <div style="height:9px;background:#4f46e5;border-radius:2px 2px 0 0"></div>
+                <div style="padding:5px 6px">
+                  <div style="display:flex;gap:4px;margin-bottom:4px">
+                    <div style="flex:1;height:14px;background:#f1f5f9;border-radius:2px"></div>
+                    <div style="flex:1;height:14px;background:#f1f5f9;border-radius:2px"></div>
+                  </div>
+                  <div style="height:5px;background:#4f46e5;border-radius:1px;margin-bottom:3px"></div>
+                  <div style="height:3px;background:#e2e8f0;margin-bottom:1px;border-radius:1px"></div>
+                  <div style="height:3px;background:#f8fafc;margin-bottom:1px;border-radius:1px"></div>
+                  <div style="height:3px;background:#e2e8f0;margin-bottom:3px;border-radius:1px"></div>
+                  <div style="height:5px;background:#4f46e5;border-radius:1px;margin-left:auto;width:40%"></div>
+                </div>
+              </div>
+              <div class="tmpl-label">Classico</div>
+              <div class="tmpl-desc">Intestazione con divider colorato, riquadri per le parti, tabella con intestazione colorata</div>
+            </div>
+
+            <!-- Moderno -->
+            <div class="template-card" [class.template-card--active]="templateConfig.stile === 'moderno'" (click)="setTemplateStile('moderno')">
+              <div class="tmpl-preview">
+                <div style="height:16px;background:#4f46e5;border-radius:2px 2px 0 0;display:flex;align-items:center;padding:0 5px">
+                  <div style="width:28px;height:4px;background:rgba(255,255,255,0.7);border-radius:1px"></div>
+                  <div style="margin-left:auto;width:18px;height:4px;background:rgba(255,255,255,0.9);border-radius:1px"></div>
+                </div>
+                <div style="padding:5px 6px">
+                  <div style="display:flex;gap:4px;margin-bottom:4px">
+                    <div style="flex:1;border-top:2px solid #4f46e5;height:12px;padding-top:2px">
+                      <div style="height:3px;background:#1a1a2e;border-radius:1px;width:70%"></div>
+                    </div>
+                    <div style="flex:1;border-top:2px solid #4f46e5;height:12px;padding-top:2px">
+                      <div style="height:3px;background:#1a1a2e;border-radius:1px;width:60%"></div>
+                    </div>
+                  </div>
+                  <div style="height:5px;background:#4f46e5;border-radius:1px;margin-bottom:3px"></div>
+                  <div style="height:3px;background:#e2e8f0;margin-bottom:1px;border-radius:1px"></div>
+                  <div style="height:3px;background:#f8fafc;margin-bottom:3px;border-radius:1px"></div>
+                  <div style="height:5px;background:#4f46e5;border-radius:1px;margin-left:auto;width:40%"></div>
+                </div>
+              </div>
+              <div class="tmpl-label">Moderno</div>
+              <div class="tmpl-desc">Banda colorata in alto, colonne senza box, design pulito e professionale</div>
+            </div>
+
+            <!-- Minimal -->
+            <div class="template-card" [class.template-card--active]="templateConfig.stile === 'minimal'" (click)="setTemplateStile('minimal')">
+              <div class="tmpl-preview">
+                <div style="padding:5px 6px">
+                  <div style="display:flex;align-items:flex-start;margin-bottom:4px">
+                    <div style="flex:1">
+                      <div style="height:3px;background:#1a1a2e;border-radius:1px;width:55%;margin-bottom:2px"></div>
+                      <div style="height:2px;background:#94a3b8;border-radius:1px;width:40%"></div>
+                    </div>
+                    <div style="height:9px;background:#dde1ea;border-radius:1px;width:32%"></div>
+                  </div>
+                  <div style="height:0.5px;background:#c8cdd7;margin-bottom:4px"></div>
+                  <div style="display:flex;gap:4px;margin-bottom:4px">
+                    <div style="flex:1">
+                      <div style="height:2px;background:#94a3b8;width:40%;margin-bottom:1px;border-radius:1px"></div>
+                      <div style="height:3px;background:#1a1a2e;width:65%;border-radius:1px"></div>
+                    </div>
+                    <div style="flex:1">
+                      <div style="height:2px;background:#94a3b8;width:40%;margin-bottom:1px;border-radius:1px"></div>
+                      <div style="height:3px;background:#1a1a2e;width:65%;border-radius:1px"></div>
+                    </div>
+                  </div>
+                  <div style="height:5px;background:#f1f5f9;border-radius:1px;margin-bottom:3px"></div>
+                  <div style="height:3px;background:#e2e8f0;margin-bottom:1px;border-radius:1px"></div>
+                  <div style="height:5px;background:#334155;border-radius:1px;margin-left:auto;width:40%"></div>
+                </div>
+              </div>
+              <div class="tmpl-label">Minimal</div>
+              <div class="tmpl-desc">Senza sfondi colorati, solo testo, linea sottile — massima leggibilità</div>
+            </div>
+
+          </div>
+
+          <h3 class="section-title">Colore principale</h3>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+            <input type="color"
+                   [value]="templateConfig.accentColor || '#4f46e5'"
+                   (input)="onAccentColorChange($event)"
+                   style="width:48px;height:36px;cursor:pointer;border:1px solid #e2e8f0;border-radius:6px;padding:2px;background:#fff">
+            <span style="color:#64748b;font-size:13px">Usato per intestazioni, tabelle e barre colorate nei PDF</span>
+            <button mat-stroked-button type="button" (click)="resetAccentColor()" style="font-size:12px">
+              Ripristina predefinito
+            </button>
+          </div>
+
+          <h3 class="section-title">Blocchi visibili</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:12px">
+            Scegli quali sezioni includere nei documenti PDF generati.
+          </p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:24px">
+            @for (block of templateBlocks; track block.key) {
+              <mat-checkbox [checked]="isBlockVisible(block.key)" (change)="toggleBlock(block.key, $event.checked)">
+                {{ block.label }}
+              </mat-checkbox>
+            }
+          </div>
+
+          <div style="display:flex;justify-content:flex-end">
+            <button mat-flat-button type="button" (click)="save()">
+              <mat-icon>save</mat-icon> Salva grafica
+            </button>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
   </mat-tab-group>
 </div>

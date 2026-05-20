@@ -1,3 +1,9 @@
+export interface TemplateConfig {
+  stile: 'classico' | 'moderno' | 'minimal';
+  accentColor?: string;
+  blocks?: { [key: string]: boolean };
+}
+
 export interface Azienda {
   id?: number;
   ragioneSociale: string;
@@ -27,6 +33,7 @@ export interface Azienda {
   multiUtenteAttivo?: boolean;
   numerazioneAnnuale?: boolean;
   numeroPrefissi?: { [key: string]: string };
+  templateConfig?: TemplateConfig;
 }
 
 export interface Prodotto {

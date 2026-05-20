@@ -14,14 +14,16 @@ router.put('/', (req, res) => {
     smtp_host=?, smtp_port=?, smtp_user=?, smtp_pass=?, smtp_from=?, smtp_secure=?,
     sdi_api_url=?, sdi_api_key=?,
     riordino_automatico=?, multi_utente_attivo=?,
-    numerazione_annuale=?, numero_prefissi=?
+    numerazione_annuale=?, numero_prefissi=?,
+    template_config=?
     WHERE id=1`)
     .run(a.ragioneSociale, a.indirizzo, a.cap, a.citta, a.provincia, a.stato,
          a.pIva, a.codFiscale, a.email, a.telefono, a.pec, a.sdi, a.banca, a.iban, a.logo || '',
          a.smtpHost || '', a.smtpPort || 587, a.smtpUser || '', a.smtpPass || '', a.smtpFrom || '', a.smtpSecure ? 1 : 0,
          a.sdiApiUrl || '', a.sdiApiKey || '',
          a.riordinoAutomatico ? 1 : 0, a.multiUtenteAttivo ? 1 : 0,
-         a.numerazioneAnnuale ? 1 : 0, JSON.stringify(a.numeroPrefissi || {}));
+         a.numerazioneAnnuale ? 1 : 0, JSON.stringify(a.numeroPrefissi || {}),
+         a.templateConfig ? JSON.stringify(a.templateConfig) : null);
   res.json({ success: true });
 });
 
@@ -40,6 +42,7 @@ function toDto(r) {
     multiUtenteAttivo: r.multi_utente_attivo === 1,
     numerazioneAnnuale: (r.numerazione_annuale ?? 1) !== 0,
     numeroPrefissi: (() => { try { return JSON.parse(r.numero_prefissi || '{}'); } catch(_) { return {}; } })(),
+    templateConfig: (() => { try { return r.template_config ? JSON.parse(r.template_config) : null; } catch(_) { return null; } })(),
   };
 }
 

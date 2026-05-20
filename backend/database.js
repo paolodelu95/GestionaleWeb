@@ -405,6 +405,7 @@ const migrations = [
     FOREIGN KEY (cliente_id) REFERENCES clienti(id) ON DELETE CASCADE
   )`,
   'ALTER TABLE ddt ADD COLUMN destinazione_id INTEGER',
+  'ALTER TABLE azienda ADD COLUMN template_config TEXT DEFAULT NULL',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
