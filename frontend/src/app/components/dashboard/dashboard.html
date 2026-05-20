@@ -1,243 +1,323 @@
 <div class="page">
-  <h1 class="page-title">Dashboard</h1>
+  <div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
 
-  <!-- Alert strip -->
-  @if (fattureSCadute > 0 || ddtDaFatturare.length > 0 || prodottiSottoSoglia.length > 0) {
-    <div class="alert-strip">
-      @if (fattureSCadute > 0) {
-        <a class="alert-chip alert-red" [routerLink]="['/fatture']">
-          <mat-icon>warning</mat-icon>
-          {{ fattureSCadute }} {{ fattureSCadute === 1 ? 'fattura scaduta' : 'fatture scadute' }}
-        </a>
+    <button mat-stroked-button [matMenuTriggerFor]="widgetMenu" matTooltip="Mostra/nascondi widget">
+      <mat-icon>visibility</mat-icon>
+      Widget ({{ visibleCount }}/{{ widgets.length }})
+    </button>
+    <mat-menu #widgetMenu="matMenu" class="widget-menu">
+      <div class="widget-menu-header" (click)="$event.stopPropagation()">
+        <span>Mostra widget</span>
+      </div>
+      @for (w of widgets; track w.id) {
+        <button mat-menu-item (click)="$event.stopPropagation(); toggleVisible(w)">
+          <mat-checkbox [checked]="w.visible" (click)="$event.stopPropagation(); toggleVisible(w)"
+                        style="margin-right:8px;pointer-events:none"></mat-checkbox>
+          <mat-icon style="margin-right:6px;color:var(--text-tertiary)">{{ w.icon }}</mat-icon>
+          {{ w.label }}
+        </button>
       }
-      @if (ddtDaFatturare.length > 0) {
-        <a class="alert-chip alert-blue" [routerLink]="['/ddt']">
-          <mat-icon>receipt_long</mat-icon>
-          {{ ddtDaFatturare.length }} DDT da fatturare
-        </a>
-      }
-      @if (prodottiSottoSoglia.length > 0) {
-        <a class="alert-chip alert-orange" [routerLink]="['/prodotti']">
-          <mat-icon>inventory</mat-icon>
-          {{ prodottiSottoSoglia.length }} {{ prodottiSottoSoglia.length === 1 ? 'prodotto sotto soglia' : 'prodotti sotto soglia' }}
-        </a>
-      }
+      <button mat-menu-item (click)="resetWidgets()" style="border-top:1px solid var(--border-subtle);margin-top:4px;color:var(--text-tertiary)">
+        <mat-icon>restart_alt</mat-icon> Ripristina default
+      </button>
+    </mat-menu>
+
+    <button mat-flat-button [color]="editMode ? 'primary' : ''" (click)="toggleEdit()"
+            [matTooltip]="editMode ? 'Termina modifica' : 'Trascina i widget per riordinarli'">
+      <mat-icon>{{ editMode ? 'done' : 'edit' }}</mat-icon>
+      {{ editMode ? 'Fatto' : 'Modifica' }}
+    </button>
+  </div>
+
+  @if (editMode) {
+    <div class="edit-banner">
+      <mat-icon>drag_indicator</mat-icon>
+      <span>Modalità modifica attiva — trascina i widget per riordinarli, usa il menu in alto per mostrare/nascondere.</span>
     </div>
   }
 
-  <!-- KPI row 1: contatori -->
-  <div class="kpi-grid">
-    <div class="kpi-card kpi-tint-blue">
-      <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
-      <div class="kpi-label">Prodotti a magazzino</div>
-      <div class="kpi-value">{{ prodottiCount }}</div>
-    </div>
-    <div class="kpi-card kpi-tint-green">
-      <div class="kpi-icon"><mat-icon>account_balance_wallet</mat-icon></div>
-      <div class="kpi-label">Valore magazzino</div>
-      <div class="kpi-value">{{ valoremagazzino | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
-    </div>
-    <div class="kpi-card kpi-tint-amber">
-      <div class="kpi-icon"><mat-icon>shopping_cart</mat-icon></div>
-      <div class="kpi-label">Ordini aperti</div>
-      <div class="kpi-value">{{ ordiniAperti }}</div>
-    </div>
-    <div class="kpi-card kpi-tint-purple">
-      <div class="kpi-icon"><mat-icon>people</mat-icon></div>
-      <div class="kpi-label">Clienti</div>
-      <div class="kpi-value">{{ clientiCount }}</div>
-    </div>
-  </div>
+  <div class="widget-list" cdkDropList (cdkDropListDropped)="dropWidget($event)"
+       [class.edit-mode]="editMode">
 
-  <!-- KPI row 2: anno corrente + cashflow -->
-  <div class="kpi-grid kpi-row2">
-    <div class="kpi-card kpi-tint-indigo">
-      <div class="kpi-icon"><mat-icon>trending_up</mat-icon></div>
-      <div class="kpi-label">Fatturato anno</div>
-      <div class="kpi-value">{{ kpi.fatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
-    </div>
-    <div class="kpi-card kpi-tint-red">
-      <div class="kpi-icon"><mat-icon>trending_down</mat-icon></div>
-      <div class="kpi-label">Costi anno</div>
-      <div class="kpi-value">{{ kpi.costi | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
-    </div>
-    <div class="kpi-card" [class.kpi-tint-green]="kpi.margine >= 0" [class.kpi-tint-red]="kpi.margine < 0">
-      <div class="kpi-icon"><mat-icon>{{ kpi.margine >= 0 ? 'savings' : 'warning' }}</mat-icon></div>
-      <div class="kpi-label">Margine anno</div>
-      <div class="kpi-value" [class]="kpi.margine >= 0 ? 'kpi-margine-pos' : 'kpi-margine-neg'">
-        {{ kpi.margine | currency:'EUR':'symbol':'1.2-2':'it' }}
-      </div>
-    </div>
-    <div class="kpi-card cashflow-card">
-      <div class="cashflow-row">
-        <div class="cashflow-accent" style="background:#16a34a"></div>
-        <div>
-          <div class="kpi-label">Da incassare</div>
-          <div class="cashflow-val-pos">{{ cashflow.daIncassare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
-        </div>
-      </div>
-      <div class="cashflow-row">
-        <div class="cashflow-accent" style="background:#dc2626"></div>
-        <div>
-          <div class="kpi-label">Da pagare</div>
-          <div class="cashflow-val-neg">{{ cashflow.daPagare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
+    @for (w of widgets; track w.id) {
+      @if (w.visible || editMode) {
+        <div class="widget" cdkDrag [cdkDragDisabled]="!editMode" [class.widget-hidden]="!w.visible">
 
-  <!-- Charts row -->
-  <div class="chart-row">
-    <div class="card chart-card-wide">
-      <h3 class="section-title">Vendite mensili (ultimi 12 mesi)</h3>
-      <div class="chart-container">
-        <canvas #chartVendite></canvas>
-      </div>
-    </div>
-    <div class="card chart-card-narrow">
-      <h3 class="section-title">Top 5 prodotti per fatturato</h3>
-      <div class="chart-container-centered">
-        <canvas #chartTop></canvas>
-      </div>
-    </div>
-  </div>
+          @if (editMode) {
+            <div class="widget-edit-overlay">
+              <div class="widget-drag-handle" cdkDragHandle>
+                <mat-icon>drag_indicator</mat-icon>
+                <span class="widget-edit-label">
+                  <mat-icon class="widget-edit-icon">{{ w.icon }}</mat-icon>
+                  {{ w.label }}
+                </span>
+              </div>
+              <button mat-icon-button (click)="toggleVisible(w)" [matTooltip]="w.visible ? 'Nascondi' : 'Mostra'">
+                <mat-icon>{{ w.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+              </button>
+            </div>
+          }
 
-  <!-- Tables row -->
-  <div class="table-row">
-    <!-- Prodotti sotto soglia -->
-    <div class="card">
-      <div class="section-header">
-        <h3 class="section-title danger">Prodotti sotto soglia</h3>
-        <a [routerLink]="['/prodotti']" class="section-link">Vai ai prodotti →</a>
-      </div>
-      <table mat-table [dataSource]="prodottiSottoSoglia" class="mat-mdc-table">
-        <ng-container matColumnDef="nome">
-          <th mat-header-cell *matHeaderCellDef>Prodotto</th>
-          <td mat-cell *matCellDef="let p">{{ p.nome }}</td>
-        </ng-container>
-        <ng-container matColumnDef="categoria">
-          <th mat-header-cell *matHeaderCellDef>Categoria</th>
-          <td mat-cell *matCellDef="let p">{{ p.categoria }}</td>
-        </ng-container>
-        <ng-container matColumnDef="quantita">
-          <th mat-header-cell *matHeaderCellDef>Qtà</th>
-          <td mat-cell *matCellDef="let p"><b class="text-danger">{{ p.quantita }}</b></td>
-        </ng-container>
-        <ng-container matColumnDef="sogliaMinima">
-          <th mat-header-cell *matHeaderCellDef>Soglia</th>
-          <td mat-cell *matCellDef="let p">{{ p.sogliaMinima }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="prodottiCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: prodottiCols;" class="row-danger"></tr>
-      </table>
-      @if (!prodottiSottoSoglia.length) {
-        <p class="empty-msg">Nessun prodotto sotto soglia</p>
-      }
-    </div>
-
-    <!-- DDT da fatturare -->
-    <div class="card">
-      <div class="section-header">
-        <h3 class="section-title info">DDT da fatturare</h3>
-        <a [routerLink]="['/ddt']" class="section-link">Vai ai DDT →</a>
-      </div>
-      <table mat-table [dataSource]="ddtDaFatturare" class="mat-mdc-table">
-        <ng-container matColumnDef="numero">
-          <th mat-header-cell *matHeaderCellDef>Numero</th>
-          <td mat-cell *matCellDef="let d">{{ d.numero }}</td>
-        </ng-container>
-        <ng-container matColumnDef="dataEmissione">
-          <th mat-header-cell *matHeaderCellDef>Data</th>
-          <td mat-cell *matCellDef="let d">{{ d.dataEmissione | date:'dd/MM/yyyy' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="clienteNome">
-          <th mat-header-cell *matHeaderCellDef>Cliente</th>
-          <td mat-cell *matCellDef="let d">{{ d.clienteNome || '-' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totale">
-          <th mat-header-cell *matHeaderCellDef>Importo</th>
-          <td mat-cell *matCellDef="let d" class="euro">{{ (d.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="azione">
-          <th mat-header-cell *matHeaderCellDef>Azione</th>
-          <td mat-cell *matCellDef="let d">
-            <button mat-button type="button" color="primary" class="btn-fattura"
-                    title="Crea fattura da questo DDT" (click)="convertiDdtInFattura(d)">
-              Fattura
-            </button>
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="ddtCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: ddtCols;"></tr>
-      </table>
-      @if (!ddtDaFatturare.length) { <p class="empty-msg">Nessun DDT da fatturare</p> }
-    </div>
-
-    <!-- Fatture da incassare -->
-    <div class="card">
-      <div class="section-header">
-        <h3 class="section-title success">Fatture da incassare</h3>
-        <a [routerLink]="['/fatture']" class="section-link">Vai alle fatture →</a>
-      </div>
-      <table mat-table [dataSource]="fattureDaIncassare" class="mat-mdc-table">
-        <ng-container matColumnDef="numero">
-          <th mat-header-cell *matHeaderCellDef>Numero</th>
-          <td mat-cell *matCellDef="let f">{{ f.numero }}</td>
-        </ng-container>
-        <ng-container matColumnDef="dataEmissione">
-          <th mat-header-cell *matHeaderCellDef>Scadenza</th>
-          <td mat-cell *matCellDef="let f" [class.text-danger]="isScaduta(f)" [class.fw-bold]="isScaduta(f)">
-            @if (getScadenza(f)) {
-              {{ getScadenza(f) | date:'dd/MM/yy' }}
-              @if (isScaduta(f)) {
-                <span class="days-badge">+{{ giorniRitardo(f) }}gg</span>
-              }
-            } @else {
-              {{ f.dataEmissione | date:'dd/MM/yy' }}
+          <!-- ── Widget: Alerts ─────────────────────────────────────────── -->
+          @if (w.id === 'alerts') {
+            @if (fattureSCadute > 0 || ddtDaFatturare.length > 0 || prodottiSottoSoglia.length > 0) {
+              <div class="alert-strip">
+                @if (fattureSCadute > 0) {
+                  <a class="alert-chip alert-red" [routerLink]="['/fatture']">
+                    <mat-icon>warning</mat-icon>
+                    {{ fattureSCadute }} {{ fattureSCadute === 1 ? 'fattura scaduta' : 'fatture scadute' }}
+                  </a>
+                }
+                @if (ddtDaFatturare.length > 0) {
+                  <a class="alert-chip alert-blue" [routerLink]="['/ddt']">
+                    <mat-icon>receipt_long</mat-icon>
+                    {{ ddtDaFatturare.length }} DDT da fatturare
+                  </a>
+                }
+                @if (prodottiSottoSoglia.length > 0) {
+                  <a class="alert-chip alert-orange" [routerLink]="['/prodotti']">
+                    <mat-icon>inventory</mat-icon>
+                    {{ prodottiSottoSoglia.length }} {{ prodottiSottoSoglia.length === 1 ? 'prodotto sotto soglia' : 'prodotti sotto soglia' }}
+                  </a>
+                }
+              </div>
+            } @else if (editMode) {
+              <div class="empty-widget">Nessun avviso al momento</div>
             }
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="clienteNome">
-          <th mat-header-cell *matHeaderCellDef>Cliente</th>
-          <td mat-cell *matCellDef="let f">{{ f.clienteNome || '-' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totale">
-          <th mat-header-cell *matHeaderCellDef>Importo</th>
-          <td mat-cell *matCellDef="let f" class="euro">{{ (f.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="fattureCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: fattureCols;" [class.row-danger]="isScaduta(row)"></tr>
-      </table>
-      @if (!fattureDaIncassare.length) { <p class="empty-msg">Nessuna fattura da incassare</p> }
-    </div>
+          }
 
-    <!-- Fatture da pagare (acquisti) -->
-    <div class="card">
-      <div class="section-header">
-        <h3 class="section-title danger">Fatture da pagare</h3>
-        <a [routerLink]="['/acquisti']" class="section-link">Vai agli acquisti →</a>
-      </div>
-      <table mat-table [dataSource]="fattureDaPagare" class="mat-mdc-table">
-        <ng-container matColumnDef="numero">
-          <th mat-header-cell *matHeaderCellDef>Numero</th>
-          <td mat-cell *matCellDef="let a">{{ a.numero }}</td>
-        </ng-container>
-        <ng-container matColumnDef="dataEmissione">
-          <th mat-header-cell *matHeaderCellDef>Data</th>
-          <td mat-cell *matCellDef="let a">{{ a.dataEmissione | date:'dd/MM/yyyy' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="fornitoreNome">
-          <th mat-header-cell *matHeaderCellDef>Fornitore</th>
-          <td mat-cell *matCellDef="let a">{{ a.fornitoreNome || '-' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totale">
-          <th mat-header-cell *matHeaderCellDef>Importo</th>
-          <td mat-cell *matCellDef="let a" class="euro-neg">{{ (a.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="acquistiCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: acquistiCols;" class="row-danger"></tr>
-      </table>
-      @if (!fattureDaPagare.length) { <p class="empty-msg">Nessuna fattura da pagare</p> }
-    </div>
+          <!-- ── Widget: KPI magazzino ──────────────────────────────────── -->
+          @if (w.id === 'kpi-magazzino') {
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-tint-blue">
+                <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
+                <div class="kpi-label">Prodotti a magazzino</div>
+                <div class="kpi-value">{{ prodottiCount }}</div>
+              </div>
+              <div class="kpi-card kpi-tint-green">
+                <div class="kpi-icon"><mat-icon>account_balance_wallet</mat-icon></div>
+                <div class="kpi-label">Valore magazzino</div>
+                <div class="kpi-value">{{ valoremagazzino | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+              </div>
+              <div class="kpi-card kpi-tint-amber">
+                <div class="kpi-icon"><mat-icon>shopping_cart</mat-icon></div>
+                <div class="kpi-label">Ordini aperti</div>
+                <div class="kpi-value">{{ ordiniAperti }}</div>
+              </div>
+              <div class="kpi-card kpi-tint-purple">
+                <div class="kpi-icon"><mat-icon>people</mat-icon></div>
+                <div class="kpi-label">Clienti</div>
+                <div class="kpi-value">{{ clientiCount }}</div>
+              </div>
+            </div>
+          }
+
+          <!-- ── Widget: KPI anno + cashflow ────────────────────────────── -->
+          @if (w.id === 'kpi-anno') {
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-tint-indigo">
+                <div class="kpi-icon"><mat-icon>trending_up</mat-icon></div>
+                <div class="kpi-label">Fatturato anno</div>
+                <div class="kpi-value">{{ kpi.fatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+              </div>
+              <div class="kpi-card kpi-tint-red">
+                <div class="kpi-icon"><mat-icon>trending_down</mat-icon></div>
+                <div class="kpi-label">Costi anno</div>
+                <div class="kpi-value">{{ kpi.costi | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+              </div>
+              <div class="kpi-card" [class.kpi-tint-green]="kpi.margine >= 0" [class.kpi-tint-red]="kpi.margine < 0">
+                <div class="kpi-icon"><mat-icon>{{ kpi.margine >= 0 ? 'savings' : 'warning' }}</mat-icon></div>
+                <div class="kpi-label">Margine anno</div>
+                <div class="kpi-value" [class]="kpi.margine >= 0 ? 'kpi-margine-pos' : 'kpi-margine-neg'">
+                  {{ kpi.margine | currency:'EUR':'symbol':'1.2-2':'it' }}
+                </div>
+              </div>
+              <div class="kpi-card cashflow-card">
+                <div class="cashflow-row">
+                  <div class="cashflow-accent" style="background:#16a34a"></div>
+                  <div>
+                    <div class="kpi-label">Da incassare</div>
+                    <div class="cashflow-val-pos">{{ cashflow.daIncassare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
+                  </div>
+                </div>
+                <div class="cashflow-row">
+                  <div class="cashflow-accent" style="background:#dc2626"></div>
+                  <div>
+                    <div class="kpi-label">Da pagare</div>
+                    <div class="cashflow-val-neg">{{ cashflow.daPagare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ── Widget: Chart vendite ──────────────────────────────────── -->
+          @if (w.id === 'chart-vendite') {
+            <div class="card">
+              <h3 class="section-title">Vendite mensili (ultimi 12 mesi)</h3>
+              <div class="chart-container">
+                <canvas #chartVendite></canvas>
+              </div>
+            </div>
+          }
+
+          <!-- ── Widget: Chart top prodotti ─────────────────────────────── -->
+          @if (w.id === 'chart-top') {
+            <div class="card">
+              <h3 class="section-title">Top 5 prodotti per fatturato</h3>
+              <div class="chart-container-centered">
+                <canvas #chartTop></canvas>
+              </div>
+            </div>
+          }
+
+          <!-- ── Widget: Tabella prodotti sotto soglia ──────────────────── -->
+          @if (w.id === 'table-sotto') {
+            <div class="card">
+              <div class="section-header">
+                <h3 class="section-title danger">Prodotti sotto soglia</h3>
+                <a [routerLink]="['/prodotti']" class="section-link">Vai ai prodotti →</a>
+              </div>
+              <table mat-table [dataSource]="prodottiSottoSoglia" class="mat-mdc-table">
+                <ng-container matColumnDef="nome">
+                  <th mat-header-cell *matHeaderCellDef>Prodotto</th>
+                  <td mat-cell *matCellDef="let p">{{ p.nome }}</td>
+                </ng-container>
+                <ng-container matColumnDef="categoria">
+                  <th mat-header-cell *matHeaderCellDef>Categoria</th>
+                  <td mat-cell *matCellDef="let p">{{ p.categoria }}</td>
+                </ng-container>
+                <ng-container matColumnDef="quantita">
+                  <th mat-header-cell *matHeaderCellDef>Qtà</th>
+                  <td mat-cell *matCellDef="let p"><b class="text-danger">{{ p.quantita }}</b></td>
+                </ng-container>
+                <ng-container matColumnDef="sogliaMinima">
+                  <th mat-header-cell *matHeaderCellDef>Soglia</th>
+                  <td mat-cell *matCellDef="let p">{{ p.sogliaMinima }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="prodottiCols"></tr>
+                <tr mat-row *matRowDef="let row; columns: prodottiCols;" class="row-danger"></tr>
+              </table>
+              @if (!prodottiSottoSoglia.length) {
+                <p class="empty-msg">Nessun prodotto sotto soglia</p>
+              }
+            </div>
+          }
+
+          <!-- ── Widget: DDT da fatturare ──────────────────────────────── -->
+          @if (w.id === 'table-ddt') {
+            <div class="card">
+              <div class="section-header">
+                <h3 class="section-title info">DDT da fatturare</h3>
+                <a [routerLink]="['/ddt']" class="section-link">Vai ai DDT →</a>
+              </div>
+              <table mat-table [dataSource]="ddtDaFatturare" class="mat-mdc-table">
+                <ng-container matColumnDef="numero">
+                  <th mat-header-cell *matHeaderCellDef>Numero</th>
+                  <td mat-cell *matCellDef="let d">{{ d.numero }}</td>
+                </ng-container>
+                <ng-container matColumnDef="dataEmissione">
+                  <th mat-header-cell *matHeaderCellDef>Data</th>
+                  <td mat-cell *matCellDef="let d">{{ d.dataEmissione | date:'dd/MM/yyyy' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="clienteNome">
+                  <th mat-header-cell *matHeaderCellDef>Cliente</th>
+                  <td mat-cell *matCellDef="let d">{{ d.clienteNome || '-' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="totale">
+                  <th mat-header-cell *matHeaderCellDef>Importo</th>
+                  <td mat-cell *matCellDef="let d" class="euro">{{ (d.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="azione">
+                  <th mat-header-cell *matHeaderCellDef>Azione</th>
+                  <td mat-cell *matCellDef="let d">
+                    <button mat-button type="button" color="primary" class="btn-fattura"
+                            title="Crea fattura da questo DDT" (click)="convertiDdtInFattura(d)">
+                      Fattura
+                    </button>
+                  </td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="ddtCols"></tr>
+                <tr mat-row *matRowDef="let row; columns: ddtCols;"></tr>
+              </table>
+              @if (!ddtDaFatturare.length) { <p class="empty-msg">Nessun DDT da fatturare</p> }
+            </div>
+          }
+
+          <!-- ── Widget: Fatture da incassare ──────────────────────────── -->
+          @if (w.id === 'table-incassare') {
+            <div class="card">
+              <div class="section-header">
+                <h3 class="section-title success">Fatture da incassare</h3>
+                <a [routerLink]="['/fatture']" class="section-link">Vai alle fatture →</a>
+              </div>
+              <table mat-table [dataSource]="fattureDaIncassare" class="mat-mdc-table">
+                <ng-container matColumnDef="numero">
+                  <th mat-header-cell *matHeaderCellDef>Numero</th>
+                  <td mat-cell *matCellDef="let f">{{ f.numero }}</td>
+                </ng-container>
+                <ng-container matColumnDef="dataEmissione">
+                  <th mat-header-cell *matHeaderCellDef>Scadenza</th>
+                  <td mat-cell *matCellDef="let f" [class.text-danger]="isScaduta(f)" [class.fw-bold]="isScaduta(f)">
+                    @if (getScadenza(f)) {
+                      {{ getScadenza(f) | date:'dd/MM/yy' }}
+                      @if (isScaduta(f)) {
+                        <span class="days-badge">+{{ giorniRitardo(f) }}gg</span>
+                      }
+                    } @else {
+                      {{ f.dataEmissione | date:'dd/MM/yy' }}
+                    }
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="clienteNome">
+                  <th mat-header-cell *matHeaderCellDef>Cliente</th>
+                  <td mat-cell *matCellDef="let f">{{ f.clienteNome || '-' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="totale">
+                  <th mat-header-cell *matHeaderCellDef>Importo</th>
+                  <td mat-cell *matCellDef="let f" class="euro">{{ (f.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="fattureCols"></tr>
+                <tr mat-row *matRowDef="let row; columns: fattureCols;" [class.row-danger]="isScaduta(row)"></tr>
+              </table>
+              @if (!fattureDaIncassare.length) { <p class="empty-msg">Nessuna fattura da incassare</p> }
+            </div>
+          }
+
+          <!-- ── Widget: Fatture da pagare ─────────────────────────────── -->
+          @if (w.id === 'table-pagare') {
+            <div class="card">
+              <div class="section-header">
+                <h3 class="section-title danger">Fatture da pagare</h3>
+                <a [routerLink]="['/acquisti']" class="section-link">Vai agli acquisti →</a>
+              </div>
+              <table mat-table [dataSource]="fattureDaPagare" class="mat-mdc-table">
+                <ng-container matColumnDef="numero">
+                  <th mat-header-cell *matHeaderCellDef>Numero</th>
+                  <td mat-cell *matCellDef="let a">{{ a.numero }}</td>
+                </ng-container>
+                <ng-container matColumnDef="dataEmissione">
+                  <th mat-header-cell *matHeaderCellDef>Data</th>
+                  <td mat-cell *matCellDef="let a">{{ a.dataEmissione | date:'dd/MM/yyyy' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="fornitoreNome">
+                  <th mat-header-cell *matHeaderCellDef>Fornitore</th>
+                  <td mat-cell *matCellDef="let a">{{ a.fornitoreNome || '-' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="totale">
+                  <th mat-header-cell *matHeaderCellDef>Importo</th>
+                  <td mat-cell *matCellDef="let a" class="euro-neg">{{ (a.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="acquistiCols"></tr>
+                <tr mat-row *matRowDef="let row; columns: acquistiCols;" class="row-danger"></tr>
+              </table>
+              @if (!fattureDaPagare.length) { <p class="empty-msg">Nessuna fattura da pagare</p> }
+            </div>
+          }
+
+        </div>
+      }
+    }
   </div>
 </div>

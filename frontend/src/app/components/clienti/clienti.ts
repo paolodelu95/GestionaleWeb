@@ -21,7 +21,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError 
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
-import { Cliente, ClienteIndirizzo, TipoPagamento } from '../../models';
+import { Cliente, ClienteIndirizzo, TipoPagamento, Listino } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
@@ -331,18 +331,37 @@ export class AziendaSearchDialogComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>tune</mat-icon>
-            <span>Preferenze</span>
+            <span>Preferenze commerciali</span>
+            <span class="section-hint">Applicate in automatico nei nuovi documenti</span>
           </div>
-          <mat-form-field style="width:100%">
-            <mat-label>Metodo di pagamento preferito</mat-label>
-            <mat-select formControlName="tipoPagamentoId">
-              <mat-option [value]="null">— nessuno —</mat-option>
-              @for (t of tipiPagamento; track t.id) {
-                <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Metodo di pagamento preferito</mat-label>
+              <mat-select formControlName="tipoPagamentoId">
+                <mat-option [value]="null">— nessuno —</mat-option>
+                @for (t of tipiPagamento; track t.id) {
+                  <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+                }
+              </mat-select>
+              <mat-icon matSuffix>payments</mat-icon>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Listino prezzi</mat-label>
+              <mat-select formControlName="listinoId">
+                <mat-option [value]="null">— prezzo base —</mat-option>
+                @for (l of listini; track l.id) {
+                  <mat-option [value]="l.id">
+                    {{ l.nome }}
+                    @if (l.scontoDefault) { <span style="color:#94a3b8">&nbsp;(-{{ l.scontoDefault }}%)</span> }
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-icon matSuffix>price_change</mat-icon>
+              @if (form.value.listinoId) {
+                <mat-hint>I prezzi del listino verranno applicati automaticamente</mat-hint>
               }
-            </mat-select>
-            <mat-icon matSuffix>payments</mat-icon>
-          </mat-form-field>
+            </mat-form-field>
+          </div>
         </div>
       </form>
         </mat-tab>
@@ -489,6 +508,7 @@ export class ClienteDialogComponent implements OnInit {
   form: FormGroup;
   filteredCities: CityResult[] = [];
   tipiPagamento: TipoPagamento[] = [];
+  listini: Listino[] = [];
   lookupLoading = false;
   get canLookupPiva(): boolean { return normalizePiva(this.form.get('pIva')?.value ?? '').length === 11; }
   private cityMap = new Map<string, CityResult>();
@@ -566,6 +586,7 @@ export class ClienteDialogComponent implements OnInit {
       sdi:            [data?.sdi ?? ''],
       pec:            [data?.pec ?? ''],
       tipoPagamentoId:[data?.tipoPagamentoId ?? null],
+      listinoId:      [data?.listinoId ?? null],
     });
   }
 
@@ -583,6 +604,7 @@ export class ClienteDialogComponent implements OnInit {
 
   ngOnInit() {
     this.ds.getTipiPagamento().subscribe(t => this.tipiPagamento = t.filter(x => x.attivo));
+    this.ds.getListini().subscribe(l => this.listini = l.filter(x => x.attivo));
     this.loadIndirizzi();
 
     this.form.get('citta')!.valueChanges.pipe(

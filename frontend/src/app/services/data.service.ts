@@ -5,7 +5,7 @@ import {
   Azienda, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
-  CategoriaProdotto, UnitaMisura, AliquotaIva,
+  CategoriaProdotto, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
@@ -133,6 +133,26 @@ export class DataService {
   createCategoriaProdotto(c: CategoriaProdotto): Observable<any> { return this.api.post('categorie-prodotto', c); }
   updateCategoriaProdotto(c: CategoriaProdotto): Observable<any> { return this.api.put(`categorie-prodotto/${c.id}`, c); }
   deleteCategoriaProdotto(id: number): Observable<any> { return this.api.delete(`categorie-prodotto/${id}`); }
+
+  // Listini personalizzati
+  getListini(): Observable<Listino[]> { return this.api.get('listini'); }
+  getListino(id: number): Observable<Listino> { return this.api.get(`listini/${id}`); }
+  createListino(l: Listino): Observable<any> { return this.api.post('listini', l); }
+  updateListino(l: Listino): Observable<any> { return this.api.put(`listini/${l.id}`, l); }
+  deleteListino(id: number): Observable<any> { return this.api.delete(`listini/${id}`); }
+
+  getListinoPrezzi(listinoId: number): Observable<ListinoPrezzo[]> {
+    return this.api.get(`listini/${listinoId}/prezzi`);
+  }
+  upsertListinoPrezzo(listinoId: number, p: { prodottoId: number; prezzo?: number | null; sconto?: number | null }): Observable<any> {
+    return this.api.post(`listini/${listinoId}/prezzi`, p);
+  }
+  deleteListinoPrezzo(listinoId: number, prezzoId: number): Observable<any> {
+    return this.api.delete(`listini/${listinoId}/prezzi/${prezzoId}`);
+  }
+  resolvePrezzoCliente(clienteId: number, prodottoId: number): Observable<PrezzoRisolto> {
+    return this.api.get(`listini/resolve/${clienteId}/${prodottoId}`);
+  }
 
   // Unità di Misura
   getUnitaMisura(): Observable<UnitaMisura[]> { return this.api.get('unita-misura'); }

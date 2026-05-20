@@ -488,6 +488,7 @@ export class DdtDialogComponent implements OnInit {
     private fb: FormBuilder,
     private ds: DataService,
     private matDialog: MatDialog,
+    private snack: MatSnackBar,
     public dialogRef: MatDialogRef<DdtDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Ddt | null
   ) {
@@ -602,8 +603,22 @@ export class DdtDialogComponent implements OnInit {
         this.righe[index].varianteId = v?.id ?? null;
         this.righe[index].varianteTaglia = v?.taglia ?? '';
         this.righe[index].varianteColore = v?.colore ?? '';
+        this.applyListino(index);
         this.loadPrezziRecenti(index);
       });
+  }
+
+  private applyListino(index: number) {
+    const riga = this.righe[index];
+    const cv = this.clienteCtrl.value;
+    const clienteId = cv && typeof cv !== 'string' ? (cv as Cliente).id : null;
+    if (!clienteId || !riga.prodottoId) return;
+    this.ds.resolvePrezzoCliente(clienteId, riga.prodottoId).subscribe(r => {
+      if (r.sorgente === 'BASE') return;
+      riga.prezzo = r.prezzo;
+      riga.sconto = r.sconto;
+      if (r.listinoNome) this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+    });
   }
 
   roundIfPz(riga: RigaDocumento) {

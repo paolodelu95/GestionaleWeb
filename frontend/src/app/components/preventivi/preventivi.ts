@@ -340,6 +340,7 @@ export class PreventivoDialogComponent implements OnInit {
     private fb: FormBuilder,
     private ds: DataService,
     private matDialog: MatDialog,
+    private snack: MatSnackBar,
     public dialogRef: MatDialogRef<PreventivoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Preventivo | null
   ) {
@@ -392,6 +393,17 @@ export class PreventivoDialogComponent implements OnInit {
     if (this.filteredClienti.length > 0) this.clienteCtrl.setValue(this.filteredClienti[0]);
   }
 
+  private applyListino(index: number) {
+    const riga = this.righe[index];
+    if (!this.clienteId || !riga.prodottoId) return;
+    this.ds.resolvePrezzoCliente(this.clienteId, riga.prodottoId).subscribe(r => {
+      if (r.sorgente === 'BASE') return;
+      riga.prezzo = r.prezzo;
+      riga.sconto = r.sconto;
+      if (r.listinoNome) this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+    });
+  }
+
   searchProdotto(index: number) {
     this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: this.prodotti })
       .afterClosed().subscribe((pick: ProdottoPick) => {
@@ -406,6 +418,7 @@ export class PreventivoDialogComponent implements OnInit {
         this.righe[index].varianteId = v?.id ?? null;
         this.righe[index].varianteTaglia = v?.taglia ?? '';
         this.righe[index].varianteColore = v?.colore ?? '';
+        this.applyListino(index);
         this.loadPrezziRecenti(index);
       });
   }

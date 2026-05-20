@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
@@ -75,7 +76,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule,
-            MatIconModule, MatCheckboxModule],
+            MatIconModule, MatCheckboxModule, MatButtonToggleModule],
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica prodotto' : 'Nuovo prodotto' }}</h2>
     <mat-dialog-content>
@@ -132,21 +133,23 @@ const PRODOTTI_FIELDS: FieldDef[] = [
           <div class="form-section-header">
             <mat-icon>sell</mat-icon>
             <span>Prezzi & IVA</span>
-            <span class="section-hint">Listino e aliquota fiscale</span>
-          </div>
-          <div class="form-row" style="align-items:flex-start">
-            <mat-form-field><mat-label>Prezzo vendita (€)</mat-label>
-              <input matInput type="number" step="0.01" formControlName="prezzo">
-              <mat-icon matSuffix>euro</mat-icon>
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>Prezzo acquisto (€)</mat-label>
-              <input matInput type="number" step="0.01" formControlName="prezzoAcquisto" placeholder="0.00">
-              <mat-icon matSuffix>shopping_cart</mat-icon>
-              <mat-hint>Usato per calcolo margini</mat-hint>
-            </mat-form-field>
+            <span class="section-hint">
+              <mat-button-toggle-group [value]="prezzoMode" (change)="onPrezzoModeChange($event.value)"
+                                      [hideSingleSelectionIndicator]="true" class="prezzo-mode-toggle">
+                <mat-button-toggle value="netto">Netto</mat-button-toggle>
+                <mat-button-toggle value="ivato">Ivato</mat-button-toggle>
+              </mat-button-toggle-group>
+            </span>
           </div>
           <div class="form-row">
+            <mat-form-field>
+              <mat-label>IVA</mat-label>
+              <mat-select formControlName="iva">
+                @for (a of aliquoteIva; track a.id) {
+                  <mat-option [value]="a.valore">{{ a.nome }} – {{ a.valore }}%</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
             <mat-form-field>
               <mat-label>Unità misura</mat-label>
               <mat-select formControlName="unitaMisura">
@@ -155,13 +158,31 @@ const PRODOTTI_FIELDS: FieldDef[] = [
                 }
               </mat-select>
             </mat-form-field>
+          </div>
+          <div class="form-row" style="align-items:flex-start">
             <mat-form-field>
-              <mat-label>IVA</mat-label>
-              <mat-select formControlName="iva">
-                @for (a of aliquoteIva; track a.id) {
-                  <mat-option [value]="a.valore">{{ a.nome }} – {{ a.valore }}%</mat-option>
-                }
-              </mat-select>
+              <mat-label>Prezzo vendita ({{ prezzoMode }}) €</mat-label>
+              <input matInput type="number" step="0.01" min="0"
+                     [value]="prezzoDisplay('prezzo')"
+                     (input)="onPrezzoInput('prezzo', $event)">
+              <mat-icon matSuffix>euro</mat-icon>
+              @if (prezzoMode === 'ivato') {
+                <mat-hint>Netto: {{ form.value.prezzo | number:'1.4-4' }} €</mat-hint>
+              } @else {
+                <mat-hint>Ivato: {{ prezzoIvato('prezzo') | number:'1.2-2' }} €</mat-hint>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Prezzo acquisto ({{ prezzoMode }}) €</mat-label>
+              <input matInput type="number" step="0.01" min="0"
+                     [value]="prezzoDisplay('prezzoAcquisto')"
+                     (input)="onPrezzoInput('prezzoAcquisto', $event)">
+              <mat-icon matSuffix>shopping_cart</mat-icon>
+              @if (margine !== null) {
+                <mat-hint>Margine: <b [style.color]="margine >= 0 ? '#10b981' : '#ef4444'">{{ margine | number:'1.1-1' }}%</b></mat-hint>
+              } @else {
+                <mat-hint>Per calcolo margini</mat-hint>
+              }
             </mat-form-field>
           </div>
         </div>
@@ -273,6 +294,9 @@ const PRODOTTI_FIELDS: FieldDef[] = [
     .varianti-title { font-size:12px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.5px; }
     .var-table-wrap { overflow-x:auto; }
     .var-table { width:100%;border-collapse:collapse;min-width:420px; }
+    .prezzo-mode-toggle ::ng-deep .mat-button-toggle { font-size:11px; }
+    .prezzo-mode-toggle ::ng-deep .mat-button-toggle-button { height:24px; padding:0 10px; line-height:24px; }
+    .prezzo-mode-toggle ::ng-deep .mat-button-toggle-label-content { line-height:24px; padding:0; font-weight:600; }
   `]
 })
 export class ProdottoDialogComponent implements OnInit {
@@ -282,7 +306,44 @@ export class ProdottoDialogComponent implements OnInit {
   aliquoteIva: AliquotaIva[] = [];
   varianti: { id?: number; taglia: string; colore: string; quantita: number; barcode: string }[] = [];
 
+  prezzoMode: 'netto' | 'ivato' = (localStorage.getItem('prodotto-prezzo-mode') as 'netto' | 'ivato') ?? 'netto';
+
   get totaleVarianti() { return this.varianti.reduce((s, v) => s + (v.quantita || 0), 0); }
+
+  get margine(): number | null {
+    const v = +(this.form.get('prezzo')?.value ?? 0);
+    const a = +(this.form.get('prezzoAcquisto')?.value ?? 0);
+    if (!v || !a) return null;
+    return ((v - a) / v) * 100;
+  }
+
+  prezzoDisplay(field: 'prezzo' | 'prezzoAcquisto'): number {
+    const net = +(this.form.get(field)?.value ?? 0);
+    const iva = +(this.form.get('iva')?.value ?? 0);
+    if (!net) return 0;
+    if (this.prezzoMode === 'ivato') return +(net * (1 + iva / 100)).toFixed(2);
+    return +net.toFixed(2);
+  }
+
+  prezzoIvato(field: 'prezzo' | 'prezzoAcquisto'): number {
+    const net = +(this.form.get(field)?.value ?? 0);
+    const iva = +(this.form.get('iva')?.value ?? 0);
+    return +(net * (1 + iva / 100)).toFixed(2);
+  }
+
+  onPrezzoInput(field: 'prezzo' | 'prezzoAcquisto', e: Event) {
+    const raw = (e.target as HTMLInputElement).value;
+    const val = parseFloat(raw);
+    if (isNaN(val)) { this.form.get(field)?.setValue(null); return; }
+    const iva = +(this.form.get('iva')?.value ?? 0);
+    const net = this.prezzoMode === 'ivato' ? val / (1 + iva / 100) : val;
+    this.form.get(field)?.setValue(+net.toFixed(4));
+  }
+
+  onPrezzoModeChange(mode: 'netto' | 'ivato') {
+    this.prezzoMode = mode;
+    localStorage.setItem('prodotto-prezzo-mode', mode);
+  }
 
   constructor(
     private fb: FormBuilder,

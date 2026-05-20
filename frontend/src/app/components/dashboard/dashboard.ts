@@ -5,7 +5,12 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
@@ -14,10 +19,35 @@ import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento,
 
 Chart.register(...registerables);
 
+export interface DashboardWidget {
+  id: string;
+  label: string;
+  icon: string;
+  visible: boolean;
+}
+
+const DEFAULT_WIDGETS: DashboardWidget[] = [
+  { id: 'alerts',          label: 'Avvisi',                  icon: 'warning',       visible: true },
+  { id: 'kpi-magazzino',   label: 'KPI magazzino e clienti', icon: 'analytics',     visible: true },
+  { id: 'kpi-anno',        label: 'KPI anno + cashflow',     icon: 'monitoring',    visible: true },
+  { id: 'chart-vendite',   label: 'Grafico vendite mensili', icon: 'bar_chart',     visible: true },
+  { id: 'chart-top',       label: 'Top 5 prodotti',          icon: 'pie_chart',     visible: true },
+  { id: 'table-sotto',     label: 'Prodotti sotto soglia',   icon: 'inventory',     visible: true },
+  { id: 'table-ddt',       label: 'DDT da fatturare',        icon: 'receipt_long',  visible: true },
+  { id: 'table-incassare', label: 'Fatture da incassare',    icon: 'request_quote', visible: true },
+  { id: 'table-pagare',    label: 'Fatture da pagare',       icon: 'payments',      visible: true },
+];
+
+const LS_KEY = 'dashboard-widgets-v1';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatCardModule, MatTableModule, MatIconModule, MatButtonModule, MatSnackBarModule],
+  imports: [
+    CommonModule, RouterLink, FormsModule,
+    MatCardModule, MatTableModule, MatIconModule, MatButtonModule, MatMenuModule,
+    MatTooltipModule, MatCheckboxModule, MatSnackBarModule, DragDropModule,
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -46,6 +76,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly oggi = new Date().toISOString().substring(0, 10);
 
+  // ── Customization state ────────────────────────────────────────────────────
+  widgets: DashboardWidget[] = [];
+  editMode = false;
+
   private venditeMensili: StatsVenditeMensili[] = [];
   private topProdotti: StatsTopProdotto[] = [];
   private chartsReady = false;
@@ -53,7 +87,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private chartVendite?: Chart;
   private chartTop?: Chart;
 
-  constructor(private ds: DataService, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private snack: MatSnackBar) {
+    this.loadWidgets();
+  }
 
   ngOnInit() {
     forkJoin({
@@ -105,16 +141,71 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.chartTop?.destroy();
   }
 
+  // ── Widget management ──────────────────────────────────────────────────────
+  private loadWidgets() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const saved: DashboardWidget[] = JSON.parse(raw);
+        // Merge: keep user's order and visibility, add any new default widgets at the end
+        const savedIds = new Set(saved.map(w => w.id));
+        const missing = DEFAULT_WIDGETS.filter(w => !savedIds.has(w.id));
+        this.widgets = saved
+          .filter(w => DEFAULT_WIDGETS.some(d => d.id === w.id))
+          .map(w => {
+            const def = DEFAULT_WIDGETS.find(d => d.id === w.id)!;
+            return { ...def, visible: w.visible };
+          })
+          .concat(missing);
+        return;
+      }
+    } catch {}
+    this.widgets = [...DEFAULT_WIDGETS];
+  }
+
+  private saveWidgets() {
+    localStorage.setItem(LS_KEY, JSON.stringify(this.widgets));
+  }
+
+  isVisible(id: string): boolean {
+    return this.widgets.find(w => w.id === id)?.visible ?? true;
+  }
+
+  toggleEdit() {
+    this.editMode = !this.editMode;
+    if (!this.editMode) this.tryRenderCharts();
+  }
+
+  toggleVisible(w: DashboardWidget) {
+    w.visible = !w.visible;
+    this.saveWidgets();
+    if (w.visible) this.tryRenderCharts();
+  }
+
+  dropWidget(event: CdkDragDrop<DashboardWidget[]>) {
+    moveItemInArray(this.widgets, event.previousIndex, event.currentIndex);
+    this.saveWidgets();
+    this.tryRenderCharts();
+  }
+
+  resetWidgets() {
+    if (!confirm('Ripristinare la dashboard di default?')) return;
+    this.widgets = [...DEFAULT_WIDGETS];
+    this.saveWidgets();
+    this.tryRenderCharts();
+  }
+
+  // ── Charts ─────────────────────────────────────────────────────────────────
   private tryRenderCharts() {
     if (!this.chartsReady || !this.dataReady) return;
     setTimeout(() => {
       this.renderVenditeChart();
       this.renderTopChart();
-    }, 0);
+    }, 50);
   }
 
   private renderVenditeChart() {
-    if (!this.chartVenditeRef) return;
+    if (!this.chartVenditeRef || !this.isVisible('chart-vendite')) return;
     this.chartVendite?.destroy();
     const labels = this.venditeMensili.map(v => v.mese);
     const data = this.venditeMensili.map(v => v.imponibile);
@@ -141,7 +232,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private renderTopChart() {
-    if (!this.chartTopRef || !this.topProdotti.length) return;
+    if (!this.chartTopRef || !this.topProdotti.length || !this.isVisible('chart-top')) return;
     this.chartTop?.destroy();
     const top5 = this.topProdotti.slice(0, 5);
     const colors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6'];
@@ -159,6 +250,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
   getScadenza(f: Fattura): string | null {
     if (!f.tipoPagamentoId) return null;
     const tp = this.tipiPagamento.find(t => t.id === f.tipoPagamentoId);
@@ -183,6 +275,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get fattureSCadute(): number {
     return this.fattureDaIncassare.filter(f => this.isScaduta(f)).length;
+  }
+
+  get visibleCount(): number {
+    return this.widgets.filter(w => w.visible).length;
   }
 
   convertiDdtInFattura(d: Ddt) {

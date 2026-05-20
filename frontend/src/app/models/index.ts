@@ -92,6 +92,38 @@ export interface Cliente {
   sdi?: string;
   pec?: string;
   tipoPagamentoId?: number | null;
+  listinoId?: number | null;
+}
+
+export interface Listino {
+  id?: number;
+  nome: string;
+  descrizione?: string;
+  scontoDefault?: number;
+  attivo?: boolean;
+  prezziCount?: number;
+  createdAt?: string;
+}
+
+export interface ListinoPrezzo {
+  id?: number;
+  listinoId: number;
+  prodottoId: number;
+  prezzo?: number | null;
+  sconto?: number | null;
+  prodottoNome?: string;
+  prodottoCodice?: string;
+  prodottoPrezzoBase?: number;
+  prodottoIva?: number;
+}
+
+export interface PrezzoRisolto {
+  prezzo: number;
+  sconto: number;
+  iva: number;
+  sorgente: 'BASE' | 'LISTINO_OVERRIDE' | 'LISTINO_SCONTO';
+  listinoId?: number;
+  listinoNome?: string;
 }
 
 export interface Fornitore {

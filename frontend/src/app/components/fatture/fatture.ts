@@ -704,8 +704,25 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         this.righe[index].varianteId = v?.id ?? null;
         this.righe[index].varianteTaglia = v?.taglia ?? '';
         this.righe[index].varianteColore = v?.colore ?? '';
+        this.applyListino(index);
         this.loadPrezziRecenti(index);
       });
+  }
+
+  /** Risolve il prezzo del prodotto secondo il listino del cliente */
+  private applyListino(index: number) {
+    const riga = this.righe[index];
+    const v = this.clienteCtrl.value;
+    const clienteId = v && typeof v !== 'string' ? (v as Cliente).id : null;
+    if (!clienteId || !riga.prodottoId) return;
+    this.ds.resolvePrezzoCliente(clienteId, riga.prodottoId).subscribe(r => {
+      if (r.sorgente === 'BASE') return;
+      riga.prezzo = r.prezzo;
+      riga.sconto = r.sconto;
+      if (r.listinoNome) {
+        this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+      }
+    });
   }
 
   roundIfPz(riga: RigaDocumento) {

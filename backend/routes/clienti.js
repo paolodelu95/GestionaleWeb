@@ -27,9 +27,9 @@ router.get('/check-piva', (req, res) => {
 router.post('/', (req, res) => {
   const c = req.body;
   const result = db.prepare(`INSERT INTO clienti
-    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null);
+    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id, listino_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null);
   res.json({ id: result.lastInsertRowid });
 });
 
@@ -74,8 +74,8 @@ router.post('/import', (req, res) => {
 router.put('/:id', (req, res) => {
   const c = req.body;
   db.prepare(`UPDATE clienti SET ragione_sociale=?, email=?, telefono=?, cellulare=?, via=?, cap=?,
-    citta=?, provincia=?, stato=?, codice_fiscale=?, p_iva=?, sdi=?, pec=?, tipo_pagamento_id=? WHERE id=?`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, req.params.id);
+    citta=?, provincia=?, stato=?, codice_fiscale=?, p_iva=?, sdi=?, pec=?, tipo_pagamento_id=?, listino_id=? WHERE id=?`)
+    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, req.params.id);
   res.json({ success: true });
 });
 
@@ -138,7 +138,8 @@ function toDto(r) {
   return {
     id: r.id, ragioneSociale: r.ragione_sociale, email: r.email, telefono: r.telefono, cellulare: r.cellulare,
     via: r.via, cap: r.cap, citta: r.citta, provincia: r.provincia, stato: r.stato,
-    codiceFiscale: r.codice_fiscale, pIva: r.p_iva, sdi: r.sdi, pec: r.pec, tipoPagamentoId: r.tipo_pagamento_id
+    codiceFiscale: r.codice_fiscale, pIva: r.p_iva, sdi: r.sdi, pec: r.pec,
+    tipoPagamentoId: r.tipo_pagamento_id, listinoId: r.listino_id,
   };
 }
 

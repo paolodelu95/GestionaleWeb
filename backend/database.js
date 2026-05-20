@@ -417,6 +417,28 @@ const migrations = [
     created_at TEXT DEFAULT (datetime('now')),
     resolved_at TEXT DEFAULT NULL
   )`,
+  // Listini personalizzati (anagrafica)
+  `CREATE TABLE IF NOT EXISTS listini (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    descrizione TEXT DEFAULT '',
+    sconto_default REAL DEFAULT 0,
+    attivo INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`,
+  // Prezzi/sconti specifici per prodotto in un listino (override su sconto_default)
+  `CREATE TABLE IF NOT EXISTS listini_prezzi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    listino_id INTEGER NOT NULL,
+    prodotto_id INTEGER NOT NULL,
+    prezzo REAL,
+    sconto REAL,
+    FOREIGN KEY (listino_id) REFERENCES listini(id) ON DELETE CASCADE,
+    FOREIGN KEY (prodotto_id) REFERENCES prodotti(id) ON DELETE CASCADE,
+    UNIQUE(listino_id, prodotto_id)
+  )`,
+  // Assegnazione listino di default al cliente
+  'ALTER TABLE clienti ADD COLUMN listino_id INTEGER REFERENCES listini(id)',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
