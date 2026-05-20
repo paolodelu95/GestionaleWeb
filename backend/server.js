@@ -5,6 +5,7 @@ const path = require('path');
 const cron = require('node-cron');
 const { runBackup } = require('./utils/backup');
 const { inviaSOllecitiAutomatici } = require('./utils/solleciti');
+const { getNextNumero } = require('./utils/nextNumero');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DIST = path.join(__dirname, 'public');
@@ -75,27 +76,20 @@ app.get('/api/prezzi-recenti', (req, res) => {
 });
 
 app.get('/api/next-number/:tipo', (req, res) => {
-  const map = { ddt: 'ddt', fatture: 'fatture', ordini: 'ordini', preventivi: 'preventivi', 'note-credito': 'note_credito', acquisti: 'acquisti', 'vendite-banco': 'vendite_banco', 'arrivi-merce': 'arrivi_merce' };
-  const tipo = map[req.params.tipo];
-  if (!tipo) return res.status(400).json({ error: 'tipo non valido' });
-
-  const az = db.prepare('SELECT numerazione_annuale, numero_prefissi FROM azienda WHERE id=1').get();
-  const annuale = (az?.numerazione_annuale ?? 1) !== 0;
-  let prefissi = {};
-  try { prefissi = JSON.parse(az?.numero_prefissi || '{}'); } catch(_) {}
-  const prefisso = prefissi[tipo] || '';
-  const anno = new Date().getFullYear();
-
-  // Incrementa contatore atomicamente
-  db.prepare('INSERT OR IGNORE INTO contatori (tipo, anno, contatore) VALUES (?,?,0)').run(tipo, anno);
-  db.prepare('UPDATE contatori SET contatore = contatore + 1 WHERE tipo=? AND anno=?').run(tipo, anno);
-  const { contatore } = db.prepare('SELECT contatore FROM contatori WHERE tipo=? AND anno=?').get(tipo, anno);
-
-  const numero = annuale
-    ? `${prefisso}${anno}/${String(contatore).padStart(4, '0')}`
-    : `${prefisso}${contatore}`;
-
-  res.json({ numero, contatore });
+  const tableMap = {
+    ddt:            { table: 'ddt',          tipo: 'ddt' },
+    fatture:        { table: 'fatture',       tipo: 'fatture' },
+    ordini:         { table: 'ordini',        tipo: 'ordini' },
+    preventivi:     { table: 'preventivi',    tipo: 'preventivi' },
+    'note-credito': { table: 'note_credito',  tipo: 'note_credito' },
+    acquisti:       { table: 'acquisti',      tipo: 'acquisti' },
+    'vendite-banco':{ table: 'vendite_banco', tipo: 'vendite_banco' },
+    'arrivi-merce': { table: 'arrivi_merce',  tipo: 'arrivi_merce' },
+  };
+  const entry = tableMap[req.params.tipo];
+  if (!entry) return res.status(400).json({ error: 'tipo non valido' });
+  const numero = getNextNumero(entry.tipo, entry.table);
+  res.json({ numero });
 });
 
 app.use('/api/azienda',          require('./routes/azienda'));

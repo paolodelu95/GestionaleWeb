@@ -32,22 +32,9 @@ function nextEmissione(prossimaEmissione, frequenza, giornoEmissione) {
   return d.toISOString().substring(0, 10);
 }
 
-/** Get next fattura number inline (same logic as /api/next-number/fatture) */
+const { getNextNumero } = require('../utils/nextNumero');
 function getNextFatturaNumero() {
-  const az = db.prepare('SELECT numerazione_annuale, numero_prefissi FROM azienda WHERE id=1').get();
-  const annuale = (az?.numerazione_annuale ?? 1) !== 0;
-  let prefissi = {};
-  try { prefissi = JSON.parse(az?.numero_prefissi || '{}'); } catch (_) {}
-  const prefisso = prefissi['fatture'] || '';
-  const anno = new Date().getFullYear();
-
-  db.prepare('INSERT OR IGNORE INTO contatori (tipo, anno, contatore) VALUES (?,?,0)').run('fatture', anno);
-  db.prepare('UPDATE contatori SET contatore = contatore + 1 WHERE tipo=? AND anno=?').run('fatture', anno);
-  const { contatore } = db.prepare('SELECT contatore FROM contatori WHERE tipo=? AND anno=?').get('fatture', anno);
-
-  return annuale
-    ? `${prefisso}${anno}/${String(contatore).padStart(4, '0')}`
-    : `${prefisso}${contatore}`;
+  return getNextNumero('fatture', 'fatture');
 }
 
 /** Emit a real fattura from a ricorrente template row */

@@ -58,19 +58,8 @@ router.post('/:id/genera-fattura', (req, res) => {
 
   const righe = getRighe(req.params.id);
 
-  // Genera numero fattura usando gli stessi contatori del sistema
-  const az = db.prepare('SELECT numerazione_annuale, numero_prefissi FROM azienda WHERE id=1').get();
-  const annuale = (az?.numerazione_annuale ?? 1) !== 0;
-  let prefissi = {};
-  try { prefissi = JSON.parse(az?.numero_prefissi || '{}'); } catch (_) {}
-  const prefisso = prefissi['fatture'] || '';
-  const anno = new Date().getFullYear();
-  db.prepare('INSERT OR IGNORE INTO contatori (tipo, anno, contatore) VALUES (?,?,0)').run('fatture', anno);
-  db.prepare('UPDATE contatori SET contatore = contatore + 1 WHERE tipo=? AND anno=?').run('fatture', anno);
-  const { contatore } = db.prepare('SELECT contatore FROM contatori WHERE tipo=? AND anno=?').get('fatture', anno);
-  const numero = annuale
-    ? `${prefisso}${anno}/${String(contatore).padStart(4, '0')}`
-    : `${prefisso}${contatore}`;
+  const { getNextNumero } = require('../utils/nextNumero');
+  const numero = getNextNumero('fatture', 'fatture');
 
   // Crea fattura subito come PAGATA (il pagamento è già in pagamenti tramite vendita al banco)
   const result = db.prepare(`
