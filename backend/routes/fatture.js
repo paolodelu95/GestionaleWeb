@@ -77,19 +77,22 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  const ddtIds = getDdtIds(req.params.id);
+  const id = Number(req.params.id);
+  const ddtIds = getDdtIds(id);
   if (!ddtIds.length) {
-    const righe = getRighe(req.params.id);
+    const righe = getRighe(id);
     if (righe.length) {
-      const fattura = db.prepare('SELECT numero, cliente_id FROM fatture WHERE id=?').get(req.params.id);
+      const fattura = db.prepare('SELECT numero, cliente_id FROM fatture WHERE id=?').get(id);
       const cliente = fattura?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(fattura.cliente_id) : null;
       aggiornaQuantita(righe, +1, {
-        causale: 'ELIMINAZIONE', documentoTipo: 'FATTURA', documentoId: req.params.id,
+        causale: 'ELIMINAZIONE', documentoTipo: 'FATTURA', documentoId: id,
         documentoNumero: fattura?.numero || '', clienteId: fattura?.cliente_id || null, clienteNome: cliente?.ragione_sociale || ''
       });
     }
   }
-  db.prepare('DELETE FROM fatture WHERE id=?').run(req.params.id);
+  db.prepare('DELETE FROM pagamenti WHERE fattura_id=?').run(id);
+  db.prepare('UPDATE note_credito SET fattura_id=NULL WHERE fattura_id=?').run(id);
+  db.prepare('DELETE FROM fatture WHERE id=?').run(id);
   res.json({ success: true });
 });
 
