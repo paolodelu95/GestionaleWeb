@@ -63,6 +63,7 @@ export interface Cliente {
   ragioneSociale: string;
   email?: string;
   telefono?: string;
+  cellulare?: string;
   via?: string;
   cap?: string;
   citta?: string;
@@ -80,6 +81,7 @@ export interface Fornitore {
   ragioneSociale: string;
   email?: string;
   telefono?: string;
+  cellulare?: string;
   via?: string;
   cap?: string;
   citta?: string;

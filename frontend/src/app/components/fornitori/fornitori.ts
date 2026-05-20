@@ -14,7 +14,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Observable, of, timer } from 'rxjs';
+import { Observable, of, timer, firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
@@ -22,6 +22,7 @@ import { ExcelService } from '../../services/excel.service';
 import { Fornitore } from '../../models';
 import { pIvaValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
+import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 
 const FORNITORI_FIELDS: FieldDef[] = [
   { key: 'ragioneSociale', label: 'Ragione Sociale', required: true, aliases: [
@@ -36,6 +37,9 @@ const FORNITORI_FIELDS: FieldDef[] = [
   { key: 'telefono', label: 'Telefono', aliases: [
     'Telefono', 'telefono', 'Tel', 'Tel.', 'Telefono 1', 'Telefono fisso',
     'Cell', 'Cellulare', 'Phone', 'Mobile', 'Phone Number', 'Numero di telefono',
+  ]},
+  { key: 'cellulare', label: 'Cellulare', aliases: [
+    'Cellulare', 'cellulare', 'Cell', 'Mobile', 'Telefono Mobile', 'Cell.', 'Tel. Mobile',
   ]},
   { key: 'via', label: 'Via / Indirizzo', aliases: [
     'Via', 'via', 'Indirizzo', 'Indirizzo 1', 'Street', 'Address',
@@ -196,6 +200,10 @@ export class AziendaSearchDialogFComponent {
               <mat-error>Inserire solo cifre, +, -, spazi o parentesi</mat-error>
             }
           </mat-form-field>
+          <mat-form-field>
+            <mat-label>Cellulare</mat-label>
+            <input matInput formControlName="cellulare">
+          </mat-form-field>
         </div>
         <mat-form-field style="width:100%"><mat-label>Via</mat-label><input matInput formControlName="via"></mat-form-field>
         <div class="form-row">
@@ -275,6 +283,7 @@ export class FornitoreDialogComponent implements OnInit {
       ragioneSociale: [data?.ragioneSociale ?? '', Validators.required],
       email: [data?.email ?? '', Validators.email],
       telefono: [data?.telefono ?? '', telefonoValidator],
+      cellulare: [data?.cellulare ?? ''],
       via: [data?.via ?? ''], cap: [data?.cap ?? '', capValidator],
       citta: [data?.citta ?? ''], provincia: [data?.provincia ?? ''],
       stato: [data?.stato ?? 'Italia'], pIva: [data?.pIva ?? '', pIvaValidator, this.pivaAsyncValidator('fornitori', data?.id)],
@@ -373,14 +382,27 @@ export class FornitoreDialogComponent implements OnInit {
   selector: 'app-fornitori',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
-            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule],
+            MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
+            ColumnPickerComponent],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
 export class FornitoriComponent implements OnInit, AfterViewInit {
   fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Fornitore>([]);
-  displayedColumns = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'pIva', 'azioni'];
+  displayedColumns: string[] = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'pIva'];
+
+  readonly allCols: ColDef[] = [
+    { key: 'id', label: 'ID' },
+    { key: 'ragioneSociale', label: 'Ragione Sociale' },
+    { key: 'email', label: 'Email' },
+    { key: 'telefono', label: 'Telefono' },
+    { key: 'cellulare', label: 'Cellulare' },
+    { key: 'indirizzo', label: 'Indirizzo' },
+    { key: 'pIva', label: 'P. IVA' },
+    { key: 'sdi', label: 'SDI' },
+    { key: 'pec', label: 'PEC' },
+  ];
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -419,6 +441,8 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     return [f.via, f.cap, f.citta, f.provincia, f.stato].filter(Boolean).join(', ');
   }
 
+  onColsChange(cols: string[]) { this.displayedColumns = [...cols, 'azioni']; }
+
   open(f?: Fornitore) {
     const ref = this.dialog.open(FornitoreDialogComponent, { data: f ?? null, width: '95vw', maxWidth: '860px' });
     ref.afterClosed().subscribe(result => {
@@ -434,6 +458,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
       { header: 'Ragione Sociale', field: 'ragioneSociale', width: 30 },
       { header: 'Email',           field: 'email',          width: 28 },
       { header: 'Telefono',        field: 'telefono',       width: 16 },
+      { header: 'Cellulare',       field: 'cellulare',      width: 16 },
       { header: 'Via',             field: 'via',            width: 28 },
       { header: 'CAP',             field: 'cap',            width: 8  },
       { header: 'Città',           field: 'citta',          width: 18 },
@@ -449,41 +474,35 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     (event.target as HTMLInputElement).value = '';
-    try {
-      const rows = await this.excel.readFile(file);
-      if (!rows.length) { this.snack.open('File vuoto o non leggibile', '', { duration: 3000 }); return; }
-
-      const result: MappingResult | null = await this.dialog.open(ImportMappingDialogComponent, {
+    let rows: Record<string, string>[];
+    try { rows = await this.excel.readFile(file); }
+    catch { this.snack.open('File non leggibile', '', { duration: 3000 }); return; }
+    if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
+    const result: MappingResult | null = await firstValueFrom(
+      this.dialog.open(ImportMappingDialogComponent, {
         data: { rows, fields: FORNITORI_FIELDS, entityType: 'fornitori', entityLabel: 'Fornitori' },
         disableClose: true,
-      }).afterClosed().toPromise();
-      if (!result) return;
-
-      const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
-      let ok = 0;
-      for (const r of rows) {
-        const f: Fornitore = {
-          ragioneSociale: v('ragioneSociale', r),
-          email:          v('email', r),
-          telefono:       v('telefono', r),
-          via:            v('via', r),
-          cap:            v('cap', r),
-          citta:          v('citta', r),
-          provincia:      v('provincia', r),
-          stato:          v('stato', r) || 'Italia',
-          pIva:           v('pIva', r),
-          sdi:            v('sdi', r),
-          pec:            v('pec', r),
-        };
-        if (!f.ragioneSociale) continue;
-        await this.ds.createFornitore(f).toPromise();
-        ok++;
-      }
-      this.load();
-      this.snack.open(`Importati ${ok} fornitori`, '', { duration: 3000 });
-    } catch {
-      this.snack.open('Errore nella lettura del file', '', { duration: 3000 });
-    }
+      }).afterClosed()
+    );
+    if (!result) return;
+    const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
+    const records = rows.map(r => ({
+      ragioneSociale: v('ragioneSociale', r),
+      email:     v('email', r),
+      telefono:  v('telefono', r),
+      cellulare: v('cellulare', r),
+      via:       v('via', r),
+      cap:       v('cap', r),
+      citta:     v('citta', r),
+      provincia: v('provincia', r),
+      stato:     v('stato', r) || 'Italia',
+      pIva:      v('pIva', r),
+      sdi:       v('sdi', r),
+      pec:       v('pec', r),
+    })).filter(f => f.ragioneSociale.trim());
+    const { created, updated, skipped } = await firstValueFrom(this.ds.importFornitori(records));
+    this.load();
+    this.snack.open(`Importati: ${created} nuovi, ${updated} aggiornati, ${skipped} saltati`, '', { duration: 5000 });
   }
 
   delete(f: Fornitore) {

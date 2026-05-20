@@ -30,6 +30,8 @@ export class DataService {
   updateProdotto(p: Prodotto): Observable<any> { return this.api.put(`prodotti/${p.id}`, p); }
   deleteProdotto(id: number): Observable<any> { return this.api.delete(`prodotti/${id}`); }
 
+  importProdotti(records: any[]): Observable<any> { return this.api.post('prodotti/import', records); }
+
   // Varianti prodotto
   getProdottoVarianti(prodottoId: number): Observable<ProdottoVariante[]> { return this.api.get(`prodotto-varianti/${prodottoId}`); }
   searchByBarcode(barcode: string): Observable<{ prodotto: Prodotto; variante: ProdottoVariante | null }> {
@@ -42,12 +44,14 @@ export class DataService {
   createCliente(c: Cliente): Observable<any> { return this.api.post('clienti', c); }
   updateCliente(c: Cliente): Observable<any> { return this.api.put(`clienti/${c.id}`, c); }
   deleteCliente(id: number): Observable<any> { return this.api.delete(`clienti/${id}`); }
+  importClienti(records: any[]): Observable<any> { return this.api.post('clienti/import', records); }
 
   // Fornitori
   getFornitori(): Observable<Fornitore[]> { return this.api.get('fornitori'); }
   createFornitore(f: Fornitore): Observable<any> { return this.api.post('fornitori', f); }
   updateFornitore(f: Fornitore): Observable<any> { return this.api.put(`fornitori/${f.id}`, f); }
   deleteFornitore(id: number): Observable<any> { return this.api.delete(`fornitori/${id}`); }
+  importFornitori(records: any[]): Observable<any> { return this.api.post('fornitori/import', records); }
 
   // DDT
   getDdt(): Observable<Ddt[]> { return this.api.get('ddt'); }

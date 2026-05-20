@@ -8,6 +8,7 @@
     <button mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
     <button mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     <input #importInput type="file" accept=".xlsx,.xls" class="hidden-input" (change)="importExcel($event)">
+    <app-column-picker storageKey="prodotti" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker>
   </div>
 
   <div class="filter-bar">
@@ -78,6 +79,18 @@
       <ng-container matColumnDef="iva">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>IVA</th>
         <td mat-cell *matCellDef="let p">{{ p.iva }}%</td>
+      </ng-container>
+      <ng-container matColumnDef="codiceFornitore">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cod. Fornitore</th>
+        <td mat-cell *matCellDef="let p" style="font-size:12px;color:#64748b">{{ p.codiceFornitore }}</td>
+      </ng-container>
+      <ng-container matColumnDef="prezzoAcquisto">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Prezzo Acq.</th>
+        <td mat-cell *matCellDef="let p" class="euro">{{ p.prezzoAcquisto | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="unitaMisura">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>U.M.</th>
+        <td mat-cell *matCellDef="let p">{{ p.unitaMisura }}</td>
       </ng-container>
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>

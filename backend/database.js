@@ -389,6 +389,8 @@ const migrations = [
   testo TEXT NOT NULL,
   ordine INTEGER DEFAULT 0
 )`,
+  'ALTER TABLE clienti ADD COLUMN cellulare TEXT DEFAULT ""',
+  'ALTER TABLE fornitori ADD COLUMN cellulare TEXT DEFAULT ""',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

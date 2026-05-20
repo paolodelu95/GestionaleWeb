@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,6 +17,7 @@ import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
+import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 
 const PRODOTTI_FIELDS: FieldDef[] = [
   { key: 'nome', label: 'Nome', required: true, aliases: [
@@ -283,14 +285,29 @@ export class ProdottoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
-            MatSortModule, MatSelectModule, MatPaginatorModule],
+            MatSortModule, MatSelectModule, MatPaginatorModule, ColumnPickerComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
 export class ProdottiComponent implements OnInit, AfterViewInit {
   private allProdotti: Prodotto[] = [];
   dataSource = new MatTableDataSource<Prodotto>([]);
-  displayedColumns = ['id', 'nome', 'categoria', 'codice', 'barcode', 'prezzo', 'quantita', 'sogliaMinima', 'iva', 'azioni'];
+  displayedColumns: string[] = ['id', 'nome', 'categoria', 'codice', 'barcode', 'prezzo', 'quantita', 'sogliaMinima', 'iva'];
+
+  readonly allCols: ColDef[] = [
+    { key: 'id', label: 'ID' },
+    { key: 'nome', label: 'Nome' },
+    { key: 'categoria', label: 'Categoria' },
+    { key: 'codice', label: 'Codice' },
+    { key: 'codiceFornitore', label: 'Cod. Fornitore' },
+    { key: 'barcode', label: 'Barcode' },
+    { key: 'prezzo', label: 'Prezzo' },
+    { key: 'prezzoAcquisto', label: 'Prezzo Acquisto' },
+    { key: 'quantita', label: 'Qtà' },
+    { key: 'sogliaMinima', label: 'Soglia min.' },
+    { key: 'iva', label: 'IVA' },
+    { key: 'unitaMisura', label: 'U.M.' },
+  ];
 
   filtroCategoria: string | null = null;
   get categorieList() { return [...new Set(this.allProdotti.map(p => p.categoria).filter(Boolean))].sort() as string[]; }
@@ -339,6 +356,8 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
 
   resetFiltri() { this.filtroCategoria = null; this.dataSource.filter = ''; this.applyFilters(); }
 
+  onColsChange(cols: string[]) { this.displayedColumns = [...cols, 'azioni']; }
+
   print() {
     const rows = this.dataSource.data;
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
@@ -382,42 +401,37 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     (event.target as HTMLInputElement).value = '';
-    try {
-      const rows = await this.excel.readFile(file);
-      if (!rows.length) { this.snack.open('File vuoto o non leggibile', '', { duration: 3000 }); return; }
-
-      const result: MappingResult | null = await this.dialog.open(ImportMappingDialogComponent, {
+    let rows: Record<string, string>[];
+    try { rows = await this.excel.readFile(file); }
+    catch { this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 }); return; }
+    if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
+    const result: MappingResult | null = await firstValueFrom(
+      this.dialog.open(ImportMappingDialogComponent, {
         data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti' },
         disableClose: true,
-      }).afterClosed().toPromise();
-      if (!result) return;
-
-      const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
-      let ok = 0;
-      for (const r of rows) {
-        const p: Prodotto = {
-          nome:            v('nome', r),
-          categoria:       v('categoria', r),
-          descrizione:     v('descrizione', r),
-          codice:          v('codice', r),
-          codiceFornitore: v('codiceFornitore', r),
-          barcode:         v('barcode', r),
-          prezzo:          parseFloat(v('prezzo', r) || '0') || 0,
-          prezzoAcquisto:  parseFloat(v('prezzoAcquisto', r) || '0') || null!,
-          iva:             parseFloat(v('iva', r) || '22') || 22,
-          quantita:        parseInt(v('quantita', r) || '0', 10) || 0,
-          sogliaMinima:    parseInt(v('sogliaMinima', r) || '0', 10) || 0,
-          unitaMisura:     v('unitaMisura', r) || 'pz',
-        };
-        if (!p.nome) continue;
-        await this.ds.createProdotto(p).toPromise();
-        ok++;
-      }
-      this.load();
-      this.snack.open(`Importati ${ok} prodotti`, '', { duration: 3000 });
-    } catch {
-      this.snack.open('Errore nella lettura del file', '', { duration: 3000 });
-    }
+      }).afterClosed()
+    );
+    if (!result) return;
+    const toNum = (s: string) => parseFloat(s.replace(',', '.') || '0') || 0;
+    const toInt = (s: string) => parseInt(s.replace(',', '.') || '0', 10) || 0;
+    const v = (key: string, row: Record<string, string>) => row[result.mapping[key]] ?? '';
+    const records = rows.map(r => ({
+      nome:            v('nome', r),
+      categoria:       v('categoria', r),
+      descrizione:     v('descrizione', r),
+      codice:          v('codice', r),
+      codiceFornitore: v('codiceFornitore', r),
+      barcode:         v('barcode', r),
+      prezzo:          toNum(v('prezzo', r)),
+      prezzoAcquisto:  toNum(v('prezzoAcquisto', r)) || null,
+      iva:             toNum(v('iva', r)) || 22,
+      quantita:        toInt(v('quantita', r)),
+      sogliaMinima:    toInt(v('sogliaMinima', r)),
+      unitaMisura:     v('unitaMisura', r) || 'pz',
+    })).filter(p => p.nome.trim());
+    const { created, updated, skipped } = await firstValueFrom(this.ds.importProdotti(records));
+    this.load();
+    this.snack.open(`Importati: ${created} nuovi, ${updated} aggiornati, ${skipped} saltati`, '', { duration: 5000 });
   }
 
   delete(p: Prodotto) {

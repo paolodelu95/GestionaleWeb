@@ -39,6 +39,42 @@ router.post('/', (req, res) => {
   res.json({ id });
 });
 
+router.post('/import', (req, res) => {
+  const records = Array.isArray(req.body) ? req.body : [];
+  let created = 0, updated = 0, skipped = 0;
+  for (const p of records) {
+    if (!p.nome?.trim()) { skipped++; continue; }
+    let existing = null;
+    if (p.codice?.trim())
+      existing = db.prepare("SELECT * FROM prodotti WHERE codice=? AND codice!=''").get(p.codice.trim());
+    if (!existing && p.barcode?.trim())
+      existing = db.prepare("SELECT * FROM prodotti WHERE barcode=? AND barcode!=''").get(p.barcode.trim());
+    if (!existing)
+      existing = db.prepare('SELECT * FROM prodotti WHERE LOWER(TRIM(nome))=?').get(p.nome.toLowerCase().trim());
+    if (existing) {
+      const patch = {};
+      if (!existing.categoria && p.categoria)                          patch.categoria = p.categoria;
+      if (!existing.descrizione && p.descrizione)                      patch.descrizione = p.descrizione;
+      if (!existing.codice && p.codice)                                patch.codice = p.codice;
+      if (!existing.codice_fornitore && p.codiceFornitore)             patch.codice_fornitore = p.codiceFornitore;
+      if (!existing.barcode && p.barcode)                              patch.barcode = p.barcode;
+      if (!existing.prezzo && p.prezzo)                                patch.prezzo = p.prezzo;
+      if (!existing.prezzo_acquisto && p.prezzoAcquisto)               patch.prezzo_acquisto = p.prezzoAcquisto;
+      if (!existing.unita_misura && p.unitaMisura)                     patch.unita_misura = p.unitaMisura;
+      if (Object.keys(patch).length > 0) {
+        const sets = Object.keys(patch).map(k => `${k}=?`).join(', ');
+        db.prepare(`UPDATE prodotti SET ${sets} WHERE id=?`).run(...Object.values(patch), existing.id);
+        updated++;
+      } else { skipped++; }
+    } else {
+      db.prepare(`INSERT INTO prodotti (nome,categoria,descrizione,prezzo,prezzo_acquisto,quantita,soglia_minima,unita_misura,codice,codice_fornitore,iva,barcode,ha_varianti,fornitore_id_preferito,riordino_quantita) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(p.nome.trim(), p.categoria||'', p.descrizione||'', p.prezzo||0, p.prezzoAcquisto||null, p.quantita||0, p.sogliaMinima||0, p.unitaMisura||'pz', p.codice||'', p.codiceFornitore||'', p.iva||22, p.barcode||'', 0, null, 0);
+      created++;
+    }
+  }
+  res.json({ created, updated, skipped });
+});
+
 router.put('/:id', (req, res) => {
   const p = req.body;
   db.prepare(`UPDATE prodotti SET nome=?, categoria=?, descrizione=?, prezzo=?, prezzo_acquisto=?,

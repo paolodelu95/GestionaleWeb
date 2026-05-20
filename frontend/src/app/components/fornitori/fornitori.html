@@ -5,6 +5,7 @@
     <button mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
     <button mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     <input #importInput type="file" accept=".xlsx,.xls" class="hidden-input" (change)="importExcel($event)">
+    <app-column-picker storageKey="fornitori" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker>
   </div>
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
@@ -37,6 +38,18 @@
       <ng-container matColumnDef="pIva">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>P. IVA</th>
         <td mat-cell *matCellDef="let f">{{ f.pIva }}</td>
+      </ng-container>
+      <ng-container matColumnDef="cellulare">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cellulare</th>
+        <td mat-cell *matCellDef="let f">{{ f.cellulare }}</td>
+      </ng-container>
+      <ng-container matColumnDef="sdi">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>SDI</th>
+        <td mat-cell *matCellDef="let f">{{ f.sdi }}</td>
+      </ng-container>
+      <ng-container matColumnDef="pec">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>PEC</th>
+        <td mat-cell *matCellDef="let f">{{ f.pec }}</td>
       </ng-container>
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
