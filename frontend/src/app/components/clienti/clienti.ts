@@ -183,111 +183,167 @@ export class AziendaSearchDialogComponent {
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica cliente' : 'Nuovo cliente' }}</h2>
     <mat-dialog-content>
+      <div class="dialog-hero">
+        <div class="dialog-hero-icon"><mat-icon>person</mat-icon></div>
+        <div class="dialog-hero-text">
+          <span class="dialog-hero-title">{{ data ? data.ragioneSociale : 'Nuovo cliente' }}</span>
+          <span class="dialog-hero-sub">{{ data ? 'Aggiorna i dati anagrafici e fiscali' : 'Inserisci i dati per la fatturazione' }}</span>
+        </div>
+      </div>
+
       <mat-tab-group>
         <mat-tab label="Anagrafica">
       <form [formGroup]="form" class="dialog-form" style="padding-top:16px">
-        <div style="display:flex;gap:8px;align-items:flex-start">
-          <mat-form-field style="flex:1"><mat-label>Ragione Sociale *</mat-label>
-            <input matInput formControlName="ragioneSociale">
-          </mat-form-field>
-          <button mat-icon-button type="button" style="margin-top:4px"
-                  matTooltip="Cerca azienda per nome" (click)="cercaAzienda()">
-            <mat-icon>business_center</mat-icon>
-          </button>
-        </div>
-        <div class="form-row">
-          <mat-form-field>
-            <mat-label>Email</mat-label>
-            <input matInput formControlName="email" type="email">
-            @if (form.get('email')?.hasError('email') && form.get('email')?.dirty) {
-              <mat-error>Formato email non valido</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field>
-            <mat-label>Telefono</mat-label>
-            <input matInput formControlName="telefono">
-            @if (form.get('telefono')?.hasError('telefono') && form.get('telefono')?.dirty) {
-              <mat-error>Inserire solo cifre, +, -, spazi o parentesi</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field>
-            <mat-label>Cellulare</mat-label>
-            <input matInput formControlName="cellulare">
-          </mat-form-field>
-        </div>
-        <mat-form-field style="width:100%"><mat-label>Via</mat-label>
-          <input matInput formControlName="via"></mat-form-field>
-        <div class="form-row">
-          <mat-form-field style="max-width:120px"><mat-label>CAP</mat-label>
-            <input matInput formControlName="cap" maxlength="5">
-            @if (form.get('cap')?.hasError('cap') && form.get('cap')?.dirty) {
-              <mat-error>CAP non valido (5 cifre)</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field>
-            <mat-label>Città</mat-label>
-            <input matInput formControlName="citta" [matAutocomplete]="auto">
-            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCitySelected($event.option.value)">
-              @for (c of filteredCities; track c.name) {
-                <mat-option [value]="c.name">{{ c.name }}</mat-option>
+
+        <!-- ── Identità ─────────────────────────────────── -->
+        <div class="form-section is-primary">
+          <div class="form-section-header">
+            <mat-icon>badge</mat-icon>
+            <span>Identità</span>
+            <span class="section-hint">Dati per fatturazione e ricerca</span>
+          </div>
+          <div class="input-with-action">
+            <mat-form-field>
+              <mat-label>Ragione Sociale *</mat-label>
+              <input matInput formControlName="ragioneSociale">
+            </mat-form-field>
+            <button mat-icon-button type="button"
+                    matTooltip="Cerca azienda per nome" (click)="cercaAzienda()">
+              <mat-icon>business_center</mat-icon>
+            </button>
+          </div>
+          <div class="form-row">
+            <div class="input-with-action" style="flex:1">
+              <mat-form-field>
+                <mat-label>P. IVA</mat-label>
+                <input matInput formControlName="pIva" placeholder="11 cifre">
+                @if (form.get('pIva')?.hasError('pIva')) {
+                  <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
+                }
+                @if (form.get('pIva')?.hasError('pivaEsiste')) {
+                  <mat-error>P. IVA già presente nell'anagrafica clienti</mat-error>
+                }
+                @if (form.get('pIva')?.pending) {
+                  <mat-hint>Verifica duplicati...</mat-hint>
+                }
+              </mat-form-field>
+              <button mat-icon-button type="button"
+                      matTooltip="Carica dati da P.IVA"
+                      [disabled]="lookupLoading || !canLookupPiva"
+                      (click)="lookupPiva()">
+                @if (lookupLoading) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  <mat-icon>cloud_download</mat-icon>
+                }
+              </button>
+            </div>
+            <mat-form-field>
+              <mat-label>Codice Fiscale</mat-label>
+              <input matInput formControlName="codiceFiscale" style="text-transform:uppercase">
+              @if (form.get('codiceFiscale')?.hasError('codiceFiscale')) {
+                <mat-error>Codice fiscale non valido (16 caratteri o 11 cifre)</mat-error>
               }
-            </mat-autocomplete>
-          </mat-form-field>
-          <mat-form-field style="max-width:80px"><mat-label>Prov.</mat-label>
-            <input matInput formControlName="provincia" maxlength="2" style="text-transform:uppercase">
-            <mat-hint>sigla</mat-hint></mat-form-field>
+            </mat-form-field>
+          </div>
         </div>
-        <div class="form-row">
-          <mat-form-field><mat-label>Stato</mat-label>
-            <input matInput formControlName="stato"></mat-form-field>
-          <mat-form-field><mat-label>Codice Fiscale</mat-label>
-            <input matInput formControlName="codiceFiscale" style="text-transform:uppercase">
-            @if (form.get('codiceFiscale')?.hasError('codiceFiscale')) {
-              <mat-error>Codice fiscale non valido (16 caratteri o 11 cifre)</mat-error>
-            }
+
+        <!-- ── Fatturazione elettronica ─────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Fatturazione elettronica</span>
+          </div>
+          <div class="form-row">
+            <mat-form-field><mat-label>Codice SDI</mat-label>
+              <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
+            </mat-form-field>
+            <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
+              <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- ── Sede / Indirizzo ─────────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>location_on</mat-icon>
+            <span>Sede legale</span>
+          </div>
+          <mat-form-field style="width:100%"><mat-label>Via</mat-label>
+            <input matInput formControlName="via"></mat-form-field>
+          <div class="form-row">
+            <mat-form-field style="max-width:120px"><mat-label>CAP</mat-label>
+              <input matInput formControlName="cap" maxlength="5">
+              @if (form.get('cap')?.hasError('cap') && form.get('cap')?.dirty) {
+                <mat-error>CAP non valido (5 cifre)</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Città</mat-label>
+              <input matInput formControlName="citta" [matAutocomplete]="auto">
+              <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCitySelected($event.option.value)">
+                @for (c of filteredCities; track c.name) {
+                  <mat-option [value]="c.name">{{ c.name }}</mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+            <mat-form-field style="max-width:80px"><mat-label>Prov.</mat-label>
+              <input matInput formControlName="provincia" maxlength="2" style="text-transform:uppercase">
+              <mat-hint>sigla</mat-hint></mat-form-field>
+            <mat-form-field style="max-width:120px"><mat-label>Stato</mat-label>
+              <input matInput formControlName="stato"></mat-form-field>
+          </div>
+        </div>
+
+        <!-- ── Contatti ─────────────────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>contact_phone</mat-icon>
+            <span>Contatti</span>
+          </div>
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" type="email">
+              <mat-icon matSuffix>alternate_email</mat-icon>
+              @if (form.get('email')?.hasError('email') && form.get('email')?.dirty) {
+                <mat-error>Formato email non valido</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Telefono</mat-label>
+              <input matInput formControlName="telefono">
+              <mat-icon matSuffix>call</mat-icon>
+              @if (form.get('telefono')?.hasError('telefono') && form.get('telefono')?.dirty) {
+                <mat-error>Inserire solo cifre, +, -, spazi o parentesi</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Cellulare</mat-label>
+              <input matInput formControlName="cellulare">
+              <mat-icon matSuffix>smartphone</mat-icon>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- ── Preferenze ───────────────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>tune</mat-icon>
+            <span>Preferenze</span>
+          </div>
+          <mat-form-field style="width:100%">
+            <mat-label>Metodo di pagamento preferito</mat-label>
+            <mat-select formControlName="tipoPagamentoId">
+              <mat-option [value]="null">— nessuno —</mat-option>
+              @for (t of tipiPagamento; track t.id) {
+                <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+              }
+            </mat-select>
+            <mat-icon matSuffix>payments</mat-icon>
           </mat-form-field>
         </div>
-        <div style="display:flex;gap:8px;align-items:flex-start">
-          <mat-form-field style="flex:1"><mat-label>P. IVA</mat-label>
-            <input matInput formControlName="pIva">
-            @if (form.get('pIva')?.hasError('pIva')) {
-              <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
-            }
-            @if (form.get('pIva')?.hasError('pivaEsiste')) {
-              <mat-error>P. IVA già presente nell'anagrafica clienti</mat-error>
-            }
-            @if (form.get('pIva')?.pending) {
-              <mat-hint>Verifica duplicati...</mat-hint>
-            }
-          </mat-form-field>
-          <button mat-icon-button type="button" style="margin-top:4px"
-                  matTooltip="Carica dati da P.IVA"
-                  [disabled]="lookupLoading || !canLookupPiva"
-                  (click)="lookupPiva()">
-            @if (lookupLoading) {
-              <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-              <mat-icon>search</mat-icon>
-            }
-          </button>
-        </div>
-        <div class="form-row">
-          <mat-form-field><mat-label>Codice SDI</mat-label>
-            <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
-          </mat-form-field>
-          <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
-            <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
-          </mat-form-field>
-        </div>
-        <mat-form-field style="width:100%">
-          <mat-label>Metodo di pagamento preferito</mat-label>
-          <mat-select formControlName="tipoPagamentoId">
-            <mat-option [value]="null">— nessuno —</mat-option>
-            @for (t of tipiPagamento; track t.id) {
-              <mat-option [value]="t.id">{{ t.nome }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
       </form>
         </mat-tab>
 

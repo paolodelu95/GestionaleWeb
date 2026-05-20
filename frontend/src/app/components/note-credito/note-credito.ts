@@ -53,22 +53,29 @@ const RIGHE_STYLES = `
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Nota di Credito' : 'Nuova Nota di Credito' }}</h2>
     <mat-dialog-content>
-      <form [formGroup]="form" class="dialog-form">
-        <div class="form-row">
-          <mat-form-field>
-            <mat-label>Numero *</mat-label>
-            <input matInput formControlName="numero">
-          </mat-form-field>
-          <mat-form-field>
-            <mat-label>Data emissione *</mat-label>
-            <input matInput type="date" formControlName="dataEmissione">
-          </mat-form-field>
+      <div class="dialog-hero">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);box-shadow:0 4px 12px -2px rgba(239,68,68,0.35)">
+          <mat-icon>note_alt</mat-icon>
         </div>
-        <div class="form-row">
-          <mat-form-field style="flex:1">
+        <div class="dialog-hero-text">
+          <span class="dialog-hero-title">{{ data?.id ? ('Nota di credito n. ' + (data?.numero || '')) : 'Nuova nota di credito' }}</span>
+          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica intestatario, fattura collegata e righe' : 'Storno di fattura emessa' }}</span>
+        </div>
+      </div>
+
+      <form [formGroup]="form" class="dialog-form">
+
+        <!-- ── Intestatario ──────────────────────────── -->
+        <div class="form-section is-primary">
+          <div class="form-section-header">
+            <mat-icon>person</mat-icon>
+            <span>Intestatario e fattura da stornare</span>
+            <span class="section-hint">Seleziona prima il cliente</span>
+          </div>
+          <mat-form-field style="width:100%">
             <mat-label>Cliente</mat-label>
             <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                   (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente...">
+                   (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA...">
             <mat-icon matSuffix>search</mat-icon>
             <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
               @for (c of filteredClienti; track c.id) {
@@ -76,7 +83,7 @@ const RIGHE_STYLES = `
               }
             </mat-autocomplete>
           </mat-form-field>
-          <mat-form-field>
+          <mat-form-field style="width:100%">
             <mat-label>Fattura da stornare</mat-label>
             <mat-select formControlName="fatturaId">
               <mat-option [value]="null">— nessuna —</mat-option>
@@ -84,17 +91,37 @@ const RIGHE_STYLES = `
                 <mat-option [value]="f.id">{{ f.numero }} — {{ f.dataEmissione | date:'dd/MM/yyyy' }}</mat-option>
               }
             </mat-select>
+            <mat-icon matSuffix>receipt</mat-icon>
             @if (!selectedClienteId) {
               <mat-hint>Seleziona prima un cliente</mat-hint>
             }
           </mat-form-field>
+          @if (form.get('fatturaId')?.value) {
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--success-soft);border:1px solid rgba(16,185,129,0.20);border-radius:8px;font-size:12px;color:var(--success-on);font-weight:500">
+              <mat-icon style="font-size:18px;width:18px;height:18px">auto_fix_high</mat-icon>
+              <span>Righe importate con importo negativo. Fattura e nota di credito saranno saldate automaticamente.</span>
+            </div>
+          }
         </div>
-        @if (form.get('fatturaId')?.value) {
-          <div style="font-size:12px;color:#16a34a;margin-top:-8px;margin-bottom:4px">
-            <mat-icon style="font-size:14px;vertical-align:middle">auto_fix_high</mat-icon>
-            Le righe della fattura sono state importate con importo negativo. Fattura e nota di credito saranno saldate automaticamente.
+
+        <!-- ── Estremi documento ─────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>tag</mat-icon>
+            <span>Estremi documento</span>
           </div>
-        }
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Numero *</mat-label>
+              <input matInput formControlName="numero">
+              <mat-icon matSuffix>tag</mat-icon>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Data emissione *</mat-label>
+              <input matInput type="date" formControlName="dataEmissione">
+            </mat-form-field>
+          </div>
+        </div>
       </form>
       <div class="righe-section">
         <div class="righe-header">

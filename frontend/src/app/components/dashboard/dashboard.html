@@ -27,42 +27,42 @@
 
   <!-- KPI row 1: contatori -->
   <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-accent" style="background:#3b82f6"></div>
+    <div class="kpi-card kpi-tint-blue">
+      <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
       <div class="kpi-label">Prodotti a magazzino</div>
-      <div class="kpi-value" style="color:#3b82f6">{{ prodottiCount }}</div>
+      <div class="kpi-value">{{ prodottiCount }}</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-accent" style="background:#22c55e"></div>
+    <div class="kpi-card kpi-tint-green">
+      <div class="kpi-icon"><mat-icon>account_balance_wallet</mat-icon></div>
       <div class="kpi-label">Valore magazzino</div>
-      <div class="kpi-value" style="color:#22c55e">{{ valoremagazzino | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+      <div class="kpi-value">{{ valoremagazzino | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-accent" style="background:#f59e0b"></div>
+    <div class="kpi-card kpi-tint-amber">
+      <div class="kpi-icon"><mat-icon>shopping_cart</mat-icon></div>
       <div class="kpi-label">Ordini aperti</div>
-      <div class="kpi-value" style="color:#f59e0b">{{ ordiniAperti }}</div>
+      <div class="kpi-value">{{ ordiniAperti }}</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-accent" style="background:#8b5cf6"></div>
+    <div class="kpi-card kpi-tint-purple">
+      <div class="kpi-icon"><mat-icon>people</mat-icon></div>
       <div class="kpi-label">Clienti</div>
-      <div class="kpi-value" style="color:#8b5cf6">{{ clientiCount }}</div>
+      <div class="kpi-value">{{ clientiCount }}</div>
     </div>
   </div>
 
   <!-- KPI row 2: anno corrente + cashflow -->
   <div class="kpi-grid kpi-row2">
-    <div class="kpi-card">
-      <div class="kpi-accent" style="background:#6366f1"></div>
+    <div class="kpi-card kpi-tint-indigo">
+      <div class="kpi-icon"><mat-icon>trending_up</mat-icon></div>
       <div class="kpi-label">Fatturato anno</div>
-      <div class="kpi-value" style="color:#6366f1">{{ kpi.fatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+      <div class="kpi-value">{{ kpi.fatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-accent" style="background:#ef4444"></div>
+    <div class="kpi-card kpi-tint-red">
+      <div class="kpi-icon"><mat-icon>trending_down</mat-icon></div>
       <div class="kpi-label">Costi anno</div>
-      <div class="kpi-value" style="color:#ef4444">{{ kpi.costi | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+      <div class="kpi-value">{{ kpi.costi | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-accent" [style.background]="kpi.margine >= 0 ? '#22c55e' : '#ef4444'"></div>
+    <div class="kpi-card" [class.kpi-tint-green]="kpi.margine >= 0" [class.kpi-tint-red]="kpi.margine < 0">
+      <div class="kpi-icon"><mat-icon>{{ kpi.margine >= 0 ? 'savings' : 'warning' }}</mat-icon></div>
       <div class="kpi-label">Margine anno</div>
       <div class="kpi-value" [class]="kpi.margine >= 0 ? 'kpi-margine-pos' : 'kpi-margine-neg'">
         {{ kpi.margine | currency:'EUR':'symbol':'1.2-2':'it' }}
@@ -87,7 +87,7 @@
   </div>
 
   <!-- Charts row -->
-  <div class="dash-tables chart-row">
+  <div class="chart-row">
     <div class="card chart-card-wide">
       <h3 class="section-title">Vendite mensili (ultimi 12 mesi)</h3>
       <div class="chart-container">
@@ -103,7 +103,7 @@
   </div>
 
   <!-- Tables row -->
-  <div class="dash-tables table-row">
+  <div class="table-row">
     <!-- Prodotti sotto soglia -->
     <div class="card">
       <div class="section-header">

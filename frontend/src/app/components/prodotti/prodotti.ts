@@ -79,80 +79,127 @@ const PRODOTTI_FIELDS: FieldDef[] = [
   template: `
     <h2 mat-dialog-title>{{ data ? 'Modifica prodotto' : 'Nuovo prodotto' }}</h2>
     <mat-dialog-content>
+      <div class="dialog-hero">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);box-shadow:0 4px 12px -2px rgba(16,185,129,0.35)">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+        <div class="dialog-hero-text">
+          <span class="dialog-hero-title">{{ data ? data.nome : 'Nuovo prodotto' }}</span>
+          <span class="dialog-hero-sub">{{ data ? 'Modifica anagrafica e prezzi' : 'Aggiungi un articolo al catalogo' }}</span>
+        </div>
+      </div>
+
       <form [formGroup]="form" class="dialog-form">
-        <div class="form-row">
-          <mat-form-field><mat-label>Nome *</mat-label>
-            <input matInput formControlName="nome"></mat-form-field>
-          <mat-form-field>
-            <mat-label>Categoria</mat-label>
-            <mat-select formControlName="categoria">
-              <mat-option value="">— nessuna —</mat-option>
-              @for (c of categorie; track c.id) {
-                <mat-option [value]="c.nome">{{ c.nome }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="form-row">
-          <mat-form-field><mat-label>Codice</mat-label>
-            <input matInput formControlName="codice"></mat-form-field>
-          <mat-form-field>
-            <mat-label>Barcode</mat-label>
-            <input matInput formControlName="barcode" placeholder="Scansiona o digita...">
-            <mat-icon matSuffix style="color:#94a3b8">qr_code_scanner</mat-icon>
-          </mat-form-field>
-        </div>
-        <div class="form-row">
-          <mat-form-field style="flex:1">
-            <mat-label>Codice fornitore</mat-label>
-            <input matInput formControlName="codiceFornitore" placeholder="Codice usato dal fornitore">
-            <mat-icon matSuffix style="color:#94a3b8">local_shipping</mat-icon>
-          </mat-form-field>
-          <div style="flex:1"></div>
-        </div>
-        <div class="form-row">
-          <mat-form-field>
-            <mat-label>Unità misura</mat-label>
-            <mat-select formControlName="unitaMisura">
-              @for (u of unitaMisura; track u.id) {
-                <mat-option [value]="u.simbolo">{{ u.nome }} ({{ u.simbolo }})</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field>
-            <mat-label>IVA</mat-label>
-            <mat-select formControlName="iva">
-              @for (a of aliquoteIva; track a.id) {
-                <mat-option [value]="a.valore">{{ a.nome }} – {{ a.valore }}%</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="form-row" style="align-items:flex-start">
-          <mat-form-field><mat-label>Prezzo vendita (€)</mat-label>
-            <input matInput type="number" step="0.01" formControlName="prezzo"></mat-form-field>
-          <mat-form-field>
-            <mat-label>Prezzo acquisto (€)</mat-label>
-            <input matInput type="number" step="0.01" formControlName="prezzoAcquisto" placeholder="0.00">
-            <mat-hint>Usato per calcolo margini</mat-hint>
-          </mat-form-field>
-        </div>
-        <div class="form-row" style="align-items:center">
-          <div style="padding-top:4px">
-            <mat-checkbox formControlName="haVarianti">Gestisci taglie / colori</mat-checkbox>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px">Se attivo, la quantità è gestita per variante</div>
+
+        <!-- ── Identità prodotto ────────────────────────── -->
+        <div class="form-section is-primary">
+          <div class="form-section-header">
+            <mat-icon>label</mat-icon>
+            <span>Identità prodotto</span>
+            <span class="section-hint">Dati di riconoscimento</span>
           </div>
-        </div>
-        @if (!form.value.haVarianti) {
+          <mat-form-field style="width:100%"><mat-label>Nome *</mat-label>
+            <input matInput formControlName="nome" placeholder="es. Maglietta cotone manica corta"></mat-form-field>
           <div class="form-row">
-            <mat-form-field><mat-label>Quantità</mat-label>
-              <input matInput type="number" formControlName="quantita"></mat-form-field>
-            <mat-form-field><mat-label>Soglia minima</mat-label>
-              <input matInput type="number" formControlName="sogliaMinima"></mat-form-field>
+            <mat-form-field><mat-label>Codice interno</mat-label>
+              <input matInput formControlName="codice"></mat-form-field>
+            <mat-form-field>
+              <mat-label>Categoria</mat-label>
+              <mat-select formControlName="categoria">
+                <mat-option value="">— nessuna —</mat-option>
+                @for (c of categorie; track c.id) {
+                  <mat-option [value]="c.nome">{{ c.nome }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
           </div>
-        }
-        <mat-form-field style="width:100%"><mat-label>Descrizione</mat-label>
-          <textarea matInput rows="2" formControlName="descrizione"></textarea></mat-form-field>
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Barcode</mat-label>
+              <input matInput formControlName="barcode" placeholder="Scansiona o digita...">
+              <mat-icon matSuffix>qr_code_scanner</mat-icon>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Codice fornitore</mat-label>
+              <input matInput formControlName="codiceFornitore" placeholder="Codice usato dal fornitore">
+              <mat-icon matSuffix>local_shipping</mat-icon>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- ── Prezzi & IVA ─────────────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>sell</mat-icon>
+            <span>Prezzi & IVA</span>
+            <span class="section-hint">Listino e aliquota fiscale</span>
+          </div>
+          <div class="form-row" style="align-items:flex-start">
+            <mat-form-field><mat-label>Prezzo vendita (€)</mat-label>
+              <input matInput type="number" step="0.01" formControlName="prezzo">
+              <mat-icon matSuffix>euro</mat-icon>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Prezzo acquisto (€)</mat-label>
+              <input matInput type="number" step="0.01" formControlName="prezzoAcquisto" placeholder="0.00">
+              <mat-icon matSuffix>shopping_cart</mat-icon>
+              <mat-hint>Usato per calcolo margini</mat-hint>
+            </mat-form-field>
+          </div>
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Unità misura</mat-label>
+              <mat-select formControlName="unitaMisura">
+                @for (u of unitaMisura; track u.id) {
+                  <mat-option [value]="u.simbolo">{{ u.nome }} ({{ u.simbolo }})</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>IVA</mat-label>
+              <mat-select formControlName="iva">
+                @for (a of aliquoteIva; track a.id) {
+                  <mat-option [value]="a.valore">{{ a.nome }} – {{ a.valore }}%</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- ── Magazzino ────────────────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>warehouse</mat-icon>
+            <span>Magazzino</span>
+            <span class="section-hint">Disponibilità e scorte</span>
+          </div>
+          <div>
+            <mat-checkbox formControlName="haVarianti">Gestisci taglie / colori</mat-checkbox>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;padding-left:32px">Se attivo, la quantità è gestita per variante</div>
+          </div>
+          @if (!form.value.haVarianti) {
+            <div class="form-row">
+              <mat-form-field><mat-label>Quantità</mat-label>
+                <input matInput type="number" formControlName="quantita">
+                <mat-icon matSuffix>inventory</mat-icon>
+              </mat-form-field>
+              <mat-form-field><mat-label>Soglia minima</mat-label>
+                <input matInput type="number" formControlName="sogliaMinima">
+                <mat-icon matSuffix>warning</mat-icon>
+              </mat-form-field>
+            </div>
+          }
+        </div>
+
+        <!-- ── Descrizione ──────────────────────────────── -->
+        <div class="form-section is-flat">
+          <div class="form-section-header">
+            <mat-icon>description</mat-icon>
+            <span>Descrizione</span>
+          </div>
+          <mat-form-field style="width:100%"><mat-label>Descrizione</mat-label>
+            <textarea matInput rows="2" formControlName="descrizione" placeholder="Note descrittive opzionali"></textarea></mat-form-field>
+        </div>
 
         @if (form.value.haVarianti) {
           <div class="varianti-box">

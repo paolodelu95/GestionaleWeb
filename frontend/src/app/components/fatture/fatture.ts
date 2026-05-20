@@ -56,36 +56,62 @@ const RIGHE_STYLES = `
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Fattura' : 'Nuova Fattura' }}</h2>
     <mat-dialog-content>
+      <div class="dialog-hero">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%)">
+          <mat-icon>receipt</mat-icon>
+        </div>
+        <div class="dialog-hero-text">
+          <span class="dialog-hero-title">{{ data?.id ? ('Fattura n. ' + (data?.numero || '')) : 'Nuova fattura' }}</span>
+          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe, pagamento e allegati' : 'Seleziona il cliente e compila le righe' }}</span>
+        </div>
+      </div>
+
       <mat-tab-group>
         <mat-tab label="Documento">
           <div style="padding-top:16px">
-            <form [formGroup]="form" class="dialog-form">
-              <div class="form-row">
-                <mat-form-field>
-                  <mat-label>Numero *</mat-label>
-                  <input matInput formControlName="numero">
-                </mat-form-field>
-                <mat-form-field>
-                  <mat-label>Data emissione *</mat-label>
-                  <input matInput type="date" formControlName="dataEmissione">
-                </mat-form-field>
+
+            <!-- ── Intestazione ──────────────────────────── -->
+            <div class="form-section is-primary">
+              <div class="form-section-header">
+                <mat-icon>person</mat-icon>
+                <span>Intestatario</span>
+                <span class="section-hint">Cliente destinatario</span>
               </div>
-              <div class="form-row">
-                <mat-form-field style="flex:2">
-                  <mat-label>Cliente *</mat-label>
-                  <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                         (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente..."
-                         [class.input-error]="submitted && !hasCliente">
-                  <mat-icon matSuffix>search</mat-icon>
-                  <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
-                    @for (c of filteredClienti; track c.id) {
-                      <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
-                    }
-                  </mat-autocomplete>
-                  @if (submitted && !hasCliente) {
-                    <mat-error>Seleziona un cliente</mat-error>
+              <mat-form-field style="width:100%">
+                <mat-label>Cliente *</mat-label>
+                <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
+                       (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
+                       [class.input-error]="submitted && !hasCliente">
+                <mat-icon matSuffix>search</mat-icon>
+                <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
+                  @for (c of filteredClienti; track c.id) {
+                    <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
                   }
-                </mat-form-field>
+                </mat-autocomplete>
+                @if (submitted && !hasCliente) {
+                  <mat-error>Seleziona un cliente</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <!-- ── Estremi documento ─────────────────────── -->
+            <form [formGroup]="form" class="dialog-form">
+              <div class="form-section">
+                <div class="form-section-header">
+                  <mat-icon>tag</mat-icon>
+                  <span>Estremi documento</span>
+                </div>
+                <div class="form-row">
+                  <mat-form-field>
+                    <mat-label>Numero *</mat-label>
+                    <input matInput formControlName="numero">
+                    <mat-icon matSuffix>tag</mat-icon>
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Data emissione *</mat-label>
+                    <input matInput type="date" formControlName="dataEmissione">
+                  </mat-form-field>
+                </div>
               </div>
             </form>
 

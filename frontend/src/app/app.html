@@ -78,13 +78,21 @@
       <button mat-icon-button type="button" class="toggle-btn" (click)="toggleSidebar()" [title]="collapsed ? 'Espandi menu' : 'Comprimi menu'">
         <mat-icon>{{ collapsed ? 'menu' : 'menu_open' }}</mat-icon>
       </button>
-      <span class="topbar-company">{{ azienda?.ragioneSociale || 'La tua azienda' }}</span>
-      @if (azienda?.pIva) {
-        <span class="topbar-sub">&nbsp;|&nbsp;P.IVA {{ azienda!.pIva }}</span>
-      }
-      @if (azienda?.citta) {
-        <span class="topbar-sub">&nbsp;—&nbsp;{{ azienda!.citta }}</span>
-      }
+      <div class="topbar-company-wrap">
+        <div class="company-avatar" [attr.aria-hidden]="true">
+          {{ (azienda?.ragioneSociale || 'A').charAt(0).toUpperCase() }}
+        </div>
+        <div class="company-info">
+          <span class="topbar-company">{{ azienda?.ragioneSociale || 'La tua azienda' }}</span>
+          @if (azienda?.pIva || azienda?.citta) {
+            <span class="topbar-sub">
+              @if (azienda?.pIva) { P.IVA {{ azienda!.pIva }} }
+              @if (azienda?.pIva && azienda?.citta) { &nbsp;·&nbsp; }
+              @if (azienda?.citta) { {{ azienda!.citta }} }
+            </span>
+          }
+        </div>
+      </div>
       <span class="topbar-spacer"></span>
 
       <div class="search-box">
