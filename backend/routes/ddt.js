@@ -73,6 +73,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   const d = req.body;
   const old = db.prepare('SELECT numero, cliente_id FROM ddt WHERE id=?').get(req.params.id);
+  const before = db.prepare('SELECT numero, data_emissione, cliente_id, stato FROM ddt WHERE id=?').get(req.params.id);
   const vecchieRighe = getRighe(req.params.id);
   if (vecchieRighe.length) {
     const oldCliente = old?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(old.cliente_id) : null;
@@ -106,6 +107,7 @@ router.put('/:id', (req, res) => {
       clienteId: d.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
     });
   }
+  audit('ddt', Number(req.params.id), 'UPDATE', { before, after: { numero: d.numero, dataEmissione: d.dataEmissione, clienteId: d.clienteId, stato: d.stato, numRighe: d.righe?.length || 0 } });
   res.json({ success: true });
 });
 
@@ -233,6 +235,7 @@ router.patch('/:id/stato', (req, res) => {
     aggiornaQuantita(righe, -1, { ...ctx, causale: 'RIATTIVAZIONE' });
   }
   db.prepare('UPDATE ddt SET stato=? WHERE id=?').run(stato, req.params.id);
+  audit('ddt', Number(req.params.id), 'UPDATE', { before: { stato: vecchio?.stato }, after: { stato } });
   res.json({ success: true });
 });
 
