@@ -235,6 +235,7 @@ body {
 }
 
 .kpi-3col { grid-template-columns: repeat(3, 1fr); }
+.kpi-5col { grid-template-columns: repeat(5, 1fr); }
 
 .kpi-card {
   position: relative;
@@ -997,11 +998,13 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   }
   .page-title { font-size: 20px; }
 
-  // KPI: 2 colonne, compatti, icona più piccola che non collide col valore
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  // KPI: 2 colonne su mobile, override anche per kpi-3col/kpi-5col (specificita maggiore)
+  .kpi-grid,
+  .kpi-grid.kpi-3col,
+  .kpi-grid.kpi-5col { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .kpi-card {
     padding: 14px 14px 12px;
-    .kpi-value { font-size: 19px; padding-right: 32px; word-break: break-word; }
+    .kpi-value { font-size: 19px; padding-right: 32px; overflow-wrap: anywhere; }
     .kpi-label { font-size: 11px; padding-right: 32px; }
     .kpi-icon { top: 12px; right: 12px; width: 30px; height: 30px;
       mat-icon { font-size: 16px; width: 16px; height: 16px; } }
@@ -1134,7 +1137,6 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   }
 
   .kpi-grid { gap: 8px; }
-  .kpi-3col { grid-template-columns: repeat(2, 1fr); }
   .kpi-card {
     padding: 12px 12px 10px;
     .kpi-value { font-size: 16px; padding-right: 28px; }
