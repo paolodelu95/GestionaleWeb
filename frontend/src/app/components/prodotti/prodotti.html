@@ -30,7 +30,15 @@
         <span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">{{ sottoSogliaCount }}</span>
       }
     </button>
-    @if (filtroCategoria || filtroSottoSoglia) {
+    <button mat-stroked-button type="button"
+            [style.color]="filtroMargineBasso ? '#f97316' : ''"
+            [style.border-color]="filtroMargineBasso ? '#f97316' : ''"
+            [style.background]="filtroMargineBasso ? '#fff7ed' : ''"
+            (click)="filtroMargineBasso=!filtroMargineBasso; applyFilters()">
+      <mat-icon [style.color]="filtroMargineBasso ? '#f97316' : '#94a3b8'">trending_down</mat-icon>
+      Margine &lt; 15%
+    </button>
+    @if (filtroCategoria || filtroSottoSoglia || filtroMargineBasso) {
       <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>
@@ -69,6 +77,19 @@
       <ng-container matColumnDef="prezzo">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Prezzo</th>
         <td mat-cell *matCellDef="let p" class="euro">{{ p.prezzo | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="margine">
+        <th mat-header-cell *matHeaderCellDef class="hide-mobile">Margine</th>
+        <td mat-cell *matCellDef="let p" class="hide-mobile">
+          @if (marginePerc(p) === null) {
+            <span style="color:#94a3b8;font-size:12px">—</span>
+          } @else {
+            <span [style.color]="marginePerc(p)! < 0 ? '#dc2626' : marginePerc(p)! < 15 ? '#f97316' : '#16a34a'"
+                  style="font-weight:600">
+              {{ marginePerc(p) }}%
+            </span>
+          }
+        </td>
       </ng-container>
       <ng-container matColumnDef="quantita">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Qtà</th>

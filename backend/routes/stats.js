@@ -99,6 +99,63 @@ router.get('/cashflow', (req, res) => {
   });
 });
 
+// ── GET /cashflow-forecast – proiezione giornaliera prossimi N giorni ───────
+router.get('/cashflow-forecast', (req, res) => {
+  const giorni = Math.min(Math.max(parseInt(String(req.query.giorni || '60'), 10), 7), 180);
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const fine = new Date(oggi); fine.setDate(fine.getDate() + giorni);
+  const oggiIso = oggi.toISOString().slice(0, 10);
+
+  const rowsIn = db.prepare(`
+    SELECT date(f.data_emissione, '+' || COALESCE(tp.giorni_scadenza, 30) || ' days') AS scadenza,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0)
+             - COALESCE((SELECT SUM(importo) FROM pagamenti p WHERE p.fattura_id=f.id),0) AS rimanente
+    FROM fatture f
+    JOIN fatture_righe fr ON fr.fattura_id=f.id
+    LEFT JOIN tipi_pagamento tp ON tp.id=f.tipo_pagamento_id
+    WHERE f.stato NOT IN ('PAGATA','ANNULLATA')
+    GROUP BY f.id HAVING rimanente > 0
+  `).all();
+
+  const rowsOut = db.prepare(`
+    SELECT date(a.data_emissione, '+' || COALESCE(tp.giorni_scadenza, 30) || ' days') AS scadenza,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(1+ar.iva/100)),0)
+             - COALESCE((SELECT SUM(importo) FROM pagamenti p WHERE p.acquisto_id=a.id),0) AS rimanente
+    FROM acquisti a
+    JOIN acquisti_righe ar ON ar.acquisto_id=a.id
+    LEFT JOIN tipi_pagamento tp ON tp.id=a.tipo_pagamento_id
+    WHERE a.stato NOT IN ('PAGATA','PAGATO','ANNULLATA','ANNULLATO')
+    GROUP BY a.id HAVING rimanente > 0
+  `).all();
+
+  // Aggrega per giorno: scaduti -> data oggi; futuri -> data scadenza; troppo lontani -> ignorati
+  const daysMap = new Map();
+  const ensure = (d) => {
+    if (!daysMap.has(d)) daysMap.set(d, { date: d, in: 0, out: 0 });
+    return daysMap.get(d);
+  };
+  for (const r of rowsIn) {
+    const d = (r.scadenza < oggiIso) ? oggiIso : r.scadenza;
+    if (new Date(d) > fine) continue;
+    ensure(d).in += +r.rimanente;
+  }
+  for (const r of rowsOut) {
+    const d = (r.scadenza < oggiIso) ? oggiIso : r.scadenza;
+    if (new Date(d) > fine) continue;
+    ensure(d).out += +r.rimanente;
+  }
+  const items = [...daysMap.values()].sort((a, b) => a.date.localeCompare(b.date));
+  let cum = 0;
+  for (const it of items) { cum += it.in - it.out; it.cumulativo = +cum.toFixed(2); it.in = +it.in.toFixed(2); it.out = +it.out.toFixed(2); }
+  res.json({
+    giorni,
+    saldoFinale: +cum.toFixed(2),
+    totEntrate: +items.reduce((s, x) => s + x.in, 0).toFixed(2),
+    totUscite: +items.reduce((s, x) => s + x.out, 0).toFixed(2),
+    items,
+  });
+});
+
 // ── GET /kpi-anno – KPI dell'anno corrente ────────────────────────────────────
 router.get('/kpi-anno', (req, res) => {
   const anno = req.query.anno || new Date().getFullYear();

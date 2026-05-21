@@ -413,25 +413,32 @@ export class ProdottoDialogComponent implements OnInit {
 export class ProdottiComponent implements OnInit, AfterViewInit {
   private allProdotti: Prodotto[] = [];
   dataSource = new MatTableDataSource<Prodotto>([]);
-  displayedColumns: string[] = ['id', 'nome', 'categoria', 'codice', 'barcode', 'prezzo', 'quantita', 'sogliaMinima', 'iva'];
+  displayedColumns: string[] = ['nome', 'categoria', 'prezzo', 'margine', 'quantita', 'sogliaMinima'];
 
   readonly allCols: ColDef[] = [
-    { key: 'id', label: 'ID' },
     { key: 'nome', label: 'Nome' },
     { key: 'categoria', label: 'Categoria' },
-    { key: 'codice', label: 'Codice' },
-    { key: 'codiceFornitore', label: 'Cod. Fornitore' },
-    { key: 'barcode', label: 'Barcode' },
+    { key: 'codice', label: 'Codice', defaultVisible: false },
+    { key: 'codiceFornitore', label: 'Cod. Fornitore', defaultVisible: false },
+    { key: 'barcode', label: 'Barcode', defaultVisible: false },
     { key: 'prezzo', label: 'Prezzo' },
-    { key: 'prezzoAcquisto', label: 'Prezzo Acquisto' },
+    { key: 'prezzoAcquisto', label: 'Prezzo Acquisto', defaultVisible: false },
+    { key: 'margine', label: 'Margine %' },
     { key: 'quantita', label: 'Qtà' },
     { key: 'sogliaMinima', label: 'Soglia min.' },
-    { key: 'iva', label: 'IVA' },
-    { key: 'unitaMisura', label: 'U.M.' },
+    { key: 'iva', label: 'IVA', defaultVisible: false },
+    { key: 'unitaMisura', label: 'U.M.', defaultVisible: false },
+    { key: 'id', label: 'ID', defaultVisible: false },
   ];
 
   filtroCategoria: string | null = null;
   filtroSottoSoglia = false;
+  filtroMargineBasso = false;
+  marginePerc(p: any): number | null {
+    const v = +(p?.prezzo ?? 0), a = +(p?.prezzoAcquisto ?? 0);
+    if (!v || !a) return null;
+    return Math.round(((v - a) / v) * 1000) / 10;
+  }
   get categorieList() { return [...new Set(this.allProdotti.map(p => p.categoria).filter(Boolean))].sort() as string[]; }
   get sottoSogliaCount() {
     return this.allProdotti.filter(p => (p.sogliaMinima ?? 0) > 0 && (p.quantita ?? 0) < (p.sogliaMinima ?? 0)).length;
@@ -476,11 +483,12 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     let data = this.allProdotti;
     if (this.filtroCategoria) data = data.filter(p => p.categoria === this.filtroCategoria);
     if (this.filtroSottoSoglia) data = data.filter(p => (p.sogliaMinima ?? 0) > 0 && (p.quantita ?? 0) < (p.sogliaMinima ?? 0));
+    if (this.filtroMargineBasso) data = data.filter(p => { const m = this.marginePerc(p); return m !== null && m < 15; });
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
-  resetFiltri() { this.filtroCategoria = null; this.filtroSottoSoglia = false; this.dataSource.filter = ''; this.applyFilters(); }
+  resetFiltri() { this.filtroCategoria = null; this.filtroSottoSoglia = false; this.filtroMargineBasso = false; this.dataSource.filter = ''; this.applyFilters(); }
 
   onColsChange(cols: string[]) { this.displayedColumns = [...cols, 'azioni']; }
 
