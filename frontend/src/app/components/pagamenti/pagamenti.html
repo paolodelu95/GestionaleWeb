@@ -46,7 +46,7 @@
   @if (filtro === 'DA_SALDARE') {
 
     @if (scadenzario.length) {
-      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+      <div class="kpi-grid kpi-3col" style="margin-bottom:20px">
         <div class="kpi-card">
           <div class="kpi-label">Da incassare (fatture)</div>
           <div class="kpi-value euro">{{ daSaldareEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
@@ -149,7 +149,7 @@
   <!-- ── Vista PAGAMENTI ──────────────────────────────────────────────────── -->
 
     @if (pagamenti.length || (filtro === 'TUTTI' && scadenzario.length)) {
-      <div class="kpi-grid" [style.grid-template-columns]="filtro === 'TUTTI' ? 'repeat(5,1fr)' : 'repeat(3,1fr)'" style="margin-bottom:20px">
+      <div class="kpi-grid" [class.kpi-5col]="filtro === 'TUTTI'" [class.kpi-3col]="filtro !== 'TUTTI'" style="margin-bottom:20px">
         <div class="kpi-card">
           <div class="kpi-label">Entrate incassate</div>
           <div class="kpi-value euro">{{ totaleEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
