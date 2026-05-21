@@ -33,15 +33,18 @@ router.post('/', (req, res) => {
     VALUES (?,?,?,?,?,?,?)`)
     .run(o.numero, o.dataOrdine, o.clienteId || null, o.fornitoreId || null, o.tipo || 'CLIENTE', o.stato || 'APERTO', o.note);
   if (o.righe?.length) saveRighe(result.lastInsertRowid, o.righe);
+  audit('ordine', result.lastInsertRowid, 'CREATE', { numero: o.numero, tipo: o.tipo, clienteId: o.clienteId, fornitoreId: o.fornitoreId, stato: o.stato || 'APERTO', numRighe: o.righe?.length || 0 });
   res.json({ id: result.lastInsertRowid });
 });
 
 router.put('/:id', (req, res) => {
   const o = req.body;
+  const before = db.prepare('SELECT numero, data_ordine, cliente_id, fornitore_id, tipo, stato FROM ordini WHERE id=?').get(req.params.id);
   db.prepare(`UPDATE ordini SET numero=?, data_ordine=?, cliente_id=?, fornitore_id=?, tipo=?, stato=?, note=? WHERE id=?`)
     .run(o.numero, o.dataOrdine, o.clienteId || null, o.fornitoreId || null, o.tipo, o.stato, o.note, req.params.id);
   db.prepare('DELETE FROM ordini_righe WHERE ordine_id=?').run(req.params.id);
   if (o.righe?.length) saveRighe(req.params.id, o.righe);
+  audit('ordine', Number(req.params.id), 'UPDATE', { before, after: { numero: o.numero, dataOrdine: o.dataOrdine, clienteId: o.clienteId, fornitoreId: o.fornitoreId, tipo: o.tipo, stato: o.stato, numRighe: o.righe?.length || 0 } });
   res.json({ success: true });
 });
 
@@ -99,7 +102,9 @@ router.get('/:id/print', (req, res) => {
 });
 
 router.patch('/:id/stato', (req, res) => {
+  const before = db.prepare('SELECT stato FROM ordini WHERE id=?').get(req.params.id);
   db.prepare('UPDATE ordini SET stato=? WHERE id=?').run(req.body.stato, req.params.id);
+  audit('ordine', Number(req.params.id), 'UPDATE', { before, after: { stato: req.body.stato } });
   res.json({ success: true });
 });
 

@@ -25,15 +25,18 @@ router.post('/', (req, res) => {
     VALUES (?,?,?,?,?,?)`)
     .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita || 30, p.stato || 'BOZZA', p.note);
   if (p.righe?.length) saveRighe(result.lastInsertRowid, p.righe);
+  audit('preventivo', result.lastInsertRowid, 'CREATE', { numero: p.numero, clienteId: p.clienteId, stato: p.stato || 'BOZZA', numRighe: p.righe?.length || 0 });
   res.json({ id: result.lastInsertRowid });
 });
 
 router.put('/:id', (req, res) => {
   const p = req.body;
+  const before = db.prepare('SELECT numero, data_emissione, cliente_id, stato, validita, note FROM preventivi WHERE id=?').get(req.params.id);
   db.prepare(`UPDATE preventivi SET numero=?, data_emissione=?, cliente_id=?, validita=?, stato=?, note=? WHERE id=?`)
     .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita, p.stato, p.note, req.params.id);
   db.prepare('DELETE FROM preventivi_righe WHERE preventivo_id=?').run(req.params.id);
   if (p.righe?.length) saveRighe(req.params.id, p.righe);
+  audit('preventivo', Number(req.params.id), 'UPDATE', { before, after: { numero: p.numero, dataEmissione: p.dataEmissione, clienteId: p.clienteId, stato: p.stato, numRighe: p.righe?.length || 0 } });
   res.json({ success: true });
 });
 
@@ -85,7 +88,9 @@ router.get('/:id/print', (req, res) => {
 });
 
 router.patch('/:id/stato', (req, res) => {
+  const before = db.prepare('SELECT stato FROM preventivi WHERE id=?').get(req.params.id);
   db.prepare('UPDATE preventivi SET stato=? WHERE id=?').run(req.body.stato, req.params.id);
+  audit('preventivo', Number(req.params.id), 'UPDATE', { before, after: { stato: req.body.stato } });
   res.json({ success: true });
 });
 
