@@ -8,14 +8,33 @@ const fs = require('fs');
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
+const ALLOWED_MIME = new Set([
+  'application/pdf',
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'text/plain', 'text/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/xml', 'text/xml',
+  'application/zip',
+]);
+const ALLOWED_EXT = new Set(['.pdf','.jpg','.jpeg','.png','.gif','.webp','.txt','.csv','.xls','.xlsx','.doc','.docx','.xml','.zip']);
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1E6);
-    cb(null, unique + path.extname(file.originalname));
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, unique + (ALLOWED_EXT.has(ext) ? ext : ''));
   }
 });
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
+const fileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ALLOWED_MIME.has(file.mimetype) && ALLOWED_EXT.has(ext)) return cb(null, true);
+  cb(new Error('Tipo di file non consentito'));
+};
+const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
 
 // GET /api/allegati?tipo=fattura&id=123
 router.get('/', (req, res) => {
@@ -33,7 +52,15 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/allegati?tipo=fattura&id=123
-router.post('/', upload.single('file'), (req, res) => {
+router.post('/', (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      return res.status(status).json({ error: err.message });
+    }
+    next();
+  });
+}, (req, res) => {
   const { tipo, id } = req.query;
   if (!tipo || !id || !req.file) return res.status(400).json({ error: 'Parametri mancanti' });
   const result = db.prepare(

@@ -79,7 +79,7 @@ router.get('/:id', (req, res) => {
 const createFatturaTx = db.transaction((f, ddtIds) => {
   const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
     VALUES (?,?,?,?,?,?,?)`)
-    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'BOZZA', f.tipoPagamentoId || null);
+    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'EMESSA', f.tipoPagamentoId || null);
   const fatturaId = result.lastInsertRowid;
   if (f.righe?.length) {
     saveRighe(fatturaId, f.righe);

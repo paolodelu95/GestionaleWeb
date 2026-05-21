@@ -11,7 +11,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
 import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento,
@@ -92,42 +93,49 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit() {
+    const safe = <T>(obs: any, fallback: T) => obs.pipe(catchError(() => of(fallback)));
     forkJoin({
-      count: this.ds.getProdottiCount(),
-      valore: this.ds.getProdottiValore(),
-      ordini: this.ds.getOrdiniApertiCount(),
-      clienti: this.ds.getClientiCount(),
-      sotto: this.ds.getProdottiSottoSoglia(),
-      ddt: this.ds.getDdt(),
-      fatture: this.ds.getFatture(),
-      acquisti: this.ds.getAcquisti(),
-      tipi: this.ds.getTipiPagamento(),
-      vendite: this.ds.getVenditeMensili(),
-      top: this.ds.getTopProdotti(),
-      cashflow: this.ds.getCashflow(),
-      kpi: this.ds.getKpiAnno(),
-    }).subscribe(r => {
-      this.prodottiCount = r.count;
-      this.valoremagazzino = r.valore;
-      this.ordiniAperti = r.ordini;
-      this.clientiCount = r.clienti;
-      this.prodottiSottoSoglia = r.sotto;
-      this.tipiPagamento = r.tipi;
-      this.kpi = r.kpi;
-      this.cashflow = r.cashflow;
-      this.venditeMensili = r.vendite;
-      this.topProdotti = r.top;
-      this.ddtDaFatturare = r.ddt
-        .filter(d => !d.fatturaId && d.stato !== 'ANNULLATO')
-        .slice(0, 10);
-      this.fattureDaIncassare = r.fatture
-        .filter(f => f.stato === 'EMESSA')
-        .slice(0, 10);
-      this.fattureDaPagare = r.acquisti
-        .filter(a => a.stato !== 'PAGATA' && a.stato !== 'ANNULLATA')
-        .slice(0, 10);
-      this.dataReady = true;
-      this.tryRenderCharts();
+      count: safe(this.ds.getProdottiCount(), 0),
+      valore: safe(this.ds.getProdottiValore(), 0),
+      ordini: safe(this.ds.getOrdiniApertiCount(), 0),
+      clienti: safe(this.ds.getClientiCount(), 0),
+      sotto: safe(this.ds.getProdottiSottoSoglia(), []),
+      ddt: safe(this.ds.getDdt(), []),
+      fatture: safe(this.ds.getFatture(), []),
+      acquisti: safe(this.ds.getAcquisti(), []),
+      tipi: safe(this.ds.getTipiPagamento(), []),
+      vendite: safe(this.ds.getVenditeMensili(), []),
+      top: safe(this.ds.getTopProdotti(), []),
+      cashflow: safe(this.ds.getCashflow(), []),
+      kpi: safe(this.ds.getKpiAnno(), null),
+    }).subscribe({
+      next: (r: any) => {
+        this.prodottiCount = r.count;
+        this.valoremagazzino = r.valore;
+        this.ordiniAperti = r.ordini;
+        this.clientiCount = r.clienti;
+        this.prodottiSottoSoglia = r.sotto;
+        this.tipiPagamento = r.tipi;
+        this.kpi = r.kpi;
+        this.cashflow = r.cashflow;
+        this.venditeMensili = r.vendite;
+        this.topProdotti = r.top;
+        this.ddtDaFatturare = (r.ddt || [])
+          .filter((d: Ddt) => !d.fatturaId && d.stato !== 'ANNULLATO')
+          .slice(0, 10);
+        this.fattureDaIncassare = (r.fatture || [])
+          .filter((f: Fattura) => f.stato === 'EMESSA')
+          .slice(0, 10);
+        this.fattureDaPagare = (r.acquisti || [])
+          .filter((a: Acquisto) => a.stato !== 'PAGATA' && a.stato !== 'ANNULLATA')
+          .slice(0, 10);
+        this.dataReady = true;
+        this.tryRenderCharts();
+      },
+      error: e => {
+        this.dataReady = true;
+        this.snack.open('Errore caricamento dashboard: ' + (e.message || 'rete'), 'OK', { duration: 5000, panelClass: 'snack-error' });
+      }
     });
   }
 

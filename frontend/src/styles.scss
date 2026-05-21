@@ -685,6 +685,16 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   --mdc-snackbar-container-shape: 10px;
   --mdc-snackbar-container-color: #1e293b;
   box-shadow: var(--shadow-lg) !important;
+  &.snack-ok {
+    --mdc-snackbar-container-color: #16a34a;
+    --mat-snack-bar-button-color: #ffffff;
+    --mdc-snackbar-supporting-text-color: #ffffff;
+  }
+  &.snack-error {
+    --mdc-snackbar-container-color: #dc2626;
+    --mat-snack-bar-button-color: #ffffff;
+    --mdc-snackbar-supporting-text-color: #ffffff;
+  }
 }
 
 // Paginator: clean look
@@ -953,6 +963,16 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 // ── Mobile responsive ─────────────────────────────────────────────────────────
 @media (max-width: 1024px) {
   .page { padding: 24px 22px; }
+}
+
+// ── Responsive helpers per tabelle wide ───────────────────────────────────────
+// Marca colonne con .hide-mobile / .hide-tablet sia sul <th> che sul <td>
+// dello stesso matColumnDef per nasconderle a partire dal breakpoint.
+@media (max-width: 900px) {
+  .hide-tablet { display: none !important; }
+}
+@media (max-width: 600px) {
+  .hide-mobile { display: none !important; }
 }
 
 @media (max-width: 767px) {

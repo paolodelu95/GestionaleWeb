@@ -206,7 +206,7 @@ const RIGHE_STYLES = `
                           }
                         </select>
                       </td>
-                      <td><input class="riga-input num" type="number" step="0.01"
+                      <td><input class="riga-input num" type="number" min="0" step="0.01"
                         [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                         (change)="setPrezzoFromInput(riga, $event)"></td>
                       <td class="td-history">
@@ -250,7 +250,7 @@ const RIGHE_STYLES = `
                         }
                       </td>
                       <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                      <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
+                      <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
                       <td style="padding:4px 8px; white-space:nowrap">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
@@ -775,21 +775,25 @@ export class DdtComponent implements OnInit, AfterViewInit {
   printDoc(d: Ddt) { this.printSvc.printDdt(d.id!); }
 
   generaFattura(ddt: Ddt) {
-    forkJoin({ full: this.ds.getDdtById(ddt.id!), num: this.ds.getNextNumero('fatture') }).subscribe(({ full, num }) => {
-      const pre: Fattura = {
-        numero: String(num.numero),
-        dataEmissione: new Date().toISOString().substring(0, 10),
-        clienteId: ddt.clienteId, ddtIds: [ddt.id!],
-        stato: 'EMESSA', righe: full.righe,
-      } as Fattura;
-      this.dialog.open(FatturaDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
-        .afterClosed().subscribe(result => {
-          if (!result) return;
-          this.ds.createFattura(result).subscribe({
-            next: () => { this.load(); this.snack.open('Fattura creata', '', { duration: 2000 }); },
-            error: e => this.snack.open(e.message, '', { duration: 3000 })
+    forkJoin({ full: this.ds.getDdtById(ddt.id!), num: this.ds.getNextNumero('fatture') }).subscribe({
+      next: ({ full, num }) => {
+        if (!full) { this.snack.open('DDT non disponibile', 'OK', { duration: 3000, panelClass: 'snack-error' }); return; }
+        const pre: Fattura = {
+          numero: String(num.numero),
+          dataEmissione: new Date().toISOString().substring(0, 10),
+          clienteId: ddt.clienteId, ddtIds: [ddt.id!],
+          stato: 'EMESSA', righe: full.righe,
+        } as Fattura;
+        this.dialog.open(FatturaDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
+          .afterClosed().subscribe(result => {
+            if (!result) return;
+            this.ds.createFattura(result).subscribe({
+              next: () => { this.load(); this.snack.open('Fattura creata', '', { duration: 2000, panelClass: 'snack-ok' }); },
+              error: e => this.snack.open(e.message || 'Errore creazione fattura', 'OK', { duration: 4000, panelClass: 'snack-error' })
+            });
           });
-        });
+      },
+      error: e => this.snack.open('Errore caricamento DDT: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
     });
   }
 
