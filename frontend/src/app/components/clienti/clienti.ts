@@ -746,19 +746,19 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   }
   clienti: Cliente[] = [];
   dataSource = new MatTableDataSource<Cliente>([]);
-  displayedColumns: string[] = ['id', 'ragioneSociale', 'telefono', 'indirizzo', 'azioni'];
+  displayedColumns: string[] = ['ragioneSociale', 'pIva', 'telefono', 'indirizzo', 'azioni'];
 
   readonly allCols: ColDef[] = [
-    { key: 'id', label: 'ID' },
     { key: 'ragioneSociale', label: 'Ragione Sociale' },
-    { key: 'email', label: 'Email' },
-    { key: 'telefono', label: 'Telefono' },
-    { key: 'cellulare', label: 'Cellulare' },
-    { key: 'indirizzo', label: 'Città' },
-    { key: 'codiceFiscale', label: 'Cod. Fiscale' },
     { key: 'pIva', label: 'P. IVA' },
-    { key: 'sdi', label: 'SDI' },
-    { key: 'pec', label: 'PEC' },
+    { key: 'telefono', label: 'Telefono' },
+    { key: 'indirizzo', label: 'Città' },
+    { key: 'email', label: 'Email', defaultVisible: false },
+    { key: 'cellulare', label: 'Cellulare', defaultVisible: false },
+    { key: 'codiceFiscale', label: 'Cod. Fiscale', defaultVisible: false },
+    { key: 'sdi', label: 'SDI', defaultVisible: false },
+    { key: 'pec', label: 'PEC', defaultVisible: false },
+    { key: 'id', label: 'ID', defaultVisible: false },
   ];
 
   @ViewChild(MatSort) sort!: MatSort;

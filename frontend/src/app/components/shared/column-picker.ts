@@ -7,7 +7,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
-export interface ColDef { key: string; label: string; }
+export interface ColDef { key: string; label: string; defaultVisible?: boolean; }
 
 @Component({
   selector: 'app-column-picker',
@@ -72,7 +72,7 @@ export class ColumnPickerComponent implements OnInit {
         if (!this.cols.some(c => c.key === a.key)) this.cols.push({ ...a, visible: true });
       }
     } else {
-      this.cols = this.allCols.map(a => ({ ...a, visible: true }));
+      this.cols = this.allCols.map(a => ({ ...a, visible: a.defaultVisible !== false }));
     }
     this.emit();
   }
