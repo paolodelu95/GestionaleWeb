@@ -753,6 +753,9 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     { key: 'pIva', label: 'P. IVA' },
     { key: 'telefono', label: 'Telefono' },
     { key: 'indirizzo', label: 'Città' },
+    { key: 'fatturatoAnno', label: 'Fatturato anno', defaultVisible: false },
+    { key: 'ultimoAcquisto', label: 'Ultimo acquisto', defaultVisible: false },
+    { key: 'fattureInsolute', label: 'Insoluti', defaultVisible: false },
     { key: 'email', label: 'Email', defaultVisible: false },
     { key: 'cellulare', label: 'Cellulare', defaultVisible: false },
     { key: 'codiceFiscale', label: 'Cod. Fiscale', defaultVisible: false },
@@ -760,6 +763,14 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     { key: 'pec', label: 'PEC', defaultVisible: false },
     { key: 'id', label: 'ID', defaultVisible: false },
   ];
+
+  filtroDormienti = false;
+  filtroInsoluti = false;
+  giorniDormienza(c: any): number | null {
+    if (!c?.ultimoAcquisto) return null;
+    const d = new Date(c.ultimoAcquisto);
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -789,11 +800,26 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     };
   }
 
-  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.dataSource.data = c; if (this.paginator) this.dataSource.paginator = this.paginator; }); }
+  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.applyInsightFilter(); }); }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();
   }
+
+  applyInsightFilter() {
+    let data = this.clienti;
+    if (this.filtroDormienti) {
+      data = data.filter((c: any) => { const g = this.giorniDormienza(c); return g === null || g > 90; });
+    }
+    if (this.filtroInsoluti) {
+      data = data.filter((c: any) => (c.fattureInsolute ?? 0) > 0);
+    }
+    this.dataSource.data = data;
+    if (this.paginator) this.dataSource.paginator = this.paginator;
+  }
+
+  toggleDormienti() { this.filtroDormienti = !this.filtroDormienti; this.applyInsightFilter(); }
+  toggleInsoluti() { this.filtroInsoluti = !this.filtroInsoluti; this.applyInsightFilter(); }
 
   indirizzo(c: Cliente): string {
     return [c.via, c.cap, c.citta, c.provincia, c.stato].filter(Boolean).join(', ');

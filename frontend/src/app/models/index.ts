@@ -103,6 +103,9 @@ export interface Cliente {
   cig?: string;
   cup?: string;
   aliquotaIvaId?: number | null;
+  ultimoAcquisto?: string | null;
+  fatturatoAnno?: number;
+  fattureInsolute?: number;
 }
 
 export interface Listino {
