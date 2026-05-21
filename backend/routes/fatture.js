@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { getNextNumero } = require('../utils/nextNumero');
+const { audit } = require('../utils/audit');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -95,6 +96,7 @@ const createFatturaTx = db.transaction((f, ddtIds) => {
   if (ddtIds.length) saveDdtLinks(fatturaId, ddtIds);
   if (f.riferimenti?.length) saveRiferimenti(fatturaId, f.riferimenti);
   creaPagamentoImmediato(fatturaId);
+  audit('fattura', fatturaId, 'CREATE', { numero: f.numero, clienteId: f.clienteId || null, stato: f.stato || 'EMESSA', numRighe: f.righe?.length || 0 });
   return fatturaId;
 });
 
@@ -110,6 +112,7 @@ router.post('/', (req, res) => {
 });
 
 const updateFatturaTx = db.transaction((id, f, ddtIds) => {
+  const before = db.prepare('SELECT numero, data_emissione, cliente_id, note, stato FROM fatture WHERE id=?').get(id);
   const vecchiDdtIds = getDdtIds(id);
   const vecchieRighe = getRighe(id);
   if (vecchieRighe.length && !vecchiDdtIds.length) {
@@ -136,6 +139,7 @@ const updateFatturaTx = db.transaction((id, f, ddtIds) => {
   }
   saveDdtLinks(id, ddtIds);
   saveRiferimenti(id, f.riferimenti || []);
+  audit('fattura', id, 'UPDATE', { before, after: { numero: f.numero, dataEmissione: f.dataEmissione, clienteId: f.clienteId, stato: f.stato, numRighe: f.righe?.length || 0 } });
 });
 
 router.put('/:id', (req, res) => {
@@ -150,6 +154,7 @@ router.put('/:id', (req, res) => {
 });
 
 const deleteFatturaTx = db.transaction((id) => {
+  const snapshot = db.prepare('SELECT numero, data_emissione, cliente_id, stato, note FROM fatture WHERE id=?').get(id);
   const ddtIds = getDdtIds(id);
   if (!ddtIds.length) {
     const righe = getRighe(id);
@@ -165,6 +170,7 @@ const deleteFatturaTx = db.transaction((id) => {
   db.prepare('DELETE FROM pagamenti WHERE fattura_id=?').run(id);
   db.prepare('UPDATE note_credito SET fattura_id=NULL WHERE fattura_id=?').run(id);
   db.prepare('DELETE FROM fatture WHERE id=?').run(id);
+  audit('fattura', id, 'DELETE', snapshot || {});
 });
 
 router.delete('/:id', (req, res) => {

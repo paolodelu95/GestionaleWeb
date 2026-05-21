@@ -21,4 +21,5 @@ export const routes: Routes = [
   { path: 'impostazioni', loadComponent: () => import('./components/impostazioni/impostazioni').then(m => m.ImpostazioniComponent) },
   { path: 'prima-nota',   loadComponent: () => import('./components/prima-nota/prima-nota').then(m => m.PrimaNotaComponent) },
   { path: 'fatture-ricorrenti', loadComponent: () => import('./components/fatture-ricorrenti/fatture-ricorrenti').then(m => m.FattureRicorrentiComponent) },
+  { path: 'storico', loadComponent: () => import('./components/storico/storico').then(m => m.StoricoComponent) },
 ];

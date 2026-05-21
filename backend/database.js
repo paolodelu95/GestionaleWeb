@@ -965,4 +965,22 @@ for (const t of docTables) {
   }
 }
 
+// Audit log: traccia modifiche e cancellazioni su entita principali
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      payload TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
+  `);
+} catch (err) {
+  console.warn('[migrate] audit_log non creata:', err.message);
+}
+
 module.exports = db;
