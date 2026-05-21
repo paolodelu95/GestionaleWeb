@@ -206,7 +206,7 @@ router.post('/:id/to-fattura', (req, res) => {
   const data = new Date().toISOString().split('T')[0];
   const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato)
     VALUES (?,?,?,?,?,?)`)
-    .run(numero, data, ddt.cliente_id, ddt.id, `Da DDT n. ${ddt.numero}`, 'BOZZA');
+    .run(numero, data, ddt.cliente_id, ddt.id, `Da DDT n. ${ddt.numero}`, 'EMESSA');
   const fatturaId = result.lastInsertRowid;
   db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)').run(fatturaId, ddt.id);
   const stmt = db.prepare(`INSERT INTO fatture_righe
