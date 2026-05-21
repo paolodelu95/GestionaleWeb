@@ -1107,8 +1107,10 @@ export class FattureComponent implements OnInit, AfterViewInit {
   filtroMese: number | null = null;
   filtroCliente: number | null = null;
   filtroStato: string | null = null;
+  filtroDaPagare = false;
 
   get anni() { return [...new Set(this.allFatture.map(f => +f.dataEmissione.substring(0, 4)))].sort().reverse(); }
+  get daPagareCount() { return this.allFatture.filter(f => f.stato === 'EMESSA').length; }
   get clientiList() {
     const map = new Map<number, string>();
     this.allFatture.forEach(f => { if (f.clienteId) map.set(f.clienteId, f.clienteNome ?? ''); });
@@ -1151,12 +1153,13 @@ export class FattureComponent implements OnInit, AfterViewInit {
     if (this.filtroMese) data = data.filter(f => +f.dataEmissione.substring(5, 7) === this.filtroMese);
     if (this.filtroCliente) data = data.filter(f => f.clienteId === this.filtroCliente);
     if (this.filtroStato) data = data.filter(f => f.stato === this.filtroStato);
+    if (this.filtroDaPagare) data = data.filter(f => f.stato === 'EMESSA');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {
-    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroStato = null;
+    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroStato = null; this.filtroDaPagare = false;
     this.dataSource.filter = '';
     this.applyFilters();
   }
