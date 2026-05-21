@@ -91,7 +91,7 @@ db.exec(`
     cliente_id INTEGER,
     ddt_id INTEGER,
     note TEXT DEFAULT '',
-    stato TEXT DEFAULT 'BOZZA',
+    stato TEXT DEFAULT 'EMESSA',
     FOREIGN KEY (cliente_id) REFERENCES clienti(id),
     FOREIGN KEY (ddt_id) REFERENCES ddt(id)
   );
