@@ -25,15 +25,18 @@ router.post('/', (req, res) => {
     VALUES (?,?,?,?,?,?)`)
     .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato || 'BOZZA');
   if (n.righe?.length) saveRighe(result.lastInsertRowid, n.righe);
+  audit('nota_credito', result.lastInsertRowid, 'CREATE', { numero: n.numero, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato || 'BOZZA', numRighe: n.righe?.length || 0 });
   res.json({ id: result.lastInsertRowid });
 });
 
 router.put('/:id', (req, res) => {
   const n = req.body;
+  const before = db.prepare('SELECT numero, data_emissione, cliente_id, fattura_id, stato FROM note_credito WHERE id=?').get(req.params.id);
   db.prepare(`UPDATE note_credito SET numero=?, data_emissione=?, cliente_id=?, fattura_id=?, note=?, stato=? WHERE id=?`)
     .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato, req.params.id);
   db.prepare('DELETE FROM note_credito_righe WHERE nota_credito_id=?').run(req.params.id);
   if (n.righe?.length) saveRighe(req.params.id, n.righe);
+  audit('nota_credito', Number(req.params.id), 'UPDATE', { before, after: { numero: n.numero, dataEmissione: n.dataEmissione, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato, numRighe: n.righe?.length || 0 } });
   res.json({ success: true });
 });
 
@@ -90,7 +93,9 @@ router.get('/:id/print', (req, res) => {
 });
 
 router.patch('/:id/stato', (req, res) => {
+  const before = db.prepare('SELECT stato FROM note_credito WHERE id=?').get(req.params.id);
   db.prepare('UPDATE note_credito SET stato=? WHERE id=?').run(req.body.stato, req.params.id);
+  audit('nota_credito', Number(req.params.id), 'UPDATE', { before, after: { stato: req.body.stato } });
   res.json({ success: true });
 });
 
