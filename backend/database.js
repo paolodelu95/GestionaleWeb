@@ -952,4 +952,6 @@ try {
   c('Vigilanza');
 } catch(e) { console.error('Seed conti acquisto:', e.message); }
 
+try { db.exec('ALTER TABLE azienda ADD COLUMN notifiche_config TEXT DEFAULT NULL'); } catch(_) {}
+
 module.exports = db;

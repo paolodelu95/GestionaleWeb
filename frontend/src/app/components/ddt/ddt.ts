@@ -21,10 +21,11 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
+import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -657,11 +658,14 @@ export class DdtDialogComponent implements OnInit {
     this.trasportoForm.markAllAsTouched();
     if (!this.trasportoForm.valid) return;
 
+    const v = this.clienteCtrl.value;
+    const clienteNome = v && typeof v !== 'string' ? (v as Cliente).ragioneSociale : (this.data?.clienteNome ?? '');
     this.dialogRef.close({
       ...this.data,
       ...this.documentoForm.value,
       ...this.trasportoForm.value,
       clienteId: this.clienteId,
+      clienteNome,
       destinazioneId: this.destinazioneId && this.destinazioneId > 0 ? this.destinazioneId : null,
       stato: this.data?.stato ?? 'EMESSO',
       righe: this.righe,
@@ -674,7 +678,7 @@ export class DdtDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, DocInfoDialogComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, DocInfoDialogComponent, FattureInsoluteDialogComponent],
   templateUrl: './ddt.html',
   styleUrl: './ddt.scss'
 })
@@ -702,9 +706,16 @@ export class DdtComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
+  notificheConfig: NotificheConfig = {};
+
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.getAzienda().subscribe(a => {
+      this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
+    });
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
@@ -797,11 +808,30 @@ export class DdtComponent implements OnInit, AfterViewInit {
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
-      const op = result.id ? this.ds.updateDdt(result) : this.ds.createDdt(result);
-      op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
-        error: e => this.snack.open(e.message, '', { duration: 3000 })
-      });
+      const salva = () => {
+        const op = result.id ? this.ds.updateDdt(result) : this.ds.createDdt(result);
+        op.subscribe({
+          next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.message, '', { duration: 3000 })
+        });
+      };
+      if (!result.id && this.notificheConfig.avvisoInsolutiDdt && result.clienteId) {
+        this.ds.getFattureInsoluteCliente(result.clienteId).subscribe({
+          next: fatture => {
+            if (fatture.length > 0) {
+              this.dialog.open(FattureInsoluteDialogComponent, {
+                data: { clienteNome: result.clienteNome || '', fatture },
+                width: '560px', maxWidth: '98vw',
+              }).afterClosed().subscribe(procedi => { if (procedi) salva(); });
+            } else {
+              salva();
+            }
+          },
+          error: () => salva(),
+        });
+      } else {
+        salva();
+      }
     });
   }
 

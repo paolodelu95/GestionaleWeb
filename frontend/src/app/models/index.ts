@@ -4,6 +4,11 @@ export interface TemplateConfig {
   blocks?: { [key: string]: boolean };
 }
 
+export interface NotificheConfig {
+  avvisoInsolutiDdt?: boolean;
+  avvisoInsolutiFattura?: boolean;
+}
+
 export interface Azienda {
   id?: number;
   ragioneSociale: string;
@@ -34,6 +39,7 @@ export interface Azienda {
   numerazioneAnnuale?: boolean;
   numeroPrefissi?: { [key: string]: string };
   templateConfig?: TemplateConfig;
+  notificheConfig?: NotificheConfig;
 }
 
 export interface Prodotto {

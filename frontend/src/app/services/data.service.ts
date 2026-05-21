@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
-  Azienda, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
+  Azienda, NotificheConfig, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
@@ -46,6 +46,9 @@ export class DataService {
   deleteCliente(id: number): Observable<any> { return this.api.delete(`clienti/${id}`); }
   importClienti(records: any[]): Observable<any> { return this.api.post('clienti/import', records); }
   getClienteIndirizzi(clienteId: number): Observable<ClienteIndirizzo[]> { return this.api.get(`clienti/${clienteId}/indirizzi`); }
+  getFattureInsoluteCliente(clienteId: number): Observable<{ id: number; numero: string; dataEmissione: string; totale: number; stato: string }[]> {
+    return this.api.get(`clienti/${clienteId}/fatture-insolute`);
+  }
   createClienteIndirizzo(clienteId: number, a: ClienteIndirizzo): Observable<any> { return this.api.post(`clienti/${clienteId}/indirizzi`, a); }
   updateClienteIndirizzo(clienteId: number, a: ClienteIndirizzo): Observable<any> { return this.api.put(`clienti/${clienteId}/indirizzi/${a.id}`, a); }
   deleteClienteIndirizzo(clienteId: number, id: number): Observable<any> { return this.api.delete(`clienti/${clienteId}/indirizzi/${id}`); }

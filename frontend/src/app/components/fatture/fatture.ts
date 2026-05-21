@@ -22,10 +22,11 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva } from '../../models';
+import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
 
 interface DdtItem { ddt: any; checked: boolean; }
 interface ClienteGroup { clienteId: number | null; clienteNome: string; items: DdtItem[]; tipoPagamentoId: number | null; }
@@ -1101,8 +1102,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     if (!this.canSave) return;
     const v = this.clienteCtrl.value;
     const clienteId = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
+    const clienteNome = v && typeof v !== 'string' ? (v as Cliente).ragioneSociale : (this.data?.clienteNome ?? '');
     this.dialogRef.close({
-      ...this.data, ...this.form.value, clienteId,
+      ...this.data, ...this.form.value, clienteId, clienteNome,
       stato: this.data?.stato ?? 'EMESSA',
       tipoPagamentoId: this.selectedTipoPagamentoId,
       ddtIds: this.linkedDdts.map(d => d.id).filter(Boolean),
@@ -1118,7 +1120,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
             MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, DocInfoDialogComponent,
-            GeneraFattureDaDdtDialogComponent],
+            GeneraFattureDaDdtDialogComponent, FattureInsoluteDialogComponent],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
@@ -1146,9 +1148,16 @@ export class FattureComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
+  notificheConfig: NotificheConfig = {};
+
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.getAzienda().subscribe(a => {
+      this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
+    });
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
@@ -1229,11 +1238,30 @@ export class FattureComponent implements OnInit, AfterViewInit {
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
-      const op = result.id ? this.ds.updateFattura(result) : this.ds.createFattura(result);
-      op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
-        error: e => this.snack.open(e.message, '', { duration: 3000 })
-      });
+      const salva = () => {
+        const op = result.id ? this.ds.updateFattura(result) : this.ds.createFattura(result);
+        op.subscribe({
+          next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.message, '', { duration: 3000 })
+        });
+      };
+      if (!result.id && this.notificheConfig.avvisoInsolutiFattura && result.clienteId) {
+        this.ds.getFattureInsoluteCliente(result.clienteId).subscribe({
+          next: fatture => {
+            if (fatture.length > 0) {
+              this.dialog.open(FattureInsoluteDialogComponent, {
+                data: { clienteNome: result.clienteNome || '', fatture },
+                width: '560px', maxWidth: '98vw',
+              }).afterClosed().subscribe(procedi => { if (procedi) salva(); });
+            } else {
+              salva();
+            }
+          },
+          error: () => salva(),
+        });
+      } else {
+        salva();
+      }
     });
   }
 

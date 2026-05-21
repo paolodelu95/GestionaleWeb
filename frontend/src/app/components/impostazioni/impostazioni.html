@@ -695,6 +695,42 @@
       </div>
     </mat-tab>
 
+    <!-- ── Avvisi ────────────────────────────────────────────────────────────── -->
+    <mat-tab label="Avvisi">
+      <div class="tab-content">
+        <div class="card" style="max-width:600px">
+          <h3 class="section-title">Avvisi documenti</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:20px">
+            Il gestionale può mostrarti un avviso quando generi un documento per un cliente che ha fatture aperte non ancora saldate.
+          </p>
+
+          <div style="padding:14px 0;border-bottom:1px solid #e2e8f0">
+            <mat-slide-toggle
+              [(ngModel)]="notificheConfig.avvisoInsolutiDdt"
+              (change)="saveNotificheConfig()">
+              <span style="font-weight:600">Avviso fatture aperte su DDT</span>
+            </mat-slide-toggle>
+            <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
+              Mostra un avviso quando crei un nuovo DDT per un cliente con fatture non pagate,
+              con l'elenco delle fatture aperte (numero, data, importo).
+            </p>
+          </div>
+
+          <div style="padding:14px 0">
+            <mat-slide-toggle
+              [(ngModel)]="notificheConfig.avvisoInsolutiFattura"
+              (change)="saveNotificheConfig()">
+              <span style="font-weight:600">Avviso fatture aperte su Fattura</span>
+            </mat-slide-toggle>
+            <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
+              Mostra un avviso quando crei una nuova fattura per un cliente con fatture non pagate,
+              con l'elenco delle fatture aperte (numero, data, importo).
+            </p>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
     <!-- ── Segnalazioni Bug ──────────────────────────────────────────────────── -->
     <mat-tab label="Segnalazioni">
       <div class="tab-content">

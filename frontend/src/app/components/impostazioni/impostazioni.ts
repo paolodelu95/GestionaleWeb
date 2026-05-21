@@ -17,7 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, Listino } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, Listino } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 import { ListinoDialogComponent } from './listino-dialog';
 
@@ -346,6 +346,7 @@ export class ImpostazioniComponent implements OnInit {
   emailTesting = false;
 
   templateConfig: TemplateConfig = { stile: 'classico' };
+  notificheConfig: NotificheConfig = { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
   readonly templateBlocks: { key: string; label: string }[] = [
     { key: 'parti', label: 'Mittente / Destinatario' },
     { key: 'tabella', label: 'Tabella prodotti' },
@@ -395,6 +396,9 @@ export class ImpostazioniComponent implements OnInit {
           ? { ...a.templateConfig, blocks: { ...a.templateConfig.blocks } }
           : { stile: 'classico' };
         if (!this.templateConfig.blocks) this.templateConfig.blocks = {};
+        this.notificheConfig = a.notificheConfig
+          ? { ...a.notificheConfig }
+          : { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
       }
     });
 
@@ -476,8 +480,22 @@ export class ImpostazioniComponent implements OnInit {
       note_credito: v.prefissoNoteCredito || '', acquisti: v.prefissoAcquisti || '',
       vendite_banco: v.prefissoVenditeBanco || '', arrivi_merce: v.prefissoArriviMerce || '',
     };
-    this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi, templateConfig: this.templateConfig } as Azienda).subscribe({
+    this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi, templateConfig: this.templateConfig, notificheConfig: this.notificheConfig } as Azienda).subscribe({
       next: () => this.snack.open('Dati salvati', '', { duration: 2000 }),
+      error: e => this.snack.open(e.message, '', { duration: 3000 }),
+    });
+  }
+
+  saveNotificheConfig() {
+    const v = this.form.value;
+    const numeroPrefissi = {
+      ddt: v.prefissoDdt || '', fatture: v.prefissoFatture || '',
+      ordini: v.prefissoOrdini || '', preventivi: v.prefissoPreventivi || '',
+      note_credito: v.prefissoNoteCredito || '', acquisti: v.prefissoAcquisti || '',
+      vendite_banco: v.prefissoVenditeBanco || '', arrivi_merce: v.prefissoArriviMerce || '',
+    };
+    this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi, templateConfig: this.templateConfig, notificheConfig: this.notificheConfig } as Azienda).subscribe({
+      next: () => this.snack.open('Impostazioni avvisi salvate', '', { duration: 2000 }),
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });
   }

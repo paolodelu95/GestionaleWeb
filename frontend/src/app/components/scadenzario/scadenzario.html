@@ -1,9 +1,21 @@
 <div class="page">
   <div class="page-header">
     <h1 class="page-title">Scadenzario</h1>
-    <button mat-icon-button type="button" title="Aggiorna" (click)="load()">
-      <mat-icon>refresh</mat-icon>
-    </button>
+    <div style="display:flex;gap:8px;align-items:center">
+      @if (selection.hasValue()) {
+        <button mat-flat-button type="button" (click)="saldoMultiplo()"
+                style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;gap:6px">
+          <mat-icon>payments</mat-icon>
+          Saldo multiplo
+          <span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;margin-left:2px">
+            {{ selection.selected.length }}
+          </span>
+        </button>
+      }
+      <button mat-icon-button type="button" title="Aggiorna" (click)="load()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
   </div>
 
   <!-- KPI cards -->
@@ -56,11 +68,37 @@
         <mat-icon>warning_amber</mat-icon> Scaduti
       </button>
     </div>
+
+    @if (selection.hasValue()) {
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 4px;color:#6366f1;font-size:13px;font-weight:500">
+        <mat-icon style="font-size:16px;width:16px;height:16px">check_box</mat-icon>
+        {{ selection.selected.length }} selezionati
+        · {{ selectedTotal | currency:'EUR':'symbol':'1.2-2':'it' }}
+        <button mat-icon-button type="button" style="width:28px;height:28px;line-height:28px" (click)="selection.clear()" matTooltip="Deseleziona tutto">
+          <mat-icon style="font-size:16px;width:16px;height:16px">close</mat-icon>
+        </button>
+      </div>
+    }
   </div>
 
   <!-- Table -->
   <div class="card">
     <table mat-table [dataSource]="dataSource" matSort matSortActive="dataScadenza" matSortDirection="asc" matSortDisableClear class="mat-mdc-table">
+
+      <!-- Checkbox -->
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef style="width:48px;padding-right:0">
+          <mat-checkbox
+            [checked]="isAllSelected()"
+            [indeterminate]="isIndeterminate()"
+            (change)="toggleAll()"
+            matTooltip="Seleziona/deseleziona tutti">
+          </mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let item" style="width:48px;padding-right:0">
+          <mat-checkbox [checked]="selection.isSelected(item)" (change)="selection.toggle(item)"></mat-checkbox>
+        </td>
+      </ng-container>
 
       <!-- Direzione / Tipo chip -->
       <ng-container matColumnDef="direzione">
@@ -141,7 +179,12 @@
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.row-scaduto]="row.scaduto"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+          [class.row-scaduto]="row.scaduto"
+          [class.row-selected]="selection.isSelected(row)"
+          (click)="selection.toggle(row)"
+          style="cursor:pointer">
+      </tr>
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:#94a3b8;text-align:center">
           Nessun documento trovato

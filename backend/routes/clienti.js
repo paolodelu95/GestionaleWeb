@@ -128,6 +128,30 @@ router.delete('/:clienteId/indirizzi/:id', (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/:id/fatture-insolute', (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT f.id, f.numero, f.data_emissione, f.stato,
+        COALESCE((
+          SELECT SUM(fr.quantita * fr.prezzo * (1 - COALESCE(fr.sconto, 0) / 100.0) * (1 + fr.iva / 100.0))
+          FROM fatture_righe fr WHERE fr.fattura_id = f.id
+        ), 0) AS totale
+      FROM fatture f
+      WHERE f.cliente_id = ? AND f.stato NOT IN ('PAGATA', 'ANNULLATA')
+      ORDER BY f.data_emissione DESC
+    `).all(req.params.id);
+    res.json(rows.map(r => ({
+      id: r.id,
+      numero: r.numero,
+      dataEmissione: r.data_emissione,
+      totale: r.totale,
+      stato: r.stato,
+    })));
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 function normalizePiva(piva) {
   if (!piva) return piva;
   let v = String(piva).replace(/\s/g, '').toUpperCase();
