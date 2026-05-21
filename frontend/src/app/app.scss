@@ -490,6 +490,155 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .search-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    padding: 8px 12px 4px;
+  }
+
+  .quick-action {
+    .qa-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      font-size: 20px;
+      color: var(--primary);
+    }
+  }
+
+  .search-empty {
+    padding: 16px 12px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 13px;
+  }
+}
+
+// ── Notifiche topbar ──────────────────────────────────────────────────────────
+.notif-wrap {
+  position: relative;
+  display: inline-block;
+
+  .notif-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #dc2626;
+    color: #fff;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .notif-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 360px;
+    max-width: 92vw;
+    max-height: 480px;
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    z-index: 2000;
+    padding: 6px;
+    animation: search-pop 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .notif-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 4px;
+  }
+
+  .notif-empty {
+    padding: 18px 12px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 13px;
+  }
+
+  .notif-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+    &:hover { background: var(--bg-surface-2); }
+  }
+
+  .notif-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .notif-tipo {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
+    align-self: flex-start;
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+
+    &.notif-tipo-entrata { background: #dcfce7; color: #16a34a; }
+    &.notif-tipo-uscita  { background: #fee2e2; color: #dc2626; }
+  }
+
+  .notif-controparte {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .notif-item-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .notif-importo {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .notif-scadenza {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    &.notif-scaduto { color: #dc2626; font-weight: 600; }
+  }
 }
 
 @keyframes search-pop {

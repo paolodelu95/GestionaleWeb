@@ -98,20 +98,74 @@
       <div class="search-box">
         <mat-icon class="search-icon">search</mat-icon>
         <input #searchInput class="search-input" type="text"
-               placeholder="Cerca… (⌘K)"
-               [(ngModel)]="searchQuery" (input)="onSearchInput(searchQuery)" autocomplete="off">
+               placeholder="Cerca o crea... (⌘K)"
+               [(ngModel)]="searchQuery" (input)="onSearchInput(searchQuery)"
+               (focus)="onSearchFocus()" autocomplete="off">
         @if (showSearch) {
           <div class="search-dropdown">
-            @for (r of searchResults; track r.id + r.tipo) {
-              <div class="search-result" (click)="navigateToResult(r)">
-                <span class="search-result-tipo">{{ r.tipo }}</span>
-                <span class="search-result-label">{{ r.label }}</span>
-              </div>
+            @if (!searchQuery || searchQuery.length < 2) {
+              <div class="search-section-title">Azioni rapide</div>
+              @for (a of quickActions; track a.label) {
+                <div class="search-result quick-action" (click)="navigateToAction(a)">
+                  <mat-icon class="qa-icon">{{ a.icon }}</mat-icon>
+                  <span class="search-result-label">{{ a.label }}</span>
+                </div>
+              }
+            } @else if (searchResults.length) {
+              <div class="search-section-title">Risultati</div>
+              @for (r of searchResults; track r.id + r.tipo) {
+                <div class="search-result" (click)="navigateToResult(r)">
+                  <span class="search-result-tipo">{{ r.tipo }}</span>
+                  <span class="search-result-label">{{ r.label }}</span>
+                </div>
+              }
+            } @else {
+              <div class="search-empty">Nessun risultato per "{{ searchQuery }}"</div>
             }
           </div>
         }
       </div>
 
+      <div class="notif-wrap">
+        <button mat-icon-button type="button" title="Notifiche" (click)="toggleNotif($event)">
+          <mat-icon>notifications</mat-icon>
+          @if (notifBadgeCount > 0) {
+            <span class="notif-dot">{{ notifBadgeCount > 9 ? '9+' : notifBadgeCount }}</span>
+          }
+        </button>
+        @if (showNotif) {
+          <div class="notif-dropdown">
+            <div class="notif-header">
+              Scadenze
+              <button mat-icon-button type="button" (click)="navigateToScadenzario()" title="Vai a scadenzario"><mat-icon>open_in_new</mat-icon></button>
+            </div>
+            @if (loadingNotif) {
+              <div class="notif-empty">Caricamento...</div>
+            } @else if (!notifItems.length) {
+              <div class="notif-empty">Nessuna scadenza imminente. ✓</div>
+            } @else {
+              @for (n of notifItems; track n.tipo + n.id) {
+                <div class="notif-item" (click)="navigateToScadenzario()">
+                  <div class="notif-item-main">
+                    <span class="notif-tipo" [class.notif-tipo-entrata]="n.direzione === 'ENTRATA'" [class.notif-tipo-uscita]="n.direzione === 'USCITA'">
+                      {{ n.tipo === 'fattura' ? 'F' : 'A' }} {{ n.numero }}
+                    </span>
+                    <span class="notif-controparte">{{ n.controparte || '—' }}</span>
+                  </div>
+                  <div class="notif-item-meta">
+                    <span class="notif-importo">{{ n.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
+                    <span class="notif-scadenza" [class.notif-scaduto]="n.scaduto">
+                      @if (n.scaduto) { Scaduto {{ -n.giorniMancanti }}g fa }
+                      @else if (n.giorniMancanti === 0) { Oggi }
+                      @else { Tra {{ n.giorniMancanti }}g }
+                    </span>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
       <button mat-icon-button type="button" [title]="darkMode ? 'Modalità chiara' : 'Modalità scura'" (click)="toggleDark()">
         <mat-icon>{{ darkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
       </button>

@@ -624,6 +624,18 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   delete(o: Ordine) {
     if (!confirm(`Eliminare Ordine ${o.numero}?`)) return;
-    this.ds.deleteOrdine(o.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    this.ds.getOrdineById(o.id!).subscribe(full => {
+      this.ds.deleteOrdine(o.id!).subscribe(() => {
+        this.load();
+        const ref = this.snack.open(`Ordine ${o.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          const { id, ...payload } = full as any;
+          this.ds.createOrdine(payload).subscribe({
+            next: () => { this.load(); this.snack.open('Ordine ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+          });
+        });
+      });
+    });
   }
 }
