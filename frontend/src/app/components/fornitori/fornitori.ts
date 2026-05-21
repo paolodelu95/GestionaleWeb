@@ -14,6 +14,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { Observable, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
@@ -433,14 +434,14 @@ export class FornitoreDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            MatTooltipModule, ColumnPickerComponent, InfoDialogComponent],
+            MatTooltipModule, MatMenuModule, ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
 export class FornitoriComponent implements OnInit, AfterViewInit {
   fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Fornitore>([]);
-  displayedColumns: string[] = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'pIva'];
+  displayedColumns: string[] = ['id', 'ragioneSociale', 'telefono', 'indirizzo', 'azioni'];
 
   readonly allCols: ColDef[] = [
     { key: 'id', label: 'ID' },
@@ -491,7 +492,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     return [f.via, f.cap, f.citta, f.provincia, f.stato].filter(Boolean).join(', ');
   }
 
-  onColsChange(cols: string[]) { this.displayedColumns = [...cols, 'azioni']; }
+  onColsChange(cols: string[]) { this.displayedColumns = cols.includes('azioni') ? cols : [...cols, 'azioni']; }
 
   open(f?: Fornitore) {
     const ref = this.dialog.open(FornitoreDialogComponent, { data: f ?? null, width: '95vw', maxWidth: '860px' });

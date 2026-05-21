@@ -15,6 +15,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Observable, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
@@ -732,7 +733,7 @@ export class ClienteDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            MatTooltipModule, ColumnPickerComponent, InfoDialogComponent],
+            MatTooltipModule, MatMenuModule, ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })
@@ -745,7 +746,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   }
   clienti: Cliente[] = [];
   dataSource = new MatTableDataSource<Cliente>([]);
-  displayedColumns: string[] = ['id', 'ragioneSociale', 'email', 'telefono', 'indirizzo', 'codiceFiscale'];
+  displayedColumns: string[] = ['id', 'ragioneSociale', 'telefono', 'indirizzo', 'azioni'];
 
   readonly allCols: ColDef[] = [
     { key: 'id', label: 'ID' },
@@ -798,7 +799,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     return [c.via, c.cap, c.citta, c.provincia, c.stato].filter(Boolean).join(', ');
   }
 
-  onColsChange(cols: string[]) { this.displayedColumns = [...cols, 'azioni']; }
+  onColsChange(cols: string[]) { this.displayedColumns = cols.includes('azioni') ? cols : [...cols, 'azioni']; }
 
   open(c?: Cliente) {
     const ref = this.dialog.open(ClienteDialogComponent, { data: c ?? null, width: '95vw', maxWidth: '860px' });

@@ -299,16 +299,17 @@ th.mat-mdc-header-cell {
 }
 
 td.mat-mdc-cell {
-  border-bottom: 1px solid var(--border-subtle) !important;
+  border-bottom: 1px solid var(--border) !important;
   color: var(--text-primary) !important;
   font-size: 14px !important;
-  padding: 12px 16px !important;
+  padding: 14px 16px !important;
   vertical-align: middle;
 }
 
 .mat-mdc-row {
   transition: background var(--transition-fast);
-  &:hover { background: var(--bg-surface-2) !important; }
+  &:nth-child(even) { background: var(--bg-subtle) !important; }
+  &:hover { background: color-mix(in srgb, var(--primary) 5%, var(--bg-surface-2)) !important; }
 }
 
 td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
@@ -764,7 +765,8 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   // Tables
   .mat-mdc-table { background: transparent !important; }
   .mat-mdc-row { background: transparent !important; color: var(--text-primary) !important; }
-  .mat-mdc-row:hover { background: var(--bg-surface-2) !important; }
+  .mat-mdc-row:nth-child(even) { background: var(--bg-surface-2) !important; }
+  .mat-mdc-row:hover { background: color-mix(in srgb, var(--primary) 10%, var(--bg-surface-2)) !important; }
   .mat-mdc-header-row { background: var(--bg-surface-2) !important; }
   th.mat-mdc-header-cell {
     color: var(--text-tertiary) !important;
@@ -1082,8 +1084,8 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   .bulk-bar { flex-wrap: wrap; gap: 6px; }
 
   // Tables on mobile: padding ridotto
-  th.mat-mdc-header-cell, td.mat-mdc-cell { padding: 10px 8px !important; font-size: 13px !important; }
-  th.mat-mdc-header-cell { font-size: 10px !important; padding: 8px !important; }
+  th.mat-mdc-header-cell, td.mat-mdc-cell { padding: 11px 8px !important; font-size: 13px !important; }
+  th.mat-mdc-header-cell { font-size: 10px !important; padding: 9px 8px !important; }
 
   // Mat tabs scrollable su mobile (impedisce overflow)
   .mat-mdc-tab-header { border-bottom: 1px solid var(--border-subtle); }
