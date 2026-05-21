@@ -986,10 +986,11 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         if (!pick) return;
         const p = pick.prodotto; const v = pick.variante;
         const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
+        const { iva, codiceIva } = this.resolveIvaPerProdotto(p.iva ?? 22);
         this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
-        this.righe[index].iva = p.iva ?? 22;
-        this.righe[index].codiceIva = this.resolveAliquotaCodice(p.iva ?? 22);
+        this.righe[index].iva = iva;
+        this.righe[index].codiceIva = codiceIva;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
         this.righe[index].prodottoId = p.id ?? null;
         this.righe[index].varianteId = v?.id ?? null;
@@ -1034,13 +1035,38 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     if (a) { riga.iva = a.valore; riga.codiceIva = a.codice; }
   }
 
-  private getClienteDefaultIva(): { iva: number; codiceIva: string } {
+  private getClienteAliquota(): AliquotaIva | null {
     const v = this.clienteCtrl.value;
     const cliente = v && typeof v !== 'string' ? v as Cliente : null;
     if (cliente?.aliquotaIvaId && this.aliquoteIva.length) {
-      const a = this.aliquoteIva.find(x => x.id === cliente.aliquotaIvaId);
-      if (a) return { iva: a.valore, codiceIva: a.codice ?? '' };
+      return this.aliquoteIva.find(x => x.id === cliente.aliquotaIvaId) ?? null;
     }
+    return null;
+  }
+
+  private resolveIvaPerProdotto(productIva: number): { iva: number; codiceIva: string } {
+    const clienteAliq = this.getClienteAliquota();
+
+    if (!clienteAliq) {
+      return { iva: productIva, codiceIva: this.resolveAliquotaCodice(productIva) };
+    }
+
+    if (clienteAliq.categoria === 'Split payment') {
+      const spVariant = this.aliquoteIva.find(
+        a => a.categoria === 'Split payment' && a.valore === productIva
+      );
+      if (spVariant) return { iva: spVariant.valore, codiceIva: spVariant.codice ?? '' };
+      // variante split payment non disponibile per questo valore: usa l'aliquota del cliente
+      return { iva: clienteAliq.valore, codiceIva: clienteAliq.codice ?? '' };
+    }
+
+    // cliente con aliquota non-split payment: applica l'override cliente (comportamento attuale)
+    return { iva: clienteAliq.valore, codiceIva: clienteAliq.codice ?? '' };
+  }
+
+  private getClienteDefaultIva(): { iva: number; codiceIva: string } {
+    const clienteAliq = this.getClienteAliquota();
+    if (clienteAliq) return { iva: clienteAliq.valore, codiceIva: clienteAliq.codice ?? '' };
     return { iva: 22, codiceIva: this.resolveAliquotaCodice(22) };
   }
 

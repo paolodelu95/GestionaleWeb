@@ -309,6 +309,7 @@ export interface Acquisto {
 export interface CategoriaProdotto {
   id?: number;
   nome: string;
+  aliquotaIvaId?: number | null;
 }
 
 export interface UnitaMisura {

@@ -371,7 +371,17 @@ export class ProdottoDialogComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.ds.getCategorieProdotto().subscribe(c => this.categorie = c);
+    this.ds.getCategorieProdotto().subscribe(c => {
+      this.categorie = c;
+      this.form.get('categoria')?.valueChanges.subscribe(catNome => {
+        if (!catNome) return;
+        const cat = this.categorie.find(x => x.nome === catNome);
+        if (cat?.aliquotaIvaId) {
+          const aliq = this.aliquoteIva.find(a => a.id === cat.aliquotaIvaId);
+          if (aliq) this.form.get('iva')?.setValue(aliq.valore);
+        }
+      });
+    });
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
     this.ds.getAliquoteIva().subscribe(a => this.aliquoteIva = a.filter(x => x.attiva));
     if (this.data?.id && this.data.haVarianti) {

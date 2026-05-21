@@ -83,7 +83,7 @@ export class TipoPagamentoDialogComponent {
 @Component({
   selector: 'app-categoria-prodotto-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica categoria' : 'Nuova categoria' }}</h2>
     <mat-dialog-content style="min-width:340px">
@@ -91,19 +91,38 @@ export class TipoPagamentoDialogComponent {
         <mat-label>Nome *</mat-label>
         <input matInput [(ngModel)]="nome" autofocus placeholder="es. Materiali, Servizi…">
       </mat-form-field>
+      <mat-form-field style="width:100%; margin-top:4px">
+        <mat-label>IVA predefinita</mat-label>
+        <mat-select [(ngModel)]="aliquotaIvaId">
+          <mat-option [value]="null">— nessuna (usa IVA prodotto) —</mat-option>
+          @for (a of aliquoteIva; track a.id) {
+            @if (a.categoria === 'Imponibile') {
+              <mat-option [value]="a.id">{{ a.valore }}% — {{ a.nome }}</mat-option>
+            }
+          }
+        </mat-select>
+        <mat-hint>Applicata ai nuovi prodotti creati in questa categoria</mat-hint>
+      </mat-form-field>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
       <button mat-flat-button (click)="save()" [disabled]="!nome.trim()">Salva</button>
     </mat-dialog-actions>`
 })
-export class CategoriaProdottoDialogComponent {
+export class CategoriaProdottoDialogComponent implements OnInit {
   nome = '';
+  aliquotaIvaId: number | null = null;
+  aliquoteIva: AliquotaIva[] = [];
   constructor(
+    private ds: DataService,
     public dialogRef: MatDialogRef<CategoriaProdottoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: CategoriaProdotto | null
-  ) { this.nome = data?.nome ?? ''; }
-  save() { if (this.nome.trim()) this.dialogRef.close({ ...this.data, nome: this.nome.trim() }); }
+  ) {
+    this.nome = data?.nome ?? '';
+    this.aliquotaIvaId = data?.aliquotaIvaId ?? null;
+  }
+  ngOnInit() { this.ds.getAliquoteIva().subscribe(a => this.aliquoteIva = a.filter(x => x.attiva)); }
+  save() { if (this.nome.trim()) this.dialogRef.close({ ...this.data, nome: this.nome.trim(), aliquotaIvaId: this.aliquotaIvaId }); }
 }
 
 // ── Unità di Misura Dialog ───────────────────────────────────────────────────
