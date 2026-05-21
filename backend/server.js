@@ -139,6 +139,7 @@ app.use('/api/fatture-ricorrenti', require('./routes/fattureRicorrenti').router)
 app.use('/api/allegati',          require('./routes/allegati'));
 app.use('/api/note-rapide',       require('./routes/noteRapide'));
 app.use('/api/bug-reports',       require('./routes/bugReports'));
+app.use('/api/audit',             require('./routes/audit'));
 // NB: gli allegati sono accessibili solo via GET /api/allegati/:id/download
 // (autenticato). Nessun mount express.static su /uploads.
 

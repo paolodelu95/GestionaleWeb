@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { audit } = require('../utils/audit');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`SELECT n.*, c.ragione_sociale as cliente_nome
@@ -37,7 +38,9 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
+  const snapshot = db.prepare('SELECT numero, cliente_id, fattura_id, stato, data_emissione FROM note_credito WHERE id=?').get(req.params.id);
   db.prepare('DELETE FROM note_credito WHERE id=?').run(req.params.id);
+  audit('nota_credito', Number(req.params.id), 'DELETE', snapshot || {});
   res.json({ success: true });
 });
 
