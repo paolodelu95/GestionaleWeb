@@ -310,10 +310,12 @@ router.get('/:id/print', (req, res) => {
 
 router.patch('/:id/stato', (req, res) => {
   const { stato } = req.body;
+  const before = db.prepare('SELECT stato FROM fatture WHERE id=?').get(req.params.id);
   db.prepare('UPDATE fatture SET stato=? WHERE id=?').run(stato, req.params.id);
   if (stato === 'EMESSA') {
     creaPagamentoImmediato(req.params.id);
   }
+  audit('fattura', Number(req.params.id), 'UPDATE', { before, after: { stato } });
   res.json({ success: true });
 });
 
