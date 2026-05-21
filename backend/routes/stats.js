@@ -174,6 +174,111 @@ router.get('/kpi-anno', (req, res) => {
   });
 });
 
+// ── GET /iva-trimestre – LIPE per trimestre ──────────────────────────────────
+// query: anno, trimestre (1-4)
+router.get('/iva-trimestre', (req, res) => {
+  const anno = parseInt(String(req.query.anno || new Date().getFullYear()), 10);
+  const trim = Math.min(Math.max(parseInt(String(req.query.trimestre || '1'), 10), 1), 4);
+  const monthStart = (trim - 1) * 3 + 1;
+  const monthEnd = monthStart + 2;
+  const from = `${anno}-${String(monthStart).padStart(2, '0')}-01`;
+  // Last day of monthEnd
+  const lastDay = new Date(anno, monthEnd, 0).getDate();
+  const to = `${anno}-${String(monthEnd).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  // IVA debito (vendite)
+  const venditeRows = db.prepare(`
+    SELECT fr.iva,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(fr.iva/100)),0) as iva
+    FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
+    WHERE f.data_emissione BETWEEN ? AND ?
+      AND f.stato != 'ANNULLATA'
+    GROUP BY fr.iva ORDER BY fr.iva
+  `).all(from, to);
+
+  // IVA credito (acquisti)
+  const acquistiRows = db.prepare(`
+    SELECT ar.iva,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(ar.iva/100)),0) as iva
+    FROM acquisti a JOIN acquisti_righe ar ON ar.acquisto_id=a.id
+    WHERE a.data_emissione BETWEEN ? AND ?
+    GROUP BY ar.iva ORDER BY ar.iva
+  `).all(from, to);
+
+  const ivaDebito = venditeRows.reduce((s, r) => s + r.iva, 0);
+  const ivaCredito = acquistiRows.reduce((s, r) => s + r.iva, 0);
+  const saldo = ivaDebito - ivaCredito;
+
+  res.json({
+    anno, trimestre: trim, periodo: { from, to },
+    ivaDebito: +ivaDebito.toFixed(2),
+    ivaCredito: +ivaCredito.toFixed(2),
+    saldo: +saldo.toFixed(2),
+    debito: saldo > 0,
+    venditePerAliquota: venditeRows.map(r => ({ aliquota: r.iva, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
+    acquistiPerAliquota: acquistiRows.map(r => ({ aliquota: r.iva, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
+  });
+});
+
+// ── GET /export-contabile – righe per il commercialista ──────────────────────
+// query: dataDa (YYYY-MM-DD), dataA (YYYY-MM-DD)
+router.get('/export-contabile', (req, res) => {
+  const dataDa = String(req.query.dataDa || `${new Date().getFullYear()}-01-01`);
+  const dataA  = String(req.query.dataA  || `${new Date().getFullYear()}-12-31`);
+
+  const vendite = db.prepare(`
+    SELECT f.id, f.numero, f.data_emissione, f.stato,
+           c.ragione_sociale as controparte, c.p_iva as piva, c.codice_fiscale as cf,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(fr.iva/100)),0) as iva,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0) as totale
+    FROM fatture f
+    LEFT JOIN clienti c ON c.id=f.cliente_id
+    LEFT JOIN fatture_righe fr ON fr.fattura_id=f.id
+    WHERE f.data_emissione BETWEEN ? AND ?
+      AND f.stato != 'ANNULLATA'
+    GROUP BY f.id ORDER BY f.data_emissione, f.numero
+  `).all(dataDa, dataA);
+
+  const acquisti = db.prepare(`
+    SELECT a.id, a.numero, a.data_emissione, a.stato,
+           forn.ragione_sociale as controparte, forn.p_iva as piva,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(ar.iva/100)),0) as iva,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(1+ar.iva/100)),0) as totale
+    FROM acquisti a
+    LEFT JOIN fornitori forn ON forn.id=a.fornitore_id
+    LEFT JOIN acquisti_righe ar ON ar.acquisto_id=a.id
+    WHERE a.data_emissione BETWEEN ? AND ?
+    GROUP BY a.id ORDER BY a.data_emissione, a.numero
+  `).all(dataDa, dataA);
+
+  const dto = (r, tipo) => ({
+    tipo, id: r.id, numero: r.numero, data: r.data_emissione,
+    controparte: r.controparte || '', piva: r.piva || '', cf: r.cf || '',
+    imponibile: +(r.imponibile || 0).toFixed(2),
+    iva: +(r.iva || 0).toFixed(2),
+    totale: +(r.totale || 0).toFixed(2),
+    stato: r.stato,
+  });
+
+  res.json({
+    periodo: { dataDa, dataA },
+    vendite: vendite.map(r => dto(r, 'VENDITA')),
+    acquisti: acquisti.map(r => dto(r, 'ACQUISTO')),
+    totali: {
+      venditeImponibile: +vendite.reduce((s, r) => s + r.imponibile, 0).toFixed(2),
+      venditeIva: +vendite.reduce((s, r) => s + r.iva, 0).toFixed(2),
+      venditeTotale: +vendite.reduce((s, r) => s + r.totale, 0).toFixed(2),
+      acquistiImponibile: +acquisti.reduce((s, r) => s + r.imponibile, 0).toFixed(2),
+      acquistiIva: +acquisti.reduce((s, r) => s + r.iva, 0).toFixed(2),
+      acquistiTotale: +acquisti.reduce((s, r) => s + r.totale, 0).toFixed(2),
+    },
+  });
+});
+
 // ── GET /bi – Business Intelligence completa ──────────────────────────────────
 router.get('/bi', (req, res) => {
   try {

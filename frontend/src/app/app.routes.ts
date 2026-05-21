@@ -22,4 +22,5 @@ export const routes: Routes = [
   { path: 'prima-nota',   loadComponent: () => import('./components/prima-nota/prima-nota').then(m => m.PrimaNotaComponent) },
   { path: 'fatture-ricorrenti', loadComponent: () => import('./components/fatture-ricorrenti/fatture-ricorrenti').then(m => m.FattureRicorrentiComponent) },
   { path: 'storico', loadComponent: () => import('./components/storico/storico').then(m => m.StoricoComponent) },
+  { path: 'compliance', loadComponent: () => import('./components/compliance/compliance').then(m => m.ComplianceComponent) },
 ];

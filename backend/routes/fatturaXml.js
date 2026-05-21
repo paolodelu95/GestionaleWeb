@@ -42,6 +42,64 @@ router.post('/:id/invia-sdi', async (req, res) => {
   }
 });
 
+// GET /:id/validate – controlli di sanity prima di inviare a SDI
+router.get('/:id/validate', (req, res) => {
+  try {
+    const f = db.prepare(`SELECT f.*, c.* FROM fatture f LEFT JOIN clienti c ON c.id=f.cliente_id WHERE f.id=?`).get(req.params.id);
+    const az = db.prepare('SELECT * FROM azienda WHERE id=1').get();
+    const errors = [];
+    const warnings = [];
+
+    if (!f) return res.status(404).json({ error: 'Fattura non trovata' });
+
+    // Cliente
+    if (!f.cliente_id) errors.push('Cliente mancante.');
+    else {
+      if (!f.ragione_sociale) errors.push('Ragione sociale cliente mancante.');
+      const pivaClean = String(f.p_iva || '').replace(/^IT/i, '').replace(/\s/g, '');
+      const cfClean = String(f.codice_fiscale || '').replace(/\s/g, '');
+      if (!pivaClean && !cfClean) errors.push('Cliente: serve P.IVA o Codice Fiscale per la fattura elettronica.');
+      else if (pivaClean && !/^\d{11}$/.test(pivaClean)) errors.push(`P.IVA cliente non valida: "${f.p_iva}" (devono essere 11 cifre)`);
+      const sdi = (f.sdi || '').trim();
+      const pec = (f.pec || '').trim();
+      if (!sdi && !pec) warnings.push('Cliente senza codice SDI ne PEC: la fattura verra recapitata via SDI con destinatario default 0000000.');
+      else if (sdi && sdi.length !== 7 && sdi !== '0000000') warnings.push(`Codice SDI "${sdi}" non standard (di solito 7 caratteri).`);
+    }
+
+    // Azienda
+    if (!az?.ragione_sociale) errors.push('Ragione sociale azienda mancante (Impostazioni).');
+    const pivaAz = String(az?.p_iva || '').replace(/^IT/i, '').replace(/\s/g, '');
+    if (!pivaAz || !/^\d{11}$/.test(pivaAz)) errors.push('P.IVA azienda non valida.');
+    if (!az?.regime_fiscale) warnings.push('Regime fiscale azienda non impostato (default RF01).');
+
+    // Righe
+    const righe = db.prepare('SELECT * FROM fatture_righe WHERE fattura_id=?').all(f.id);
+    if (!righe.length) errors.push('Nessuna riga in fattura.');
+    let totaleCalcolato = 0;
+    for (const [i, r] of righe.entries()) {
+      if (!r.descrizione || !String(r.descrizione).trim()) errors.push(`Riga ${i + 1}: descrizione vuota.`);
+      if (r.quantita == null || +r.quantita === 0) warnings.push(`Riga ${i + 1}: quantita zero o mancante.`);
+      if (r.prezzo == null || +r.prezzo < 0) errors.push(`Riga ${i + 1}: prezzo negativo o mancante.`);
+      if (r.iva == null || +r.iva < 0 || +r.iva > 100) errors.push(`Riga ${i + 1}: IVA fuori range (${r.iva}).`);
+      totaleCalcolato += (+r.quantita || 0) * (+r.prezzo || 0) * (1 - (+r.sconto || 0) / 100) * (1 + (+r.iva || 0) / 100);
+    }
+    if (totaleCalcolato === 0) warnings.push('Totale fattura zero.');
+
+    // Stato
+    if (f.stato === 'ANNULLATA') errors.push('Fattura annullata: non si puo inviare a SDI.');
+    if (f.stato_sdi === 'INVIATA') warnings.push('Fattura gia inviata a SDI in precedenza.');
+
+    res.json({
+      ok: errors.length === 0,
+      errors,
+      warnings,
+      totaleCalcolato: +totaleCalcolato.toFixed(2),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', (req, res) => {
   try {
     const fattura = db.prepare('SELECT numero FROM fatture WHERE id=?').get(req.params.id);
