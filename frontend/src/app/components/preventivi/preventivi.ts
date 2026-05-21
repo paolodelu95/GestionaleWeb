@@ -607,6 +607,18 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
 
   delete(p: Preventivo) {
     if (!confirm(`Eliminare Preventivo ${p.numero}?`)) return;
-    this.ds.deletePreventivo(p.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    this.ds.getPreventivoById(p.id!).subscribe(full => {
+      this.ds.deletePreventivo(p.id!).subscribe(() => {
+        this.load();
+        const ref = this.snack.open(`Preventivo ${p.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          const { id, ...payload } = full as any;
+          this.ds.createPreventivo(payload).subscribe({
+            next: () => { this.load(); this.snack.open('Preventivo ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+          });
+        });
+      });
+    });
   }
 }

@@ -53,6 +53,21 @@ export class App implements OnInit {
   searchQuery = '';
   searchResults: { label: string; tipo: string; route: string; id: number }[] = [];
   showSearch = false;
+  showNotif = false;
+  notifItems: any[] = [];
+  loadingNotif = false;
+  readonly quickActions: { label: string; icon: string; route: string }[] = [
+    { label: 'Nuova fattura',     icon: 'receipt_long',   route: '/fatture' },
+    { label: 'Nuovo cliente',     icon: 'person_add',     route: '/clienti' },
+    { label: 'Nuovo prodotto',    icon: 'add_box',        route: '/prodotti' },
+    { label: 'Nuovo preventivo',  icon: 'description',    route: '/preventivi' },
+    { label: 'Nuovo DDT',         icon: 'local_shipping', route: '/ddt' },
+    { label: 'Vendita al banco',  icon: 'point_of_sale',  route: '/vendita-banco' },
+    { label: 'Vai a dashboard',   icon: 'dashboard',      route: '/dashboard' },
+    { label: 'Vai a magazzino',   icon: 'inventory',      route: '/magazzino' },
+    { label: 'Vai a scadenzario', icon: 'event',          route: '/scadenzario' },
+    { label: 'Vai a report',      icon: 'analytics',      route: '/report' },
+  ];
   showInstallBanner = false;
   showUpdateBanner = false;
   private searchSubject = new Subject<string>();
@@ -137,12 +152,52 @@ export class App implements OnInit {
       e.preventDefault();
       this.searchInputRef?.nativeElement.focus();
       this.searchInputRef?.nativeElement.select();
+      this.showSearch = true;
     }
     if (e.key === 'Escape' && this.showSearch) {
       this.showSearch = false;
       this.searchQuery = '';
       this.searchResults = [];
     }
+  }
+
+  onSearchFocus() {
+    if (!this.searchQuery) this.showSearch = true;
+  }
+
+  navigateToAction(a: { route: string }) {
+    this.showSearch = false;
+    this.searchQuery = '';
+    this.router.navigate([a.route]);
+  }
+
+  toggleNotif(e: MouseEvent) {
+    e.stopPropagation();
+    this.showNotif = !this.showNotif;
+    if (this.showNotif && !this.notifItems.length) this.loadNotif();
+  }
+
+  loadNotif() {
+    this.loadingNotif = true;
+    this.ds.getScadenzarioFull().subscribe({
+      next: items => {
+        const oggi = new Date().toISOString().slice(0, 10);
+        this.notifItems = (items || [])
+          .filter((i: any) => i.scaduto || (i.giorniMancanti !== null && i.giorniMancanti <= 7))
+          .slice(0, 20);
+        this.loadingNotif = false;
+      },
+      error: () => { this.notifItems = []; this.loadingNotif = false; }
+    });
+  }
+
+  navigateToScadenzario() {
+    this.showNotif = false;
+    this.router.navigate(['/scadenzario']);
+  }
+
+  get notifBadgeCount(): number {
+    return this.badges.scadenzeScadute || 0;
   }
 
   toggleSidebar() { this.collapsed = !this.collapsed; }
@@ -164,6 +219,9 @@ export class App implements OnInit {
   onDocumentClick(e: MouseEvent) {
     if (!this.elRef.nativeElement.querySelector('.search-box')?.contains(e.target)) {
       this.showSearch = false;
+    }
+    if (!this.elRef.nativeElement.querySelector('.notif-wrap')?.contains(e.target)) {
+      this.showNotif = false;
     }
   }
 
