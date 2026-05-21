@@ -110,6 +110,7 @@ app.use('/api/tipi-pagamento',   require('./routes/tipiPagamento'));
 app.use('/api/categorie-prodotto', require('./routes/categorieProdotto'));
 app.use('/api/unita-misura',     require('./routes/unitaMisura'));
 app.use('/api/aliquote-iva',     require('./routes/aliquoteIva'));
+app.use('/api/conti-acquisto',  require('./routes/contiAcquisto'));
 app.use('/api/fattura-xml',      require('./routes/fatturaXml'));
 app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
 app.use('/api/email',            require('./routes/email'));

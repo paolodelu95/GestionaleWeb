@@ -439,6 +439,21 @@ const migrations = [
   )`,
   // Assegnazione listino di default al cliente
   'ALTER TABLE clienti ADD COLUMN listino_id INTEGER REFERENCES listini(id)',
+  // Aliquote IVA: campi aggiuntivi per SDI / FatturaPA
+  'ALTER TABLE aliquote_iva ADD COLUMN codice TEXT DEFAULT ""',
+  'ALTER TABLE aliquote_iva ADD COLUMN categoria TEXT DEFAULT ""',
+  'ALTER TABLE aliquote_iva ADD COLUMN descrizione TEXT DEFAULT ""',
+  'ALTER TABLE aliquote_iva ADD COLUMN natura TEXT DEFAULT NULL',
+  'ALTER TABLE aliquote_iva ADD COLUMN note TEXT DEFAULT ""',
+  'ALTER TABLE aliquote_iva ADD COLUMN predefinito INTEGER DEFAULT 0',
+  // Conti di acquisto (piano dei conti semplificato per categorizzare gli acquisti)
+  `CREATE TABLE IF NOT EXISTS conti_acquisto (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    predefinito_per TEXT DEFAULT '',
+    attivo INTEGER DEFAULT 1
+  )`,
+  'ALTER TABLE acquisti ADD COLUMN conto_acquisto_id INTEGER REFERENCES conti_acquisto(id)',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
@@ -746,5 +761,166 @@ try {
   def('SDD B2B',                   'BANCA',  30, false);   // SEPA Direct Debit Business
   def('SDD Core',                  'BANCA',  30, false);   // SEPA Direct Debit Consumer
 } catch(_) {}
+
+// ── Aliquote IVA complete (SDI / FatturaPA) ───────────────────────────────────
+try {
+  // Aggiorna i 4 record base con codice/categoria/natura
+  db.prepare("UPDATE aliquote_iva SET nome='Imponibile 22%',  codice='22',  categoria='Imponibile',  descrizione='Imponibile 22%',  predefinito=1 WHERE id=4").run();
+  db.prepare("UPDATE aliquote_iva SET nome='Imponibile 10%',  codice='10',  categoria='Imponibile',  descrizione='Imponibile 10%'                     WHERE id=3").run();
+  db.prepare("UPDATE aliquote_iva SET nome='Imponibile 4%',   codice='4',   categoria='Imponibile',  descrizione='Imponibile 4%'                      WHERE id=2").run();
+  db.prepare("UPDATE aliquote_iva SET nome='Esente art. 10',  codice='E10', categoria='N4: Esente',  descrizione='Esente art. 10 DPR 633/72', natura='N4' WHERE id=1").run();
+
+  const ins = db.prepare(`INSERT INTO aliquote_iva (nome,valore,codice,categoria,descrizione,natura,note,predefinito,attiva)
+    SELECT ?,?,?,?,?,?,?,0,1 WHERE NOT EXISTS (SELECT 1 FROM aliquote_iva WHERE codice=?)`);
+
+  const imp  = (c,v,d,n)   => ins.run(d,v,c,'Imponibile',d,null,n??'',c);
+  const arc  = (c,v,d)     => ins.run(d,v,c,'Acq. reverse charge',d,null,'',c);
+  const sp   = (c,v,d)     => ins.run(d,v,c,'Split payment',d,null,'Split payment verso P.A.',c);
+  const nat  = (c,v,cat,d,natura,n) => ins.run(d,v,c,cat,d,natura,n??'',c);
+
+  // ── Imponibile ─────────────────────────────────────────────────────────────
+  imp('22d',   22, 'Imp. 22% detr. al 50%',   '50% indetraibile');
+  imp('22d40', 22, 'Imp. 22% detr. al 40%',   '40% indetraibile');
+  imp('22i',   22, 'Imp. 22% indetraibile',    'IVA totalmente indetraibile');
+  imp('5',      5, 'Imponibile 5%');
+
+  // ── Acq. reverse charge ─────────────────────────────────────────────────────
+  arc('22r',   22, 'Imp. 22% acquisti rev. charge art. 17');
+  arc('22r74', 22, 'Imp. 22% acquisti rev. charge art. 74');
+  arc('22u',   22, 'Imp. 22% acquisti UE');
+  arc('22x',   22, 'Imp. 22% acquisti extra-UE');
+  arc('10u',   10, 'Imp. 10% acquisti UE');
+  arc('10x',   10, 'Imp. 10% acquisti extra-UE');
+  arc('4u',     4, 'Imp. 4% acquisti UE');
+  arc('4x',     4, 'Imp. 4% acquisti extra-UE');
+
+  // ── Split payment (scissione pagamenti – PA) ────────────────────────────────
+  sp('22sp', 22, 'Imp. 22% con scissione pagamenti');
+  sp('10sp', 10, 'Imp. 10% con scissione pagamenti');
+  sp('5sp',   5, 'Imp. 5% con scissione pagamenti');
+  sp('4sp',   4, 'Imp. 4% con scissione pagamenti');
+
+  // ── N1: Escluso art. 15 ─────────────────────────────────────────────────────
+  nat('X15',  0, 'N1: Escluso art. 15', 'Escluso art. 15 DPR 633/72', 'N1', 'Spese per conto dei clienti');
+
+  // ── N2: Non soggetto / Fuori campo ──────────────────────────────────────────
+  nat('NS7u', 0, 'N2.1', 'Inv. contabile art. 7-ter DPR 633/72 UE',       'N2.1', 'Prestaz. servizi UE');
+  nat('NS7x', 0, 'N2.1', 'Non sogg. art. 7-ter DPR 633/72 extra-UE',      'N2.1', 'Prestaz. servizi extra-UE');
+  nat('FC',   0, 'N2.2', 'Fuori campo IVA',                                'N2.2', 'Riservato alle Spese fuori campo IVA');
+  nat('FC13', 0, 'N2.2', 'Fuori campo art. 13 c. 5 DPR 633/72',           'N2.2', 'Cessione acquisti con IVA parz. indetraibile');
+  nat('NS26', 0, 'N2.2', 'Non sogg. art. 26 c. 3 DPR 633/72',             'N2.2', 'Nota di credito del solo imponibile');
+  nat('NS74', 0, 'N2.2', 'Non sogg. art. 74 c. 1 DPR 633/72',             'N2.2', 'Tabacchi, editoria, ric. telefoniche');
+  nat('RF',   0, 'N2.2', 'Art. 1 c.54-89 L.190/2014 Reg. forfettario',    'N2.2', 'Regime forfettario');
+
+  // ── N3: Non imponibile ──────────────────────────────────────────────────────
+  nat('N8a',  0, 'N3.1', 'Non imp. art. 8 c. 1 lett. a DPR 633/72',      'N3.1', 'Cessioni extra-UE');
+  nat('N8b',  0, 'N3.1', 'Non imp. art. 8 c. 1 lett. b DPR 633/72',      'N3.1', 'Cessioni extra-UE (trasp. a cura del cliente)');
+  nat('N41',  0, 'N3.2', 'Non imp. art. 41 D.L. 331/93',                  'N3.2', 'Cessioni UE');
+  nat('N71',  0, 'N3.3', 'Non imp. art. 71 DPR 633/72 San Marino',        'N3.3', 'Cessioni San Marino');
+  nat('N9',   0, 'N3.4', 'Non imp. art. 9 DPR 633/72',                    'N3.4', 'Trasporti extra-UE');
+  nat('N8c',  0, 'N3.5', "Non imp. art. 8 c. 1 lett. c DPR 633/72",      'N3.5', "Dichiarazione d'intento");
+
+  // ── N4: Esente ──────────────────────────────────────────────────────────────
+  nat('E10/72/49', 0, 'N4: Esente', 'Esente D.Lgs n. 504/95 e D.Lgs n. 398/95 art. 10', 'N4', '');
+  nat('E124',      0, 'N4: Esente', 'Esente art. 124 D.L. 34/2020',                       'N4', 'Cessione beni emergenza Covid-19');
+  nat('Ei',        0, 'N4: Esente', 'Esente art. 74 Comma 7 e 8 DPR 633/72',              'N4', '');
+  nat('OMG',       0, 'N4: Esente', 'Omaggi art. 2 c. 2 n. 4 DPR 633/72',                'N4', "Cessione gratuita beni oggetto dell'attività");
+
+  // ── N5: Regime del margine ──────────────────────────────────────────────────
+  nat('RM', 0, 'N5: Regime del margine', 'Regime del margine art. 36 DL 41/95', 'N5', 'Regime del margine');
+
+  // ── N6: Vendite reverse charge ──────────────────────────────────────────────
+  nat('EiRc',  0, 'N6',   'Esente art. 74 Comma 7 e 8 DPR 633/72',         'N6',   '');
+  nat('R74',   0, 'N6.1', 'Rev. charge art. 74 c. 7-8 DPR 633/72',          'N6.1', 'Cessione rottami');
+  nat('R17a',  0, 'N6.3', 'Rev. charge art. 17 c. 6/a DPR 633/72',          'N6.3', 'Subappalto edilizia');
+  nat('R17ab', 0, 'N6.4', 'Rev. charge art. 17 c. 6/a-bis DPR 633/72',      'N6.4', 'Cessione fabbricati');
+  nat('R17b',  0, 'N6.5', 'Rev. charge art. 17 c. 6/b DPR 633/72',          'N6.5', 'Cessione cellulari');
+  nat('R17c',  0, 'N6.6', 'Rev. charge art. 17 c. 6/c DPR 633/72',          'N6.6', 'Cessione microprocessori');
+  nat('R17t',  0, 'N6.7', 'Rev. charge art. 17 c. 6/a-ter DPR 633/72',      'N6.7', 'Prestazioni servizi su edifici');
+} catch(e) { console.error('Seed aliquote IVA:', e.message); }
+
+// ── Conti di acquisto ─────────────────────────────────────────────────────────
+try {
+  const insC = db.prepare(`INSERT INTO conti_acquisto (nome, predefinito_per)
+    SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM conti_acquisto WHERE nome=?)`);
+  const c = (nome, pred='') => insC.run(nome, pred, nome);
+
+  c('Abbonamenti riviste, giornali');
+  c('Abbuoni e arrot. attivi');
+  c('Abbuoni e arrot. passivi');
+  c('Acquisto carburanti');
+  c('Acquisto imballaggi');
+  c('Acquisto libri e giornali');
+  c('Acquisto ricariche, biglietti, bollo');
+  c('Acquisto valori bollati');
+  c('Altri costi del personale');
+  c('Altri costi per servizi');
+  c('Assicurazioni auto');
+  c('Autocarri/autovetture');
+  c('Autovetture (inded. 80%)');
+  c('Bolli auto');
+  c('Cancelleria e stampati');
+  c('Canone affitto');
+  c('Canone di manutenzione');
+  c('Canoni di leasing veicoli');
+  c('Carburanti e lubrificanti');
+  c('Consulenze commercialisti');
+  c('Consulenze del lavoro');
+  c('Contributi enasarco');
+  c('Costi di ampliamento');
+  c('Diritti camerali');
+  c('Fabbricati Ind.li e comm.li');
+  c('Fitti passivi');
+  c('Impianti generici');
+  c('Imposte e tasse deducibili');
+  c('Imposte e tasse indeducibili');
+  c('Indumenti di lavoro');
+  c('Interessi passivi v/fornitori');
+  c('Lavorazioni di terzi p/produzione di beni');
+  c('Licenze d\'uso software');
+  c('Macchine elettromec. d\'ufficio');
+  c('Manutenzione e rip. veicoli parz. ded.');
+  c('Materiale pubblicitario');
+  c('Materie di consumo c/acquisti');
+  c('Materie prime c/acquisti');
+  c('Materie prime c/acquisti per produzione servizi');
+  c('Materie sussidiarie c/acquisti');
+  c('Merci c/acquisti', 'Acquisti / Prestaz. servizi');
+  c('Merci c/acquisti per produzione servizi');
+  c('Mobili e arredi ufficio');
+  c('Multe e sanzioni indeducibili');
+  c('Note spese amministratori');
+  c('Note spese dipendenti');
+  c('Omaggi da fornitori');
+  c('Oneri bancari');
+  c('Oneri sociali cassa edile');
+  c('Oneri sociali INAIL');
+  c('Oneri sociali INPS');
+  c('Pedaggi autostradali');
+  c('Provvigioni a intermediari');
+  c('Rit. d\'acconto', 'Rit. d\'acconto');
+  c('Sconti e abbuoni su acquisti merci');
+  c('Servizi di pulizia');
+  c('Servizi internet');
+  c('Spese condominiali');
+  c('Spese di pubblicità');
+  c('Spese di rappresentanza');
+  c('Spese di trasferta');
+  c('Spese legali e notarili');
+  c('Spese postali');
+  c('Spese recupero crediti (insoluti, protesti..)');
+  c('Spese telefoniche');
+  c('Stipendi');
+  c('Tassa sui rifiuti');
+  c('Terreni');
+  c('TFR');
+  c('TFR destinato a fondi pensione (-50 dip.)');
+  c('Trasporti su acquisti');
+  c('Trasporti su vendite');
+  c('Utenze acqua');
+  c('Utenze energia elettrica');
+  c('Utenze gas riscaldamento');
+  c('Vigilanza');
+} catch(e) { console.error('Seed conti acquisto:', e.message); }
 
 module.exports = db;
