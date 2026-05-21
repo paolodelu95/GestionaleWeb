@@ -71,10 +71,9 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">Nessun fornitore trovato</td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
-    @if (!fornitori.length) { <p class="empty-msg">Nessun fornitore</p> }
   </div>
 </div>
