@@ -2,10 +2,18 @@
   <div class="page-header">
     <h1 class="page-title">Fornitori</h1>
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Aggiungi</button>
-    <button mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
-    <button mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     <input #importInput type="file" accept=".xlsx,.xls" class="hidden-input" (change)="importExcel($event)">
-    <app-column-picker storageKey="fornitori" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker>
+    <span class="header-overflow-item"><app-column-picker storageKey="fornitori" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
+
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFornitori" title="Altre azioni">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #overflowMenuFornitori="matMenu">
+      <button mat-menu-item type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+    </mat-menu>
   </div>
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
