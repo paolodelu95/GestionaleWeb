@@ -1348,6 +1348,18 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   delete(f: Fattura) {
     if (!confirm(`Eliminare Fattura ${f.numero}?`)) return;
-    this.ds.deleteFattura(f.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    this.ds.getFatturaById(f.id!).subscribe(full => {
+      this.ds.deleteFattura(f.id!).subscribe(() => {
+        this.load();
+        const ref = this.snack.open(`Fattura ${f.numero} eliminata`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          const { id, ...payload } = full as any;
+          this.ds.createFattura(payload).subscribe({
+            next: () => { this.load(); this.snack.open('Fattura ripristinata', '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+          });
+        });
+      });
+    });
   }
 }

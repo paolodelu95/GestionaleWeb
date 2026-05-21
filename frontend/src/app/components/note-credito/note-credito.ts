@@ -635,6 +635,18 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
 
   delete(n: NotaCredito) {
     if (!confirm(`Eliminare Nota di Credito ${n.numero}?`)) return;
-    this.ds.deleteNotaCredito(n.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    this.ds.getNotaCreditoById(n.id!).subscribe(full => {
+      this.ds.deleteNotaCredito(n.id!).subscribe(() => {
+        this.load();
+        const ref = this.snack.open(`Nota di Credito ${n.numero} eliminata`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          const { id, ...payload } = full as any;
+          this.ds.createNotaCredito(payload).subscribe({
+            next: () => { this.load(); this.snack.open('Nota di Credito ripristinata', '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+          });
+        });
+      });
+    });
   }
 }

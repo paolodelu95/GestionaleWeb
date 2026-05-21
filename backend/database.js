@@ -954,4 +954,15 @@ try {
 
 try { db.exec('ALTER TABLE azienda ADD COLUMN notifiche_config TEXT DEFAULT NULL'); } catch(_) {}
 
+// Vincoli UNIQUE su numero documento per prevenire duplicati (race condition contatore).
+// CREATE UNIQUE INDEX fallisce se ci sono gia duplicati: log warning e continua.
+const docTables = ['fatture', 'ddt', 'ordini', 'preventivi', 'note_credito', 'acquisti', 'vendite_banco', 'arrivi_merce'];
+for (const t of docTables) {
+  try {
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_${t}_numero ON ${t}(numero)`);
+  } catch (err) {
+    console.warn(`[migrate] indice UNIQUE su ${t}.numero non creato (probabili duplicati esistenti): ${err.message}`);
+  }
+}
+
 module.exports = db;

@@ -867,6 +867,18 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   delete(d: Ddt) {
     if (!confirm(`Eliminare DDT ${d.numero}?`)) return;
-    this.ds.deleteDdt(d.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    this.ds.getDdtById(d.id!).subscribe(full => {
+      this.ds.deleteDdt(d.id!).subscribe(() => {
+        this.load();
+        const ref = this.snack.open(`DDT ${d.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          const { id, ...payload } = full as any;
+          this.ds.createDdt(payload).subscribe({
+            next: () => { this.load(); this.snack.open('DDT ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+          });
+        });
+      });
+    });
   }
 }
