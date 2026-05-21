@@ -283,6 +283,7 @@ export class App implements OnInit {
     { label: 'Prima Nota',   icon: 'menu_book',       route: '/prima-nota' },
     { label: 'Report',       icon: 'bar_chart',      route: '/report' },
     { label: 'Storico',      icon: 'history',        route: '/storico' },
+    { label: 'Compliance',   icon: 'verified',       route: '/compliance' },
     { label: 'Impostazioni', icon: 'settings',       route: '/impostazioni' },
   ];
 

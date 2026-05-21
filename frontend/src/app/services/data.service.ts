@@ -235,6 +235,15 @@ export class DataService {
   getTopProdottiCliente(clienteId: number, limit = 5): Observable<{ id: number; nome: string; codice?: string; prezzo: number; iva: number; unitaMisura?: string; occorrenze: number; quantitaTotale: number; ultimaVendita: string }[]> {
     return this.api.get(`clienti/${clienteId}/top-prodotti?limit=${limit}`);
   }
+  validateFatturaXml(id: number): Observable<{ ok: boolean; errors: string[]; warnings: string[]; totaleCalcolato: number }> {
+    return this.api.get(`fattura-xml/${id}/validate`);
+  }
+  getIvaTrimestre(anno: number, trimestre: number): Observable<any> {
+    return this.api.get(`stats/iva-trimestre?anno=${anno}&trimestre=${trimestre}`);
+  }
+  getExportContabile(dataDa: string, dataA: string): Observable<any> {
+    return this.api.get(`stats/export-contabile?dataDa=${dataDa}&dataA=${dataA}`);
+  }
   getKpiAnno(anno?: number): Observable<StatsKpiAnno> {
     return this.api.get(anno ? `stats/kpi-anno?anno=${anno}` : 'stats/kpi-anno');
   }

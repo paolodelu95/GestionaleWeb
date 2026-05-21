@@ -1354,10 +1354,24 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   inviaSdi(f: Fattura) {
-    if (!confirm(`Inviare la fattura n. ${f.numero} all'SDI?`)) return;
-    this.ds.inviaFatturaSdi(f.id!).subscribe({
-      next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000 }); },
-      error: e => this.snack.open('Errore SDI: ' + (e.error?.error || e.message), '', { duration: 5000 })
+    this.ds.validateFatturaXml(f.id!).subscribe({
+      next: v => {
+        if (!v.ok) {
+          const msg = 'Impossibile inviare:\n\n' + v.errors.map(e => '• ' + e).join('\n') +
+                      (v.warnings.length ? '\n\nAvvisi:\n' + v.warnings.map(w => '• ' + w).join('\n') : '');
+          alert(msg);
+          return;
+        }
+        const prefix = v.warnings.length
+          ? `Avvisi:\n${v.warnings.map(w => '• ' + w).join('\n')}\n\n`
+          : '';
+        if (!confirm(`${prefix}Inviare la fattura n. ${f.numero} all'SDI?`)) return;
+        this.ds.inviaFatturaSdi(f.id!).subscribe({
+          next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000, panelClass: 'snack-ok' }); },
+          error: e => this.snack.open('Errore SDI: ' + (e.error?.error || e.message), '', { duration: 5000, panelClass: 'snack-error' })
+        });
+      },
+      error: () => alert('Errore validazione, riprova.')
     });
   }
 
