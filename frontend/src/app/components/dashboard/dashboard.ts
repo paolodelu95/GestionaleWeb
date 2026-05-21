@@ -31,6 +31,7 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: 'alerts',          label: 'Avvisi',                  icon: 'warning',       visible: true },
   { id: 'kpi-magazzino',   label: 'KPI magazzino e clienti', icon: 'analytics',     visible: true },
   { id: 'kpi-anno',        label: 'KPI anno + cashflow',     icon: 'monitoring',    visible: true },
+  { id: 'cashflow-forecast', label: 'Previsione cashflow 60gg', icon: 'show_chart', visible: true },
   { id: 'chart-vendite',   label: 'Grafico vendite mensili', icon: 'bar_chart',     visible: true },
   { id: 'chart-top',       label: 'Top 5 prodotti',          icon: 'pie_chart',     visible: true },
   { id: 'table-sotto',     label: 'Prodotti sotto soglia',   icon: 'inventory',     visible: true },
@@ -63,6 +64,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   kpi: StatsKpiAnno = { fatturato: 0, costi: 0, margine: 0 };
   cashflow: StatsCashflow = { daIncassare: 0, daPagare: 0 };
+  forecast: { items: { date: string; in: number; out: number; cumulativo: number }[]; saldoFinale: number; totEntrate: number; totUscite: number } = { items: [], saldoFinale: 0, totEntrate: 0, totUscite: 0 };
+  private chartForecast?: Chart;
+  @ViewChild('forecastCanvas') forecastCanvas?: ElementRef<HTMLCanvasElement>;
 
   prodottiSottoSoglia: Prodotto[] = [];
   ddtDaFatturare: Ddt[] = [];
@@ -107,6 +111,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       vendite: safe(this.ds.getVenditeMensili(), []),
       top: safe(this.ds.getTopProdotti(), []),
       cashflow: safe(this.ds.getCashflow(), []),
+      forecast: safe(this.ds.getCashflowForecast(60), { items: [], saldoFinale: 0, totEntrate: 0, totUscite: 0 }),
       kpi: safe(this.ds.getKpiAnno(), null),
     }).subscribe({
       next: (r: any) => {
@@ -118,6 +123,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.tipiPagamento = r.tipi;
         this.kpi = r.kpi;
         this.cashflow = r.cashflow;
+        this.forecast = r.forecast || { items: [], saldoFinale: 0, totEntrate: 0, totUscite: 0 };
         this.venditeMensili = r.vendite;
         this.topProdotti = r.top;
         this.ddtDaFatturare = (r.ddt || [])
@@ -147,6 +153,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy() {
     this.chartVendite?.destroy();
     this.chartTop?.destroy();
+    this.chartForecast?.destroy();
   }
 
   // ── Widget management ──────────────────────────────────────────────────────
@@ -209,7 +216,42 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => {
       this.renderVenditeChart();
       this.renderTopChart();
+      this.renderForecastChart();
     }, 50);
+  }
+
+  private renderForecastChart() {
+    if (!this.forecastCanvas || !this.forecast.items?.length || !this.isVisible('cashflow-forecast')) return;
+    this.chartForecast?.destroy();
+    const labels = this.forecast.items.map(i => i.date.slice(5));
+    const data = this.forecast.items.map(i => i.cumulativo);
+    const colors = data.map(v => v >= 0 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)');
+    this.chartForecast = new Chart(this.forecastCanvas.nativeElement, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Saldo cumulativo (€)',
+          data,
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99,102,241,0.1)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointBackgroundColor: colors,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { ticks: { callback: (v: any) => `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` } },
+          x: { ticks: { maxTicksLimit: 8 } }
+        }
+      }
+    });
   }
 
   private renderVenditeChart() {
