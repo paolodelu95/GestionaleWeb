@@ -101,6 +101,32 @@ router.put('/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// Suggerimenti: prodotti piu venduti a questo cliente negli ultimi 12 mesi
+router.get('/:id/top-prodotti', (req, res) => {
+  const limit = Math.min(Math.max(parseInt(String(req.query.limit || '5'), 10), 1), 20);
+  const rows = db.prepare(`
+    SELECT p.id, p.nome, p.codice, p.prezzo, p.iva, p.unita_misura,
+           COUNT(*) as occorrenze,
+           SUM(fr.quantita) as quantita_totale,
+           MAX(f.data_emissione) as ultima_vendita
+    FROM fatture_righe fr
+    JOIN fatture f ON f.id = fr.fattura_id
+    JOIN prodotti p ON p.id = fr.prodotto_id
+    WHERE f.cliente_id = ?
+      AND f.stato != 'ANNULLATA'
+      AND f.data_emissione >= date('now','-12 months')
+      AND fr.prodotto_id IS NOT NULL
+    GROUP BY p.id
+    ORDER BY occorrenze DESC, ultima_vendita DESC
+    LIMIT ?
+  `).all(req.params.id, limit);
+  res.json(rows.map(r => ({
+    id: r.id, nome: r.nome, codice: r.codice, prezzo: r.prezzo, iva: r.iva,
+    unitaMisura: r.unita_misura, occorrenze: r.occorrenze,
+    quantitaTotale: r.quantita_totale, ultimaVendita: r.ultima_vendita,
+  })));
+});
+
 router.delete('/:id', (req, res) => {
   const id = Number(req.params.id);
   const fatture     = db.prepare('SELECT COUNT(*) as n FROM fatture WHERE cliente_id=?').get(id).n;
