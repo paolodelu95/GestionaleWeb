@@ -295,7 +295,7 @@ export class QuickProdottoDialogComponent {
                   </select>
                 </td>
                 <td>
-                  <input class="riga-input num" type="number" step="0.01" [(ngModel)]="riga.prezzoAcquisto">
+                  <input class="riga-input num" type="number" min="0" step="0.01" [(ngModel)]="riga.prezzoAcquisto">
                 </td>
                 <td style="padding:4px 8px; white-space:nowrap; font-weight:600">
                   {{ (riga.quantita * (riga.prezzoAcquisto || 0)) | currency:'EUR':'symbol':'1.2-2':'it' }}
