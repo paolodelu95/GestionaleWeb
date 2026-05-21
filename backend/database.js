@@ -688,4 +688,63 @@ try {
   `);
 } catch(_) {}
 
+// Normalizza nomi esistenti al formato standard e aggiunge tutti i tipi di pagamento
+try {
+  db.exec(`
+    UPDATE tipi_pagamento SET nome='Bonifico 30 gg.'    WHERE id=5 AND nome='Bonifico 30gg';
+    UPDATE tipi_pagamento SET nome='Bonifico 30 gg F.M.' WHERE id=6 AND nome='Bonifico 30gg FM';
+    UPDATE tipi_pagamento SET nome='Bonifico 60 gg.'    WHERE id=7 AND nome='Bonifico 60gg';
+    UPDATE tipi_pagamento SET nome='Bonifico 60 gg F.M.' WHERE id=8 AND nome='Bonifico 60gg FM';
+  `);
+} catch(_) {}
+
+try {
+  // Pagamenti IMMEDIATI  — contabilizzati subito (immediato=1)
+  // conto CASSA = contanti fisici; conto BANCA = bonifico/POS/elettronico
+  const insTP = db.prepare(`
+    INSERT INTO tipi_pagamento (nome, conto, giorni_scadenza, fine_mese, immediato, attivo)
+    SELECT ?, ?, ?, ?, ?, 1 WHERE NOT EXISTS (SELECT 1 FROM tipi_pagamento WHERE nome=?)`);
+
+  const imm = (nome, conto) => insTP.run(nome, conto, 0, 0, 1, nome);
+  const def = (nome, conto, gg, fm) => insTP.run(nome, conto, gg, fm ? 1 : 0, 0, nome);
+
+  // ── Immediati ────────────────────────────────────────────────────────────
+  imm('Assegno',                   'BANCA');   // assegno bancario
+  imm('Assegno circolare',         'BANCA');   // assegno garantito dalla banca
+  imm('Bancomat',                  'BANCA');   // carta di debito POS
+  imm('Carta di pagamento',        'BANCA');   // carta credito/prepagata
+  imm('Contanti presso Tesoreria', 'CASSA');
+  imm('Contrassegno',              'CASSA');   // pagamento alla consegna
+  imm('Incasso corrispettivi',     'CASSA');   // incasso al banco/cassa
+  imm('PayPal',                    'BANCA');
+  imm('Satispay',                  'BANCA');
+  imm('TeamSystem Pay',            'BANCA');
+
+  // ── Vista fattura (0 gg, non immediato) → scadenzario ────────────────────
+  def('BONIFICO',                                        'BANCA',  0, false);  // generico
+  def('Bonifico F.M.',                                   'BANCA',  0, true);   // fine mese corrente
+  def('Da definire',                                     'BANCA',  0, false);
+  def('Pagato come da relativi documenti sopra indicati','BANCA',  0, false);
+  def('RIMESSA DIRETTA',                                 'BANCA',  0, false);
+  def('Segue fattura',                                   'BANCA',  0, false);
+  def('Trattenuta su somme già riscosse',                'BANCA',  0, false);
+
+  // ── Dilazionati → scadenzario ────────────────────────────────────────────
+  def('30 gg. F.M.',               'BANCA',  30, true);
+  def('BONIFICO 30 gg D.F.F.M.',   'BANCA',  30, true);
+  def('BONIFICO 30-60 gg. D.F.F.M.','BANCA', 30, true);  // prima scadenza
+  def('BONIFICO 60 gg D.F.F.M.',   'BANCA',  60, true);
+  def('BONIFICO 90 gg. F.M.',      'BANCA',  90, true);
+  def('Domiciliazione bancaria',   'BANCA',  30, false);  // RID bancario
+  def('RIBA 30 gg F.M.',           'BANCA',  30, true);
+  def('RIBA 30-60 gg F.M.',        'BANCA',  30, true);   // prima scadenza
+  def('RIBA 30-60-90 gg F.M.',     'BANCA',  30, true);   // prima scadenza
+  def('RIBA 60 gg F.M.',           'BANCA',  60, true);
+  def('RIBA 90 gg F.M.',           'BANCA',  90, true);
+  def('Rid',                       'BANCA',  30, false);   // addebito diretto
+  def('Rim. diretta 120gg. DFFM',  'BANCA', 120, true);
+  def('SDD B2B',                   'BANCA',  30, false);   // SEPA Direct Debit Business
+  def('SDD Core',                  'BANCA',  30, false);   // SEPA Direct Debit Consumer
+} catch(_) {}
+
 module.exports = db;

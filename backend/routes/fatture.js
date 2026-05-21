@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { getNextNumero } = require('../utils/nextNumero');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -30,8 +31,7 @@ router.post('/da-ddt', (req, res) => {
       const ddts = ddtIds.map(id => db.prepare('SELECT * FROM ddt WHERE id=?').get(id)).filter(Boolean);
       if (!ddts.length) continue;
 
-      const count = db.prepare('SELECT COUNT(*) as n FROM fatture').get();
-      const numero = String(count.n + 1);
+      const numero = getNextNumero('fatture', 'fatture');
       const oggi = new Date().toISOString().split('T')[0];
       const ddtNums = ddts.map(d => d.numero).join(', ');
       const cliente = clienteId
