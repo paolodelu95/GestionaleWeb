@@ -162,6 +162,32 @@
             </div>
           }
 
+          <!-- ── Widget: Cashflow forecast 60 giorni ─────────────────────── -->
+          @if (w.id === 'cashflow-forecast') {
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+                <div>
+                  <h3 class="section-title" style="margin:0">Previsione cashflow · prossimi 60gg</h3>
+                  <div style="font-size:12px;color:#94a3b8;margin-top:4px">
+                    Entrate previste: <b style="color:#16a34a">{{ forecast.totEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                    · Uscite: <b style="color:#dc2626">{{ forecast.totUscite | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                  </div>
+                </div>
+                <div [style.color]="forecast.saldoFinale >= 0 ? '#16a34a' : '#dc2626'"
+                     style="font-size:20px;font-weight:700">
+                  {{ forecast.saldoFinale | currency:'EUR':'symbol':'1.2-2':'it' }}
+                </div>
+              </div>
+              <div class="chart-container" style="height:240px;margin-top:8px">
+                @if (forecast.items.length) {
+                  <canvas #forecastCanvas></canvas>
+                } @else {
+                  <p class="empty-msg">Nessuna scadenza nei prossimi 60 giorni</p>
+                }
+              </div>
+            </div>
+          }
+
           <!-- ── Widget: Chart vendite ──────────────────────────────────── -->
           @if (w.id === 'chart-vendite') {
             <div class="card">

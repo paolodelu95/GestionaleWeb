@@ -3,8 +3,29 @@ const router = express.Router();
 const db = require('../database');
 
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM clienti ORDER BY ragione_sociale').all();
-  res.json(rows.map(r => toDto(r)));
+  const rows = db.prepare(`
+    SELECT c.*,
+      (SELECT MAX(f.data_emissione) FROM fatture f WHERE f.cliente_id = c.id) AS ultimo_acquisto,
+      (SELECT COALESCE(SUM(fr.quantita * fr.prezzo * (1 - COALESCE(fr.sconto,0)/100) * (1 + fr.iva/100)), 0)
+         FROM fatture f
+         LEFT JOIN fatture_righe fr ON fr.fattura_id = f.id
+         WHERE f.cliente_id = c.id
+           AND f.stato != 'ANNULLATA'
+           AND f.data_emissione >= date('now','start of year')) AS fatturato_anno,
+      (SELECT COUNT(*) FROM fatture f
+         LEFT JOIN tipi_pagamento tp ON tp.id = f.tipo_pagamento_id
+         WHERE f.cliente_id = c.id
+           AND f.stato NOT IN ('PAGATA','ANNULLATA')
+           AND date(f.data_emissione, '+' || COALESCE(tp.giorni_scadenza,30) || ' days') < date('now')) AS fatture_insolute
+    FROM clienti c
+    ORDER BY c.ragione_sociale
+  `).all();
+  res.json(rows.map(r => ({
+    ...toDto(r),
+    ultimoAcquisto: r.ultimo_acquisto || null,
+    fatturatoAnno: +(r.fatturato_anno || 0),
+    fattureInsolute: r.fatture_insolute || 0,
+  })));
 });
 
 router.get('/count', (req, res) => {

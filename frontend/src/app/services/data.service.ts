@@ -229,6 +229,9 @@ export class DataService {
     return this.api.get(anno ? `stats/top-clienti?anno=${anno}` : 'stats/top-clienti');
   }
   getCashflow(): Observable<StatsCashflow> { return this.api.get('stats/cashflow'); }
+  getCashflowForecast(giorni = 60): Observable<{ giorni: number; saldoFinale: number; totEntrate: number; totUscite: number; items: { date: string; in: number; out: number; cumulativo: number }[] }> {
+    return this.api.get(`stats/cashflow-forecast?giorni=${giorni}`);
+  }
   getKpiAnno(anno?: number): Observable<StatsKpiAnno> {
     return this.api.get(anno ? `stats/kpi-anno?anno=${anno}` : 'stats/kpi-anno');
   }
