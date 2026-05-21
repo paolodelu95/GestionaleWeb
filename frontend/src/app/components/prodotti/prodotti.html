@@ -4,14 +4,24 @@
     <button mat-flat-button type="button" (click)="open()">
       <mat-icon>add</mat-icon> Aggiungi
     </button>
-    <button mat-stroked-button type="button" (click)="quickAdd()" matTooltip="Inserisci pi&ugrave; prodotti uno dopo l'altro">
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="quickAdd()" matTooltip="Inserisci pi&ugrave; prodotti uno dopo l'altro">
       <mat-icon>flash_on</mat-icon> Rapido
     </button>
-    <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <button mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
-    <button mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     <input #importInput type="file" accept=".xlsx,.xls" class="hidden-input" (change)="importExcel($event)">
-    <app-column-picker storageKey="prodotti" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker>
+    <span class="header-overflow-item"><app-column-picker storageKey="prodotti" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
+
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuProd" title="Altre azioni">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #overflowMenuProd="matMenu">
+      <button mat-menu-item type="button" (click)="quickAdd()"><mat-icon>flash_on</mat-icon> Inserimento rapido</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+      <button mat-menu-item type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+    </mat-menu>
   </div>
 
   <div class="filter-bar">

@@ -196,7 +196,7 @@
                 </button>
               </div>
             </div>
-            <table class="report-table">
+            <div class="report-table-wrap"><table class="report-table">
               <thead>
                 <tr>
                   <th>#</th>
@@ -230,7 +230,7 @@
                   <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato</td></tr>
                 }
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </mat-tab>
@@ -249,7 +249,7 @@
                 <mat-icon>download</mat-icon>
               </button>
             </div>
-            <table class="report-table">
+            <div class="report-table-wrap"><table class="report-table">
               <thead>
                 <tr>
                   <th>Prodotto</th>
@@ -278,7 +278,7 @@
                   <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato</td></tr>
                 }
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </mat-tab>
@@ -292,7 +292,7 @@
           </div>
           <div class="card">
             <div class="card-title"><mat-icon>insights</mat-icon> Media mensile storica</div>
-            <table class="report-table">
+            <div class="report-table-wrap"><table class="report-table">
               <thead><tr><th>Mese</th><th style="text-align:right">Media mensile</th><th style="min-width:100px">Intensità</th></tr></thead>
               <tbody>
                 @for (s of bi.stagionalita; track s.mese_num) {
@@ -308,7 +308,7 @@
                   </tr>
                 }
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </mat-tab>

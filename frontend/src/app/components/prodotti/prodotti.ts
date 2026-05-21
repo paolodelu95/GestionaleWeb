@@ -14,6 +14,7 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
@@ -405,7 +406,7 @@ export class ProdottoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
-            MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule,
+            MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
             ColumnPickerComponent, InfoDialogComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
