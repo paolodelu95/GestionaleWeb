@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const cron = require('node-cron');
+const rateLimit = require('express-rate-limit');
 const { runBackup } = require('./utils/backup');
 const { inviaSOllecitiAutomatici } = require('./utils/solleciti');
 const { getNextNumero } = require('./utils/nextNumero');
@@ -10,20 +11,34 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DIST = path.join(__dirname, 'public');
 
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
+  .split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '10mb' }));
 
 const db = require('./database');
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const crypto = require('crypto');
-const AUTH_USER   = process.env.AUTH_USER   || 'invoxa-admin';
-const AUTH_PASS   = process.env.AUTH_PASS   || 'invoxa-passowrd';
-const AUTH_SECRET = process.env.AUTH_SECRET || 'invoxa-jwt-secret-changeme';
+const AUTH_USER   = process.env.AUTH_USER;
+const AUTH_PASS   = process.env.AUTH_PASS;
+const AUTH_SECRET = process.env.AUTH_SECRET;
+if (!AUTH_USER || !AUTH_PASS || !AUTH_SECRET) {
+  console.error('FATAL: AUTH_USER, AUTH_PASS e AUTH_SECRET sono obbligatori. Configura il file .env');
+  process.exit(1);
+}
 const VALID_TOKEN = crypto.createHmac('sha256', AUTH_SECRET)
   .update(`${AUTH_USER}:${AUTH_PASS}`).digest('hex');
 
-app.post('/api/auth/login', (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppi tentativi di login, riprova tra 15 minuti.' }
+});
+
+app.post('/api/auth/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
   if (username === AUTH_USER && password === AUTH_PASS)
     return res.json({ token: VALID_TOKEN });
@@ -124,8 +139,8 @@ app.use('/api/fatture-ricorrenti', require('./routes/fattureRicorrenti').router)
 app.use('/api/allegati',          require('./routes/allegati'));
 app.use('/api/note-rapide',       require('./routes/noteRapide'));
 app.use('/api/bug-reports',       require('./routes/bugReports'));
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// NB: gli allegati sono accessibili solo via GET /api/allegati/:id/download
+// (autenticato). Nessun mount express.static su /uploads.
 
 // ── Ricerca globale ────────────────────────────────────────────────────────────
 app.get('/api/search', (req, res) => {
