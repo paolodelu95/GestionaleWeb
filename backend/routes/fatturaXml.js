@@ -1,6 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { XMLValidator, XMLParser } = require('fast-xml-parser');
+
+// ── helpers di validazione ────────────────────────────────────────────────────
+const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const REGEX_PEC = REGEX_EMAIL;
+const REGEX_IBAN = /^IT\d{2}[A-Z]\d{10}[A-Z0-9]{12}$/;
+const REGIMI_VALID = new Set(['RF01','RF02','RF04','RF05','RF06','RF07','RF08','RF09','RF10','RF11','RF12','RF13','RF14','RF15','RF16','RF17','RF18','RF19']);
+const NATURE_VALID = new Set(['N1','N2','N2.1','N2.2','N3','N3.1','N3.2','N3.3','N3.4','N3.5','N3.6','N4','N5','N6','N6.1','N6.2','N6.3','N6.4','N6.5','N6.6','N6.7','N6.8','N6.9','N7']);
+
+function cleanPiva(s) { return String(s || '').replace(/^IT/i, '').replace(/\s/g, ''); }
+function cleanCF(s) { return String(s || '').replace(/\s/g, '').toUpperCase(); }
 
 // ── POST /:id/invia-sdi ───────────────────────────────────────────────────────
 router.post('/:id/invia-sdi', async (req, res) => {
@@ -42,7 +53,9 @@ router.post('/:id/invia-sdi', async (req, res) => {
   }
 });
 
-// GET /:id/validate – controlli di sanity prima di inviare a SDI
+// GET /:id/validate – controlli FatturaPA pre-invio SDI
+// Esegue regole specifiche FatturaPA (non XSD completo, ma copre i casi piu
+// comuni di scarto SDI) + parse XML well-formed dell'output di buildFatturaPA.
 router.get('/:id/validate', (req, res) => {
   try {
     const f = db.prepare(`SELECT f.*, c.* FROM fatture f LEFT JOIN clienti c ON c.id=f.cliente_id WHERE f.id=?`).get(req.params.id);
@@ -52,48 +65,161 @@ router.get('/:id/validate', (req, res) => {
 
     if (!f) return res.status(404).json({ error: 'Fattura non trovata' });
 
-    // Cliente
+    const tipoSogg = (f.tipo_soggetto || 'AZIENDA').toUpperCase();
+    const pivaClean = cleanPiva(f.p_iva);
+    const cfClean = cleanCF(f.codice_fiscale);
+
+    // ── CLIENTE ──────────────────────────────────────────────────────────────
     if (!f.cliente_id) errors.push('Cliente mancante.');
     else {
-      if (!f.ragione_sociale) errors.push('Ragione sociale cliente mancante.');
-      const pivaClean = String(f.p_iva || '').replace(/^IT/i, '').replace(/\s/g, '');
-      const cfClean = String(f.codice_fiscale || '').replace(/\s/g, '');
-      if (!pivaClean && !cfClean) errors.push('Cliente: serve P.IVA o Codice Fiscale per la fattura elettronica.');
-      else if (pivaClean && !/^\d{11}$/.test(pivaClean)) errors.push(`P.IVA cliente non valida: "${f.p_iva}" (devono essere 11 cifre)`);
-      const sdi = (f.sdi || '').trim();
+      if (!f.ragione_sociale?.trim()) errors.push('Cliente: ragione sociale mancante.');
+      else if (f.ragione_sociale.length > 80) errors.push(`Cliente: ragione sociale > 80 char (${f.ragione_sociale.length}).`);
+
+      if (!pivaClean && !cfClean) {
+        errors.push('Cliente: serve P.IVA o Codice Fiscale per la fattura elettronica.');
+      } else {
+        if (pivaClean && !/^\d{11}$/.test(pivaClean)) errors.push(`P.IVA cliente non valida: "${f.p_iva}" (11 cifre richieste).`);
+        if (cfClean && cfClean.length !== 11 && cfClean.length !== 16) {
+          errors.push(`Codice Fiscale cliente non valido: "${f.codice_fiscale}" (deve essere 11 o 16 caratteri).`);
+        }
+        if (cfClean.length === 16 && !/^[A-Z0-9]{16}$/.test(cfClean)) {
+          errors.push(`Codice Fiscale "${f.codice_fiscale}" contiene caratteri non validi (atteso A-Z, 0-9).`);
+        }
+      }
+
+      // Indirizzo
+      if (!f.via?.trim()) errors.push('Cliente: indirizzo (via) mancante — obbligatorio per SDI.');
+      if (!f.cap?.trim()) errors.push('Cliente: CAP mancante.');
+      else if (!/^\d{5}$/.test(String(f.cap).trim())) errors.push(`Cliente: CAP "${f.cap}" non valido (5 cifre).`);
+      if (!f.citta?.trim()) errors.push('Cliente: citta mancante.');
+      if (f.provincia && !/^[A-Z]{2}$/.test(String(f.provincia).trim().toUpperCase())) {
+        warnings.push(`Cliente: provincia "${f.provincia}" non standard (2 lettere maiuscole).`);
+      }
+
+      // Destinatario SDI (codice SDI / PEC)
+      const sdi = (f.sdi || '').trim().toUpperCase();
       const pec = (f.pec || '').trim();
-      if (!sdi && !pec) warnings.push('Cliente senza codice SDI ne PEC: la fattura verra recapitata via SDI con destinatario default 0000000.');
-      else if (sdi && sdi.length !== 7 && sdi !== '0000000') warnings.push(`Codice SDI "${sdi}" non standard (di solito 7 caratteri).`);
+      if (!sdi && !pec) {
+        warnings.push('Cliente senza codice SDI ne PEC: la fattura verra recapitata con destinatario default 0000000 (consultabile dal cassetto fiscale).');
+      } else {
+        if (sdi) {
+          if (tipoSogg === 'PA') {
+            if (sdi.length !== 6) errors.push(`Cliente PA: codice SDI deve essere di 6 caratteri (attuale "${sdi}" = ${sdi.length}).`);
+          } else {
+            if (sdi !== '0000000' && sdi.length !== 7) {
+              errors.push(`Cliente B2B/B2C: codice SDI deve essere di 7 caratteri (attuale "${sdi}" = ${sdi.length}).`);
+            }
+          }
+          if (!/^[A-Z0-9]+$/.test(sdi)) errors.push(`Codice SDI "${sdi}" contiene caratteri non validi.`);
+        }
+        if (pec && !REGEX_PEC.test(pec)) errors.push(`PEC cliente non valida: "${pec}".`);
+      }
+
+      // Tipo soggetto coerenza
+      if (tipoSogg === 'PRIVATO' && !cfClean) {
+        warnings.push('Cliente PRIVATO senza Codice Fiscale: di solito necessario per SDI.');
+      }
     }
 
-    // Azienda
-    if (!az?.ragione_sociale) errors.push('Ragione sociale azienda mancante (Impostazioni).');
-    const pivaAz = String(az?.p_iva || '').replace(/^IT/i, '').replace(/\s/g, '');
-    if (!pivaAz || !/^\d{11}$/.test(pivaAz)) errors.push('P.IVA azienda non valida.');
-    if (!az?.regime_fiscale) warnings.push('Regime fiscale azienda non impostato (default RF01).');
+    // ── AZIENDA EMITTENTE ────────────────────────────────────────────────────
+    if (!az?.ragione_sociale?.trim()) errors.push('Ragione sociale azienda mancante (Impostazioni → Azienda).');
+    const pivaAz = cleanPiva(az?.p_iva);
+    if (!pivaAz || !/^\d{11}$/.test(pivaAz)) errors.push('P.IVA azienda mancante o non valida.');
+    if (!az?.via?.trim() || !az?.cap?.trim() || !az?.citta?.trim()) errors.push('Indirizzo azienda incompleto (via/CAP/citta) — obbligatorio.');
+    if (az?.cap && !/^\d{5}$/.test(String(az.cap).trim())) errors.push(`CAP azienda "${az.cap}" non valido.`);
+    if (az?.regime_fiscale && !REGIMI_VALID.has(String(az.regime_fiscale).trim().toUpperCase())) {
+      errors.push(`Regime fiscale "${az.regime_fiscale}" non valido (atteso RF01..RF19).`);
+    } else if (!az?.regime_fiscale) {
+      warnings.push('Regime fiscale azienda non impostato (default RF01 - ordinario).');
+    }
+    if (az?.iban && !REGEX_IBAN.test(String(az.iban).replace(/\s/g, '').toUpperCase())) {
+      warnings.push(`IBAN azienda "${az.iban}" formato non valido (atteso ITxx X xxxxx xxxxx xxxxxxxxxxxx).`);
+    }
+    if (az?.email && !REGEX_EMAIL.test(az.email)) warnings.push(`Email azienda "${az.email}" non valida.`);
 
-    // Righe
+    // ── INTESTAZIONE FATTURA ─────────────────────────────────────────────────
+    if (!f.numero?.trim()) errors.push('Numero fattura mancante.');
+    else if (String(f.numero).length > 20) errors.push(`Numero fattura > 20 caratteri (${String(f.numero).length}).`);
+    if (!f.data_emissione) errors.push('Data emissione mancante.');
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(String(f.data_emissione).slice(0, 10))) {
+      errors.push(`Data emissione "${f.data_emissione}" non in formato YYYY-MM-DD.`);
+    } else if (new Date(f.data_emissione) > new Date()) {
+      warnings.push('Data emissione futura.');
+    }
+    if (f.note && String(f.note).length > 200) {
+      warnings.push(`Note > 200 caratteri (${f.note.length}): SDI tronca il campo Causale.`);
+    }
+
+    // ── RIGHE ────────────────────────────────────────────────────────────────
     const righe = db.prepare('SELECT * FROM fatture_righe WHERE fattura_id=?').all(f.id);
     if (!righe.length) errors.push('Nessuna riga in fattura.');
     let totaleCalcolato = 0;
+    const ivaConNaturaMancante = new Set();
     for (const [i, r] of righe.entries()) {
-      if (!r.descrizione || !String(r.descrizione).trim()) errors.push(`Riga ${i + 1}: descrizione vuota.`);
-      if (r.quantita == null || +r.quantita === 0) warnings.push(`Riga ${i + 1}: quantita zero o mancante.`);
-      if (r.prezzo == null || +r.prezzo < 0) errors.push(`Riga ${i + 1}: prezzo negativo o mancante.`);
-      if (r.iva == null || +r.iva < 0 || +r.iva > 100) errors.push(`Riga ${i + 1}: IVA fuori range (${r.iva}).`);
-      totaleCalcolato += (+r.quantita || 0) * (+r.prezzo || 0) * (1 - (+r.sconto || 0) / 100) * (1 + (+r.iva || 0) / 100);
+      const n = i + 1;
+      if (!r.descrizione?.trim()) errors.push(`Riga ${n}: descrizione vuota.`);
+      else if (String(r.descrizione).length > 1000) errors.push(`Riga ${n}: descrizione > 1000 caratteri.`);
+      if (r.quantita == null || +r.quantita === 0) warnings.push(`Riga ${n}: quantita zero o mancante.`);
+      if (r.prezzo == null || +r.prezzo < 0) errors.push(`Riga ${n}: prezzo negativo o mancante.`);
+      if (r.iva == null || +r.iva < 0 || +r.iva > 100) errors.push(`Riga ${n}: IVA fuori range (${r.iva}).`);
+      // Esente / non imponibile -> serve Natura
+      if (+r.iva === 0) {
+        const nat = (r.codice_iva || '').trim().toUpperCase();
+        if (!nat) ivaConNaturaMancante.add(n);
+        else if (!NATURE_VALID.has(nat) && !/^N\d(\.\d)?$/.test(nat)) {
+          errors.push(`Riga ${n}: codice Natura "${r.codice_iva}" non riconosciuto (atteso N1..N7).`);
+        }
+      }
+      const sconto = +(r.sconto ?? 0);
+      if (sconto < 0 || sconto > 100) errors.push(`Riga ${n}: sconto fuori range (${sconto}%).`);
+      totaleCalcolato += (+r.quantita || 0) * (+r.prezzo || 0) * (1 - sconto / 100) * (1 + (+r.iva || 0) / 100);
+    }
+    if (ivaConNaturaMancante.size) {
+      errors.push(`Righe ${[...ivaConNaturaMancante].join(', ')}: con IVA 0% serve indicare un codice Natura (N1=escluse, N2=non soggette, N3=non imponibili, N4=esenti, N6=reverse charge, N7=IVA estera).`);
     }
     if (totaleCalcolato === 0) warnings.push('Totale fattura zero.');
 
-    // Stato
-    if (f.stato === 'ANNULLATA') errors.push('Fattura annullata: non si puo inviare a SDI.');
+    // ── STATO ────────────────────────────────────────────────────────────────
+    if (f.stato === 'ANNULLATA') errors.push('Fattura annullata: non puo essere inviata a SDI.');
     if (f.stato_sdi === 'INVIATA') warnings.push('Fattura gia inviata a SDI in precedenza.');
+
+    // ── XML WELL-FORMED ──────────────────────────────────────────────────────
+    let xmlValido = null;
+    let xmlSize = 0;
+    try {
+      const xml = buildFatturaPA(req.params.id);
+      xmlSize = Buffer.byteLength(xml, 'utf8');
+      const check = XMLValidator.validate(xml, { allowBooleanAttributes: false });
+      if (check === true) {
+        xmlValido = true;
+        // Parse e check struttura base
+        const parsed = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' }).parse(xml);
+        const root = parsed['p:FatturaElettronica'] || parsed['FatturaElettronica'];
+        if (!root) errors.push('XML generato non contiene elemento radice FatturaElettronica.');
+        const header = root?.FatturaElettronicaHeader;
+        const body = root?.FatturaElettronicaBody;
+        if (!header) errors.push('XML: FatturaElettronicaHeader mancante.');
+        if (!body) errors.push('XML: FatturaElettronicaBody mancante.');
+      } else {
+        xmlValido = false;
+        errors.push(`XML mal formato alla riga ${check.err?.line}: ${check.err?.msg}`);
+      }
+    } catch (e) {
+      xmlValido = false;
+      errors.push(`Errore generazione/parse XML: ${e.message}`);
+    }
+
+    if (xmlSize > 5 * 1024 * 1024) {
+      warnings.push(`File XML grande (${(xmlSize/1024/1024).toFixed(2)}MB): SDI max 5MB.`);
+    }
 
     res.json({
       ok: errors.length === 0,
       errors,
       warnings,
       totaleCalcolato: +totaleCalcolato.toFixed(2),
+      xmlValido,
+      xmlSize,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
