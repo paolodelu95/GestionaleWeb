@@ -3,6 +3,17 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const db = require('../database');
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function assertSafeRecipient(input) {
+  if (!input) throw new Error('Email destinatario mancante');
+  const list = Array.isArray(input) ? input : String(input).split(',');
+  for (const raw of list) {
+    const addr = String(raw).trim();
+    if (/[\r\n]/.test(addr)) throw new Error('Indirizzo email non valido (caratteri di controllo)');
+    if (!EMAIL_RE.test(addr)) throw new Error(`Indirizzo email non valido: ${addr}`);
+  }
+}
+
 function getTransporter() {
   const cfg = db.prepare('SELECT * FROM azienda WHERE id=1').get();
   if (!cfg?.smtp_host || !cfg?.smtp_user) throw new Error('SMTP non configurato. Vai in Impostazioni → Email.');
@@ -36,12 +47,15 @@ router.post('/test', async (req, res) => {
 router.post('/send', async (req, res) => {
   const { to, subject, html, attachments } = req.body;
   if (!to || !subject) return res.status(400).json({ error: 'to e subject obbligatori' });
+  if (/[\r\n]/.test(String(subject))) return res.status(400).json({ error: 'Subject non valido' });
   try {
+    assertSafeRecipient(to);
     const t = getTransporter();
     await t.sendMail({ from: getFrom(), to, subject, html: html || '', attachments: attachments || [] });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.message?.startsWith('Indirizzo') || err.message?.startsWith('Subject') ? 400 : 500)
+       .json({ error: err.message });
   }
 });
 
@@ -54,7 +68,7 @@ router.post('/fattura/:id', async (req, res) => {
       FROM fatture f LEFT JOIN clienti c ON f.cliente_id = c.id WHERE f.id=?`).get(req.params.id);
     if (!row) return res.status(404).json({ error: 'Fattura non trovata' });
     const dest = to || row.c_email;
-    if (!dest) return res.status(400).json({ error: 'Email destinatario mancante' });
+    assertSafeRecipient(dest);
 
     const righe = db.prepare(`SELECT fr.*, p.nome as p_nome FROM fatture_righe fr LEFT JOIN prodotti p ON fr.prodotto_id=p.id WHERE fr.fattura_id=?`).all(row.id);
     const totale = righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto||0)/100) * (1 + r.iva/100), 0);
@@ -79,7 +93,7 @@ router.post('/acquisto/:id', async (req, res) => {
       FROM acquisti a LEFT JOIN fornitori f ON a.fornitore_id = f.id WHERE a.id=?`).get(req.params.id);
     if (!row) return res.status(404).json({ error: 'Acquisto non trovato' });
     const dest = to || row.f_email;
-    if (!dest) return res.status(400).json({ error: 'Email destinatario mancante' });
+    assertSafeRecipient(dest);
 
     const righe = db.prepare(`SELECT ar.*, p.nome as p_nome FROM acquisti_righe ar LEFT JOIN prodotti p ON ar.prodotto_id=p.id WHERE ar.acquisto_id=?`).all(row.id);
     const fmt = (n) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
@@ -107,7 +121,7 @@ router.post('/sollecito/:tipo/:id', async (req, res) => {
     }
     if (!row) return res.status(404).json({ error: 'Documento non trovato' });
     dest = to || row.email;
-    if (!dest) return res.status(400).json({ error: 'Email destinatario mancante' });
+    assertSafeRecipient(dest);
 
     const pagatiRow = tipo === 'fattura'
       ? db.prepare(`SELECT COALESCE(SUM(importo),0) as tot FROM pagamenti WHERE fattura_id=?`).get(id)

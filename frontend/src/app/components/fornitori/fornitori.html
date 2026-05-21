@@ -16,42 +16,42 @@
 
     <table mat-table [dataSource]="dataSource" matSort class="mat-mdc-table">
       <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
-        <td mat-cell *matCellDef="let f">{{ f.id }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">ID</th>
+        <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.id }}</td>
       </ng-container>
       <ng-container matColumnDef="ragioneSociale">
         <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-rag-soc">Ragione Sociale</th>
         <td mat-cell *matCellDef="let f" class="col-rag-soc"><b>{{ f.ragioneSociale }}</b></td>
       </ng-container>
       <ng-container matColumnDef="email">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
-        <td mat-cell *matCellDef="let f">{{ f.email }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Email</th>
+        <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.email }}</td>
       </ng-container>
       <ng-container matColumnDef="telefono">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Telefono</th>
-        <td mat-cell *matCellDef="let f">{{ f.telefono }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Telefono</th>
+        <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.telefono }}</td>
       </ng-container>
       <ng-container matColumnDef="indirizzo">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-citta">Città</th>
-        <td mat-cell *matCellDef="let f" class="col-citta" [matTooltip]="indirizzo(f)" matTooltipPosition="above">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-citta hide-mobile">Città</th>
+        <td mat-cell *matCellDef="let f" class="col-citta hide-mobile" [matTooltip]="indirizzo(f)" matTooltipPosition="above">
           {{ f.citta || '—' }}@if (f.provincia) { <span class="provincia">&nbsp;({{ f.provincia }})</span> }
         </td>
       </ng-container>
       <ng-container matColumnDef="pIva">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>P. IVA</th>
-        <td mat-cell *matCellDef="let f">{{ f.pIva }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">P. IVA</th>
+        <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.pIva }}</td>
       </ng-container>
       <ng-container matColumnDef="cellulare">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cellulare</th>
-        <td mat-cell *matCellDef="let f">{{ f.cellulare }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Cellulare</th>
+        <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.cellulare }}</td>
       </ng-container>
       <ng-container matColumnDef="sdi">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>SDI</th>
-        <td mat-cell *matCellDef="let f">{{ f.sdi }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">SDI</th>
+        <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.sdi }}</td>
       </ng-container>
       <ng-container matColumnDef="pec">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>PEC</th>
-        <td mat-cell *matCellDef="let f">{{ f.pec }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">PEC</th>
+        <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.pec }}</td>
       </ng-container>
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
@@ -71,10 +71,9 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">Nessun fornitore trovato</td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
-    @if (!fornitori.length) { <p class="empty-msg">Nessun fornitore</p> }
   </div>
 </div>

@@ -144,9 +144,9 @@ const RIGHE_STYLES = `
                     }
                   </select>
                 </td>
-                <td><input class="riga-input num" type="number" step="0.01" [(ngModel)]="riga.prezzo"></td>
+                <td><input class="riga-input num" type="number" min="0" step="0.01" [(ngModel)]="riga.prezzo"></td>
                 <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
-                <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
+                <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
                 <td style="padding:4px 8px;white-space:nowrap">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </td>
