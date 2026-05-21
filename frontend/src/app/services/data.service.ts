@@ -232,6 +232,9 @@ export class DataService {
   getCashflowForecast(giorni = 60): Observable<{ giorni: number; saldoFinale: number; totEntrate: number; totUscite: number; items: { date: string; in: number; out: number; cumulativo: number }[] }> {
     return this.api.get(`stats/cashflow-forecast?giorni=${giorni}`);
   }
+  getTopProdottiCliente(clienteId: number, limit = 5): Observable<{ id: number; nome: string; codice?: string; prezzo: number; iva: number; unitaMisura?: string; occorrenze: number; quantitaTotale: number; ultimaVendita: string }[]> {
+    return this.api.get(`clienti/${clienteId}/top-prodotti?limit=${limit}`);
+  }
   getKpiAnno(anno?: number): Observable<StatsKpiAnno> {
     return this.api.get(anno ? `stats/kpi-anno?anno=${anno}` : 'stats/kpi-anno');
   }

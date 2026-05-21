@@ -325,6 +325,20 @@ const RIGHE_STYLES = `
             }
 
             <div class="righe-section">
+              @if (suggerimenti.length) {
+                <div class="suggerimenti-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#f5f3ff;border:1px solid #e0e7ff;border-radius:8px;margin-bottom:10px">
+                  <mat-icon style="color:#6366f1;font-size:18px;width:18px;height:18px">auto_awesome</mat-icon>
+                  <span style="font-size:12px;font-weight:600;color:#4338ca">Suggeriti per questo cliente:</span>
+                  @for (s of suggerimenti; track s.id) {
+                    <button type="button" class="sugg-chip" (click)="addRigaDaSuggerimento(s)"
+                            style="background:#fff;border:1px solid #c7d2fe;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600;color:#4338ca;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+                      <mat-icon style="font-size:14px;width:14px;height:14px">add</mat-icon>
+                      {{ s.nome }}
+                      <span style="opacity:.6;font-weight:400">·{{ s.occorrenze }}</span>
+                    </button>
+                  }
+                </div>
+              }
               <div class="righe-header">
                 <div style="display:flex;align-items:center;gap:12px">
                   <b>Righe *</b>
@@ -705,6 +719,29 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
+  suggerimenti: { id: number; nome: string; codice?: string; prezzo: number; iva: number; unitaMisura?: string; occorrenze: number }[] = [];
+
+  loadSuggerimentiCliente(clienteId: number) {
+    this.ds.getTopProdottiCliente(clienteId, 5).subscribe({
+      next: items => { this.suggerimenti = items || []; },
+      error: () => { this.suggerimenti = []; }
+    });
+  }
+
+  addRigaDaSuggerimento(s: { id: number; nome: string; codice?: string; prezzo: number; iva: number; unitaMisura?: string }) {
+    this.righe.push({
+      prodottoId: s.id,
+      descrizione: s.nome,
+      quantita: 1,
+      prezzo: s.prezzo,
+      sconto: 0,
+      iva: s.iva,
+      codiceIva: this.resolveAliquotaCodice(s.iva),
+      unitaMisura: s.unitaMisura || 'pz',
+      tipo: 'PRODOTTO',
+    } as RigaDocumento);
+    this.applyListino(this.righe.length - 1);
+  }
   ddts: Ddt[] = [];
   linkedDdts: Ddt[] = [];
   ddtSelezione: number | null = null;
@@ -950,6 +987,10 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
             this.righe[0].codiceIva = aliq.codice ?? '';
           }
         }
+        // Suggerisce prodotti basati sullo storico per questo cliente
+        if (c.id) this.loadSuggerimentiCliente(c.id);
+      } else {
+        this.suggerimenti = [];
       }
     });
 
@@ -958,7 +999,10 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       this.filteredClienti = c;
       if (this.data?.clienteId) {
         const found = c.find(x => x.id === this.data!.clienteId);
-        if (found) this.clienteCtrl.setValue(found, { emitEvent: false });
+        if (found) {
+          this.clienteCtrl.setValue(found, { emitEvent: false });
+          if (this.isNew && found.id) this.loadSuggerimentiCliente(found.id);
+        }
       }
     });
 
