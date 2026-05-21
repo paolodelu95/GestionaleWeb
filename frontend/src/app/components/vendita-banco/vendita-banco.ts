@@ -127,6 +127,23 @@ interface MetodoPagamento {
     mat-table { width: 100%; }
     th.mat-header-cell { font-weight: 700; font-size: 12px; color: #64748b; text-transform: uppercase; background: #f8fafc; }
     td.mat-cell { font-size: 13px; }
+
+    /* Scroll orizzontale per tabella righe su schermi stretti */
+    .righe-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .righe-table { min-width: 760px; }
+
+    /* Mobile (< 600px): form-row a una colonna, metodi-grid e bottoni piu compatti */
+    @media (max-width: 600px) {
+      .form-row, .form-row-2 { grid-template-columns: 1fr !important; gap: 12px; }
+      .metodi-grid { gap: 6px; }
+      .metodo-btn { width: calc(50% - 6px); height: 68px; font-size: 11px; }
+      .metodo-btn mat-icon { font-size: 22px; width: 22px; height: 22px; }
+      .totali-box { justify-content: stretch; }
+      .totali-inner { min-width: 0; width: 100%; }
+      .resto-body { gap: 12px; }
+      .actions-bar { flex-direction: column-reverse; align-items: stretch; }
+      .actions-bar button { width: 100%; }
+    }
   `]
 })
 export class VenditaBancoComponent implements OnInit, AfterViewInit {
