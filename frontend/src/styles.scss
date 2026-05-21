@@ -976,6 +976,13 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   .hide-mobile { display: none !important; }
 }
 
+// Page header overflow: bottoni secondari nascosti su mobile, accessibili da kebab
+.header-overflow-toggle { display: none !important; }
+@media (max-width: 767px) {
+  .page-header .header-overflow-item { display: none !important; }
+  .header-overflow-toggle { display: inline-flex !important; }
+}
+
 @media (max-width: 767px) {
   .page { padding: 16px 12px; }
 
