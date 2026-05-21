@@ -41,9 +41,14 @@
         <!-- Righe prodotto -->
         <div class="righe-header">
           <span class="righe-title">Prodotti</span>
-          <button mat-stroked-button type="button" (click)="addRiga()">
-            <mat-icon>add</mat-icon> Aggiungi riga
-          </button>
+          <div style="display:flex;gap:8px">
+            <button mat-stroked-button type="button" (click)="scannerBarcode()" title="Scansiona barcode con la fotocamera">
+              <mat-icon>qr_code_scanner</mat-icon> Scansiona
+            </button>
+            <button mat-stroked-button type="button" (click)="addRiga()">
+              <mat-icon>add</mat-icon> Aggiungi riga
+            </button>
+          </div>
         </div>
 
         <div class="righe-table-wrap">

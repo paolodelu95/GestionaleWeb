@@ -17,6 +17,7 @@ import { PrintService } from '../../services/print.service';
 import { VenditaBanco, Prodotto, ProdottoVariante, RigaDocumento, AliquotaIva, UnitaMisura, Cliente } from '../../models';
 import { normalizePiva } from '../../validators/italian-validators';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { BarcodeScannerDialogComponent } from '../shared/barcode-scanner-dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 
@@ -338,6 +339,32 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     this.righe.push({ descrizione: '', quantita: 1, prezzo: 0, sconto: 0, iva: 22 });
     this.filteredProdotti[idx] = this.prodottiList;
     this.variantiPerRiga[idx] = [];
+  }
+
+  scannerBarcode() {
+    const ref = this.dialog.open(BarcodeScannerDialogComponent, { width: '480px', maxWidth: '95vw' });
+    ref.afterClosed().subscribe((code: string | null | undefined) => {
+      if (!code) return;
+      const match = this.prodottiList.find(p => p.barcode === code);
+      if (match) {
+        const idx = this.righe.length;
+        this.righe.push({ descrizione: match.nome, quantita: 1, prezzo: 0, sconto: 0, iva: 22 });
+        this.filteredProdotti[idx] = this.prodottiList;
+        this.variantiPerRiga[idx] = [];
+        this.selectProdotto(idx, match);
+        return;
+      }
+      this.ds.searchByBarcode(code).subscribe({
+        next: res => {
+          const idx = this.righe.length;
+          this.righe.push({ descrizione: res.prodotto.nome, quantita: 1, prezzo: 0, sconto: 0, iva: 22 });
+          this.filteredProdotti[idx] = this.prodottiList;
+          this.variantiPerRiga[idx] = [];
+          this.selectProdotto(idx, res.prodotto);
+        },
+        error: () => this.snack.open(`Barcode ${code} non corrisponde a nessun prodotto`, 'OK', { duration: 4000, panelClass: 'snack-error' })
+      });
+    });
   }
 
   removeRiga(i: number) {
