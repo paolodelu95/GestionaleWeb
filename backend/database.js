@@ -439,6 +439,33 @@ const migrations = [
   )`,
   // Assegnazione listino di default al cliente
   'ALTER TABLE clienti ADD COLUMN listino_id INTEGER REFERENCES listini(id)',
+  // Pubblica Amministrazione
+  "ALTER TABLE clienti ADD COLUMN tipo_soggetto TEXT DEFAULT 'PRIVATO'",
+  'ALTER TABLE clienti ADD COLUMN cig TEXT DEFAULT ""',
+  'ALTER TABLE clienti ADD COLUMN cup TEXT DEFAULT ""',
+  'ALTER TABLE clienti ADD COLUMN aliquota_iva_id INTEGER REFERENCES aliquote_iva(id)',
+  // Riferimenti documento per fattura PA (ordini acquisto, contratti, ecc.)
+  `CREATE TABLE IF NOT EXISTS fatture_riferimenti (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fattura_id INTEGER NOT NULL REFERENCES fatture(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    numero TEXT NOT NULL DEFAULT '',
+    data TEXT DEFAULT '',
+    cig TEXT DEFAULT '',
+    cup TEXT DEFAULT '',
+    commessa TEXT DEFAULT '',
+    ordine INTEGER DEFAULT 0
+  )`,
+  // Codice aliquota IVA su ogni riga documento (collega alla tabella aliquote_iva)
+  'ALTER TABLE fatture_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
+  'ALTER TABLE ddt_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
+  'ALTER TABLE note_credito_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
+  'ALTER TABLE ordini_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
+  'ALTER TABLE preventivi_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
+  'ALTER TABLE acquisti_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
+  // CIG/CUP per singola fattura (override rispetto al cliente)
+  'ALTER TABLE fatture ADD COLUMN cig TEXT DEFAULT ""',
+  'ALTER TABLE fatture ADD COLUMN cup TEXT DEFAULT ""',
   // Aliquote IVA: campi aggiuntivi per SDI / FatturaPA
   'ALTER TABLE aliquote_iva ADD COLUMN codice TEXT DEFAULT ""',
   'ALTER TABLE aliquote_iva ADD COLUMN categoria TEXT DEFAULT ""',

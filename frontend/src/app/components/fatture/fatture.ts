@@ -22,7 +22,7 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida } from '../../models';
+import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -364,7 +364,7 @@ const RIGHE_STYLES = `
                     <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
                     <th class="td-history"></th>
                     <th>Sconto%</th>
-                    <th>IVA%</th>
+                    <th style="min-width:130px">IVA</th>
                     <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
                     <th></th>
                   </tr>
@@ -447,7 +447,19 @@ const RIGHE_STYLES = `
                         }
                       </td>
                       <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                      <td><input class="riga-input num" type="number" [(ngModel)]="riga.iva"></td>
+                      <td>
+                        @if (aliquoteIva.length) {
+                          <select class="riga-input" style="min-width:120px"
+                                  [ngModel]="riga.codiceIva || resolveAliquotaCodice(riga.iva)"
+                                  (ngModelChange)="onAliquotaChange(riga, $event)">
+                            @for (a of aliquoteIva; track a.id) {
+                              <option [value]="a.codice">{{ a.valore }}% {{ a.codice ? '(' + a.codice + ')' : '' }}</option>
+                            }
+                          </select>
+                        } @else {
+                          <input class="riga-input num" type="number" [(ngModel)]="riga.iva">
+                        }
+                      </td>
                       <td style="padding:4px 8px; white-space:nowrap">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
@@ -571,6 +583,76 @@ const RIGHE_STYLES = `
             </div>
           </div>
         </mat-tab>
+
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">account_balance</mat-icon>
+            Riferimenti
+            @if (riferimenti.length) {
+              <span style="background:#6366f1;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:6px">{{ riferimenti.length }}</span>
+            }
+          </ng-template>
+          <div style="padding-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+              <div>
+                <b style="font-size:14px;color:#1e293b">Documento emesso in seguito a</b>
+                <p style="font-size:12px;color:#64748b;margin:4px 0 0">Per fattura PA: ordini d'acquisto, contratti, convenzioni. Ogni riga genera un blocco nel file XML SDI.</p>
+              </div>
+              <button mat-stroked-button type="button" (click)="addRiferimento()">
+                <mat-icon>add</mat-icon> Aggiungi riga
+              </button>
+            </div>
+
+            @if (!riferimenti.length) {
+              <div style="text-align:center;padding:32px 0;color:#94a3b8;font-size:13px">
+                <mat-icon style="display:block;font-size:40px;width:40px;height:40px;margin:0 auto 10px;opacity:.4">link</mat-icon>
+                Nessun riferimento. Clicca "Aggiungi riga" per collegare un ordine, contratto o convenzione.
+              </div>
+            }
+
+            @for (rif of riferimenti; track $index) {
+              <div class="rif-card">
+                <div class="rif-card-header">
+                  <mat-icon style="font-size:16px;width:16px;height:16px;color:#6366f1">link</mat-icon>
+                  <span style="font-size:13px;font-weight:600;color:#374151;flex:1">Riga {{ $index + 1 }}</span>
+                  <button mat-icon-button color="warn" type="button" (click)="removeRiferimento($index)">
+                    <mat-icon style="font-size:18px">delete</mat-icon>
+                  </button>
+                </div>
+                <div class="rif-fields">
+                  <div class="rif-field rif-field-tipo">
+                    <label class="rif-label">Tipo documento</label>
+                    <select class="riga-input" [(ngModel)]="rif.tipo">
+                      @for (t of TIPI_RIF; track t.value) {
+                        <option [value]="t.value">{{ t.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="rif-field rif-field-numero">
+                    <label class="rif-label">Numero *</label>
+                    <input class="riga-input" [(ngModel)]="rif.numero" placeholder="es. ODA-2024-001">
+                  </div>
+                  <div class="rif-field rif-field-data">
+                    <label class="rif-label">Data</label>
+                    <input class="riga-input" type="date" [(ngModel)]="rif.data">
+                  </div>
+                  <div class="rif-field rif-field-cig">
+                    <label class="rif-label">CIG</label>
+                    <input class="riga-input" [(ngModel)]="rif.cig" placeholder="es. Z123456789" style="text-transform:uppercase" (input)="rif.cig = rif.cig?.toUpperCase() ?? ''">
+                  </div>
+                  <div class="rif-field rif-field-cup">
+                    <label class="rif-label">CUP</label>
+                    <input class="riga-input" [(ngModel)]="rif.cup" placeholder="es. C57I18000050006" style="text-transform:uppercase" (input)="rif.cup = rif.cup?.toUpperCase() ?? ''">
+                  </div>
+                  <div class="rif-field rif-field-commessa">
+                    <label class="rif-label">Commessa / Convenzione</label>
+                    <input class="riga-input" [(ngModel)]="rif.commessa" placeholder="Codice commessa o convenzione">
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </mat-tab>
       </mat-tab-group>
 
       @if (data?.id) {
@@ -602,6 +684,17 @@ const RIGHE_STYLES = `
     .ddt-chip { display:inline-flex; align-items:center; background:#dbeafe; color:#1d4ed8; border-radius:20px; padding:4px 10px 4px 10px; font-size:12px; font-weight:500; }
     .chip-remove { background:none; border:none; cursor:pointer; color:#1d4ed8; font-size:16px; line-height:1; margin-left:6px; padding:0; opacity:0.7; }
     .chip-remove:hover { opacity:1; }
+    .rif-card { border:1px solid #e2e8f0; border-radius:8px; margin-bottom:10px; overflow:hidden; }
+    .rif-card-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f8fafc; border-bottom:1px solid #f1f5f9; }
+    .rif-fields { display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px; }
+    .rif-field { display:flex; flex-direction:column; gap:3px; }
+    .rif-field-tipo { flex:0 0 190px; }
+    .rif-field-numero { flex:1; min-width:130px; }
+    .rif-field-data { flex:0 0 140px; }
+    .rif-field-cig { flex:0 0 130px; }
+    .rif-field-cup { flex:0 0 160px; }
+    .rif-field-commessa { flex:1; min-width:140px; }
+    .rif-label { font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.4px; }
   `]
 })
 export class FatturaDialogComponent implements OnInit, AfterViewInit {
@@ -617,6 +710,17 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   prodotti: Prodotto[] = [];
   unitaMisura: UnitaMisura[] = [];
   tipiPagamento: TipoPagamento[] = [];
+  aliquoteIva: AliquotaIva[] = [];
+  riferimenti: FatturaRiferimento[] = [];
+
+  readonly TIPI_RIF = [
+    { value: 'ORDINE_ACQUISTO', label: "Ordine d'acquisto" },
+    { value: 'CONTRATTO',       label: 'Contratto' },
+    { value: 'CONVENZIONE',     label: 'Convenzione' },
+    { value: 'RICEZIONE',       label: 'Ricezione' },
+    { value: 'FATTURA_COLLEGATA', label: 'Fattura collegata' },
+    { value: 'DDT',             label: 'Documento di trasporto' },
+  ];
   selectedTipoPagamentoId: number | null = null;
   pagamenti: Pagamento[] = [];
   prezziRecenti: any[][] = [];
@@ -802,10 +906,10 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     if (data?.id) {
       this.ds.getFatturaById(data.id).subscribe(f => {
         this.righe = f.righe ?? [];
+        this.riferimenti = f.riferimenti ?? [];
         this.prezziRecenti = new Array(this.righe.length).fill([]);
         this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
         this.tuttiCaricati = new Array(this.righe.length).fill(false);
-        // Carica i DDT collegati per visualizzarli
         if (f.ddtIds?.length) {
           f.ddtIds.forEach(ddtId => {
             this.ds.getDdtById(ddtId).subscribe(ddt => this.linkedDdts.push(ddt));
@@ -831,9 +935,18 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.clienteCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredClienti = this.clienti.filter(c => c.ragioneSociale.toLowerCase().includes(q));
-      if (v && typeof v !== 'string' && this.isNew && !this.selectedTipoPagamentoId) {
-        const tp = (v as Cliente).tipoPagamentoId;
-        if (tp) this.selectedTipoPagamentoId = tp;
+      if (v && typeof v !== 'string' && this.isNew) {
+        const c = v as Cliente;
+        if (!this.selectedTipoPagamentoId && c.tipoPagamentoId)
+          this.selectedTipoPagamentoId = c.tipoPagamentoId;
+        // Se c'è una sola riga vuota, aggiorna l'IVA con quella del cliente
+        if (c.aliquotaIvaId && this.aliquoteIva.length) {
+          const aliq = this.aliquoteIva.find(a => a.id === c.aliquotaIvaId);
+          if (aliq && this.righe.length === 1 && !this.righe[0].descrizione?.trim() && !this.righe[0].prodottoId) {
+            this.righe[0].iva = aliq.valore;
+            this.righe[0].codiceIva = aliq.codice ?? '';
+          }
+        }
       }
     });
 
@@ -850,6 +963,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.ds.getProdotti().subscribe(p => this.prodotti = p);
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
     this.ds.getTipiPagamento().subscribe(t => this.tipiPagamento = t.filter(x => x.attivo));
+    this.ds.getAliquoteIva().subscribe(a => this.aliquoteIva = a.filter(x => x.attiva));
     this.ds.getNoteRapide().subscribe(n => this.noteRapideList = n);
     this.loadPagamenti();
 
@@ -875,6 +989,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
         this.righe[index].iva = p.iva ?? 22;
+        this.righe[index].codiceIva = this.resolveAliquotaCodice(p.iva ?? 22);
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
         this.righe[index].prodottoId = p.id ?? null;
         this.righe[index].varianteId = v?.id ?? null;
@@ -909,8 +1024,34 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     riga.sconto = Math.min(100, Math.max(0, riga.sconto ?? 0));
   }
 
+  resolveAliquotaCodice(iva: number): string {
+    const match = this.aliquoteIva.find(a => a.valore === iva && a.categoria === 'Imponibile');
+    return match?.codice ?? this.aliquoteIva.find(a => a.valore === iva)?.codice ?? '';
+  }
+
+  onAliquotaChange(riga: RigaDocumento, codice: string) {
+    const a = this.aliquoteIva.find(x => x.codice === codice);
+    if (a) { riga.iva = a.valore; riga.codiceIva = a.codice; }
+  }
+
+  private getClienteDefaultIva(): { iva: number; codiceIva: string } {
+    const v = this.clienteCtrl.value;
+    const cliente = v && typeof v !== 'string' ? v as Cliente : null;
+    if (cliente?.aliquotaIvaId && this.aliquoteIva.length) {
+      const a = this.aliquoteIva.find(x => x.id === cliente.aliquotaIvaId);
+      if (a) return { iva: a.valore, codiceIva: a.codice ?? '' };
+    }
+    return { iva: 22, codiceIva: this.resolveAliquotaCodice(22) };
+  }
+
+  addRiferimento() {
+    this.riferimenti.push({ tipo: 'ORDINE_ACQUISTO', numero: '', data: '', cig: '', cup: '', commessa: '' });
+  }
+  removeRiferimento(i: number) { this.riferimenti.splice(i, 1); }
+
   addRiga() {
-    this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 });
+    const { iva, codiceIva } = this.getClienteDefaultIva();
+    this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva, codiceIva });
     this.prezziRecenti.push([]);
     this.prezziRecentiTutti.push([]);
     this.tuttiCaricati.push(false);
@@ -939,7 +1080,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       stato: this.data?.stato ?? 'EMESSA',
       tipoPagamentoId: this.selectedTipoPagamentoId,
       ddtIds: this.linkedDdts.map(d => d.id).filter(Boolean),
-      righe: this.righe
+      righe: this.righe,
+      riferimenti: this.riferimenti.filter(r => r.numero.trim())
     });
   }
 }

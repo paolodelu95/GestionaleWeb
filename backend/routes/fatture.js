@@ -18,8 +18,8 @@ router.post('/da-ddt', (req, res) => {
 
   const stmtLink = db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)');
   const stmtRiga = db.prepare(`INSERT INTO fatture_righe
-    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
 
   const createFatture = db.transaction(() => {
     const created = [];
@@ -46,10 +46,10 @@ router.post('/da-ddt', (req, res) => {
         stmtLink.run(fatturaId, ddt.id);
         const [y, m, d] = ddt.data_emissione.split('T')[0].split('-');
         stmtRiga.run(fatturaId, null, `Riferimento DDT n. ${ddt.numero} del ${d}/${m}/${y}`,
-          0, 0, 0, 0, '', null, '', '', 'NOTA');
+          0, 0, 0, 0, '', '', null, '', '', 'NOTA');
         for (const r of getDdtRighe(ddt.id))
           stmtRiga.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
-            r.sconto ?? 0, r.iva, r.unitaMisura || '',
+            r.sconto ?? 0, r.iva, r.codiceIva || '', r.unitaMisura || '',
             r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
             r.tipo || 'PRODOTTO');
       }
@@ -72,6 +72,7 @@ router.get('/:id', (req, res) => {
   const dto = toDto(row);
   dto.righe = getRighe(row.id);
   dto.ddtIds = getDdtIds(row.id);
+  dto.riferimenti = getRiferimenti(row.id);
   res.json(dto);
 });
 
@@ -94,6 +95,7 @@ router.post('/', (req, res) => {
     }
   }
   if (ddtIds.length) saveDdtLinks(fatturaId, ddtIds);
+  if (f.riferimenti?.length) saveRiferimenti(fatturaId, f.riferimenti);
   creaPagamentoImmediato(fatturaId);
   res.json({ id: fatturaId });
 });
@@ -126,6 +128,7 @@ router.put('/:id', (req, res) => {
     }
   }
   saveDdtLinks(req.params.id, ddtIds);
+  saveRiferimenti(req.params.id, f.riferimenti || []);
   res.json({ success: true });
 });
 
@@ -185,11 +188,12 @@ function getDdtIds(fatturaId) {
 
 function saveRighe(fatturaId, righe) {
   const stmt = db.prepare(`INSERT INTO fatture_righe
-    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
     stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
-             r.sconto ?? 0, r.iva, r.unitaMisura || '',
+             r.sconto ?? 0, r.iva, r.codiceIva || '',
+             r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
              r.tipo || 'PRODOTTO');
 }
@@ -201,7 +205,7 @@ function getDdtRighe(ddtId) {
   return rows.map(r => ({
     prodottoId: r.prodotto_id, descrizione: r.descrizione,
     quantita: r.quantita, unitaMisura: r.unita_misura,
-    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva, codiceIva: r.codice_iva || '',
     varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
     tipo: r.tipo || 'PRODOTTO'
   }));
@@ -214,10 +218,25 @@ function getRighe(fatturaId) {
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
-    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva, codiceIva: r.codice_iva || '',
     varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
     tipo: r.tipo || 'PRODOTTO'
   }));
+}
+
+function saveRiferimenti(fatturaId, riferimenti) {
+  db.prepare('DELETE FROM fatture_riferimenti WHERE fattura_id=?').run(fatturaId);
+  if (!riferimenti?.length) return;
+  const stmt = db.prepare(`INSERT INTO fatture_riferimenti
+    (fattura_id, tipo, numero, data, cig, cup, commessa, ordine) VALUES (?,?,?,?,?,?,?,?)`);
+  riferimenti.forEach((r, i) =>
+    stmt.run(fatturaId, r.tipo || 'ORDINE_ACQUISTO', r.numero || '', r.data || '', r.cig || '', r.cup || '', r.commessa || '', i));
+}
+
+function getRiferimenti(fatturaId) {
+  return db.prepare('SELECT * FROM fatture_riferimenti WHERE fattura_id=? ORDER BY ordine, id')
+    .all(fatturaId)
+    .map(r => ({ id: r.id, tipo: r.tipo, numero: r.numero, data: r.data || '', cig: r.cig || '', cup: r.cup || '', commessa: r.commessa || '' }));
 }
 
 function toDto(r) {
@@ -251,6 +270,7 @@ router.get('/:id/print', (req, res) => {
     pIva: row.c_p_iva, codFiscale: row.c_cod_fiscale,
     email: row.c_email, telefono: row.c_telefono, pec: row.c_pec, sdi: row.c_sdi,
   };
+  dto.riferimenti = getRiferimenti(row.id);
   dto.tipoPagamentoNome = row.tp_nome || '';
   dto.pagamenti = db.prepare(
     'SELECT data_pagamento, importo, metodo, note FROM pagamenti WHERE fattura_id=? ORDER BY data_pagamento'

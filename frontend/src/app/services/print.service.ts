@@ -80,6 +80,7 @@ export class PrintService {
       if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
       if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
       if (this.blockVisible('pagamento')) y = this.payment(pdf, y, doc, az);
+      if (doc.riferimenti?.length) y = this.riferimentiBox(pdf, y, doc.riferimenti);
       if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
       if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `Fattura_${doc.numero}.pdf`);
@@ -616,6 +617,27 @@ export class PrintService {
       doc.text(['Firma mittente', 'Firma vettore', 'Firma destinatario'][i], x + sw / 2, y + 4.5, { align: 'center' });
     }
     return y + 10;
+  }
+
+  private riferimentiBox(doc: jsPDF, y: number, refs: any[]): number {
+    const LABEL: Record<string, string> = {
+      'ORDINE_ACQUISTO': "Ordine d'acquisto", 'CONTRATTO': 'Contratto',
+      'CONVENZIONE': 'Convenzione', 'RICEZIONE': 'Ricezione',
+      'FATTURA_COLLEGATA': 'Fattura collegata', 'DDT': 'Doc. di trasporto',
+    };
+    y = this.secTitle(doc, y, 'Documento emesso in seguito a');
+    doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...DK);
+    for (const r of refs) {
+      const parts: string[] = [(LABEL[r.tipo] || r.tipo) + ' n. ' + r.numero];
+      if (r.data) parts.push('del ' + String(r.data).substring(0, 10).split('-').reverse().join('/'));
+      if (r.cig) parts.push('CIG: ' + r.cig);
+      if (r.cup) parts.push('CUP: ' + r.cup);
+      if (r.commessa) parts.push('Commessa: ' + r.commessa);
+      const lines = doc.splitTextToSize('• ' + parts.join(' — '), CW - 4) as string[];
+      doc.text(lines, ML, y);
+      y += lines.length * 5 + 1;
+    }
+    return y + 4;
   }
 
   private noteBox(doc: jsPDF, y: number, note: string): number {

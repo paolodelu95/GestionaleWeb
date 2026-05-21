@@ -93,6 +93,10 @@ export interface Cliente {
   pec?: string;
   tipoPagamentoId?: number | null;
   listinoId?: number | null;
+  tipoSoggetto?: string;
+  cig?: string;
+  cup?: string;
+  aliquotaIvaId?: number | null;
 }
 
 export interface Listino {
@@ -152,6 +156,7 @@ export interface RigaDocumento {
   prezzo: number;
   sconto?: number;
   iva: number;
+  codiceIva?: string;
   varianteId?: number | null;
   varianteTaglia?: string;
   varianteColore?: string;
@@ -201,6 +206,17 @@ export interface Ddt {
   destinazioneId?: number | null;
 }
 
+export interface FatturaRiferimento {
+  id?: number;
+  fatturaId?: number;
+  tipo: string;
+  numero: string;
+  data?: string;
+  cig?: string;
+  cup?: string;
+  commessa?: string;
+}
+
 export interface Fattura {
   id?: number;
   numero: string;
@@ -215,6 +231,7 @@ export interface Fattura {
   imponibile?: number;
   tipoPagamentoId?: number | null;
   righe?: RigaDocumento[];
+  riferimenti?: FatturaRiferimento[];
   statoSdi?: string;
   dataInvioSdi?: string;
   idTrasmissioneSdi?: string;
@@ -304,6 +321,12 @@ export interface AliquotaIva {
   id?: number;
   nome: string;
   valore: number;
+  codice?: string;
+  categoria?: string;
+  descrizione?: string;
+  natura?: string | null;
+  note?: string;
+  predefinito?: boolean;
   attiva: boolean;
 }
 

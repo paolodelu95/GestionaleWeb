@@ -21,7 +21,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError 
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
-import { Cliente, ClienteIndirizzo, TipoPagamento, Listino } from '../../models';
+import { Cliente, ClienteIndirizzo, TipoPagamento, Listino, AliquotaIva } from '../../models';
 import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
@@ -255,6 +255,14 @@ export class AziendaSearchDialogComponent {
             <span>Fatturazione elettronica</span>
           </div>
           <div class="form-row">
+            <mat-form-field style="max-width:180px">
+              <mat-label>Tipo soggetto</mat-label>
+              <mat-select formControlName="tipoSoggetto">
+                <mat-option value="PRIVATO">Privato / B2B</mat-option>
+                <mat-option value="PA">Pubblica Amministrazione</mat-option>
+                <mat-option value="PROFESSIONISTA">Professionista</mat-option>
+              </mat-select>
+            </mat-form-field>
             <mat-form-field><mat-label>Codice SDI</mat-label>
               <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
             </mat-form-field>
@@ -262,6 +270,20 @@ export class AziendaSearchDialogComponent {
               <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
             </mat-form-field>
           </div>
+          @if (form.get('tipoSoggetto')?.value === 'PA') {
+            <div class="form-row" style="margin-top:4px">
+              <mat-form-field>
+                <mat-label>CIG</mat-label>
+                <input matInput formControlName="cig" placeholder="es. Z123456789" style="text-transform:uppercase">
+                <mat-hint>Codice Identificativo Gara (opzionale)</mat-hint>
+              </mat-form-field>
+              <mat-form-field>
+                <mat-label>CUP</mat-label>
+                <input matInput formControlName="cup" placeholder="es. C57I18000050006" style="text-transform:uppercase">
+                <mat-hint>Codice Unico Progetto (opzionale)</mat-hint>
+              </mat-form-field>
+            </div>
+          }
         </div>
 
         <!-- ── Sede / Indirizzo ─────────────────────────── -->
@@ -345,6 +367,21 @@ export class AziendaSearchDialogComponent {
               </mat-select>
               <mat-icon matSuffix>payments</mat-icon>
             </mat-form-field>
+            <mat-form-field>
+              <mat-label>Aliquota IVA predefinita</mat-label>
+              <mat-select formControlName="aliquotaIvaId">
+                <mat-option [value]="null">— 22% (predefinita) —</mat-option>
+                @for (a of aliquoteIva; track a.id) {
+                  <mat-option [value]="a.id">
+                    {{ a.valore }}% {{ a.codice ? '(' + a.codice + ')' : '' }} — {{ a.nome }}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-icon matSuffix>percent</mat-icon>
+              <mat-hint>Applicata alle nuove righe nei documenti</mat-hint>
+            </mat-form-field>
+          </div>
+          <div class="form-row">
             <mat-form-field>
               <mat-label>Listino prezzi</mat-label>
               <mat-select formControlName="listinoId">
@@ -493,7 +530,7 @@ export class AziendaSearchDialogComponent {
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="!form.get('ragioneSociale')?.valid || form.pending">Salva</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.pending">Salva</button>
     </mat-dialog-actions>`,
   styles: [`
     .addr-card {
@@ -509,6 +546,7 @@ export class ClienteDialogComponent implements OnInit {
   filteredCities: CityResult[] = [];
   tipiPagamento: TipoPagamento[] = [];
   listini: Listino[] = [];
+  aliquoteIva: AliquotaIva[] = [];
   lookupLoading = false;
   get canLookupPiva(): boolean { return normalizePiva(this.form.get('pIva')?.value ?? '').length === 11; }
   private cityMap = new Map<string, CityResult>();
@@ -587,6 +625,10 @@ export class ClienteDialogComponent implements OnInit {
       pec:            [data?.pec ?? ''],
       tipoPagamentoId:[data?.tipoPagamentoId ?? null],
       listinoId:      [data?.listinoId ?? null],
+      tipoSoggetto:   [data?.tipoSoggetto ?? 'PRIVATO'],
+      cig:            [data?.cig ?? ''],
+      cup:            [data?.cup ?? ''],
+      aliquotaIvaId:  [data?.aliquotaIvaId ?? null],
     });
   }
 
@@ -605,6 +647,7 @@ export class ClienteDialogComponent implements OnInit {
   ngOnInit() {
     this.ds.getTipiPagamento().subscribe(t => this.tipiPagamento = t.filter(x => x.attivo));
     this.ds.getListini().subscribe(l => this.listini = l.filter(x => x.attivo));
+    this.ds.getAliquoteIva().subscribe(a => this.aliquoteIva = a.filter(x => x.attiva));
     this.loadIndirizzi();
 
     this.form.get('citta')!.valueChanges.pipe(
@@ -673,9 +716,13 @@ export class ClienteDialogComponent implements OnInit {
   }
 
   save() {
-    if (this.form.valid && !this.form.pending) {
-      this.dialogRef.close({ ...this.data, ...this.form.value });
+    this.form.markAllAsTouched();
+    if (this.form.pending) return;
+    if (!this.form.valid) {
+      this.snack.open('Correggi i campi evidenziati prima di salvare', '', { duration: 3000 });
+      return;
     }
+    this.dialogRef.close({ ...this.data, ...this.form.value });
   }
 }
 
