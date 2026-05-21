@@ -76,9 +76,7 @@ router.get('/:id', (req, res) => {
   res.json(dto);
 });
 
-router.post('/', (req, res) => {
-  const f = req.body;
-  const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
+const createFatturaTx = db.transaction((f, ddtIds) => {
   const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
     VALUES (?,?,?,?,?,?,?)`)
     .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'EMESSA', f.tipoPagamentoId || null);
@@ -97,43 +95,61 @@ router.post('/', (req, res) => {
   if (ddtIds.length) saveDdtLinks(fatturaId, ddtIds);
   if (f.riferimenti?.length) saveRiferimenti(fatturaId, f.riferimenti);
   creaPagamentoImmediato(fatturaId);
-  res.json({ id: fatturaId });
+  return fatturaId;
+});
+
+router.post('/', (req, res) => {
+  const f = req.body;
+  const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
+  try {
+    const id = createFatturaTx(f, ddtIds);
+    res.json({ id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+const updateFatturaTx = db.transaction((id, f, ddtIds) => {
+  const vecchiDdtIds = getDdtIds(id);
+  const vecchieRighe = getRighe(id);
+  if (vecchieRighe.length && !vecchiDdtIds.length) {
+    const oldF = db.prepare('SELECT numero, cliente_id FROM fatture WHERE id=?').get(id);
+    const oldCliente = oldF?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(oldF.cliente_id) : null;
+    aggiornaQuantita(vecchieRighe, +1, {
+      causale: 'STORNO', documentoTipo: 'FATTURA', documentoId: id,
+      documentoNumero: oldF?.numero || '', clienteId: oldF?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || ''
+    });
+  }
+  db.prepare(`UPDATE fatture SET numero=?, data_emissione=?, cliente_id=?, ddt_id=?, note=?, stato=?, tipo_pagamento_id=? WHERE id=?`)
+    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato, f.tipoPagamentoId || null, id);
+  db.prepare('DELETE FROM fatture_righe WHERE fattura_id=?').run(id);
+  if (f.righe?.length) {
+    saveRighe(id, f.righe);
+    if (!ddtIds.length) {
+      const cliente = f.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(f.clienteId) : null;
+      aggiornaQuantita(f.righe, -1, {
+        data: f.dataEmissione, causale: 'FATTURA', documentoTipo: 'FATTURA',
+        documentoId: id, documentoNumero: f.numero,
+        clienteId: f.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
+      });
+    }
+  }
+  saveDdtLinks(id, ddtIds);
+  saveRiferimenti(id, f.riferimenti || []);
 });
 
 router.put('/:id', (req, res) => {
   const f = req.body;
   const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
-  const vecchiDdtIds = getDdtIds(req.params.id);
-  const vecchieRighe = getRighe(req.params.id);
-  if (vecchieRighe.length && !vecchiDdtIds.length) {
-    const oldF = db.prepare('SELECT numero, cliente_id FROM fatture WHERE id=?').get(req.params.id);
-    const oldCliente = oldF?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(oldF.cliente_id) : null;
-    aggiornaQuantita(vecchieRighe, +1, {
-      causale: 'STORNO', documentoTipo: 'FATTURA', documentoId: req.params.id,
-      documentoNumero: oldF?.numero || '', clienteId: oldF?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || ''
-    });
+  try {
+    updateFatturaTx(req.params.id, f, ddtIds);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
-  db.prepare(`UPDATE fatture SET numero=?, data_emissione=?, cliente_id=?, ddt_id=?, note=?, stato=?, tipo_pagamento_id=? WHERE id=?`)
-    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato, f.tipoPagamentoId || null, req.params.id);
-  db.prepare('DELETE FROM fatture_righe WHERE fattura_id=?').run(req.params.id);
-  if (f.righe?.length) {
-    saveRighe(req.params.id, f.righe);
-    if (!ddtIds.length) {
-      const cliente = f.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(f.clienteId) : null;
-      aggiornaQuantita(f.righe, -1, {
-        data: f.dataEmissione, causale: 'FATTURA', documentoTipo: 'FATTURA',
-        documentoId: req.params.id, documentoNumero: f.numero,
-        clienteId: f.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
-      });
-    }
-  }
-  saveDdtLinks(req.params.id, ddtIds);
-  saveRiferimenti(req.params.id, f.riferimenti || []);
-  res.json({ success: true });
 });
 
-router.delete('/:id', (req, res) => {
-  const id = Number(req.params.id);
+const deleteFatturaTx = db.transaction((id) => {
   const ddtIds = getDdtIds(id);
   if (!ddtIds.length) {
     const righe = getRighe(id);
@@ -149,7 +165,15 @@ router.delete('/:id', (req, res) => {
   db.prepare('DELETE FROM pagamenti WHERE fattura_id=?').run(id);
   db.prepare('UPDATE note_credito SET fattura_id=NULL WHERE fattura_id=?').run(id);
   db.prepare('DELETE FROM fatture WHERE id=?').run(id);
-  res.json({ success: true });
+});
+
+router.delete('/:id', (req, res) => {
+  try {
+    deleteFatturaTx(Number(req.params.id));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 function aggiornaQuantita(righe, delta, ctx = {}) {
