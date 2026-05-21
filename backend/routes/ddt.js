@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { checkRiordino } = require('../utils/riordino');
+const { audit } = require('../utils/audit');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -65,6 +66,7 @@ router.post('/', (req, res) => {
     });
     checkRiordino(d.righe.map(r => r.prodottoId).filter(Boolean));
   }
+  audit('ddt', ddtId, 'CREATE', { numero: d.numero, clienteId: d.clienteId, stato: d.stato || 'BOZZA', numRighe: d.righe?.length || 0 });
   res.json({ id: ddtId });
 });
 
@@ -123,6 +125,7 @@ router.delete('/:id', (req, res) => {
   db.prepare('DELETE FROM fatture_ddt WHERE ddt_id=?').run(req.params.id);
   db.prepare('DELETE FROM ddt_righe WHERE ddt_id=?').run(req.params.id);
   db.prepare('DELETE FROM ddt WHERE id=?').run(req.params.id);
+  audit('ddt', Number(req.params.id), 'DELETE', { numero: ddt?.numero, stato: ddt?.stato, clienteId: ddt?.cliente_id });
   res.json({ success: true });
 });
 

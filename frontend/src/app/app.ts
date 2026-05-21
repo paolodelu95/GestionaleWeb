@@ -282,6 +282,7 @@ export class App implements OnInit {
     { label: 'Scadenzario', icon: 'event',           route: '/scadenzario' },
     { label: 'Prima Nota',   icon: 'menu_book',       route: '/prima-nota' },
     { label: 'Report',       icon: 'bar_chart',      route: '/report' },
+    { label: 'Storico',      icon: 'history',        route: '/storico' },
     { label: 'Impostazioni', icon: 'settings',       route: '/impostazioni' },
   ];
 
