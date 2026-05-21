@@ -965,6 +965,16 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   .page { padding: 24px 22px; }
 }
 
+// ── Responsive helpers per tabelle wide ───────────────────────────────────────
+// Marca colonne con .hide-mobile / .hide-tablet sia sul <th> che sul <td>
+// dello stesso matColumnDef per nasconderle a partire dal breakpoint.
+@media (max-width: 900px) {
+  .hide-tablet { display: none !important; }
+}
+@media (max-width: 600px) {
+  .hide-mobile { display: none !important; }
+}
+
 @media (max-width: 767px) {
   .page { padding: 16px 12px; }
 
