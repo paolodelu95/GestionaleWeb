@@ -14,6 +14,19 @@ router.get('/', (req, res) => {
   res.json(rows.map(r => toDto(r)));
 });
 
+router.get('/non-fatturati', (req, res) => {
+  const rows = db.prepare(`
+    SELECT d.*, c.ragione_sociale as cliente_nome,
+           c.tipo_pagamento_id as cliente_tipo_pagamento_id
+    FROM ddt d
+    LEFT JOIN clienti c ON d.cliente_id = c.id
+    WHERE d.stato != 'ANNULLATO'
+      AND NOT EXISTS (SELECT 1 FROM fatture f WHERE f.ddt_id = d.id)
+      AND NOT EXISTS (SELECT 1 FROM fatture_ddt fd WHERE fd.ddt_id = d.id)
+    ORDER BY d.cliente_id, d.data_emissione`).all();
+  res.json(rows.map(r => ({ ...toDto(r), clienteTipoPagamentoId: r.cliente_tipo_pagamento_id || null })));
+});
+
 router.get('/:id', (req, res) => {
   const row = db.prepare(`
     SELECT d.*, c.ragione_sociale as cliente_nome

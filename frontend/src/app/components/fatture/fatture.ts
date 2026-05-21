@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -13,6 +13,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -25,6 +26,181 @@ import { Fattura, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMis
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+
+interface DdtItem { ddt: any; checked: boolean; }
+interface ClienteGroup { clienteId: number | null; clienteNome: string; items: DdtItem[]; tipoPagamentoId: number | null; }
+
+@Component({
+  selector: 'app-genera-fatture-da-ddt-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
+            MatCheckboxModule, MatProgressSpinnerModule, MatSnackBarModule, MatSelectModule],
+  template: `
+    <h2 mat-dialog-title>Genera Fatture da DDT</h2>
+    <mat-dialog-content style="min-width:560px;max-width:700px">
+      <div class="dialog-hero">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0ea5e9 0%,#38bdf8 100%)">
+          <mat-icon>receipt_long</mat-icon>
+        </div>
+        <div class="dialog-hero-text">
+          <span class="dialog-hero-title">Genera fatture da DDT non fatturati</span>
+          <span class="dialog-hero-sub">Seleziona i DDT da includere. Verrà creata una fattura per ogni cliente.</span>
+        </div>
+      </div>
+
+      @if (loading) {
+        <div style="text-align:center;padding:40px">
+          <mat-spinner diameter="40" style="margin:0 auto"></mat-spinner>
+        </div>
+      } @else if (!groups.length) {
+        <div style="text-align:center;padding:40px;color:#94a3b8">
+          <mat-icon style="font-size:48px;width:48px;height:48px;display:block;margin:0 auto 12px">check_circle_outline</mat-icon>
+          <p style="margin:0;font-size:14px">Nessun DDT da fatturare</p>
+        </div>
+      } @else {
+        <div class="gd-groups">
+          @for (g of groups; track g.clienteId) {
+            <div class="gd-group">
+              <div class="gd-group-header">
+                <mat-checkbox
+                  [checked]="isGroupAllChecked(g)"
+                  [indeterminate]="isGroupIndeterminate(g)"
+                  (change)="toggleGroup(g, $event.checked)">
+                </mat-checkbox>
+                <mat-icon style="color:#6366f1;font-size:18px;width:18px;height:18px">person</mat-icon>
+                <span class="gd-cliente">{{ g.clienteNome }}</span>
+                <mat-select [(ngModel)]="g.tipoPagamentoId" class="gd-pagamento-select"
+                            placeholder="Tipo pagamento">
+                  <mat-option [value]="null">— non specificato —</mat-option>
+                  @for (t of tipiPagamento; track t.id) {
+                    <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+                  }
+                </mat-select>
+                <span class="gd-group-total">{{ groupSelectedTotal(g) | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
+              </div>
+              @for (item of g.items; track item.ddt.id) {
+                <div class="gd-ddt-row" [class.gd-unchecked]="!item.checked">
+                  <mat-checkbox [(ngModel)]="item.checked"></mat-checkbox>
+                  <mat-icon style="font-size:15px;width:15px;height:15px;color:#64748b">local_shipping</mat-icon>
+                  <span class="gd-ddt-num">DDT n.&nbsp;{{ item.ddt.numero }}</span>
+                  <span class="gd-ddt-data">{{ item.ddt.dataEmissione | date:'dd/MM/yyyy' }}</span>
+                  <span class="gd-ddt-tot">{{ item.ddt.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+        <div class="gd-summary">
+          <mat-icon>info_outline</mat-icon>
+          @if (selectedGroups.length) {
+            Verranno generate <b>{{ selectedGroups.length }}&nbsp;fatture</b> per&nbsp;<b>{{ selectedCount }}&nbsp;DDT</b> selezionati
+          } @else {
+            Nessun DDT selezionato
+          }
+        </div>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close [disabled]="generating">Annulla</button>
+      <button mat-flat-button (click)="generate()"
+              [disabled]="!selectedCount || generating || loading">
+        @if (generating) {
+          <mat-spinner diameter="16" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner>
+        }
+        Genera {{ selectedGroups.length ? selectedGroups.length + (selectedGroups.length === 1 ? ' fattura' : ' fatture') : '' }}
+      </button>
+    </mat-dialog-actions>`,
+  styles: [`
+    .gd-groups { display:flex; flex-direction:column; gap:8px; margin:16px 0 8px; }
+    .gd-group { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    .gd-group-header { display:flex; align-items:center; gap:10px; padding:8px 14px; background:#f8fafc; font-weight:600; font-size:14px; }
+    .gd-pagamento-select { font-size:12px; min-width:190px; max-width:220px; }
+    .gd-cliente { flex:1; color:#1e293b; }
+    .gd-group-total { font-size:13px; color:#374151; font-weight:700; }
+    .gd-ddt-row { display:flex; align-items:center; gap:10px; padding:8px 14px 8px 28px; border-top:1px solid #f1f5f9; font-size:13px; transition:background 0.15s; }
+    .gd-ddt-row:hover { background:#f8fafc; }
+    .gd-unchecked { opacity:0.5; }
+    .gd-ddt-num { font-weight:500; color:#374151; min-width:110px; }
+    .gd-ddt-data { color:#64748b; flex:1; }
+    .gd-ddt-tot { font-weight:600; color:#1e293b; }
+    .gd-summary { display:flex; align-items:center; gap:8px; padding:10px 14px; background:#f0f9ff; border-radius:8px; font-size:13px; color:#0369a1; margin-top:8px; }
+    .gd-summary mat-icon { font-size:18px; width:18px; height:18px; }
+  `]
+})
+export class GeneraFattureDaDdtDialogComponent implements OnInit {
+  groups: ClienteGroup[] = [];
+  tipiPagamento: TipoPagamento[] = [];
+  loading = true;
+  generating = false;
+
+  constructor(
+    private ds: DataService,
+    private snack: MatSnackBar,
+    public dialogRef: MatDialogRef<GeneraFattureDaDdtDialogComponent>
+  ) {}
+
+  ngOnInit() {
+    this.ds.getTipiPagamento().subscribe(t => {
+      this.tipiPagamento = t.filter(x => x.attivo);
+      if (!this.loading) this.applyDefaults();
+    });
+    this.ds.getDdtNonFatturati().subscribe({
+      next: ddts => {
+        const map = new Map<string, ClienteGroup>();
+        for (const ddt of ddts) {
+          const key = String(ddt.clienteId ?? 0);
+          if (!map.has(key)) map.set(key, {
+            clienteId: ddt.clienteId ?? null,
+            clienteNome: (ddt as any).clienteNome ?? 'Senza cliente',
+            items: [],
+            tipoPagamentoId: (ddt as any).clienteTipoPagamentoId ?? null
+          });
+          map.get(key)!.items.push({ ddt, checked: true });
+        }
+        this.groups = [...map.values()];
+        this.loading = false;
+        if (this.tipiPagamento.length) this.applyDefaults();
+      },
+      error: () => { this.loading = false; }
+    });
+  }
+
+  private applyDefaults() {
+    for (const g of this.groups) {
+      const preferred = g.tipoPagamentoId
+        ? this.tipiPagamento.find(t => t.id === g.tipoPagamentoId)
+        : null;
+      // Se il cliente non ha preferenza o la preferenza è immediata (contanti/POS)
+      // → cerchiamo "vista fattura": non immediato, giorni_scadenza = 0
+      if (!preferred || preferred.immediato) {
+        const vistaFattura = this.tipiPagamento.find(t => !t.immediato && t.giorniScadenza === 0);
+        g.tipoPagamentoId = vistaFattura?.id ?? g.tipoPagamentoId;
+      }
+      // altrimenti manteniamo la preferenza del cliente (bonifico dilazionato, ecc.)
+    }
+  }
+
+  isGroupAllChecked(g: ClienteGroup): boolean { return g.items.every(i => i.checked); }
+  isGroupIndeterminate(g: ClienteGroup): boolean { const n = g.items.filter(i => i.checked).length; return n > 0 && n < g.items.length; }
+  toggleGroup(g: ClienteGroup, checked: boolean) { g.items.forEach(i => i.checked = checked); }
+  groupSelectedTotal(g: ClienteGroup): number { return g.items.filter(i => i.checked).reduce((s, i) => s + (i.ddt.totale ?? 0), 0); }
+  get selectedGroups(): ClienteGroup[] { return this.groups.filter(g => g.items.some(i => i.checked)); }
+  get selectedCount(): number { return this.groups.reduce((s, g) => s + g.items.filter(i => i.checked).length, 0); }
+
+  generate() {
+    const items = this.selectedGroups.map(g => ({
+      clienteId: g.clienteId,
+      ddtIds: g.items.filter(i => i.checked).map(i => i.ddt.id),
+      tipoPagamentoId: g.tipoPagamentoId
+    }));
+    if (!items.length) return;
+    this.generating = true;
+    this.ds.generaFattureDaDdt(items).subscribe({
+      next: result => { this.generating = false; this.dialogRef.close(result.fatture); },
+      error: e => { this.generating = false; this.snack.open(e.error?.error || 'Errore generazione fatture', '', { duration: 3500 }); }
+    });
+  }
+}
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -773,7 +949,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, DocInfoDialogComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, DocInfoDialogComponent,
+            GeneraFattureDaDdtDialogComponent],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
@@ -863,6 +1040,17 @@ export class FattureComponent implements OnInit, AfterViewInit {
     this.ds.setFatturaStato(f.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
   }
   bulkSetStato(stato: string) { this.selection.selected.forEach(f => this.ds.setFatturaStato(f.id!, stato).subscribe()); this.load(); }
+
+  openGeneraDaDdt() {
+    const ref = this.dialog.open(GeneraFattureDaDdtDialogComponent, {
+      width: '700px', maxWidth: '98vw', maxHeight: '92vh'
+    });
+    ref.afterClosed().subscribe((result: any[]) => {
+      if (!result?.length) return;
+      this.load();
+      this.snack.open(`${result.length} ${result.length === 1 ? 'fattura generata' : 'fatture generate'}`, '', { duration: 3000 });
+    });
+  }
 
   open(f?: Fattura) {
     const ref = this.dialog.open(FatturaDialogComponent, {

@@ -60,6 +60,7 @@ export class DataService {
   // DDT
   getDdt(): Observable<Ddt[]> { return this.api.get('ddt'); }
   getDdtById(id: number): Observable<Ddt> { return this.api.get(`ddt/${id}`); }
+  getDdtNonFatturati(): Observable<Ddt[]> { return this.api.get('ddt/non-fatturati'); }
   createDdt(d: Ddt): Observable<any> { return this.api.post('ddt', d); }
   updateDdt(d: Ddt): Observable<any> { return this.api.put(`ddt/${d.id}`, d); }
   deleteDdt(id: number): Observable<any> { return this.api.delete(`ddt/${id}`); }
@@ -70,6 +71,9 @@ export class DataService {
   createFattura(f: Fattura): Observable<any> { return this.api.post('fatture', f); }
   updateFattura(f: Fattura): Observable<any> { return this.api.put(`fatture/${f.id}`, f); }
   deleteFattura(id: number): Observable<any> { return this.api.delete(`fatture/${id}`); }
+  generaFattureDaDdt(items: { clienteId: number | null; ddtIds: number[]; tipoPagamentoId: number | null }[]): Observable<{ fatture: { id: number; numero: string; clienteNome: string; ddtNums: string }[] }> {
+    return this.api.post('fatture/da-ddt', { items });
+  }
 
   // Note di Credito
   getNoteCredito(): Observable<NotaCredito[]> { return this.api.get('note-credito'); }

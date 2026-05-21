@@ -10,6 +10,59 @@ router.get('/', (req, res) => {
   res.json(rows.map(r => toDto(r)));
 });
 
+router.post('/da-ddt', (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items) || !items.length)
+    return res.status(400).json({ error: 'items richiesto' });
+
+  const stmtLink = db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)');
+  const stmtRiga = db.prepare(`INSERT INTO fatture_righe
+    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+
+  const createFatture = db.transaction(() => {
+    const created = [];
+    for (const item of items) {
+      const { clienteId, ddtIds, tipoPagamentoId } = item;
+      if (!Array.isArray(ddtIds) || !ddtIds.length) continue;
+
+      // Verifica DDT validi per questo cliente
+      const ddts = ddtIds.map(id => db.prepare('SELECT * FROM ddt WHERE id=?').get(id)).filter(Boolean);
+      if (!ddts.length) continue;
+
+      const count = db.prepare('SELECT COUNT(*) as n FROM fatture').get();
+      const numero = String(count.n + 1);
+      const oggi = new Date().toISOString().split('T')[0];
+      const ddtNums = ddts.map(d => d.numero).join(', ');
+      const cliente = clienteId
+        ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(clienteId)
+        : null;
+      const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
+        VALUES (?,?,?,?,?,?,?)`)
+        .run(numero, oggi, clienteId || null, ddts[0].id, `Da DDT: ${ddtNums}`, 'EMESSA', tipoPagamentoId || null);
+      const fatturaId = result.lastInsertRowid;
+
+      for (const ddt of ddts) {
+        stmtLink.run(fatturaId, ddt.id);
+        const [y, m, d] = ddt.data_emissione.split('T')[0].split('-');
+        stmtRiga.run(fatturaId, null, `Riferimento DDT n. ${ddt.numero} del ${d}/${m}/${y}`,
+          0, 0, 0, 0, '', null, '', '', 'NOTA');
+        for (const r of getDdtRighe(ddt.id))
+          stmtRiga.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+            r.sconto ?? 0, r.iva, r.unitaMisura || '',
+            r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
+            r.tipo || 'PRODOTTO');
+      }
+      creaPagamentoImmediato(fatturaId);
+      created.push({ id: fatturaId, numero, clienteNome: cliente?.ragione_sociale || '', ddtNums });
+    }
+    return created;
+  });
+
+  const fatture = createFatture();
+  res.json({ fatture });
+});
+
 router.get('/:id', (req, res) => {
   const row = db.prepare(`
     SELECT f.*, c.ragione_sociale as cliente_nome
@@ -139,6 +192,19 @@ function saveRighe(fatturaId, righe) {
              r.sconto ?? 0, r.iva, r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
              r.tipo || 'PRODOTTO');
+}
+
+function getDdtRighe(ddtId) {
+  const rows = db.prepare(`SELECT dr.*, p.nome as prodotto_nome
+    FROM ddt_righe dr LEFT JOIN prodotti p ON dr.prodotto_id = p.id
+    WHERE dr.ddt_id=?`).all(ddtId);
+  return rows.map(r => ({
+    prodottoId: r.prodotto_id, descrizione: r.descrizione,
+    quantita: r.quantita, unitaMisura: r.unita_misura,
+    prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
+    varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
+    tipo: r.tipo || 'PRODOTTO'
+  }));
 }
 
 function getRighe(fatturaId) {
