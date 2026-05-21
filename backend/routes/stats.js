@@ -213,8 +213,8 @@ router.get('/bi', (req, res) => {
 
     // Stagionalità – media mensile pluriennale (tutti gli anni disponibili)
     const stagionalita = db.prepare(`
-      SELECT substr(f.data_emissione,6,2) as mese_num,
-             AVG(mensile) as media
+      SELECT f.mese_num,
+             AVG(f.mensile) as media
       FROM (
         SELECT substr(f.data_emissione,1,7) as ym,
                substr(f.data_emissione,6,2) as mese_num,
@@ -223,7 +223,7 @@ router.get('/bi', (req, res) => {
         WHERE f.stato!='ANNULLATA'
         GROUP BY ym
       ) f
-      GROUP BY mese_num ORDER BY mese_num`).all();
+      GROUP BY f.mese_num ORDER BY f.mese_num`).all();
 
     res.json({
       anno,
