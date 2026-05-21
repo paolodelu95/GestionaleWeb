@@ -76,10 +76,11 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">
+          {{ dataSource.filter ? 'Nessun cliente corrisponde alla ricerca' : 'Nessun cliente. Clicca su «Nuovo Cliente» per crearne uno.' }}
+        </td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
-    @if (!clienti.length) { <p class="empty-msg">Nessun cliente</p> }
   </div>
 </div>

@@ -4,7 +4,7 @@
     @if (selection.hasValue()) {
       <div class="bulk-bar">
         <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
-        <button mat-stroked-button type="button" (click)="bulkSetStato('PAGATA')">
+        <button mat-stroked-button type="button" (click)="bulkSetStato('PAGATA')" [disabled]="busy">
           <mat-icon>payments</mat-icon> Segna Pagata
         </button>
         <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
@@ -137,10 +137,11 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">
+          {{ hasActiveFilters() ? 'Nessuna fattura corrisponde ai filtri attuali' : 'Nessuna fattura. Clicca su «Nuova Fattura» per crearne una.' }}
+        </td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
-    @if (!fatture.length) { <p class="empty-msg">Nessuna fattura</p> }
   </div>
 </div>

@@ -685,6 +685,16 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   --mdc-snackbar-container-shape: 10px;
   --mdc-snackbar-container-color: #1e293b;
   box-shadow: var(--shadow-lg) !important;
+  &.snack-ok {
+    --mdc-snackbar-container-color: #16a34a;
+    --mat-snack-bar-button-color: #ffffff;
+    --mdc-snackbar-supporting-text-color: #ffffff;
+  }
+  &.snack-error {
+    --mdc-snackbar-container-color: #dc2626;
+    --mat-snack-bar-button-color: #ffffff;
+    --mdc-snackbar-supporting-text-color: #ffffff;
+  }
 }
 
 // Paginator: clean look

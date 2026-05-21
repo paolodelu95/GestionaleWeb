@@ -20,6 +20,8 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
@@ -404,7 +406,7 @@ const RIGHE_STYLES = `
                           }
                         </select>
                       </td>
-                      <td><input class="riga-input num" type="number" step="0.01"
+                      <td><input class="riga-input num" type="number" min="0" step="0.01"
                         [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                         (change)="setPrezzoFromInput(riga, $event)"></td>
                       <td class="td-history">
@@ -458,7 +460,7 @@ const RIGHE_STYLES = `
                             }
                           </select>
                         } @else {
-                          <input class="riga-input num" type="number" [(ngModel)]="riga.iva">
+                          <input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva">
                         }
                       </td>
                       <td style="padding:4px 8px; white-space:nowrap">
@@ -1136,6 +1138,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
   filtroCliente: number | null = null;
   filtroStato: string | null = null;
   filtroDaPagare = false;
+  busy = false;
 
   get anni() { return [...new Set(this.allFatture.map(f => +f.dataEmissione.substring(0, 4)))].sort().reverse(); }
   get daPagareCount() { return this.allFatture.filter(f => f.stato === 'EMESSA').length; }
@@ -1213,13 +1216,35 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   get fatture() { return this.dataSource.data; }
+  hasActiveFilters() { return !!(this.filtroAnno || this.filtroMese || this.filtroCliente || this.filtroStato || this.filtroDaPagare || this.dataSource.filter); }
   isAllSelected() { return this.allFatture.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
   toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 
   setStato(f: Fattura, stato: string) {
-    this.ds.setFatturaStato(f.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
+    this.busy = true;
+    this.ds.setFatturaStato(f.id!, stato).subscribe({
+      next: () => { this.busy = false; this.load(); },
+      error: e => { this.busy = false; this.snack.open(e.message || 'Errore aggiornamento stato', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
+    });
   }
-  bulkSetStato(stato: string) { this.selection.selected.forEach(f => this.ds.setFatturaStato(f.id!, stato).subscribe()); this.load(); }
+  bulkSetStato(stato: string) {
+    const selezionate = this.selection.selected;
+    if (!selezionate.length || this.busy) return;
+    this.busy = true;
+    forkJoin(selezionate.map(f =>
+      this.ds.setFatturaStato(f.id!, stato).pipe(catchError(err => of({ __error: err, fattura: f })))
+    )).subscribe(results => {
+      this.busy = false;
+      const errori = results.filter((r: any) => r && r.__error);
+      if (errori.length) {
+        this.snack.open(`${errori.length} fatture non aggiornate`, 'OK', { duration: 5000, panelClass: 'snack-error' });
+      } else {
+        this.snack.open(`${selezionate.length} fatture aggiornate`, '', { duration: 2500, panelClass: 'snack-ok' });
+      }
+      this.selection.clear();
+      this.load();
+    });
+  }
 
   openGeneraDaDdt() {
     const ref = this.dialog.open(GeneraFattureDaDdtDialogComponent, {
