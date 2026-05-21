@@ -441,18 +441,18 @@ export class FornitoreDialogComponent implements OnInit {
 export class FornitoriComponent implements OnInit, AfterViewInit {
   fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Fornitore>([]);
-  displayedColumns: string[] = ['id', 'ragioneSociale', 'telefono', 'indirizzo', 'azioni'];
+  displayedColumns: string[] = ['ragioneSociale', 'pIva', 'telefono', 'indirizzo', 'azioni'];
 
   readonly allCols: ColDef[] = [
-    { key: 'id', label: 'ID' },
     { key: 'ragioneSociale', label: 'Ragione Sociale' },
-    { key: 'email', label: 'Email' },
-    { key: 'telefono', label: 'Telefono' },
-    { key: 'cellulare', label: 'Cellulare' },
-    { key: 'indirizzo', label: 'Città' },
     { key: 'pIva', label: 'P. IVA' },
-    { key: 'sdi', label: 'SDI' },
-    { key: 'pec', label: 'PEC' },
+    { key: 'telefono', label: 'Telefono' },
+    { key: 'indirizzo', label: 'Città' },
+    { key: 'email', label: 'Email', defaultVisible: false },
+    { key: 'cellulare', label: 'Cellulare', defaultVisible: false },
+    { key: 'sdi', label: 'SDI', defaultVisible: false },
+    { key: 'pec', label: 'PEC', defaultVisible: false },
+    { key: 'id', label: 'ID', defaultVisible: false },
   ];
 
   @ViewChild(MatSort) sort!: MatSort;
