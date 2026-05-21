@@ -688,8 +688,10 @@ export class DdtComponent implements OnInit, AfterViewInit {
   filtroAnno: number | null = null;
   filtroMese: number | null = null;
   filtroCliente: number | null = null;
+  filtroDaFatturare = false;
 
   get anni() { return [...new Set(this.allDdt.map(d => +d.dataEmissione.substring(0, 4)))].sort().reverse(); }
+  get daFatturareCount() { return this.allDdt.filter(d => !d.fatturaId && d.stato !== 'ANNULLATO').length; }
   get clientiList() {
     const map = new Map<number, string>();
     this.allDdt.forEach(d => { if (d.clienteId) map.set(d.clienteId, d.clienteNome ?? ''); });
@@ -728,12 +730,13 @@ export class DdtComponent implements OnInit, AfterViewInit {
     if (this.filtroAnno) data = data.filter(d => +d.dataEmissione.substring(0, 4) === this.filtroAnno);
     if (this.filtroMese) data = data.filter(d => +d.dataEmissione.substring(5, 7) === this.filtroMese);
     if (this.filtroCliente) data = data.filter(d => d.clienteId === this.filtroCliente);
+    if (this.filtroDaFatturare) data = data.filter(d => !d.fatturaId && d.stato !== 'ANNULLATO');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {
-    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null;
+    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroDaFatturare = false;
     this.dataSource.filter = ''; this.applyFilters();
   }
 

@@ -27,7 +27,18 @@
       <mat-option [value]="null">Tutti i clienti</mat-option>
       @for (c of clientiList; track c.id) { <mat-option [value]="c.id">{{ c.nome }}</mat-option> }
     </mat-select>
-    @if (filtroAnno || filtroMese || filtroCliente) {
+    <button mat-stroked-button type="button"
+            [style.color]="filtroDaFatturare ? '#7c3aed' : ''"
+            [style.border-color]="filtroDaFatturare ? '#7c3aed' : ''"
+            [style.background]="filtroDaFatturare ? '#f5f3ff' : ''"
+            (click)="filtroDaFatturare=!filtroDaFatturare; applyFilters()">
+      <mat-icon [style.color]="filtroDaFatturare ? '#7c3aed' : '#f59e0b'">receipt_long</mat-icon>
+      Da fatturare
+      @if (daFatturareCount > 0) {
+        <span style="background:#7c3aed;color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">{{ daFatturareCount }}</span>
+      }
+    </button>
+    @if (filtroAnno || filtroMese || filtroCliente || filtroDaFatturare) {
       <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>

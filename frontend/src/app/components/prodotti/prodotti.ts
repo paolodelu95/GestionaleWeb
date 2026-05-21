@@ -421,7 +421,11 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   ];
 
   filtroCategoria: string | null = null;
+  filtroSottoSoglia = false;
   get categorieList() { return [...new Set(this.allProdotti.map(p => p.categoria).filter(Boolean))].sort() as string[]; }
+  get sottoSogliaCount() {
+    return this.allProdotti.filter(p => (p.sogliaMinima ?? 0) > 0 && (p.quantita ?? 0) < (p.sogliaMinima ?? 0)).length;
+  }
   get prodotti() { return this.dataSource.data; }
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -461,11 +465,12 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   applyFilters() {
     let data = this.allProdotti;
     if (this.filtroCategoria) data = data.filter(p => p.categoria === this.filtroCategoria);
+    if (this.filtroSottoSoglia) data = data.filter(p => (p.sogliaMinima ?? 0) > 0 && (p.quantita ?? 0) < (p.sogliaMinima ?? 0));
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
-  resetFiltri() { this.filtroCategoria = null; this.dataSource.filter = ''; this.applyFilters(); }
+  resetFiltri() { this.filtroCategoria = null; this.filtroSottoSoglia = false; this.dataSource.filter = ''; this.applyFilters(); }
 
   onColsChange(cols: string[]) { this.displayedColumns = [...cols, 'azioni']; }
 

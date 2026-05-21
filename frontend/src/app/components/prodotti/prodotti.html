@@ -19,7 +19,18 @@
       <mat-option [value]="null">Tutte le categorie</mat-option>
       @for (c of categorieList; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
     </mat-select>
-    @if (filtroCategoria) {
+    <button mat-stroked-button type="button"
+            [style.color]="filtroSottoSoglia ? '#dc2626' : ''"
+            [style.border-color]="filtroSottoSoglia ? '#dc2626' : ''"
+            [style.background]="filtroSottoSoglia ? '#fff1f2' : ''"
+            (click)="filtroSottoSoglia=!filtroSottoSoglia; applyFilters()">
+      <mat-icon [style.color]="filtroSottoSoglia ? '#dc2626' : '#f59e0b'">warning_amber</mat-icon>
+      Sotto soglia
+      @if (sottoSogliaCount > 0) {
+        <span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">{{ sottoSogliaCount }}</span>
+      }
+    </button>
+    @if (filtroCategoria || filtroSottoSoglia) {
       <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>

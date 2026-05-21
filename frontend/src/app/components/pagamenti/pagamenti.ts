@@ -234,6 +234,7 @@ export class PagamentiComponent implements OnInit {
 
   pagamentiCols = ['data', 'tipo', 'importo', 'documento', 'controparte', 'tipoPagamentoNome', 'conto', 'azioni'];
   scadenzarioCols = ['select', 'tipo', 'numero', 'dataEmissione', 'dataScadenza', 'controparte', 'rimanente', 'azioni'];
+  scadenzarioColsTutti = ['tipo', 'numero', 'dataEmissione', 'dataScadenza', 'controparte', 'rimanente', 'azioni'];
 
   pagSortCol = 'data'; pagSortDir: 'asc'|'desc' = 'desc';
   scadSortCol = 'dataScadenza'; scadSortDir: 'asc'|'desc' = 'asc';
@@ -259,9 +260,11 @@ export class PagamentiComponent implements OnInit {
     this.selection.clear();
     if (this.filtro === 'DA_SALDARE') {
       this.ds.getScadenzario().subscribe(s => { this.allScadenzario = s; });
+    } else if (this.filtro === 'TUTTI') {
+      forkJoin({ pagamenti: this.ds.getPagamenti(), scadenzario: this.ds.getScadenzario() })
+        .subscribe(r => { this.allPagamenti = r.pagamenti; this.allScadenzario = r.scadenzario; });
     } else {
-      const t = this.filtro === 'TUTTI' ? undefined : this.filtro;
-      this.ds.getPagamenti(t).subscribe(p => { this.allPagamenti = p; });
+      this.ds.getPagamenti(this.filtro).subscribe(p => { this.allPagamenti = p; });
     }
   }
 
@@ -285,17 +288,25 @@ export class PagamentiComponent implements OnInit {
   }
 
   get anni() {
-    const src = this.filtro === 'DA_SALDARE'
-      ? this.allScadenzario.map(e => +e.dataEmissione.substring(0, 4))
-      : this.allPagamenti.map(p => +p.dataPagamento.substring(0, 4));
-    return [...new Set(src)].sort().reverse();
+    if (this.filtro === 'DA_SALDARE')
+      return [...new Set(this.allScadenzario.map(e => +e.dataEmissione.substring(0, 4)))].sort().reverse();
+    if (this.filtro === 'TUTTI')
+      return [...new Set([
+        ...this.allPagamenti.map(p => +p.dataPagamento.substring(0, 4)),
+        ...this.allScadenzario.map(e => +e.dataEmissione.substring(0, 4)),
+      ])].sort().reverse();
+    return [...new Set(this.allPagamenti.map(p => +p.dataPagamento.substring(0, 4)))].sort().reverse();
   }
 
   get controparti() {
-    const src = this.filtro === 'DA_SALDARE'
-      ? this.allScadenzario.map(e => e.controparte).filter(Boolean)
-      : this.allPagamenti.map(p => p.clienteNome || p.fornitoreNome).filter(Boolean);
-    return [...new Set(src)].sort() as string[];
+    if (this.filtro === 'DA_SALDARE')
+      return [...new Set(this.allScadenzario.map(e => e.controparte).filter(Boolean))].sort() as string[];
+    if (this.filtro === 'TUTTI')
+      return [...new Set([
+        ...this.allPagamenti.map(p => p.clienteNome || p.fornitoreNome).filter(Boolean),
+        ...this.allScadenzario.map(e => e.controparte).filter(Boolean),
+      ] as string[])].sort();
+    return [...new Set(this.allPagamenti.map(p => p.clienteNome || p.fornitoreNome).filter(Boolean))].sort() as string[];
   }
 
   get pagamenti(): Pagamento[] {
