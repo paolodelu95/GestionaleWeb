@@ -132,10 +132,12 @@ const RIGHE_STYLES = `
         <div class="righe-header">
           <b>Righe</b>
           <div style="display:flex;gap:8px;align-items:center">
-            <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-              <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-              <mat-button-toggle [value]="true">Netto</mat-button-toggle>
-            </mat-button-toggle-group>
+            @if (!isFornitore) {
+              <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
+                <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
+                <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+              </mat-button-toggle-group>
+            }
             <button mat-stroked-button type="button" (click)="addRiga()">
               <mat-icon>add</mat-icon> Aggiungi riga
             </button>
@@ -159,15 +161,18 @@ const RIGHE_STYLES = `
           <thead>
             <tr>
               <th class="td-drag"></th>
+              @if (isFornitore) { <th style="width:110px">Vostro codice</th> }
               <th>Codice / Descrizione</th>
               <th class="td-search"></th>
-              <th class="td-history"></th>
+              @if (!isFornitore) { <th class="td-history"></th> }
               <th>Qtà</th>
               <th>UM</th>
-              <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
-              <th>IVA%</th>
-              <th>Sconto%</th>
-              <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+              @if (!isFornitore) {
+                <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+                <th>IVA%</th>
+                <th>Sconto%</th>
+                <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+              }
               <th></th>
             </tr>
           </thead>
@@ -176,7 +181,7 @@ const RIGHE_STYLES = `
               @if (riga.tipo === 'NOTA') {
                 <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                   <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                  <td colspan="9">
+                  <td [attr.colspan]="isFornitore ? 5 : 9">
                     <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
                   </td>
                   <td>
@@ -188,42 +193,47 @@ const RIGHE_STYLES = `
               } @else {
               <tr cdkDrag cdkDragPreviewContainer="parent">
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
+                @if (isFornitore) {
+                  <td><input class="riga-input" style="width:100px" [(ngModel)]="riga.codiceFornitore" placeholder="Cod. fornitore"></td>
+                }
                 <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                     <mat-icon>search</mat-icon>
                   </button>
                 </td>
-                <td class="td-history">
-                  @if (prezziRecenti[$index]?.length) {
-                    <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti - questo cliente">
-                      <mat-icon style="font-size:18px;color:#7c3aed">history</mat-icon>
-                    </button>
-                  }
-                  @if (riga.prodottoId) {
-                    <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
-                      <mat-icon style="font-size:16px;color:#94a3b8">groups</mat-icon>
-                    </button>
-                    <mat-menu #menuTutti="matMenu">
-                      <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Tutti i clienti</div>
-                      @if (!tuttiCaricati[$index]) {
-                        <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Clicca per caricare...</div>
-                      }
-                      @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                        <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
-                      }
-                      @for (pr of prezziRecentiTutti[$index] ?? []; track $index) {
-                        <button mat-menu-item type="button" (click)="usaPrezzo($index, pr.prezzo, pr.sconto)">
-                          <div>
-                            <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
-                            <b style="color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                            @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
-                          </div>
-                        </button>
-                      }
-                    </mat-menu>
-                  }
-                </td>
+                @if (!isFornitore) {
+                  <td class="td-history">
+                    @if (prezziRecenti[$index]?.length) {
+                      <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti - questo cliente">
+                        <mat-icon style="font-size:18px;color:#7c3aed">history</mat-icon>
+                      </button>
+                    }
+                    @if (riga.prodottoId) {
+                      <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
+                        <mat-icon style="font-size:16px;color:#94a3b8">groups</mat-icon>
+                      </button>
+                      <mat-menu #menuTutti="matMenu">
+                        <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Tutti i clienti</div>
+                        @if (!tuttiCaricati[$index]) {
+                          <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Clicca per caricare...</div>
+                        }
+                        @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
+                          <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
+                        }
+                        @for (pr of prezziRecentiTutti[$index] ?? []; track $index) {
+                          <button mat-menu-item type="button" (click)="usaPrezzo($index, pr.prezzo, pr.sconto)">
+                            <div>
+                              <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                              <b style="color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                              @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                            </div>
+                          </button>
+                        }
+                      </mat-menu>
+                    }
+                  </td>
+                }
                 <td><input class="riga-input num" type="number" min="0"
                   [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                   [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
@@ -235,14 +245,16 @@ const RIGHE_STYLES = `
                     }
                   </select>
                 </td>
-                <td><input class="riga-input num" type="number" min="0" step="0.01"
-                  [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
-                  (change)="setPrezzoFromInput(riga, $event)"></td>
-                <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
-                <td style="padding:4px 8px; white-space:nowrap">
-                  {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
-                </td>
+                @if (!isFornitore) {
+                  <td><input class="riga-input num" type="number" min="0" step="0.01"
+                    [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
+                    (change)="setPrezzoFromInput(riga, $event)"></td>
+                  <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                  <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
+                  <td style="padding:4px 8px; white-space:nowrap">
+                    {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
+                  </td>
+                }
                 <td>
                   <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                     <mat-icon>delete</mat-icon>
@@ -267,11 +279,13 @@ const RIGHE_STYLES = `
             }
           </ng-template>
         </mat-menu>
-        <div class="righe-total">
-          <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          Totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
-        </div>
+        @if (!isFornitore) {
+          <div class="righe-total">
+            <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
+            <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
+            Totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
+          </div>
+        }
       </div>
       <div [formGroup]="form" style="margin-top:16px">
         <mat-form-field style="width:100%">
@@ -304,6 +318,7 @@ export class OrdineDialogComponent implements OnInit {
   readonly isNew: boolean;
 
   showNetto = false;
+  get isFornitore() { return this.form.get('tipo')?.value === 'FORNITORE'; }
   get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
   get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
@@ -405,6 +420,9 @@ export class OrdineDialogComponent implements OnInit {
         this.righe[index].varianteId = v?.id ?? null;
         this.righe[index].varianteTaglia = v?.taglia ?? '';
         this.righe[index].varianteColore = v?.colore ?? '';
+        if (this.isFornitore && p.codiceFornitore) {
+          this.righe[index].codiceFornitore = p.codiceFornitore;
+        }
         if (this.form.get('tipo')?.value === 'CLIENTE') {
           this.applyListino(index);
           this.loadPrezziRecenti(index);

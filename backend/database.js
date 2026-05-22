@@ -483,6 +483,8 @@ const migrations = [
   'ALTER TABLE acquisti ADD COLUMN conto_acquisto_id INTEGER REFERENCES conti_acquisto(id)',
   // IVA predefinita per categoria prodotto (es. Alimentari → 4%)
   'ALTER TABLE categorie_prodotto ADD COLUMN aliquota_iva_id INTEGER REFERENCES aliquote_iva(id)',
+  // Codice fornitore per riga ordine
+  'ALTER TABLE ordini_righe ADD COLUMN codice_fornitore TEXT DEFAULT ""',
 ];
 for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

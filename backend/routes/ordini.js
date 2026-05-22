@@ -57,13 +57,13 @@ router.delete('/:id', (req, res) => {
 
 function saveRighe(ordineId, righe) {
   const stmt = db.prepare(`INSERT INTO ordini_righe
-    (ordine_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (ordine_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo, codice_fornitore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
     stmt.run(ordineId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
-             r.tipo || 'PRODOTTO');
+             r.tipo || 'PRODOTTO', r.codiceFornitore || '');
 }
 
 function getRighe(ordineId) {
@@ -73,7 +73,7 @@ function getRighe(ordineId) {
       descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
       prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
       varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
-      tipo: r.tipo || 'PRODOTTO' }));
+      tipo: r.tipo || 'PRODOTTO', codiceFornitore: r.codice_fornitore || '' }));
 }
 
 function toDto(r) {

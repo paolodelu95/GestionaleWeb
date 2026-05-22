@@ -170,6 +170,7 @@ export interface RigaDocumento {
   varianteTaglia?: string;
   varianteColore?: string;
   tipo?: 'PRODOTTO' | 'NOTA';
+  codiceFornitore?: string;
 }
 
 export interface NotaRapida {

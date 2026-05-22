@@ -17,6 +17,12 @@ Chart.register(...registerables);
 
 const MESI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
+function fmtEuro(v: number): string {
+  if (v >= 1_000_000) return '€' + (v / 1_000_000).toFixed(1) + 'M';
+  if (v >= 1_000)     return '€' + (v / 1_000).toFixed(0) + 'k';
+  return '€' + v.toFixed(0);
+}
+
 @Component({
   selector: 'app-report',
   standalone: true,
@@ -174,7 +180,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'top' } },
         scales: {
-          y: { ticks: { callback: (v: any) => '€' + (v/1000).toFixed(0) + 'k' } }
+          y: { ticks: { callback: (v: any) => fmtEuro(+v) } }
         }
       }
     }));
@@ -209,7 +215,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'top' } },
         scales: {
-          y: { ticks: { callback: (v: any) => '€' + (v/1000).toFixed(0) + 'k' } }
+          y: { ticks: { callback: (v: any) => fmtEuro(+v) } }
         }
       }
     }));
@@ -254,7 +260,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
-        scales: { r: { ticks: { callback: (v: any) => '€' + (v/1000).toFixed(0) + 'k' } } }
+        scales: { r: { ticks: { callback: (v: any) => fmtEuro(+v) } } }
       }
     }));
   }

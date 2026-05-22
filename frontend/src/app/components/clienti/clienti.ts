@@ -838,9 +838,19 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   }
 
   info(c: Cliente) {
+    const fmtCurrency = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
+    const fmtDate = (s: string) => { const p = s.substring(0, 10).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : s; };
     const baseData: InfoDialogData = {
       title: c.ragioneSociale,
       sections: [
+        {
+          title: 'Attività commerciale',
+          rows: [
+            { label: 'Ultimo acquisto', value: c.ultimoAcquisto ? fmtDate(c.ultimoAcquisto) : 'Mai' },
+            { label: 'Fatturato anno',  value: c.fatturatoAnno != null ? fmtCurrency(c.fatturatoAnno) : null },
+            { label: 'Insoluti',        value: (c.fattureInsolute ?? 0) > 0 ? `${c.fattureInsolute} fatt.` : null },
+          ],
+        },
         {
           title: 'Contatti',
           rows: [

@@ -139,12 +139,45 @@ export class PrintService {
           { lbl: isCliente ? 'VENDITORE' : 'ACQUIRENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
           { lbl: isCliente ? 'CLIENTE' : 'FORNITORE', name: (isCliente ? doc.cliente?.ragioneSociale : doc.fornitore?.ragioneSociale) || '—', lines: this.contactLines(isCliente ? doc.cliente : doc.fornitore) }
         );
-      if (this.blockVisible('tabella')) y = this.table(pdf, y, doc.righe || []);
-      if (this.blockVisible('totali')) y = this.totals(pdf, y, doc.righe || []);
+      if (this.blockVisible('tabella')) {
+        y = isCliente
+          ? this.table(pdf, y, doc.righe || [])
+          : this.tableOrdineFornitore(pdf, y, doc.righe || []);
+      }
+      if (this.blockVisible('totali') && isCliente) y = this.totals(pdf, y, doc.righe || []);
       if (this.blockVisible('note') && doc.note) y = this.noteBox(pdf, y, doc.note);
       if (this.blockVisible('footer')) this.footer(pdf, az);
       this.showPreview(pdf, `Ordine_${doc.numero}.pdf`);
     });
+  }
+
+  private tableOrdineFornitore(doc: jsPDF, y: number, righe: any[]): number {
+    let rowNum = 0;
+    const body = righe.map(r => {
+      if (r.tipo === 'NOTA') {
+        return [{ content: r.descrizione || '', colSpan: 5, styles: { fontStyle: 'italic', textColor: GR } }];
+      }
+      rowNum++;
+      return [rowNum, r.codiceFornitore || '—', r.descrizione || '', r.quantita ?? '', r.unitaMisura || ''];
+    });
+    autoTable(doc, {
+      startY: y,
+      head: [['#', 'Vostro codice', 'Descrizione', 'Q.tà', 'UM']],
+      body,
+      theme: 'striped',
+      headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: DK },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 'auto' },
+        3: { cellWidth: 14, halign: 'right' },
+        4: { cellWidth: 16 },
+      },
+      margin: { left: ML, right: ML },
+    });
+    return (doc as any).lastAutoTable.finalY + 4;
   }
 
   printPreventivo(id: number) {
