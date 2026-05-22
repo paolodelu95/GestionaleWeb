@@ -32,6 +32,18 @@ function getFrom() {
   return name ? `"${name}" <${addr}>` : addr;
 }
 
+function getDefaultEmailBody() {
+  const row = db.prepare('SELECT email_corpo_documento FROM azienda WHERE id=1').get();
+  return row?.email_corpo_documento || 'Buongiorno,\nin allegato trovate il documento richiesto.\nRestiamo a disposizione per qualsiasi chiarimento.';
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function bodyToHtml(text) {
+  return escapeHtml(text).replace(/\n/g, '<br>');
+}
+
 // ── POST /test – test connessione SMTP ───────────────────────────────────────
 router.post('/test', async (req, res) => {
   try {
@@ -73,8 +85,9 @@ router.post('/fattura/:id', async (req, res) => {
     const righe = db.prepare(`SELECT fr.*, p.nome as p_nome FROM fatture_righe fr LEFT JOIN prodotti p ON fr.prodotto_id=p.id WHERE fr.fattura_id=?`).all(row.id);
     const totale = righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto||0)/100) * (1 + r.iva/100), 0);
     const fmt = (n) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
-    const rowsHtml = righe.map(r => `<tr><td>${r.descrizione}</td><td style="text-align:right">${r.quantita}</td><td style="text-align:right">${fmt(r.prezzo)}</td><td style="text-align:right">${fmt(r.quantita*r.prezzo*(1-(r.sconto||0)/100)*(1+r.iva/100))}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;font-size:13px;color:#1e293b"><h2>Fattura n. ${row.numero}</h2><p>Gentile ${row.c_nome || 'Cliente'},<br>in allegato le inviamo la fattura n. <b>${row.numero}</b> del ${row.data_emissione}.</p>${note ? `<p>${note}</p>` : ''}<table style="width:100%;border-collapse:collapse;margin-top:16px"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0">Descrizione</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Qtà</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Prezzo</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Totale</th></tr></thead><tbody>${rowsHtml}</tbody><tfoot><tr><td colspan="3" style="text-align:right;padding:8px;font-weight:700">TOTALE</td><td style="text-align:right;padding:8px;font-weight:700">${fmt(totale)}</td></tr></tfoot></table><p style="margin-top:24px;font-size:12px;color:#64748b">Cordiali saluti</p></body></html>`;
+    const rowsHtml = righe.map(r => `<tr><td>${escapeHtml(r.descrizione)}</td><td style="text-align:right">${r.quantita}</td><td style="text-align:right">${fmt(r.prezzo)}</td><td style="text-align:right">${fmt(r.quantita*r.prezzo*(1-(r.sconto||0)/100)*(1+r.iva/100))}</td></tr>`).join('');
+    const bodyText = (note && String(note).trim()) ? note : getDefaultEmailBody();
+    const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;font-size:13px;color:#1e293b"><h2>Fattura n. ${escapeHtml(row.numero)}</h2><p>${bodyToHtml(bodyText)}</p><table style="width:100%;border-collapse:collapse;margin-top:16px"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0">Descrizione</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Qtà</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Prezzo</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Totale</th></tr></thead><tbody>${rowsHtml}</tbody><tfoot><tr><td colspan="3" style="text-align:right;padding:8px;font-weight:700">TOTALE</td><td style="text-align:right;padding:8px;font-weight:700">${fmt(totale)}</td></tr></tfoot></table><p style="margin-top:24px;font-size:12px;color:#64748b">Cordiali saluti</p></body></html>`;
 
     const t = getTransporter();
     await t.sendMail({ from: getFrom(), to: dest, subject: `Fattura n. ${row.numero}`, html });
@@ -97,11 +110,136 @@ router.post('/acquisto/:id', async (req, res) => {
 
     const righe = db.prepare(`SELECT ar.*, p.nome as p_nome FROM acquisti_righe ar LEFT JOIN prodotti p ON ar.prodotto_id=p.id WHERE ar.acquisto_id=?`).all(row.id);
     const fmt = (n) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
-    const rowsHtml = righe.map(r => `<tr><td>${r.descrizione}</td><td style="text-align:right">${r.quantita}</td><td style="text-align:right">${fmt(r.prezzo)}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;font-size:13px;color:#1e293b"><h2>Ordine/Acquisto n. ${row.numero}</h2><p>Gentile ${row.f_nome || 'Fornitore'},<br>vi inviamo conferma dell'acquisto n. <b>${row.numero}</b> del ${row.data_emissione}.</p>${note ? `<p>${note}</p>` : ''}<table style="width:100%;border-collapse:collapse;margin-top:16px"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0">Descrizione</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Qtà</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Prezzo</th></tr></thead><tbody>${rowsHtml}</tbody></table>${note ? '' : ''}<p style="margin-top:24px;font-size:12px;color:#64748b">Cordiali saluti</p></body></html>`;
+    const rowsHtml = righe.map(r => `<tr><td>${escapeHtml(r.descrizione)}</td><td style="text-align:right">${r.quantita}</td><td style="text-align:right">${fmt(r.prezzo)}</td></tr>`).join('');
+    const bodyText = (note && String(note).trim()) ? note : getDefaultEmailBody();
+    const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;font-size:13px;color:#1e293b"><h2>Ordine/Acquisto n. ${escapeHtml(row.numero)}</h2><p>${bodyToHtml(bodyText)}</p><table style="width:100%;border-collapse:collapse;margin-top:16px"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0">Descrizione</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Qtà</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Prezzo</th></tr></thead><tbody>${rowsHtml}</tbody></table><p style="margin-top:24px;font-size:12px;color:#64748b">Cordiali saluti</p></body></html>`;
 
     const t = getTransporter();
     await t.sendMail({ from: getFrom(), to: dest, subject: `Acquisto n. ${row.numero}`, html });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Helper generico: invia un documento (DDT/ordine/preventivo/nota credito) ──
+function sendDocumentoEmail(opts) {
+  const { docRow, righe, dest, subject, heading, note, withTotal = true } = opts;
+  const fmt = (n) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
+  const totale = withTotal
+    ? righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto || 0) / 100) * (1 + (r.iva || 0) / 100), 0)
+    : 0;
+  const rowsHtml = righe.map(r =>
+    `<tr><td>${escapeHtml(r.descrizione || '')}</td><td style="text-align:right">${r.quantita}</td><td style="text-align:right">${fmt(r.prezzo)}</td>${withTotal ? `<td style="text-align:right">${fmt(r.quantita * r.prezzo * (1 - (r.sconto || 0) / 100) * (1 + (r.iva || 0) / 100))}</td>` : ''}</tr>`
+  ).join('');
+  const bodyText = (note && String(note).trim()) ? note : getDefaultEmailBody();
+  const totaleRow = withTotal
+    ? `<tfoot><tr><td colspan="3" style="text-align:right;padding:8px;font-weight:700">TOTALE</td><td style="text-align:right;padding:8px;font-weight:700">${fmt(totale)}</td></tr></tfoot>`
+    : '';
+  const totalHeader = withTotal
+    ? '<th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Totale</th>'
+    : '';
+  const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;font-size:13px;color:#1e293b"><h2>${escapeHtml(heading)}</h2><p>${bodyToHtml(bodyText)}</p><table style="width:100%;border-collapse:collapse;margin-top:16px"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0">Descrizione</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Qtà</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0">Prezzo</th>${totalHeader}</tr></thead><tbody>${rowsHtml}</tbody>${totaleRow}</table><p style="margin-top:24px;font-size:12px;color:#64748b">Cordiali saluti</p></body></html>`;
+  return { html, subject, dest };
+}
+
+// ── POST /ddt/:id – invia DDT ─────────────────────────────────────────────────
+router.post('/ddt/:id', async (req, res) => {
+  const { to, note } = req.body;
+  try {
+    const row = db.prepare(`
+      SELECT d.*, c.ragione_sociale as c_nome, c.email as c_email
+      FROM ddt d LEFT JOIN clienti c ON d.cliente_id = c.id WHERE d.id=?`).get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'DDT non trovato' });
+    const dest = to || row.c_email;
+    assertSafeRecipient(dest);
+    const righe = db.prepare(`SELECT * FROM ddt_righe WHERE ddt_id=?`).all(row.id);
+    const { html, subject } = sendDocumentoEmail({
+      docRow: row, righe, dest, note,
+      subject: `DDT n. ${row.numero}`,
+      heading: `DDT n. ${row.numero}`,
+      withTotal: false,
+    });
+    const t = getTransporter();
+    await t.sendMail({ from: getFrom(), to: dest, subject, html });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /preventivo/:id – invia preventivo ───────────────────────────────────
+router.post('/preventivo/:id', async (req, res) => {
+  const { to, note } = req.body;
+  try {
+    const row = db.prepare(`
+      SELECT p.*, c.ragione_sociale as c_nome, c.email as c_email
+      FROM preventivi p LEFT JOIN clienti c ON p.cliente_id = c.id WHERE p.id=?`).get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Preventivo non trovato' });
+    const dest = to || row.c_email;
+    assertSafeRecipient(dest);
+    const righe = db.prepare(`SELECT * FROM preventivi_righe WHERE preventivo_id=?`).all(row.id);
+    const { html, subject } = sendDocumentoEmail({
+      docRow: row, righe, dest, note,
+      subject: `Preventivo n. ${row.numero}`,
+      heading: `Preventivo n. ${row.numero}`,
+    });
+    const t = getTransporter();
+    await t.sendMail({ from: getFrom(), to: dest, subject, html });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /nota-credito/:id – invia nota di credito ────────────────────────────
+router.post('/nota-credito/:id', async (req, res) => {
+  const { to, note } = req.body;
+  try {
+    const row = db.prepare(`
+      SELECT n.*, c.ragione_sociale as c_nome, c.email as c_email
+      FROM note_credito n LEFT JOIN clienti c ON n.cliente_id = c.id WHERE n.id=?`).get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Nota di credito non trovata' });
+    const dest = to || row.c_email;
+    assertSafeRecipient(dest);
+    const righe = db.prepare(`SELECT * FROM note_credito_righe WHERE nota_credito_id=?`).all(row.id);
+    const { html, subject } = sendDocumentoEmail({
+      docRow: row, righe, dest, note,
+      subject: `Nota di credito n. ${row.numero}`,
+      heading: `Nota di credito n. ${row.numero}`,
+    });
+    const t = getTransporter();
+    await t.sendMail({ from: getFrom(), to: dest, subject, html });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /ordine/:id – invia ordine (cliente o fornitore) ─────────────────────
+router.post('/ordine/:id', async (req, res) => {
+  const { to, note } = req.body;
+  try {
+    const row = db.prepare(`
+      SELECT o.*,
+             c.ragione_sociale as c_nome, c.email as c_email,
+             f.ragione_sociale as f_nome, f.email as f_email
+      FROM ordini o
+      LEFT JOIN clienti c ON o.cliente_id = c.id
+      LEFT JOIN fornitori f ON o.fornitore_id = f.id
+      WHERE o.id=?`).get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Ordine non trovato' });
+    const isFornitore = row.tipo === 'FORNITORE' || (!row.cliente_id && row.fornitore_id);
+    const dest = to || (isFornitore ? row.f_email : row.c_email);
+    assertSafeRecipient(dest);
+    const righe = db.prepare(`SELECT * FROM ordini_righe WHERE ordine_id=?`).all(row.id);
+    const { html, subject } = sendDocumentoEmail({
+      docRow: row, righe, dest, note,
+      subject: `Ordine n. ${row.numero}`,
+      heading: `Ordine n. ${row.numero}`,
+    });
+    const t = getTransporter();
+    await t.sendMail({ from: getFrom(), to: dest, subject, html });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

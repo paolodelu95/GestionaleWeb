@@ -90,6 +90,9 @@
           <button mat-icon-button type="button" title="Stampa" (click)="printDoc(p)"><mat-icon>print</mat-icon></button>
           <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuPrevAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuPrevAz="matMenu">
+            <button mat-menu-item type="button" (click)="inviaEmail(p)">
+              <mat-icon>mail</mat-icon> Invia per email
+            </button>
             @if (p.stato === 'BOZZA') {
               <button mat-menu-item type="button" (click)="setStato(p, 'INVIATO')">
                 <mat-icon>send</mat-icon> Invia al cliente

@@ -22,6 +22,7 @@ import { PrintService } from '../../services/print.service';
 import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { EmailDialogComponent } from '../shared/email-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -513,12 +514,24 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   printDoc(a: Acquisto) { this.printSvc.printAcquisto(a.id!); }
 
   inviaEmail(a: Acquisto) {
-    const dest = prompt(`Email destinatario per acquisto n. ${a.numero}:`, '');
-    if (dest === null) return;
-    const note = prompt('Note aggiuntive (opzionale):', '') ?? '';
-    this.ds.sendAcquistoEmail(a.id!, dest || undefined, note || undefined).subscribe({
-      next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+    this.ds.getAzienda().subscribe(az => {
+      const fornitore = this.fornitori.find(f => f.id === a.fornitoreId);
+      const ref = this.dialog.open(EmailDialogComponent, {
+        width: '560px', maxWidth: '95vw',
+        data: {
+          title: `Invia acquisto n. ${a.numero}`,
+          subtitle: fornitore?.ragioneSociale ? `A: ${fornitore.ragioneSociale}` : undefined,
+          destinatario: fornitore?.email || '',
+          testo: az?.emailCorpoDocumento || '',
+        },
+      });
+      ref.afterClosed().subscribe(result => {
+        if (!result) return;
+        this.ds.sendAcquistoEmail(a.id!, result.destinatario, result.testo || undefined).subscribe({
+          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+        });
+      });
     });
   }
 

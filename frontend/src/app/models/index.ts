@@ -32,6 +32,7 @@ export interface Azienda {
   smtpPass?: string;
   smtpFrom?: string;
   smtpSecure?: boolean;
+  emailCorpoDocumento?: string;
   sdiApiUrl?: string;
   sdiApiKey?: string;
   riordinoAutomatico?: boolean;

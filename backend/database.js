@@ -955,6 +955,14 @@ try {
 } catch(e) { console.error('Seed conti acquisto:', e.message); }
 
 try { db.exec('ALTER TABLE azienda ADD COLUMN notifiche_config TEXT DEFAULT NULL'); } catch(_) {}
+try { db.exec("ALTER TABLE azienda ADD COLUMN email_corpo_documento TEXT DEFAULT NULL"); } catch(_) {}
+try {
+  const row = db.prepare('SELECT email_corpo_documento FROM azienda WHERE id=1').get();
+  if (row && (row.email_corpo_documento == null || row.email_corpo_documento === '')) {
+    db.prepare('UPDATE azienda SET email_corpo_documento=? WHERE id=1')
+      .run('Buongiorno,\nin allegato trovate il documento richiesto.\nRestiamo a disposizione per qualsiasi chiarimento.');
+  }
+} catch(_) {}
 
 // Vincoli UNIQUE su numero documento per prevenire duplicati (race condition contatore).
 // CREATE UNIQUE INDEX fallisce se ci sono gia duplicati: log warning e continua.

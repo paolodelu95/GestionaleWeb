@@ -20,7 +20,8 @@
       "WebSearch",
       "Bash(npm rebuild *)",
       "Bash(node -e \"require\\('./server.js'\\)\")",
-      "Bash(kill %1)"
+      "Bash(kill %1)",
+      "Bash(sqlite3 gestionale.db \"SELECT COUNT\\(*\\) AS clienti FROM clienti; SELECT COUNT\\(*\\) AS fornitori FROM fornitori; SELECT COUNT\\(*\\) AS prodotti FROM prodotti;\")"
     ]
   }
 }

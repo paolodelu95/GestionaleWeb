@@ -22,6 +22,8 @@ import { PrintService } from '../../services/print.service';
 import { Ordine, Cliente, Fornitore, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { EmailDialogComponent } from '../shared/email-dialog';
+import { forkJoin } from 'rxjs';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -596,6 +598,32 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   }
 
   printDoc(o: Ordine) { this.printSvc.printOrdine(o.id!); }
+
+  inviaEmail(o: Ordine) {
+    const isFornitore = o.tipo === 'FORNITORE';
+    const sources = isFornitore
+      ? forkJoin({ az: this.ds.getAzienda(), parti: this.ds.getFornitori() })
+      : forkJoin({ az: this.ds.getAzienda(), parti: this.ds.getClienti() });
+    sources.subscribe(({ az, parti }) => {
+      const parte: any = (parti as any[]).find(p => p.id === (isFornitore ? o.fornitoreId : o.clienteId));
+      const ref = this.dialog.open(EmailDialogComponent, {
+        width: '560px', maxWidth: '95vw',
+        data: {
+          title: `Invia ordine n. ${o.numero}`,
+          subtitle: parte?.ragioneSociale ? `A: ${parte.ragioneSociale}` : undefined,
+          destinatario: parte?.email || '',
+          testo: az?.emailCorpoDocumento || '',
+        },
+      });
+      ref.afterClosed().subscribe(result => {
+        if (!result) return;
+        this.ds.sendOrdineEmail(o.id!, result.destinatario, result.testo || undefined).subscribe({
+          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+        });
+      });
+    });
+  }
 
   convertiInDdt(o: Ordine) {
     if (!confirm(`Convertire l'ordine ${o.numero} in DDT?`)) return;

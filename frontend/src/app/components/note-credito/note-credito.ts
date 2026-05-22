@@ -22,6 +22,8 @@ import { PrintService } from '../../services/print.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { EmailDialogComponent } from '../shared/email-dialog';
+import { forkJoin } from 'rxjs';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -601,6 +603,28 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   }
 
   printDoc(n: NotaCredito) { this.printSvc.printNotaCredito(n.id!); }
+
+  inviaEmail(n: NotaCredito) {
+    forkJoin({ az: this.ds.getAzienda(), clienti: this.ds.getClienti() }).subscribe(({ az, clienti }) => {
+      const cliente = clienti.find(c => c.id === n.clienteId);
+      const ref = this.dialog.open(EmailDialogComponent, {
+        width: '560px', maxWidth: '95vw',
+        data: {
+          title: `Invia nota di credito n. ${n.numero}`,
+          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          destinatario: cliente?.email || '',
+          testo: az?.emailCorpoDocumento || '',
+        },
+      });
+      ref.afterClosed().subscribe(result => {
+        if (!result) return;
+        this.ds.sendNotaCreditoEmail(n.id!, result.destinatario, result.testo || undefined).subscribe({
+          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+        });
+      });
+    });
+  }
 
   info(n: NotaCredito) {
     this.ds.getNotaCreditoPrint(n.id!).subscribe(doc => {

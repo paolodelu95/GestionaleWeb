@@ -22,6 +22,8 @@ import { PrintService } from '../../services/print.service';
 import { Preventivo, Cliente, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
+import { EmailDialogComponent } from '../shared/email-dialog';
+import { forkJoin } from 'rxjs';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -556,6 +558,28 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   }
 
   printDoc(p: Preventivo) { this.printSvc.printPreventivo(p.id!); }
+
+  inviaEmail(p: Preventivo) {
+    forkJoin({ az: this.ds.getAzienda(), clienti: this.ds.getClienti() }).subscribe(({ az, clienti }) => {
+      const cliente = clienti.find(c => c.id === p.clienteId);
+      const ref = this.dialog.open(EmailDialogComponent, {
+        width: '560px', maxWidth: '95vw',
+        data: {
+          title: `Invia preventivo n. ${p.numero}`,
+          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          destinatario: cliente?.email || '',
+          testo: az?.emailCorpoDocumento || '',
+        },
+      });
+      ref.afterClosed().subscribe(result => {
+        if (!result) return;
+        this.ds.sendPreventivoEmail(p.id!, result.destinatario, result.testo || undefined).subscribe({
+          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+        });
+      });
+    });
+  }
 
   convertiInDdt(p: Preventivo) {
     if (!confirm(`Convertire il preventivo ${p.numero} in DDT? Il preventivo verrà marcato come CONFERMATO.`)) return;

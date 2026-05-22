@@ -15,7 +15,7 @@ router.put('/', (req, res) => {
     sdi_api_url=?, sdi_api_key=?,
     riordino_automatico=?, multi_utente_attivo=?,
     numerazione_annuale=?, numero_prefissi=?,
-    template_config=?, notifiche_config=?
+    template_config=?, notifiche_config=?, email_corpo_documento=?
     WHERE id=1`)
     .run(a.ragioneSociale, a.indirizzo, a.cap, a.citta, a.provincia, a.stato,
          a.pIva, a.codFiscale, a.email, a.telefono, a.pec, a.sdi, a.banca, a.iban, a.logo || '',
@@ -24,7 +24,8 @@ router.put('/', (req, res) => {
          a.riordinoAutomatico ? 1 : 0, a.multiUtenteAttivo ? 1 : 0,
          a.numerazioneAnnuale ? 1 : 0, JSON.stringify(a.numeroPrefissi || {}),
          a.templateConfig ? JSON.stringify(a.templateConfig) : null,
-         a.notificheConfig ? JSON.stringify(a.notificheConfig) : null);
+         a.notificheConfig ? JSON.stringify(a.notificheConfig) : null,
+         a.emailCorpoDocumento ?? null);
   res.json({ success: true });
 });
 
@@ -45,6 +46,7 @@ function toDto(r) {
     numeroPrefissi: (() => { try { return JSON.parse(r.numero_prefissi || '{}'); } catch(_) { return {}; } })(),
     templateConfig: (() => { try { return r.template_config ? JSON.parse(r.template_config) : null; } catch(_) { return null; } })(),
     notificheConfig: (() => { try { return r.notifiche_config ? JSON.parse(r.notifiche_config) : null; } catch(_) { return null; } })(),
+    emailCorpoDocumento: r.email_corpo_documento || '',
   };
 }
 

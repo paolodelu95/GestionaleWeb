@@ -98,6 +98,9 @@
           <button mat-icon-button type="button" title="Stampa" (click)="printDoc(o)"><mat-icon>print</mat-icon></button>
           <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuOrdAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuOrdAz="matMenu">
+            <button mat-menu-item type="button" (click)="inviaEmail(o)">
+              <mat-icon>mail</mat-icon> Invia per email
+            </button>
             @if (o.stato === 'BOZZA') {
               <button mat-menu-item type="button" (click)="setStato(o, 'CONFERMATO')">
                 <mat-icon>check_circle</mat-icon> Conferma ordine

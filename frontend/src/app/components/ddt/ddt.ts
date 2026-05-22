@@ -26,6 +26,7 @@ import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker
 import { FatturaDialogComponent } from '../fatture/fatture';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
+import { EmailDialogComponent } from '../shared/email-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -761,6 +762,28 @@ export class DdtComponent implements OnInit, AfterViewInit {
   bulkSetStato(stato: string) { this.selection.selected.forEach(d => this.ds.setDdtStato(d.id!, stato).subscribe()); this.load(); }
 
   printDoc(d: Ddt) { this.printSvc.printDdt(d.id!); }
+
+  inviaEmail(d: Ddt) {
+    forkJoin({ az: this.ds.getAzienda(), clienti: this.ds.getClienti() }).subscribe(({ az, clienti }) => {
+      const cliente = clienti.find(c => c.id === d.clienteId);
+      const ref = this.dialog.open(EmailDialogComponent, {
+        width: '560px', maxWidth: '95vw',
+        data: {
+          title: `Invia DDT n. ${d.numero}`,
+          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          destinatario: cliente?.email || '',
+          testo: az?.emailCorpoDocumento || '',
+        },
+      });
+      ref.afterClosed().subscribe(result => {
+        if (!result) return;
+        this.ds.sendDdtEmail(d.id!, result.destinatario, result.testo || undefined).subscribe({
+          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+        });
+      });
+    });
+  }
 
   generaFattura(ddt: Ddt) {
     forkJoin({ full: this.ds.getDdtById(ddt.id!), num: this.ds.getNextNumero('fatture') }).subscribe({

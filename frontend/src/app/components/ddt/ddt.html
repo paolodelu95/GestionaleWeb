@@ -109,6 +109,9 @@
           <button mat-icon-button type="button" title="Stampa DDT" (click)="printDoc(d)"><mat-icon>print</mat-icon></button>
           <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuDdtAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuDdtAz="matMenu">
+            <button mat-menu-item type="button" (click)="inviaEmail(d)">
+              <mat-icon>mail</mat-icon> Invia per email
+            </button>
             @if (!d.fatturaId && d.stato !== 'ANNULLATO') {
               <button mat-menu-item type="button" (click)="generaFattura(d)">
                 <mat-icon>receipt_long</mat-icon> Genera Fattura

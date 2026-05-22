@@ -263,6 +263,18 @@ export class DataService {
   sendAcquistoEmail(id: number, to?: string, note?: string): Observable<any> {
     return this.api.post(`email/acquisto/${id}`, { to, note });
   }
+  sendDdtEmail(id: number, to?: string, note?: string): Observable<any> {
+    return this.api.post(`email/ddt/${id}`, { to, note });
+  }
+  sendPreventivoEmail(id: number, to?: string, note?: string): Observable<any> {
+    return this.api.post(`email/preventivo/${id}`, { to, note });
+  }
+  sendNotaCreditoEmail(id: number, to?: string, note?: string): Observable<any> {
+    return this.api.post(`email/nota-credito/${id}`, { to, note });
+  }
+  sendOrdineEmail(id: number, to?: string, note?: string): Observable<any> {
+    return this.api.post(`email/ordine/${id}`, { to, note });
+  }
   sendSollecito(tipo: 'fattura' | 'acquisto', id: number, to?: string, note?: string): Observable<any> {
     return this.api.post(`email/sollecito/${tipo}/${id}`, { to, note });
   }

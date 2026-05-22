@@ -84,6 +84,9 @@
           <button mat-icon-button type="button" title="Stampa" (click)="printDoc(n)"><mat-icon>print</mat-icon></button>
           <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuNcAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuNcAz="matMenu">
+            <button mat-menu-item type="button" (click)="inviaEmail(n)">
+              <mat-icon>mail</mat-icon> Invia per email
+            </button>
             @if (n.stato !== 'ANNULLATA') {
               <button mat-menu-item type="button" (click)="setStato(n, 'ANNULLATA')">
                 <mat-icon>cancel</mat-icon> Annulla

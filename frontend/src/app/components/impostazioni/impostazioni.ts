@@ -371,6 +371,7 @@ export class ImpostazioniComponent implements OnInit {
       telefono: [''], email: [''], pec: [''], sdi: [''],
       iban: ['', ibanValidator], banca: [''], logo: [''],
       smtpHost: [''], smtpPort: [587, [Validators.min(1), Validators.max(65535)]], smtpUser: [''], smtpPass: [''], smtpFrom: [''], smtpSecure: [false],
+      emailCorpoDocumento: [''],
       sdiApiUrl: [''], sdiApiKey: [''],
       riordinoAutomatico: [false], multiUtenteAttivo: [false],
       numerazioneAnnuale: [true],

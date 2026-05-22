@@ -29,6 +29,7 @@ import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
+import { EmailDialogComponent } from '../shared/email-dialog';
 
 interface DdtItem { ddt: any; checked: boolean; }
 interface ClienteGroup { clienteId: number | null; clienteNome: string; items: DdtItem[]; tipoPagamentoId: number | null; }
@@ -1332,12 +1333,24 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   inviaEmail(f: Fattura) {
-    const dest = prompt(`Email destinatario per fattura n. ${f.numero}:`, '');
-    if (dest === null) return;
-    const note = prompt('Note aggiuntive (opzionale):', '') ?? '';
-    this.ds.sendFatturaEmail(f.id!, dest || undefined, note || undefined).subscribe({
-      next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+    forkJoin({ az: this.ds.getAzienda(), clienti: this.ds.getClienti() }).subscribe(({ az, clienti }) => {
+      const cliente = clienti.find(c => c.id === f.clienteId);
+      const ref = this.dialog.open(EmailDialogComponent, {
+        width: '560px', maxWidth: '95vw',
+        data: {
+          title: `Invia fattura n. ${f.numero}`,
+          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          destinatario: cliente?.email || '',
+          testo: az?.emailCorpoDocumento || '',
+        },
+      });
+      ref.afterClosed().subscribe(result => {
+        if (!result) return;
+        this.ds.sendFatturaEmail(f.id!, result.destinatario, result.testo || undefined).subscribe({
+          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
+          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+        });
+      });
     });
   }
 

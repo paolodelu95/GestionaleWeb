@@ -148,6 +148,24 @@
             <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
           </div>
         </div>
+
+        <div class="card" style="max-width:700px;margin-top:16px">
+          <h3 class="section-title">Testo email documenti</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:16px">
+            Testo predefinito usato come corpo della mail quando invii un documento (fattura, acquisto, ecc.).
+            Resta modificabile al momento dell'invio.
+          </p>
+          <form [formGroup]="form" class="dialog-form">
+            <mat-form-field style="width:100%">
+              <mat-label>Corpo email predefinito</mat-label>
+              <textarea matInput formControlName="emailCorpoDocumento" rows="5"
+                placeholder="Buongiorno,&#10;in allegato trovate il documento richiesto..."></textarea>
+            </mat-form-field>
+          </form>
+          <div style="display:flex;gap:12px;justify-content:flex-end;padding:8px 0 0">
+            <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
+          </div>
+        </div>
       </div>
     </mat-tab>
 
