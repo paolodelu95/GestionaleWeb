@@ -49,7 +49,6 @@ const RIGHE_STYLES = `
             MatFormFieldModule, MatInputModule, MatButtonModule,
             MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica Preventivo' : 'Nuovo Preventivo' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%);box-shadow:0 4px 12px -2px rgba(139,92,246,0.35)">
@@ -63,14 +62,8 @@ const RIGHE_STYLES = `
 
       <form [formGroup]="form" class="dialog-form">
 
-        <!-- ── Intestatario ──────────────────────────── -->
-        <div class="form-section is-primary">
-          <div class="form-section-header">
-            <mat-icon>person</mat-icon>
-            <span>Intestatario</span>
-            <span class="section-hint">Cliente destinatario</span>
-          </div>
-          <mat-form-field style="width:100%">
+        <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px" [formGroup]="form">
+          <mat-form-field style="flex:1">
             <mat-label>Cliente *</mat-label>
             <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
                    (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
@@ -85,30 +78,19 @@ const RIGHE_STYLES = `
               <mat-error>Seleziona un cliente</mat-error>
             }
           </mat-form-field>
-        </div>
-
-        <!-- ── Estremi documento ─────────────────────── -->
-        <div class="form-section">
-          <div class="form-section-header">
-            <mat-icon>tag</mat-icon>
-            <span>Estremi e validità</span>
-          </div>
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>Numero *</mat-label>
-              <input matInput formControlName="numero">
-              <mat-icon matSuffix>tag</mat-icon>
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>Data emissione *</mat-label>
-              <input matInput type="date" formControlName="dataEmissione">
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>Validità (gg)</mat-label>
-              <input matInput type="number" formControlName="validita">
-              <mat-icon matSuffix>schedule</mat-icon>
-            </mat-form-field>
-          </div>
+          <mat-form-field style="flex:0 0 175px">
+            <mat-label>Numero *</mat-label>
+            <input matInput formControlName="numero">
+          </mat-form-field>
+          <mat-form-field style="flex:0 0 160px">
+            <mat-label>Data emissione *</mat-label>
+            <input matInput type="date" formControlName="dataEmissione">
+          </mat-form-field>
+          <mat-form-field style="flex:0 0 100px">
+            <mat-label>Validità (gg)</mat-label>
+            <input matInput type="number" formControlName="validita">
+            <mat-icon matSuffix>schedule</mat-icon>
+          </mat-form-field>
         </div>
       </form>
       <div class="righe-section">
@@ -500,7 +482,13 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
-        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
+        case 'numero': {
+          const n = item.numero || '';
+          const slash = n.match(/^(\d+)\/(\d+)$/);
+          if (slash) return parseInt(slash[1], 10) * 100000 + parseInt(slash[2], 10);
+          const plain = n.match(/(\d+)/);
+          return plain ? parseInt(plain[1], 10) : 0;
+        }
         case 'totale': return item.totale ?? 0;
         case 'dataEmissione': return item.dataEmissione ?? '';
         default: return (item as any)[prop] ?? '';

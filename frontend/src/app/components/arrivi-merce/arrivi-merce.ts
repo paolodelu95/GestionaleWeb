@@ -506,7 +506,13 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
-        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
+        case 'numero': {
+          const n = item.numero || '';
+          const slash = n.match(/^(\d+)\/(\d+)$/);
+          if (slash) return parseInt(slash[1], 10) * 100000 + parseInt(slash[2], 10);
+          const plain = n.match(/(\d+)/);
+          return plain ? parseInt(plain[1], 10) : 0;
+        }
         case 'totale': return item.totale ?? 0;
         case 'data': return item.data ?? '';
         default: return (item as any)[col] ?? '';

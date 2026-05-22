@@ -39,7 +39,6 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
             MatCheckboxModule, MatProgressSpinnerModule, MatSnackBarModule, MatSelectModule],
   template: `
-    <h2 mat-dialog-title>Genera Fatture da DDT</h2>
     <mat-dialog-content style="min-width:560px;max-width:700px">
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0ea5e9 0%,#38bdf8 100%)">
@@ -233,7 +232,6 @@ const RIGHE_STYLES = `
             MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
             MatButtonToggleModule, MatSnackBarModule, MatMenuModule, AllegatiComponent, DragDropModule],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica Fattura' : 'Nuova Fattura' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%)">
@@ -249,14 +247,8 @@ const RIGHE_STYLES = `
         <mat-tab label="Documento">
           <div style="padding-top:16px">
 
-            <!-- ── Intestazione ──────────────────────────── -->
-            <div class="form-section is-primary">
-              <div class="form-section-header">
-                <mat-icon>person</mat-icon>
-                <span>Intestatario</span>
-                <span class="section-hint">Cliente destinatario</span>
-              </div>
-              <mat-form-field style="width:100%">
+            <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px" [formGroup]="form">
+              <mat-form-field style="flex:1">
                 <mat-label>Cliente *</mat-label>
                 <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
                        (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
@@ -271,28 +263,15 @@ const RIGHE_STYLES = `
                   <mat-error>Seleziona un cliente</mat-error>
                 }
               </mat-form-field>
+              <mat-form-field style="flex:0 0 175px">
+                <mat-label>Numero *</mat-label>
+                <input matInput formControlName="numero">
+              </mat-form-field>
+              <mat-form-field style="flex:0 0 160px">
+                <mat-label>Data emissione *</mat-label>
+                <input matInput type="date" formControlName="dataEmissione">
+              </mat-form-field>
             </div>
-
-            <!-- ── Estremi documento ─────────────────────── -->
-            <form [formGroup]="form" class="dialog-form">
-              <div class="form-section">
-                <div class="form-section-header">
-                  <mat-icon>tag</mat-icon>
-                  <span>Estremi documento</span>
-                </div>
-                <div class="form-row">
-                  <mat-form-field>
-                    <mat-label>Numero *</mat-label>
-                    <input matInput formControlName="numero">
-                    <mat-icon matSuffix>tag</mat-icon>
-                  </mat-form-field>
-                  <mat-form-field>
-                    <mat-label>Data emissione *</mat-label>
-                    <input matInput type="date" formControlName="dataEmissione">
-                  </mat-form-field>
-                </div>
-              </div>
-            </form>
 
             <!-- DDT collegati (visibile solo dopo aver selezionato il cliente) -->
             @if (hasCliente) {
@@ -1211,7 +1190,13 @@ export class FattureComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
-        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
+        case 'numero': {
+          const n = item.numero || '';
+          const slash = n.match(/^(\d+)\/(\d+)$/);
+          if (slash) return parseInt(slash[1], 10) * 100000 + parseInt(slash[2], 10);
+          const plain = n.match(/(\d+)/);
+          return plain ? parseInt(plain[1], 10) : 0;
+        }
         case 'totale': return item.totale ?? 0;
         case 'dataEmissione': return item.dataEmissione ?? '';
         default: return (item as any)[prop] ?? '';

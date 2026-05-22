@@ -182,7 +182,6 @@ export class AziendaSearchDialogComponent {
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule,
             MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, MatTabsModule],
   template: `
-    <h2 mat-dialog-title>{{ data ? 'Modifica cliente' : 'Nuovo cliente' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon"><mat-icon>person</mat-icon></div>

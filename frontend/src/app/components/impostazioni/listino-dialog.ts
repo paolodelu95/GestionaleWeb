@@ -26,7 +26,6 @@ import { Listino, ListinoPrezzo, Prodotto } from '../../models';
     MatSnackBarModule, MatTooltipModule,
   ],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica listino' : 'Nuovo listino' }}</h2>
     <mat-dialog-content class="listino-dialog-content">
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%)">

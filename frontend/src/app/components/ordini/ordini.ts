@@ -51,7 +51,6 @@ const RIGHE_STYLES = `
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica Ordine' : 'Nuovo Ordine' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);box-shadow:0 4px 12px -2px rgba(245,158,11,0.35)">
@@ -65,67 +64,48 @@ const RIGHE_STYLES = `
 
       <form [formGroup]="form" class="dialog-form">
 
-        <!-- ── Tipo e Intestatario ─────────────────────── -->
-        <div class="form-section is-primary">
-          <div class="form-section-header">
-            <mat-icon>person</mat-icon>
-            <span>Intestatario</span>
-            <span class="section-hint">Cliente o fornitore destinatario</span>
-          </div>
-          <div class="form-row">
-            <mat-form-field style="max-width:160px">
-              <mat-label>Tipo</mat-label>
-              <mat-select formControlName="tipo">
-                <mat-option value="CLIENTE">Cliente</mat-option>
-                <mat-option value="FORNITORE">Fornitore</mat-option>
-              </mat-select>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px">
+          <mat-form-field style="flex:0 0 150px">
+            <mat-label>Tipo</mat-label>
+            <mat-select formControlName="tipo">
+              <mat-option value="CLIENTE">Cliente</mat-option>
+              <mat-option value="FORNITORE">Fornitore</mat-option>
+            </mat-select>
+          </mat-form-field>
+          @if (form.get('tipo')?.value === 'CLIENTE') {
+            <mat-form-field style="flex:1">
+              <mat-label>Cliente</mat-label>
+              <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
+                     (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente...">
+              <mat-icon matSuffix>search</mat-icon>
+              <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
+                @for (c of filteredClienti; track c.id) {
+                  <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
+                }
+              </mat-autocomplete>
             </mat-form-field>
-            @if (form.get('tipo')?.value === 'CLIENTE') {
-              <mat-form-field style="flex:1">
-                <mat-label>Cliente</mat-label>
-                <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                       (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente...">
-                <mat-icon matSuffix>search</mat-icon>
-                <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
-                  @for (c of filteredClienti; track c.id) {
-                    <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
-                  }
-                </mat-autocomplete>
-              </mat-form-field>
-            }
-            @if (form.get('tipo')?.value === 'FORNITORE') {
-              <mat-form-field style="flex:1">
-                <mat-label>Fornitore</mat-label>
-                <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
-                       (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore...">
-                <mat-icon matSuffix>search</mat-icon>
-                <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
-                  @for (f of filteredFornitori; track f.id) {
-                    <mat-option [value]="f">{{ f.ragioneSociale }}</mat-option>
-                  }
-                </mat-autocomplete>
-              </mat-form-field>
-            }
-          </div>
-        </div>
-
-        <!-- ── Estremi documento ────────────────────────── -->
-        <div class="form-section">
-          <div class="form-section-header">
-            <mat-icon>tag</mat-icon>
-            <span>Estremi documento</span>
-          </div>
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>Numero *</mat-label>
-              <input matInput formControlName="numero">
-              <mat-icon matSuffix>tag</mat-icon>
+          }
+          @if (form.get('tipo')?.value === 'FORNITORE') {
+            <mat-form-field style="flex:1">
+              <mat-label>Fornitore</mat-label>
+              <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
+                     (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore...">
+              <mat-icon matSuffix>search</mat-icon>
+              <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
+                @for (f of filteredFornitori; track f.id) {
+                  <mat-option [value]="f">{{ f.ragioneSociale }}</mat-option>
+                }
+              </mat-autocomplete>
             </mat-form-field>
-            <mat-form-field>
-              <mat-label>Data ordine *</mat-label>
-              <input matInput type="date" formControlName="dataOrdine">
-            </mat-form-field>
-          </div>
+          }
+          <mat-form-field style="flex:0 0 175px">
+            <mat-label>Numero *</mat-label>
+            <input matInput formControlName="numero">
+          </mat-form-field>
+          <mat-form-field style="flex:0 0 160px">
+            <mat-label>Data ordine *</mat-label>
+            <input matInput type="date" formControlName="dataOrdine">
+          </mat-form-field>
         </div>
       </form>
       <div class="righe-section">
@@ -531,7 +511,13 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
-        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
+        case 'numero': {
+          const n = item.numero || '';
+          const slash = n.match(/^(\d+)\/(\d+)$/);
+          if (slash) return parseInt(slash[1], 10) * 100000 + parseInt(slash[2], 10);
+          const plain = n.match(/(\d+)/);
+          return plain ? parseInt(plain[1], 10) : 0;
+        }
         case 'totale': return item.totale ?? 0;
         case 'dataOrdine': return item.dataOrdine ?? '';
         case 'controparte': return item.clienteNome || item.fornitoreNome || '';

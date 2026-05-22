@@ -175,7 +175,6 @@ export class AziendaSearchDialogFComponent {
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule,
             MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule],
   template: `
-    <h2 mat-dialog-title>{{ data ? 'Modifica fornitore' : 'Nuovo fornitore' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0ea5e9 0%,#06b6d4 100%);box-shadow:0 4px 12px -2px rgba(14,165,233,0.35)">

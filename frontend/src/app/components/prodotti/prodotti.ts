@@ -81,7 +81,6 @@ const PRODOTTI_FIELDS: FieldDef[] = [
             MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule,
             MatIconModule, MatCheckboxModule, MatButtonToggleModule],
   template: `
-    <h2 mat-dialog-title>{{ data ? 'Modifica prodotto' : 'Nuovo prodotto' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);box-shadow:0 4px 12px -2px rgba(16,185,129,0.35)">

@@ -48,7 +48,6 @@ const RIGHE_STYLES = `
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica Acquisto' : 'Nuovo Acquisto' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0ea5e9 0%,#0284c7 100%);box-shadow:0 4px 12px -2px rgba(14,165,233,0.35)">
@@ -62,14 +61,8 @@ const RIGHE_STYLES = `
 
       <form [formGroup]="form" class="dialog-form">
 
-        <!-- ── Fornitore e pagamento ────────────────────── -->
-        <div class="form-section is-primary">
-          <div class="form-section-header">
-            <mat-icon>local_shipping</mat-icon>
-            <span>Fornitore</span>
-            <span class="section-hint">Emittente del documento</span>
-          </div>
-          <mat-form-field style="width:100%">
+        <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px">
+          <mat-form-field style="flex:1">
             <mat-label>Fornitore</mat-label>
             <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
                    (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore per ragione sociale o P.IVA...">
@@ -80,7 +73,7 @@ const RIGHE_STYLES = `
               }
             </mat-autocomplete>
           </mat-form-field>
-          <mat-form-field style="width:100%">
+          <mat-form-field style="flex:1">
             <mat-label>Tipo Pagamento</mat-label>
             <mat-select formControlName="tipoPagamentoId">
               <mat-option [value]="null">— nessuno —</mat-option>
@@ -90,25 +83,14 @@ const RIGHE_STYLES = `
             </mat-select>
             <mat-icon matSuffix>payments</mat-icon>
           </mat-form-field>
-        </div>
-
-        <!-- ── Estremi documento ─────────────────────── -->
-        <div class="form-section">
-          <div class="form-section-header">
-            <mat-icon>tag</mat-icon>
-            <span>Estremi documento</span>
-          </div>
-          <div class="form-row">
-            <mat-form-field>
-              <mat-label>Numero *</mat-label>
-              <input matInput formControlName="numero">
-              <mat-icon matSuffix>tag</mat-icon>
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>Data ricezione *</mat-label>
-              <input matInput type="date" formControlName="dataEmissione">
-            </mat-form-field>
-          </div>
+          <mat-form-field style="flex:0 0 175px">
+            <mat-label>Numero *</mat-label>
+            <input matInput formControlName="numero">
+          </mat-form-field>
+          <mat-form-field style="flex:0 0 160px">
+            <mat-label>Data ricezione *</mat-label>
+            <input matInput type="date" formControlName="dataEmissione">
+          </mat-form-field>
         </div>
       </form>
       <div class="righe-section">
@@ -390,7 +372,13 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
-        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
+        case 'numero': {
+          const n = item.numero || '';
+          const slash = n.match(/^(\d+)\/(\d+)$/);
+          if (slash) return parseInt(slash[1], 10) * 100000 + parseInt(slash[2], 10);
+          const plain = n.match(/(\d+)/);
+          return plain ? parseInt(plain[1], 10) : 0;
+        }
         case 'totale': return item.totale ?? 0;
         case 'dataEmissione': return item.dataEmissione ?? '';
         default: return (item as any)[col] ?? '';

@@ -61,7 +61,6 @@ const RIGHE_STYLES = `
     MatButtonToggleModule, MatMenuModule, MatTabsModule, DragDropModule,
   ],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica DDT' : 'Nuovo DDT' }}</h2>
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0ea5e9 0%,#06b6d4 100%);box-shadow:0 4px 12px -2px rgba(14,165,233,0.35)">
@@ -79,14 +78,8 @@ const RIGHE_STYLES = `
         <mat-tab label="Documento">
           <div style="padding-top:16px">
 
-            <!-- ── Intestatario ──────────────────────────── -->
-            <div class="form-section is-primary">
-              <div class="form-section-header">
-                <mat-icon>person</mat-icon>
-                <span>Intestatario</span>
-                <span class="section-hint">Cliente destinatario</span>
-              </div>
-              <mat-form-field style="width:100%">
+            <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px" [formGroup]="documentoForm">
+              <mat-form-field style="flex:1">
                 <mat-label>Cliente *</mat-label>
                 <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
                        (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
@@ -101,28 +94,15 @@ const RIGHE_STYLES = `
                   <mat-error>Seleziona un cliente</mat-error>
                 }
               </mat-form-field>
+              <mat-form-field style="flex:0 0 175px">
+                <mat-label>Numero *</mat-label>
+                <input matInput formControlName="numero">
+              </mat-form-field>
+              <mat-form-field style="flex:0 0 160px">
+                <mat-label>Data emissione *</mat-label>
+                <input matInput type="date" formControlName="dataEmissione">
+              </mat-form-field>
             </div>
-
-            <!-- ── Estremi documento ─────────────────────── -->
-            <form [formGroup]="documentoForm" class="dialog-form">
-              <div class="form-section">
-                <div class="form-section-header">
-                  <mat-icon>tag</mat-icon>
-                  <span>Estremi documento</span>
-                </div>
-                <div class="form-row">
-                  <mat-form-field>
-                    <mat-label>Numero *</mat-label>
-                    <input matInput formControlName="numero">
-                    <mat-icon matSuffix>tag</mat-icon>
-                  </mat-form-field>
-                  <mat-form-field>
-                    <mat-label>Data emissione *</mat-label>
-                    <input matInput type="date" formControlName="dataEmissione">
-                  </mat-form-field>
-                </div>
-              </div>
-            </form>
 
             <div class="righe-section">
               <div class="righe-header">
@@ -722,7 +702,13 @@ export class DdtComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
-        case 'numero': { const m = (item.numero || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
+        case 'numero': {
+          const n = item.numero || '';
+          const slash = n.match(/^(\d+)\/(\d+)$/);
+          if (slash) return parseInt(slash[1], 10) * 100000 + parseInt(slash[2], 10);
+          const plain = n.match(/(\d+)/);
+          return plain ? parseInt(plain[1], 10) : 0;
+        }
         case 'totale': return item.totale ?? 0;
         case 'dataEmissione': return item.dataEmissione ?? '';
         default: return (item as any)[prop] ?? '';
