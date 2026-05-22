@@ -41,8 +41,16 @@ const RIGHE_STYLES = `
     MatIconModule, MatSnackBarModule
   ],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica ricorrente' : 'Nuova fattura ricorrente' }}</h2>
     <mat-dialog-content style="min-width:680px;max-width:900px">
+      <div class="dialog-hero">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)">
+          <mat-icon>repeat</mat-icon>
+        </div>
+        <div class="dialog-hero-text">
+          <span class="dialog-hero-title">{{ data?.id ? 'Modifica fattura ricorrente' : 'Nuova fattura ricorrente' }}</span>
+          <span class="dialog-hero-sub">{{ data?.id ? 'Aggiorna le impostazioni di ricorrenza' : 'Configura la generazione automatica della fattura' }}</span>
+        </div>
+      </div>
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">
           <mat-form-field style="flex:2">

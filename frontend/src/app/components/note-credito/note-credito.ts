@@ -506,7 +506,10 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    try { const s = JSON.parse(localStorage.getItem('filtri-note-credito') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroCliente = s.cliente ?? null; } } catch {}
+    this.load();
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
@@ -548,11 +551,12 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     if (this.filtroCliente) data = data.filter(n => n.clienteId === this.filtroCliente);
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    localStorage.setItem('filtri-note-credito', JSON.stringify({ anno: this.filtroAnno, mese: this.filtroMese, cliente: this.filtroCliente }));
   }
 
   resetFiltri() {
     this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null;
-    this.dataSource.filter = ''; this.applyFilters();
+    this.dataSource.filter = ''; localStorage.removeItem('filtri-note-credito'); this.applyFilters();
   }
 
   applyFilter(event: Event) {

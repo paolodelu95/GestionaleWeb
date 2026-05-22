@@ -363,6 +363,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() {
+    try { const s = JSON.parse(localStorage.getItem('filtri-acquisti') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroFornitore = s.fornitore ?? null; } } catch {}
     this.load();
     this.ds.getFornitori().subscribe(f => this.fornitori = f);
   }
@@ -407,11 +408,12 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     if (this.filtroFornitore) data = data.filter(a => a.fornitoreId === this.filtroFornitore);
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    localStorage.setItem('filtri-acquisti', JSON.stringify({ anno: this.filtroAnno, mese: this.filtroMese, fornitore: this.filtroFornitore }));
   }
 
   resetFiltri() {
     this.filtroAnno = null; this.filtroMese = null; this.filtroFornitore = null;
-    this.dataSource.filter = ''; this.applyFilters();
+    this.dataSource.filter = ''; localStorage.removeItem('filtri-acquisti'); this.applyFilters();
   }
 
   applyFilter(event: Event) {

@@ -20,8 +20,16 @@ import { DataService } from '../../services/data.service';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica registrazione' : 'Nuova registrazione' }}</h2>
     <mat-dialog-content style="min-width:560px">
+      <div class="dialog-hero">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%)">
+          <mat-icon>edit_note</mat-icon>
+        </div>
+        <div class="dialog-hero-text">
+          <span class="dialog-hero-title">{{ data?.id ? 'Modifica registrazione' : 'Nuova registrazione' }}</span>
+          <span class="dialog-hero-sub">{{ data?.id ? 'Aggiorna i dettagli della voce contabile' : 'Registra un movimento di cassa o banca' }}</span>
+        </div>
+      </div>
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">
           <mat-form-field>

@@ -17,6 +17,7 @@ import { FormsModule } from '@angular/forms';
 import { DataService } from './services/data.service';
 import { AuthService } from './services/auth.service';
 import { NotificationService, NotificationBadges } from './services/notifications.service';
+import { OfflineService } from './services/offline.service';
 import { LoginComponent } from './components/login/login';
 import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
 import { Azienda } from './models';
@@ -70,6 +71,7 @@ export class App implements OnInit {
   ];
   showInstallBanner = false;
   showUpdateBanner = false;
+  isOffline = false;
   private searchSubject = new Subject<string>();
   private installPromptEvent: any = null;
 
@@ -81,6 +83,7 @@ export class App implements OnInit {
     private elRef: ElementRef,
     private swUpdate: SwUpdate,
     private dialog: MatDialog,
+    private offlineSvc: OfflineService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
   }
@@ -88,6 +91,10 @@ export class App implements OnInit {
   ngOnInit() {
     this.darkMode = localStorage.getItem('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
+
+    this.offlineSvc.offline$.subscribe(v => this.isOffline = v);
+    window.addEventListener('online',  () => this.offlineSvc.setOffline(false));
+    window.addEventListener('offline', () => this.offlineSvc.setOffline(true));
 
     window.addEventListener('beforeinstallprompt', (e: Event) => {
       e.preventDefault();

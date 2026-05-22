@@ -691,6 +691,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() {
+    try { const s = JSON.parse(localStorage.getItem('filtri-ddt') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroCliente = s.cliente ?? null; this.filtroDaFatturare = s.daFatturare ?? false; } } catch {}
     this.load();
     this.ds.getAzienda().subscribe(a => {
       this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
@@ -730,11 +731,12 @@ export class DdtComponent implements OnInit, AfterViewInit {
     if (this.filtroDaFatturare) data = data.filter(d => !d.fatturaId && d.stato !== 'ANNULLATO');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    localStorage.setItem('filtri-ddt', JSON.stringify({ anno: this.filtroAnno, mese: this.filtroMese, cliente: this.filtroCliente, daFatturare: this.filtroDaFatturare }));
   }
 
   resetFiltri() {
     this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroDaFatturare = false;
-    this.dataSource.filter = ''; this.applyFilters();
+    this.dataSource.filter = ''; localStorage.removeItem('filtri-ddt'); this.applyFilters();
   }
 
   print() {
