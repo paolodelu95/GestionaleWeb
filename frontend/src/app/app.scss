@@ -364,8 +364,8 @@
   // Topbar mobile: padding ridotto, avatar più piccolo, no search-box (ogni pagina ha la sua),
   // niente max-width sul nome aziendale (lo gestisce il flex + ellipsis)
   .topbar {
-    padding: 0 8px !important;
-    gap: 4px !important;
+    padding: 0 6px !important;
+    gap: 2px !important;
   }
   .topbar .company-avatar {
     width: 30px;
@@ -379,7 +379,6 @@
     font-size: 14px;
     /* max-width rimosso: ora si adatta allo spazio disponibile con ellipsis */
   }
-  .search-box { display: none; }
 }
 
 @keyframes fade-in {
@@ -414,7 +413,8 @@
     box-shadow: var(--shadow-focus);
   }
 
-  @media (max-width: 767px) { width: 150px; height: 36px; }
+  // Su mobile la search globale è nascosta: ogni pagina ha la sua ricerca dedicata
+  @media (max-width: 767px) { display: none; }
 
   .search-icon {
     color: var(--text-tertiary);
@@ -708,7 +708,13 @@
 }
 
 @media (max-width: 767px) {
-  .bug-fab { bottom: 16px; right: 16px; width: 48px; height: 48px; mat-icon { font-size: 22px; width: 22px; height: 22px; } }
+  .bug-fab {
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: max(16px, env(safe-area-inset-right));
+    width: 48px;
+    height: 48px;
+    mat-icon { font-size: 22px; width: 22px; height: 22px; }
+  }
 }
 
 // ── PWA banners ──────────────────────────────────────────────────────────────

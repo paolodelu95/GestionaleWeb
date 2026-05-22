@@ -141,7 +141,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-.dark-mode body { color-scheme: dark; }
+// La classe .dark-mode è applicata sul <body>: il selettore deve essere
+// body.dark-mode (non `.dark-mode body`, che non corrisponde a nulla).
+// Senza color-scheme:dark le funzioni light-dark() del tema Material 3
+// resterebbero sui valori chiari anche in modalità scura.
+body.dark-mode { color-scheme: dark; }
 
 // Scrollbars – modern thin
 * {
@@ -155,6 +159,26 @@ body {
 
 // Tabular numerals for financial data
 .euro, .euro-neg, .kpi-value, td.mat-mdc-cell, .righe-total { font-variant-numeric: tabular-nums; }
+
+// ── Accessible focus ring ─────────────────────────────────────────────────────
+// Visible keyboard focus on every interactive element; suppressed for pointer use.
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible) { outline: none; }
+
+// Respect reduced-motion preference
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 // ── Sidebar global MDC overrides ──────────────────────────────────────────────
 .sidenav {
@@ -662,13 +686,34 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   transition: background var(--transition-fast) !important;
 }
 
-// Form fields: refined outlined look
+// Form fields: refined look — i token usano variabili mode-aware, quindi
+// si adattano automaticamente a light/dark per campi sia outlined che filled.
 .mat-mdc-form-field {
+  // Outlined
   --mdc-outlined-text-field-container-shape: 8px;
   --mdc-outlined-text-field-outline-color: var(--border);
   --mdc-outlined-text-field-hover-outline-color: var(--border-strong);
   --mdc-outlined-text-field-focus-outline-color: var(--primary);
   --mdc-outlined-text-field-label-text-color: var(--text-tertiary);
+  --mdc-outlined-text-field-input-text-color: var(--text-primary);
+  --mdc-outlined-text-field-caret-color: var(--primary);
+  --mdc-outlined-text-field-focus-label-text-color: var(--primary);
+  // Filled (appearance di default della maggior parte dei campi dell'app)
+  --mdc-filled-text-field-container-shape: 8px;
+  --mdc-filled-text-field-container-color: var(--bg-subtle);
+  --mdc-filled-text-field-disabled-container-color: var(--bg-surface-2);
+  --mdc-filled-text-field-label-text-color: var(--text-tertiary);
+  --mdc-filled-text-field-input-text-color: var(--text-primary);
+  --mdc-filled-text-field-disabled-input-text-color: var(--text-tertiary);
+  --mdc-filled-text-field-caret-color: var(--primary);
+  --mdc-filled-text-field-active-indicator-color: var(--border-strong);
+  --mdc-filled-text-field-hover-active-indicator-color: var(--text-tertiary);
+  --mdc-filled-text-field-focus-active-indicator-color: var(--primary);
+  --mdc-filled-text-field-label-text-color: var(--text-tertiary);
+  --mdc-filled-text-field-focus-label-text-color: var(--primary);
+  // Placeholder leggibile in entrambi i temi
+  --mdc-outlined-text-field-input-text-placeholder-color: var(--text-muted);
+  --mdc-filled-text-field-input-text-placeholder-color: var(--text-muted);
 }
 
 // Mat menu / select panel: refined surface
@@ -984,7 +1029,8 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 }
 
 @media (max-width: 767px) {
-  .page { padding: 16px 12px; }
+  // Extra spazio in fondo: il FAB "Segnala problema" non copre mai paginator/contenuto
+  .page { padding: 16px 12px calc(84px + env(safe-area-inset-bottom)); }
 
   .page-header {
     flex-wrap: wrap;
@@ -1018,9 +1064,8 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
     .kpi-accent { margin-bottom: 10px; }
   }
 
-  // Card con scroll orizzontale per tabelle
-  .card { padding: 14px; overflow-x: auto; border-radius: var(--radius-md); }
-  .mat-mdc-table { min-width: unset; }
+  // Card che contiene le tabelle: niente scroll orizzontale, le righe diventano card
+  .card { padding: 12px; overflow-x: visible; border-radius: var(--radius-md); }
 
   // Filter bar
   .filter-bar {
@@ -1081,8 +1126,24 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 
   // Dialog padding
   .mat-mdc-dialog-content { padding: 0 14px 14px !important; }
-  .mat-mdc-dialog-surface { padding: 18px 0 0 !important; border-radius: 0 !important; }
-  .mat-mdc-dialog-actions { padding: 10px 14px !important; }
+  .mat-mdc-dialog-surface {
+    padding: 18px 0 0 !important;
+    border-radius: 0 !important;
+    padding-top: max(18px, env(safe-area-inset-top)) !important;
+  }
+  // Barra azioni del dialog: ancorata in basso, sopra le altre cose, full-width tap
+  .mat-mdc-dialog-actions {
+    padding: 10px 14px !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    flex-shrink: 0;
+    button {
+      flex: 1 1 0;
+      min-width: 0 !important;
+      max-width: 100%;
+    }
+  }
 
   // Full screen dialogs + override min-width inline (es. listino-dialog usa 680px)
   .cdk-overlay-pane:has(.mat-mdc-dialog-container) {
@@ -1113,9 +1174,206 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 
   .bulk-bar { flex-wrap: wrap; gap: 6px; }
 
-  // Tables on mobile: padding ridotto
-  th.mat-mdc-header-cell, td.mat-mdc-cell { padding: 11px 8px !important; font-size: 13px !important; }
-  th.mat-mdc-header-cell { font-size: 10px !important; padding: 9px 8px !important; }
+  // ── Tabelle → card impilate su mobile ──────────────────────────────────────
+  // Le righe di mat-table diventano card leggibili: ogni cella è "Etichetta : valore".
+  // Niente scroll orizzontale, niente colonne nascoste — tutto visibile e tappabile.
+  table.mat-mdc-table {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    background: transparent !important;
+  }
+  .mat-mdc-table thead,
+  tr.mat-mdc-header-row { display: none !important; }
+  .mat-mdc-table tbody { display: block; }
+
+  tr.mat-mdc-row,
+  tr.mat-mdc-footer-row {
+    display: block;
+    position: relative;
+    height: auto !important;
+    min-height: 0 !important;
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    padding: 2px 14px 4px;
+    box-shadow: var(--shadow-xs);
+  }
+  tr.mat-mdc-row:nth-child(even) { background: var(--bg-surface) !important; }
+  tr.mat-mdc-row:hover  { background: var(--bg-surface) !important; }
+  tr.mat-mdc-row:active { background: var(--bg-surface-2) !important; }
+  .dark-mode tr.mat-mdc-row,
+  .dark-mode tr.mat-mdc-row:nth-child(even),
+  .dark-mode tr.mat-mdc-row:hover { background: var(--bg-surface) !important; }
+
+  td.mat-mdc-cell {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 30px;
+    padding: 9px 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    font-size: 14px !important;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  tr.mat-mdc-row td.mat-mdc-cell:last-child { border-bottom: 0 !important; }
+
+  // Etichetta colonna a sinistra (valore allineato a destra grazie a margin-right:auto)
+  td.mat-mdc-cell::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    margin-right: auto;
+    padding-right: 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+
+  // Mostra anche le colonne marcate hide-mobile/hide-tablet: nella card c'è spazio
+  td.mat-mdc-cell.hide-mobile,
+  td.mat-mdc-cell.hide-tablet { display: flex !important; }
+
+  // Prima cella = titolo della card: valore in evidenza, niente etichetta.
+  // Vale per la prima colonna, o per quella subito dopo la checkbox di selezione.
+  td.mat-mdc-cell:first-child:not(.mat-column-select):not(.table-actions),
+  td.mat-column-select + td.mat-mdc-cell {
+    justify-content: flex-start;
+    text-align: left;
+    padding: 8px 46px 10px 0 !important;
+    font-size: 16px !important;
+    font-weight: 700;
+    color: var(--text-primary);
+    b { font-weight: 700; }
+    &::before { content: none; }
+  }
+  // Se c'è la checkbox di selezione, lascia spazio a sinistra per essa
+  td.mat-column-select + td.mat-mdc-cell { padding-left: 42px !important; }
+
+  // Ultima riga di dettaglio (prima delle azioni assolute): niente divisore
+  td.mat-mdc-cell:has(+ td.table-actions) { border-bottom: 0 !important; }
+
+  // Colonna azioni / selezione: nessuna etichetta
+  td.mat-column-azioni::before,
+  td.mat-column-azione::before,
+  td.table-actions::before,
+  td.mat-column-select::before { content: none; }
+  // Azioni: un solo bottone (kebab) → ancorato in alto a destra della card;
+  // più bottoni → riga "footer" in fondo alla card, allineata a destra.
+  td.table-actions {
+    justify-content: flex-end;
+    border-bottom: 0 !important;
+    padding-top: 4px !important;
+  }
+  td.table-actions:not(:has(button ~ button)) {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: auto !important;
+    min-height: 0;
+    padding: 0 !important;
+  }
+  // Checkbox di selezione: ancorata in alto a sinistra della card
+  td.mat-column-select {
+    position: absolute;
+    top: 12px;
+    left: 10px;
+    width: auto !important;
+    min-height: 0;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+  td.mat-column-azioni,
+  td.mat-column-azione { justify-content: flex-end; }
+
+  // Riga "nessun dato" (matNoDataRow): card a tutta larghezza, testo centrato
+  tr.mat-row:not(.mat-mdc-row) {
+    display: block;
+    background: var(--bg-surface) !important;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+  tr.mat-row:not(.mat-mdc-row) td { display: block; border: 0 !important; text-align: center; }
+
+  // ── Mappa etichette colonne (dal nome di matColumnDef) ─────────────────────
+  td.mat-column-id::before                      { content: "ID"; }
+  td.mat-column-ragioneSociale::before          { content: "Ragione sociale"; }
+  td.mat-column-nome::before                    { content: "Nome"; }
+  td.mat-column-codice::before                  { content: "Codice"; }
+  td.mat-column-barcode::before                 { content: "Barcode"; }
+  td.mat-column-categoria::before               { content: "Categoria"; }
+  td.mat-column-descrizione::before             { content: "Descrizione"; }
+  td.mat-column-email::before                   { content: "Email"; }
+  td.mat-column-pec::before                     { content: "PEC"; }
+  td.mat-column-telefono::before                { content: "Telefono"; }
+  td.mat-column-cellulare::before               { content: "Cellulare"; }
+  td.mat-column-indirizzo::before               { content: "Città"; }
+  td.mat-column-codiceFiscale::before           { content: "Cod. fiscale"; }
+  td.mat-column-codiceFornitore::before         { content: "Cod. fornitore"; }
+  td.mat-column-pIva::before                    { content: "P. IVA"; }
+  td.mat-column-sdi::before                     { content: "SDI"; }
+  td.mat-column-numero::before                  { content: "Numero"; }
+  td.mat-column-numeroDocumentoFornitore::before{ content: "N. doc. fornitore"; }
+  td.mat-column-data::before                    { content: "Data"; }
+  td.mat-column-dataEmissione::before           { content: "Data emissione"; }
+  td.mat-column-dataOrdine::before              { content: "Data ordine"; }
+  td.mat-column-dataScadenza::before            { content: "Scadenza"; }
+  td.mat-column-scadenza::before                { content: "Scadenza"; }
+  td.mat-column-prossimaEmissione::before       { content: "Prossima emissione"; }
+  td.mat-column-ultimoAcquisto::before          { content: "Ultimo acquisto"; }
+  td.mat-column-cliente::before                 { content: "Cliente"; }
+  td.mat-column-clienteNome::before             { content: "Cliente"; }
+  td.mat-column-fornitoreNome::before           { content: "Fornitore"; }
+  td.mat-column-controparte::before             { content: "Controparte"; }
+  td.mat-column-documento::before               { content: "Documento"; }
+  td.mat-column-fattura::before                 { content: "Fattura"; }
+  td.mat-column-ordine::before                  { content: "Ordine"; }
+  td.mat-column-prodotto::before                { content: "Prodotto"; }
+  td.mat-column-variante::before                { content: "Variante"; }
+  td.mat-column-stato::before                   { content: "Stato"; }
+  td.mat-column-attivo::before                  { content: "Stato"; }
+  td.mat-column-attiva::before                  { content: "Stato"; }
+  td.mat-column-tipo::before                    { content: "Tipo"; }
+  td.mat-column-direzione::before               { content: "Direzione"; }
+  td.mat-column-causale::before                 { content: "Causale"; }
+  td.mat-column-conto::before                   { content: "Conto"; }
+  td.mat-column-metodo::before                  { content: "Metodo"; }
+  td.mat-column-tipoPagamentoNome::before       { content: "Pagamento"; }
+  td.mat-column-frequenza::before               { content: "Frequenza"; }
+  td.mat-column-priorita::before                { content: "Priorità"; }
+  td.mat-column-immediato::before               { content: "Immediato"; }
+  td.mat-column-ruolo::before                   { content: "Ruolo"; }
+  td.mat-column-username::before                { content: "Username"; }
+  td.mat-column-titolo::before                  { content: "Titolo"; }
+  td.mat-column-testo::before                   { content: "Testo"; }
+  td.mat-column-note::before                    { content: "Note"; }
+  td.mat-column-pagina::before                  { content: "Pagina"; }
+  td.mat-column-giorni::before                  { content: "Giorni"; }
+  td.mat-column-simbolo::before                 { content: "Simbolo"; }
+  td.mat-column-unitaMisura::before             { content: "U.M."; }
+  td.mat-column-quantita::before                { content: "Quantità"; }
+  td.mat-column-sogliaMinima::before            { content: "Soglia minima"; }
+  td.mat-column-iva::before                     { content: "IVA"; }
+  td.mat-column-prezzo::before                  { content: "Prezzo"; }
+  td.mat-column-prezzoAcquisto::before          { content: "Prezzo acquisto"; }
+  td.mat-column-prezziCount::before             { content: "Prezzi"; }
+  td.mat-column-scontoDefault::before           { content: "Sconto"; }
+  td.mat-column-margine::before                 { content: "Margine"; }
+  td.mat-column-valore::before                  { content: "Valore"; }
+  td.mat-column-importo::before                 { content: "Importo"; }
+  td.mat-column-totale::before                  { content: "Totale"; }
+  td.mat-column-rimanente::before               { content: "Rimanente"; }
+  td.mat-column-fatturatoAnno::before           { content: "Fatturato anno"; }
+  td.mat-column-fattureInsolute::before         { content: "Insoluti"; }
 
   // Mat tabs scrollable su mobile (impedisce overflow)
   .mat-mdc-tab-header { border-bottom: 1px solid var(--border-subtle); }
@@ -1131,7 +1389,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 }
 
 @media (max-width: 480px) {
-  .page { padding: 12px 8px; }
+  .page { padding: 12px 8px calc(80px + env(safe-area-inset-bottom)); }
 
   .page-header {
     .page-title { font-size: 18px; }
