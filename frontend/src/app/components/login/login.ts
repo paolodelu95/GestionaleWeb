@@ -214,6 +214,7 @@ import { AuthService } from '../../services/auth.service';
 
       ::ng-deep {
         .mdc-text-field--outlined {
+          --mdc-outlined-text-field-container-shape: 10px;
           --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.15);
           --mdc-outlined-text-field-hover-outline-color: rgba(255, 255, 255, 0.30);
           --mdc-outlined-text-field-focus-outline-color: #818cf8;
@@ -224,13 +225,10 @@ import { AuthService } from '../../services/auth.service';
           background: rgba(255, 255, 255, 0.04);
           border-radius: 10px;
         }
-        .mdc-notched-outline__leading,
-        .mdc-notched-outline__notch,
-        .mdc-notched-outline__trailing {
-          border-radius: 10px 0 0 10px;
-        }
-        .mat-mdc-form-field-icon-suffix mat-icon {
+        .mat-mdc-form-field-icon-suffix mat-icon,
+        .mat-mdc-form-field-icon-suffix .mat-mdc-icon-button mat-icon {
           color: #94a3b8;
+          display: inline-block !important;
         }
       }
     }

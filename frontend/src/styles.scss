@@ -686,6 +686,18 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   transition: background var(--transition-fast) !important;
 }
 
+// Campi "filled" — Material 3 in tema viola colora il container lavanda
+// saturo. Forziamo un grigio neutro distinto sia da surface che surface-2
+// per rimanere leggibili dentro le form-section, in light e dark.
+:root      { --field-fill: #f1f3f9; --field-fill-disabled: #eaecf2; }
+body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
+.mdc-text-field--filled:not(.mdc-text-field--disabled) {
+  background-color: var(--field-fill) !important;
+}
+.mdc-text-field--filled.mdc-text-field--disabled {
+  background-color: var(--field-fill-disabled) !important;
+}
+
 // Form fields: refined look — i token usano variabili mode-aware, quindi
 // si adattano automaticamente a light/dark per campi sia outlined che filled.
 .mat-mdc-form-field {
@@ -999,11 +1011,52 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   [style*="border:2px dashed #e2e8f0"] { border-color: var(--border-strong) !important; }
   [style*="1px solid #e2e8f0"] { border-color: var(--border) !important; }
 
-  // Righe table
-  .righe-table th { background: var(--bg-surface-2); color: var(--text-secondary); }
-  .righe-total { background: var(--bg-surface-2); color: var(--text-primary); border-top-color: var(--border); }
+  // ── Hardening dialog documenti (fatture/ddt/ordini/preventivi/note-credito/acquisti) ──
+  // I componenti hanno molti background hardcoded #f8fafc / #fefce8 / #f5f3ff
+  // nel CSS scoped: servono override con !important per batterli in dark mode.
+  .righe-table th {
+    background: var(--bg-surface-2) !important;
+    color: var(--text-secondary) !important;
+    border-bottom-color: var(--border) !important;
+  }
+  .righe-table td { border-bottom-color: var(--border-subtle) !important; }
+  .righe-table tr:hover td { background: color-mix(in srgb, var(--primary) 8%, var(--bg-surface-2)) !important; }
+  .riga-nota td { background: rgba(245, 158, 11, 0.10) !important; color: var(--text-primary) !important; }
+  .righe-total {
+    background: var(--bg-surface-2) !important;
+    color: var(--text-primary) !important;
+    border-top-color: var(--border) !important;
+  }
+
+  // Sezione "Genera da DDT" (raggruppamento per cliente)
+  .gd-group-header { background: var(--bg-surface-2) !important; color: var(--text-primary) !important; }
+  .gd-summary { background: rgba(14, 165, 233, 0.12) !important; color: var(--info-on) !important; border-color: rgba(14, 165, 233, 0.25) !important; }
+  .gd-ddt-row:hover { background: var(--bg-surface-2) !important; }
+  .gd-cliente { color: var(--text-primary) !important; }
+
+  // Sezione pagamenti / acconti dentro al dialog
+  .pagamento-info { background: var(--bg-surface-2) !important; }
+  .acconto-table th { background: var(--bg-surface-2) !important; color: var(--text-secondary) !important; border-bottom-color: var(--border) !important; }
+  .acconto-table td { border-bottom-color: var(--border-subtle) !important; }
+  .tipo-badge { background: var(--bg-subtle) !important; color: var(--text-secondary) !important; }
+  .tipo-automatico { background: rgba(59, 130, 246, 0.15) !important; color: var(--info-on) !important; }
+  .tipo-acconto { background: rgba(34, 197, 94, 0.15) !important; color: var(--success-on) !important; }
+
+  // Sezione DDT collegati / chip
+  .ddt-section { background: var(--bg-surface-2) !important; border-color: var(--border) !important; }
+  .ddt-chip { background: rgba(59, 130, 246, 0.15) !important; color: var(--info-on) !important; }
+  .chip-remove { color: var(--info-on) !important; }
+  .rif-card-header { background: var(--bg-surface-2) !important; border-bottom-color: var(--border-subtle) !important; }
+  .suggerimenti-bar { background: rgba(99, 102, 241, 0.10) !important; border-color: rgba(99, 102, 241, 0.25) !important; }
 
   body { background: var(--bg-page); color: var(--text-primary); }
+}
+
+// ── FAB nascosto quando un dialog è aperto ───────────────────────────────────
+// Evita che il bottone rosso "Segnala problema" sovrapponga il dialog.
+body:has(.cdk-overlay-container .mat-mdc-dialog-surface) .bug-fab,
+body:has(.cdk-overlay-container .mat-mdc-dialog-container) .bug-fab {
+  display: none !important;
 }
 
 // ── Mobile responsive ─────────────────────────────────────────────────────────
@@ -1105,11 +1158,9 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
       overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
   }
 
-  // Suffix icons negli input: nascosti su mobile per dare più larghezza al campo
-  .mat-mdc-form-field-icon-suffix mat-icon { display: none; }
-  // Eccezione: search input e bottoni action (i bottoni mat-icon-button restano visibili)
-  .mat-mdc-form-field-icon-suffix mat-icon[matSuffix][title*="erca"],
-  .mat-mdc-form-field-icon-suffix mat-icon.search-icon-keep { display: inline-block; }
+  // Le icone suffix restano visibili anche su mobile: rimosse le vecchie
+  // regole che le nascondevano (rendevano illeggibili login, ricerche,
+  // bottoni show/hide password, ecc.).
 
   // Righe table
   .righe-section { overflow-x: auto; }
@@ -1143,6 +1194,43 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
       min-width: 0 !important;
       max-width: 100%;
     }
+  }
+
+  // ── Layout dialog: stack di tutto su mobile ────────────────────────────────
+  // I dialog usano spesso <div style="display:flex"> inline per affiancare
+  // Cliente/Numero/Data, ecc.: senza flex-wrap, sui 375px il campo Cliente
+  // (flex:1) si comprime a 0px e diventa invisibile. Forziamo wrap + full-width
+  // dei mat-form-field; i pulsanti vanno comunque a capo naturalmente.
+  .mat-mdc-dialog-content [style*="display:flex"],
+  .mat-mdc-dialog-content [style*="display: flex"] {
+    flex-wrap: wrap !important;
+    row-gap: 10px;
+  }
+  .mat-mdc-dialog-content [style*="display:flex"] > mat-form-field,
+  .mat-mdc-dialog-content [style*="display: flex"] > mat-form-field {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  // Anche per i contenitori .form-section / .form-row / .dialog-form: i loro
+  // figli flex interni si comportano come sopra.
+  .mat-mdc-dialog-content .form-section [style*="display:flex"] > mat-form-field,
+  .mat-mdc-dialog-content .form-row [style*="display:flex"] > mat-form-field,
+  .mat-mdc-dialog-content .dialog-form > [style*="display:flex"] > mat-form-field {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  // Tabs del dialog: scrollabili e leggibili
+  .mat-mdc-dialog-content .mat-mdc-tab-labels { gap: 0 !important; }
+  .mat-mdc-dialog-content .mdc-tab { padding: 0 14px !important; min-width: 0 !important; }
+
+  // Bottoni "Aggiungi riga / Aggiungi nota" sopra alla tabella righe:
+  // niente wrap del testo dentro al bottone (vanno a capo come pulsanti interi)
+  .righe-section button[mat-stroked-button],
+  .mat-mdc-dialog-content button[mat-stroked-button] .mdc-button__label {
+    white-space: nowrap;
   }
 
   // Full screen dialogs + override min-width inline (es. listino-dialog usa 680px)
