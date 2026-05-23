@@ -27,18 +27,18 @@ interface SaldaData { entry: ScadenzarioEntry; tipiPagamento: TipoPagamento[]; }
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>Salda {{ data.entry.numero }}</h2>
-    <mat-dialog-content style="min-width:400px">
+    <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form">
-        <mat-form-field style="width:100%">
+        <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Importo *</mat-label>
           <input matInput type="number" step="0.01" formControlName="importo">
           <mat-hint>Rimane: {{ data.entry.rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}</mat-hint>
         </mat-form-field>
-        <mat-form-field style="width:100%">
+        <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Data saldo *</mat-label>
           <input matInput type="date" formControlName="dataPagamento">
         </mat-form-field>
-        <mat-form-field style="width:100%">
+        <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Metodo di pagamento</mat-label>
           <mat-select formControlName="tipoPagamentoId">
             <mat-option [value]="null">— nessuno —</mat-option>
@@ -77,16 +77,16 @@ interface SaldaMultiploData { entries: ScadenzarioEntry[]; tipiPagamento: TipoPa
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>Salda {{ data.entries.length }} voci</h2>
-    <mat-dialog-content style="min-width:420px">
-      <p style="margin:0 0 16px;color:#64748b">
-        Totale: <b style="color:#1e293b">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+    <mat-dialog-content>
+      <p style="margin:0 0 16px;color:var(--text-secondary)">
+        Totale: <b style="color:var(--text-primary)">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
       </p>
       <form [formGroup]="form" class="dialog-form">
-        <mat-form-field style="width:100%">
+        <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Data saldo *</mat-label>
           <input matInput type="date" formControlName="dataPagamento">
         </mat-form-field>
-        <mat-form-field style="width:100%">
+        <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Metodo di pagamento</mat-label>
           <mat-select formControlName="tipoPagamentoId">
             <mat-option [value]="null">— nessuno —</mat-option>
@@ -123,27 +123,28 @@ export class SaldaMultiploDialogComponent {
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule],
   template: `
     <h2 mat-dialog-title>{{ data?.id ? 'Modifica Pagamento' : 'Nuovo Pagamento' }}</h2>
-    <mat-dialog-content style="min-width:640px">
+    <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Data *</mat-label>
             <input matInput type="date" formControlName="dataPagamento">
           </mat-form-field>
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Importo *</mat-label>
             <input matInput type="number" step="0.01" formControlName="importo">
+            <span matTextPrefix>€&nbsp;</span>
           </mat-form-field>
         </div>
         <div class="form-row">
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Tipo</mat-label>
             <mat-select formControlName="tipo">
               <mat-option value="ENTRATA">Entrata</mat-option>
               <mat-option value="USCITA">Uscita</mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Conto</mat-label>
             <mat-select formControlName="conto">
               <mat-option value="BANCA">Banca</mat-option>
@@ -152,7 +153,7 @@ export class SaldaMultiploDialogComponent {
           </mat-form-field>
         </div>
         <div class="form-row">
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Fattura collegata</mat-label>
             <mat-select formControlName="fatturaId">
               <mat-option [value]="null">— nessuna —</mat-option>
@@ -161,8 +162,8 @@ export class SaldaMultiploDialogComponent {
               }
             </mat-select>
           </mat-form-field>
-          <mat-form-field>
-            <mat-label>Tipo Pagamento</mat-label>
+          <mat-form-field appearance="outline">
+            <mat-label>Metodo di pagamento</mat-label>
             <mat-select formControlName="tipoPagamentoId">
               <mat-option [value]="null">— nessuno —</mat-option>
               @for (t of tipiPagamento; track t.id) {
@@ -171,7 +172,7 @@ export class SaldaMultiploDialogComponent {
             </mat-select>
           </mat-form-field>
         </div>
-        <mat-form-field style="width:100%">
+        <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Note</mat-label>
           <textarea matInput rows="2" formControlName="note"></textarea>
         </mat-form-field>

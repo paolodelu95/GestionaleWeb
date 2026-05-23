@@ -255,12 +255,19 @@
   // Allineamento icone/testo coerente con gli altri page-header
   display: inline-flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
+
+  // Compatti: più piccoli dei bottoni standard di pagina
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  font-size: 13px !important;
+  line-height: 32px !important;
 
   mat-icon {
-    font-size: 18px !important;
-    width: 18px !important;
-    height: 18px !important;
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
     margin: 0 !important;
   }
 

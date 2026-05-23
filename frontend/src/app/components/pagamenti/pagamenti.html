@@ -1,6 +1,11 @@
 <div class="page">
   <div class="page-header">
     <h1 class="page-title">Pagamenti</h1>
+
+    @if (filtro !== 'DA_SALDARE') {
+      <button mat-flat-button (click)="open()"><mat-icon>add</mat-icon> Nuovo pagamento</button>
+    }
+
     <mat-button-toggle-group [(ngModel)]="filtro" (change)="load()">
       <mat-button-toggle value="TUTTI">Tutti</mat-button-toggle>
       <mat-button-toggle value="ENTRATA">Entrate</mat-button-toggle>
@@ -18,9 +23,6 @@
       </div>
     }
 
-    @if (filtro !== 'DA_SALDARE') {
-      <button mat-flat-button (click)="open()"><mat-icon>add</mat-icon> Nuovo</button>
-    }
     <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
   </div>
 
