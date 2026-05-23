@@ -451,8 +451,16 @@ export interface Utente {
   password?: string;
   nome?: string;
   email?: string;
-  ruolo: 'ADMIN' | 'COMMERCIALE' | 'MAGAZZINIERE' | 'CONTABILE' | 'OPERATORE';
+  ruolo: 'SUPERADMIN' | 'ADMIN' | 'COMMERCIALE' | 'MAGAZZINIERE' | 'CONTABILE' | 'OPERATORE';
+  tenant?: string;
   attivo?: boolean;
+}
+
+export interface Tenant {
+  slug: string;
+  nome: string;
+  attivo: boolean;
+  created_at?: string;
 }
 
 export interface StatsVenditeMensili {

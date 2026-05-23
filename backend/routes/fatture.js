@@ -77,7 +77,7 @@ router.get('/:id', (req, res) => {
   res.json(dto);
 });
 
-const createFatturaTx = db.transaction((f, ddtIds) => {
+const createFatturaTxBody = (f, ddtIds) => {
   const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
     VALUES (?,?,?,?,?,?,?)`)
     .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'EMESSA', f.tipoPagamentoId || null);
@@ -98,20 +98,20 @@ const createFatturaTx = db.transaction((f, ddtIds) => {
   creaPagamentoImmediato(fatturaId);
   audit('fattura', fatturaId, 'CREATE', { numero: f.numero, clienteId: f.clienteId || null, stato: f.stato || 'EMESSA', numRighe: f.righe?.length || 0 });
   return fatturaId;
-});
+};
 
 router.post('/', (req, res) => {
   const f = req.body;
   const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
   try {
-    const id = createFatturaTx(f, ddtIds);
+    const id = db.transaction(createFatturaTxBody)(f, ddtIds);
     res.json({ id });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-const updateFatturaTx = db.transaction((id, f, ddtIds) => {
+const updateFatturaTxBody = (id, f, ddtIds) => {
   const before = db.prepare('SELECT numero, data_emissione, cliente_id, note, stato FROM fatture WHERE id=?').get(id);
   const vecchiDdtIds = getDdtIds(id);
   const vecchieRighe = getRighe(id);
@@ -140,20 +140,20 @@ const updateFatturaTx = db.transaction((id, f, ddtIds) => {
   saveDdtLinks(id, ddtIds);
   saveRiferimenti(id, f.riferimenti || []);
   audit('fattura', id, 'UPDATE', { before, after: { numero: f.numero, dataEmissione: f.dataEmissione, clienteId: f.clienteId, stato: f.stato, numRighe: f.righe?.length || 0 } });
-});
+};
 
 router.put('/:id', (req, res) => {
   const f = req.body;
   const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
   try {
-    updateFatturaTx(req.params.id, f, ddtIds);
+    db.transaction(updateFatturaTxBody)(req.params.id, f, ddtIds);
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-const deleteFatturaTx = db.transaction((id) => {
+const deleteFatturaTxBody = (id) => {
   const snapshot = db.prepare('SELECT numero, data_emissione, cliente_id, stato, note FROM fatture WHERE id=?').get(id);
   const ddtIds = getDdtIds(id);
   if (!ddtIds.length) {
@@ -171,11 +171,11 @@ const deleteFatturaTx = db.transaction((id) => {
   db.prepare('UPDATE note_credito SET fattura_id=NULL WHERE fattura_id=?').run(id);
   db.prepare('DELETE FROM fatture WHERE id=?').run(id);
   audit('fattura', id, 'DELETE', snapshot || {});
-});
+};
 
 router.delete('/:id', (req, res) => {
   try {
-    deleteFatturaTx(Number(req.params.id));
+    db.transaction(deleteFatturaTxBody)(Number(req.params.id));
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });

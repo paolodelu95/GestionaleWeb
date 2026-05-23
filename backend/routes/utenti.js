@@ -1,24 +1,47 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const db = require('../database');
+const {
+  listUsers, createUser, updateUser, deleteUser,
+  getUserById, getTenant,
+} = require('../utils/authDb');
 
 const SALT = 10;
 
+function isSuper(req)  { return req.user?.ruolo === 'SUPERADMIN'; }
+function isAdmin(req)  { return req.user?.ruolo === 'ADMIN' || isSuper(req); }
+
+function toDto(u) {
+  return {
+    id: u.id, username: u.username, nome: u.nome, email: u.email,
+    ruolo: u.ruolo, tenant: u.tenant_slug, attivo: !!u.attivo,
+  };
+}
+
+// ── Lista utenti (admin tenant, o SUPERADMIN su tutti) ────────────────────────
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT id, username, nome, email, ruolo, attivo FROM utenti ORDER BY nome').all();
-  res.json(rows.map(r => ({ ...r, attivo: r.attivo === 1 })));
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Permessi insufficienti' });
+  const rows = isSuper(req) ? listUsers() : listUsers({ tenant: req.user.tenant });
+  res.json(rows.map(toDto));
 });
 
 router.post('/', async (req, res) => {
-  const { username, password, nome, email, ruolo } = req.body;
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Permessi insufficienti' });
+  const { username, password, nome, email, ruolo, tenant } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'username e password obbligatori' });
+
+  // Solo SUPERADMIN può assegnare tenant diversi dal proprio o creare SUPERADMIN
+  const targetTenant = isSuper(req) ? (tenant || req.user.tenant) : req.user.tenant;
+  if (!getTenant(targetTenant)) return res.status(400).json({ error: 'Tenant inesistente' });
+  const targetRuolo = (ruolo === 'SUPERADMIN' && !isSuper(req)) ? 'OPERATORE' : (ruolo || 'OPERATORE');
+
   try {
     const hash = await bcrypt.hash(password, SALT);
-    const result = db.prepare(
-      `INSERT INTO utenti (username, password_hash, nome, email, ruolo) VALUES (?,?,?,?,?)`
-    ).run(username, hash, nome || '', email || '', ruolo || 'OPERATORE');
-    res.json({ id: result.lastInsertRowid });
+    const u = createUser({
+      username, password_hash: hash, nome, email,
+      ruolo: targetRuolo, tenant_slug: targetTenant,
+    });
+    res.json(toDto(u));
   } catch (e) {
     if (e.message.includes('UNIQUE')) return res.status(400).json({ error: 'Username già in uso' });
     res.status(500).json({ error: e.message });
@@ -26,38 +49,56 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { username, password, nome, email, ruolo, attivo } = req.body;
-  const existing = db.prepare('SELECT * FROM utenti WHERE id=?').get(req.params.id);
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Permessi insufficienti' });
+  const id = parseInt(req.params.id);
+  const existing = getUserById(id);
   if (!existing) return res.status(404).json({ error: 'Utente non trovato' });
-  let hash = existing.password_hash;
-  if (password) hash = await bcrypt.hash(password, SALT);
-  db.prepare(`UPDATE utenti SET username=?, password_hash=?, nome=?, email=?, ruolo=?, attivo=? WHERE id=?`)
-    .run(username || existing.username, hash, nome ?? existing.nome, email ?? existing.email,
-         ruolo || existing.ruolo, attivo !== undefined ? (attivo ? 1 : 0) : existing.attivo, req.params.id);
-  res.json({ success: true });
+
+  // Admin non-SUPER può modificare solo utenti del proprio tenant
+  if (!isSuper(req) && existing.tenant_slug !== req.user.tenant) {
+    return res.status(403).json({ error: 'Utente non appartiene al tuo tenant' });
+  }
+
+  const { username, password, nome, email, ruolo, tenant, attivo } = req.body || {};
+  const fields = { username, nome, email, attivo };
+  if (password) fields.password_hash = await bcrypt.hash(password, SALT);
+
+  if (ruolo !== undefined) {
+    fields.ruolo = (ruolo === 'SUPERADMIN' && !isSuper(req)) ? existing.ruolo : ruolo;
+  }
+  if (tenant !== undefined) {
+    if (!isSuper(req) && tenant !== existing.tenant_slug) {
+      return res.status(403).json({ error: 'Solo SUPERADMIN può cambiare tenant' });
+    }
+    fields.tenant_slug = tenant;
+  }
+
+  try {
+    const u = updateUser(id, fields);
+    res.json(toDto(u));
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) return res.status(400).json({ error: 'Username già in uso' });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 router.delete('/:id', (req, res) => {
-  const count = db.prepare('SELECT COUNT(*) as n FROM utenti WHERE attivo=1').get();
-  const user = db.prepare('SELECT ruolo FROM utenti WHERE id=?').get(req.params.id);
-  if (user?.ruolo === 'ADMIN' && count.n <= 1)
-    return res.status(400).json({ error: 'Non puoi eliminare l\'unico amministratore attivo' });
-  db.prepare('DELETE FROM utenti WHERE id=?').run(req.params.id);
-  res.json({ success: true });
-});
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Permessi insufficienti' });
+  const id = parseInt(req.params.id);
+  const target = getUserById(id);
+  if (!target) return res.status(404).json({ error: 'Utente non trovato' });
+  if (!isSuper(req) && target.tenant_slug !== req.user.tenant) {
+    return res.status(403).json({ error: 'Utente non appartiene al tuo tenant' });
+  }
+  if (target.id === req.user.id) return res.status(400).json({ error: 'Non puoi eliminare te stesso' });
 
-// ── Login multi-utente ────────────────────────────────────────────────────────
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = db.prepare('SELECT * FROM utenti WHERE username=? AND attivo=1').get(username);
-  if (!user) return res.status(401).json({ error: 'Credenziali non valide' });
-  const ok = await bcrypt.compare(password, user.password_hash);
-  if (!ok) return res.status(401).json({ error: 'Credenziali non valide' });
-  const crypto = require('crypto');
-  const AUTH_SECRET = process.env.AUTH_SECRET || 'invoxa-jwt-secret-changeme';
-  const token = crypto.createHmac('sha256', AUTH_SECRET)
-    .update(`${user.id}:${user.username}:${user.ruolo}`).digest('hex');
-  res.json({ token, user: { id: user.id, username: user.username, nome: user.nome, ruolo: user.ruolo } });
+  // Impedisce di rimuovere l'ultimo SUPERADMIN globale
+  if (target.ruolo === 'SUPERADMIN') {
+    const others = listUsers().filter(u => u.ruolo === 'SUPERADMIN' && u.id !== target.id && u.attivo);
+    if (others.length === 0) return res.status(400).json({ error: 'Non puoi eliminare l\'unico SUPERADMIN attivo' });
+  }
+  deleteUser(id);
+  res.json({ success: true });
 });
 
 module.exports = router;

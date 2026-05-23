@@ -2,34 +2,85 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const cron = require('node-cron');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcrypt');
+
+const { runWithContext } = require('./utils/tenantContext');
+const {
+  getAuthDb, dataDir, tenantsDir, tenantDbPath,
+  listTenants, getTenant, createTenant,
+  getUserByUsername, countUsers, createUser,
+} = require('./utils/authDb');
+const { sign } = require('./utils/authToken');
+const { authMiddleware } = require('./middleware/auth');
 const { runBackup } = require('./utils/backup');
 const { inviaSOllecitiAutomatici } = require('./utils/solleciti');
 const { getNextNumero } = require('./utils/nextNumero');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DIST = path.join(__dirname, 'public');
+
+if (!process.env.AUTH_SECRET) {
+  console.error('FATAL: AUTH_SECRET è obbligatorio. Configura il file .env / i secrets su Fly.');
+  process.exit(1);
+}
+
+// ── Bootstrap: migra DB legacy e crea tenant/utente di default se assenti ─────
+function bootstrap() {
+  fs.mkdirSync(dataDir(), { recursive: true });
+  fs.mkdirSync(tenantsDir(), { recursive: true });
+
+  // Migra il vecchio gestionale.db → tenants/default.db (una sola volta)
+  const legacyPath = process.env.DB_PATH || path.join(dataDir(), 'gestionale.db');
+  const defaultTenantPath = tenantDbPath('default');
+  if (fs.existsSync(legacyPath) && !fs.existsSync(defaultTenantPath)) {
+    try {
+      fs.renameSync(legacyPath, defaultTenantPath);
+      for (const ext of ['-wal', '-shm']) {
+        const from = legacyPath + ext;
+        const to   = defaultTenantPath + ext;
+        if (fs.existsSync(from)) try { fs.renameSync(from, to); } catch(_) {}
+      }
+      console.log(`[bootstrap] Migrato ${legacyPath} → ${defaultTenantPath}`);
+    } catch (err) {
+      console.error('[bootstrap] Errore migrazione DB legacy:', err.message);
+    }
+  }
+
+  getAuthDb();
+
+  if (!getTenant('default')) {
+    createTenant({ slug: 'default', nome: 'Default' });
+    console.log('[bootstrap] Tenant "default" creato');
+  }
+
+  if (countUsers() === 0) {
+    const u = process.env.AUTH_USER;
+    const p = process.env.AUTH_PASS;
+    if (u && p) {
+      const hash = bcrypt.hashSync(p, 10);
+      createUser({
+        username: u, password_hash: hash, nome: 'Amministratore',
+        email: '', ruolo: 'SUPERADMIN', tenant_slug: 'default',
+      });
+      console.log(`[bootstrap] Utente iniziale "${u}" creato (SUPERADMIN, tenant=default)`);
+    } else {
+      console.warn('[bootstrap] auth.db senza utenti: imposta AUTH_USER e AUTH_PASS o crea un utente manualmente');
+    }
+  }
+}
+
+bootstrap();
 
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
   .split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '10mb' }));
 
-const db = require('./database');
-
-// ── Auth ─────────────────────────────────────────────────────────────────────
-const crypto = require('crypto');
-const AUTH_USER   = process.env.AUTH_USER;
-const AUTH_PASS   = process.env.AUTH_PASS;
-const AUTH_SECRET = process.env.AUTH_SECRET;
-if (!AUTH_USER || !AUTH_PASS || !AUTH_SECRET) {
-  console.error('FATAL: AUTH_USER, AUTH_PASS e AUTH_SECRET sono obbligatori. Configura il file .env');
-  process.exit(1);
-}
-const VALID_TOKEN = crypto.createHmac('sha256', AUTH_SECRET)
-  .update(`${AUTH_USER}:${AUTH_PASS}`).digest('hex');
-
+// ── Login (pubblico) ─────────────────────────────────────────────────────────
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -38,18 +89,32 @@ const loginLimiter = rateLimit({
   message: { error: 'Troppi tentativi di login, riprova tra 15 minuti.' }
 });
 
-app.post('/api/auth/login', loginLimiter, (req, res) => {
-  const { username, password } = req.body;
-  if (username === AUTH_USER && password === AUTH_PASS)
-    return res.json({ token: VALID_TOKEN });
-  res.status(401).json({ error: 'Credenziali non valide' });
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Credenziali mancanti' });
+  const user = getUserByUsername(username);
+  if (!user || !user.attivo) return res.status(401).json({ error: 'Credenziali non valide' });
+  const tenant = getTenant(user.tenant_slug);
+  if (!tenant || !tenant.attivo) return res.status(403).json({ error: 'Tenant non attivo' });
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Credenziali non valide' });
+
+  const token = sign({ uid: user.id, username: user.username, ruolo: user.ruolo, tenant: user.tenant_slug });
+  res.json({
+    token,
+    user: {
+      id: user.id, username: user.username, nome: user.nome,
+      email: user.email, ruolo: user.ruolo, tenant: user.tenant_slug,
+    },
+  });
 });
 
-app.use('/api', (req, res, next) => {
-  const auth = req.headers['authorization'];
-  if (auth === `Bearer ${VALID_TOKEN}`) return next();
-  res.status(401).json({ error: 'Non autorizzato' });
-});
+// ── Da qui in poi tutte le rotte richiedono autenticazione e contesto tenant ──
+app.use('/api', authMiddleware);
+
+const db = require('./database');
+
+app.get('/api/me', (req, res) => res.json(req.user));
 
 app.get('/api/prezzi-recenti', (req, res) => {
   const pid = parseInt(req.query.prodottoId);
@@ -131,6 +196,7 @@ app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
 app.use('/api/email',            require('./routes/email'));
 app.use('/api/stats',            require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
+app.use('/api/tenants',          require('./routes/tenants'));
 app.use('/api/piva',             require('./routes/piva'));
 app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/prima-nota',       require('./routes/primaNota'));
@@ -140,10 +206,8 @@ app.use('/api/allegati',          require('./routes/allegati'));
 app.use('/api/note-rapide',       require('./routes/noteRapide'));
 app.use('/api/bug-reports',       require('./routes/bugReports'));
 app.use('/api/audit',             require('./routes/audit'));
-// NB: gli allegati sono accessibili solo via GET /api/allegati/:id/download
-// (autenticato). Nessun mount express.static su /uploads.
 
-// ── Ricerca globale ────────────────────────────────────────────────────────────
+// ── Ricerca globale ──────────────────────────────────────────────────────────
 app.get('/api/search', (req, res) => {
   const q = (req.query.q || '').trim();
   if (q.length < 2) return res.json({ clienti: [], fornitori: [], prodotti: [], fatture: [], ddt: [], ordini: [], preventivi: [] });
@@ -172,26 +236,38 @@ app.get('/api/search', (req, res) => {
   res.json({ clienti, fornitori, prodotti, fatture, ddt, ordini, preventivi });
 });
 
-// ── Cron jobs ─────────────────────────────────────────────────────────────────
-// Backup giornaliero alle 02:00
+// ── Cron jobs (per-tenant) ───────────────────────────────────────────────────
+function forEachActiveTenant(taskName, fn) {
+  const tenants = listTenants({ activeOnly: true });
+  for (const t of tenants) {
+    runWithContext({ tenant: t.slug, user: null }, async () => {
+      try { await fn(t); }
+      catch (err) { console.error(`[Cron:${taskName}] tenant=${t.slug}:`, err.message); }
+    });
+  }
+}
+
 cron.schedule('0 2 * * *', () => {
   console.log('[Cron] Avvio backup giornaliero');
-  runBackup();
+  for (const t of listTenants({ activeOnly: false })) {
+    runBackup(t.slug);
+  }
 });
-// Backup all'avvio
-setTimeout(runBackup, 5000);
+setTimeout(() => {
+  for (const t of listTenants({ activeOnly: false })) {
+    runBackup(t.slug);
+  }
+}, 5000);
 
-// Solleciti automatici ogni mattina alle 08:00
 cron.schedule('0 8 * * *', () => {
-  console.log('[Cron] Avvio invio solleciti automatici');
-  inviaSOllecitiAutomatici().catch(err => console.error('[Solleciti] Errore cron:', err.message));
+  console.log('[Cron] Avvio invio solleciti automatici (tutti i tenant)');
+  forEachActiveTenant('solleciti', () => inviaSOllecitiAutomatici());
 });
 
-// Fatturazione ricorrente — emissione automatica ogni giorno alle 07:00
 cron.schedule('0 7 * * *', () => {
   const today = new Date().toISOString().substring(0, 10);
   console.log('[Cron] Fatturazione ricorrente — controllo per', today);
-  try {
+  forEachActiveTenant('fatture-ricorrenti', () => {
     const { emettiFattura } = require('./routes/fattureRicorrenti');
     const dovute = db.prepare(
       'SELECT * FROM fatture_ricorrenti WHERE attiva=1 AND prossima_emissione <= ?'
@@ -204,10 +280,7 @@ cron.schedule('0 7 * * *', () => {
         console.error(`[Cron] Errore emissione fattura ricorrente id=${r.id}:`, err.message);
       }
     }
-    if (dovute.length === 0) console.log('[Cron] Nessuna fattura ricorrente da emettere oggi');
-  } catch (err) {
-    console.error('[Cron] Errore fatturazione ricorrente:', err.message);
-  }
+  });
 });
 
 app.use((err, req, res, next) => {
@@ -215,8 +288,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message });
 });
 
-// Serve Angular in production
-const fs = require('fs');
 if (fs.existsSync(DIST)) {
   app.use(express.static(DIST));
   app.get(/(.*)/, (req, res) => res.sendFile(path.join(DIST, 'index.html')));

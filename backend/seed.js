@@ -1,3 +1,7 @@
+const { runWithContext } = require('./utils/tenantContext');
+const TENANT = process.env.SEED_TENANT || 'default';
+
+runWithContext({ tenant: TENANT, user: null }, () => {
 const db = require('./database');
 
 // Pulisce i dati esistenti (tranne azienda)
@@ -60,7 +64,8 @@ const insF = db.prepare(`INSERT INTO fornitori (ragione_sociale, email, telefono
   VALUES (?,?,?,?,?,?,?,?,?)`);
 fornitori.forEach(f => insF.run(f.rs, f.email, f.tel, f.via, f.cap, f.citta, f.prov, 'Italia', f.piva));
 
-console.log('Seed completato:');
+console.log(`Seed completato (tenant=${TENANT}):`);
 console.log(`  ${prodotti.length} prodotti`);
 console.log(`  ${clienti.length} clienti`);
 console.log(`  ${fornitori.length} fornitori`);
+});

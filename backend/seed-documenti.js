@@ -1,3 +1,7 @@
+const { runWithContext } = require('./utils/tenantContext');
+const TENANT = process.env.SEED_TENANT || 'default';
+
+runWithContext({ tenant: TENANT, user: null }, () => {
 const db = require('./database');
 
 const clienti = db.prepare('SELECT id FROM clienti').all().map(r => r.id);
@@ -134,9 +138,10 @@ for (const f of fattureCreate) {
   }
 }
 
-console.log('Documenti generati:');
+console.log(`Documenti generati (tenant=${TENANT}):`);
 console.log(`  ${NUM_PREV} preventivi`);
 console.log(`  ${NUM_ORD} ordini cliente`);
 console.log(`  ${NUM_DDT} DDT`);
 console.log(`  ${NUM_FAT} fatture`);
 console.log(`  ${numPag} pagamenti`);
+});
