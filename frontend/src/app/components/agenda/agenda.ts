@@ -133,6 +133,98 @@ export class AppuntamentoDialogComponent {
 }
 
 @Component({
+  selector: 'app-sync-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule],
+  template: `
+    <h2 mat-dialog-title>
+      <mat-icon style="vertical-align:middle;color:#6366f1">sync</mat-icon>
+      Sincronizza con calendario esterno
+    </h2>
+    <mat-dialog-content style="min-width:520px;max-width:600px">
+      <p style="font-size:13px;color:#475569;line-height:1.5">
+        Aggiungi questo calendario al tuo account Google / Outlook / Apple e si aggiornerà
+        automaticamente. Niente da configurare lato server: il link è personale e basta.
+      </p>
+
+      <div style="background:#f1f5f9;border-radius:8px;padding:12px;margin:12px 0">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">
+          URL feed (HTTPS)
+        </div>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:100%">
+          <input matInput [value]="data.httpsUrl" readonly #urlInput (focus)="urlInput.select()">
+        </mat-form-field>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button mat-stroked-button (click)="copia(data.httpsUrl)">
+            <mat-icon>content_copy</mat-icon> Copia URL
+          </button>
+          <a mat-flat-button color="primary" [href]="data.webcalUrl">
+            <mat-icon>event_available</mat-icon> Apri con app calendario
+          </a>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
+          Istruzioni per provider
+        </div>
+
+        <details style="margin-bottom:8px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px">
+          <summary style="cursor:pointer;font-weight:600;font-size:13px">
+            <mat-icon style="vertical-align:middle;color:#4285f4;font-size:18px;width:18px;height:18px">event</mat-icon>
+            Google Calendar
+          </summary>
+          <ol style="font-size:13px;color:#475569;margin:8px 0 0;padding-left:20px;line-height:1.7">
+            <li>Apri <a href="https://calendar.google.com/" target="_blank" rel="noopener">calendar.google.com</a></li>
+            <li>Sidebar sinistra → <b>"Altri calendari"</b> → <b>+</b> → <b>"Da URL"</b></li>
+            <li>Incolla l'URL HTTPS qui sopra e clicca "Aggiungi calendario"</li>
+            <li>Google ricarica gli eventi ogni 4-8 ore</li>
+          </ol>
+        </details>
+
+        <details style="margin-bottom:8px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px">
+          <summary style="cursor:pointer;font-weight:600;font-size:13px">
+            <mat-icon style="vertical-align:middle;color:#0078d4;font-size:18px;width:18px;height:18px">event</mat-icon>
+            Outlook / Microsoft 365
+          </summary>
+          <ol style="font-size:13px;color:#475569;margin:8px 0 0;padding-left:20px;line-height:1.7">
+            <li>Outlook web → Calendario → <b>"Aggiungi calendario"</b> → <b>"Sottoscrivi dal web"</b></li>
+            <li>Incolla l'URL HTTPS, dai un nome (es. "Invoxa") e salva</li>
+          </ol>
+        </details>
+
+        <details style="margin-bottom:8px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px">
+          <summary style="cursor:pointer;font-weight:600;font-size:13px">
+            <mat-icon style="vertical-align:middle;color:#000;font-size:18px;width:18px;height:18px">event</mat-icon>
+            Apple Calendar (Mac / iPhone)
+          </summary>
+          <ol style="font-size:13px;color:#475569;margin:8px 0 0;padding-left:20px;line-height:1.7">
+            <li>Mac: <b>Calendario → File → Nuovo iscrizione calendario...</b> → incolla l'URL HTTPS</li>
+            <li>iPhone: <b>Impostazioni → Calendario → Account → Aggiungi account → Altro → Aggiungi calendario sottoscritto</b></li>
+            <li>O più semplice: clicca <b>"Apri con app calendario"</b> qui sopra (usa il link webcal://)</li>
+          </ol>
+        </details>
+      </div>
+
+      <p style="font-size:11px;color:#94a3b8;margin-top:16px;padding:8px;background:#fef3c7;border-radius:6px">
+        <mat-icon style="vertical-align:middle;font-size:14px;width:14px;height:14px;color:#92400e">info</mat-icon>
+        L'URL contiene un token firmato univoco per il tuo magazzino. Se sospetti che sia stato condiviso,
+        cambia AUTH_SECRET nelle env del server: tutti i feed vengono invalidati e ne genererai di nuovi.
+      </p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Chiudi</button>
+    </mat-dialog-actions>`,
+})
+export class SyncDialogComponent {
+  constructor(public ref: MatDialogRef<SyncDialogComponent>,
+              @Inject(MAT_DIALOG_DATA) public data: { httpsUrl: string; webcalUrl: string }) {}
+  copia(text: string) {
+    try { navigator.clipboard?.writeText(text); } catch (_) {}
+  }
+}
+
+@Component({
   selector: 'app-todo-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule],
@@ -188,6 +280,9 @@ export class TodoDialogComponent {
         <h1 class="page-title">Agenda</h1>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button mat-flat-button (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> Nuovo appuntamento</button>
+          <button mat-stroked-button (click)="apriSync()">
+            <mat-icon>sync</mat-icon> Sincronizza calendario
+          </button>
           <button mat-stroked-button (click)="downloadIcs()">
             <mat-icon>download</mat-icon> Esporta .ics
           </button>
@@ -552,6 +647,14 @@ export class AgendaComponent implements OnInit {
   eliminaTodo(t: Todo) {
     if (!confirm(`Eliminare "${t.titolo}"?`)) return;
     this.api.delete(`agenda/todo/${t.id}`).subscribe(() => { this.caricaTodo(); this.caricaCalendario(); });
+  }
+
+  // ── Sync calendario esterno (Google / Outlook / Apple) ─────────────────
+  apriSync() {
+    this.ds.getAgendaFeedUrl().subscribe({
+      next: r => this.dialog.open(SyncDialogComponent, { data: r }),
+      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), 'OK', { duration: 4000 }),
+    });
   }
 
   // ── ICS download ────────────────────────────────────────────────────────

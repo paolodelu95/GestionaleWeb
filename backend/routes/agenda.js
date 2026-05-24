@@ -2,8 +2,25 @@
 // Aggrega anche le scadenze pagamenti, attività CRM, fatture ricorrenti dovute.
 
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const db = require('../database');
+
+/** Token deterministico per il feed ICS pubblico (HMAC del tenant). */
+function feedTokenFor(tenantSlug) {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) throw new Error('AUTH_SECRET non configurato');
+  return crypto.createHmac('sha256', secret).update('ICS_FEED:' + tenantSlug).digest('hex').slice(0, 32);
+}
+
+function verifyFeedToken(tenantSlug, token) {
+  if (!tenantSlug || !token) return false;
+  try {
+    const expected = feedTokenFor(tenantSlug);
+    if (expected.length !== token.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(token, 'hex'));
+  } catch (_) { return false; }
+}
 
 // ── Appuntamenti CRUD ───────────────────────────────────────────────────────
 function appDto(r) {
@@ -294,20 +311,15 @@ function toIcsDate(iso, allDay = false) {
   return cleaned.length === 8 ? cleaned + 'T000000' : cleaned;
 }
 
-router.get('/export.ics', (req, res) => {
-  const today = new Date(); today.setMonth(today.getMonth() - 3);
-  const future = new Date(); future.setMonth(future.getMonth() + 12);
-  const da = req.query.dataDa || today.toISOString().slice(0, 19);
-  const a  = req.query.dataA  || future.toISOString().slice(0, 19);
-  const eventi = calendario(da, a);
-
+/** Genera la stringa ICS per gli eventi nel range. */
+function buildIcs(eventi, calName = 'Invoxa Agenda') {
   const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Invoxa//Agenda//IT',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Invoxa Agenda',
+    `X-WR-CALNAME:${escIcs(calName)}`,
     'X-WR-TIMEZONE:Europe/Rome',
   ];
   for (const e of eventi) {
@@ -329,10 +341,70 @@ router.get('/export.ics', (req, res) => {
     lines.push('END:VEVENT');
   }
   lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
 
+router.get('/export.ics', (req, res) => {
+  const today = new Date(); today.setMonth(today.getMonth() - 3);
+  const future = new Date(); future.setMonth(future.getMonth() + 12);
+  const da = req.query.dataDa || today.toISOString().slice(0, 19);
+  const a  = req.query.dataA  || future.toISOString().slice(0, 19);
+  const eventi = calendario(da, a);
+  const ics = buildIcs(eventi);
   res.set('Content-Type', 'text/calendar; charset=utf-8');
   res.set('Content-Disposition', 'attachment; filename="invoxa-agenda.ics"');
-  res.send(lines.join('\r\n'));
+  res.send(ics);
 });
 
+// GET /api/agenda/feed-url — restituisce l'URL signed del feed pubblico per il tenant corrente
+router.get('/feed-url', (req, res) => {
+  try {
+    const token = feedTokenFor(req.tenant);
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host  = req.headers['x-forwarded-host'] || req.headers.host;
+    const httpsUrl = `${proto}://${host}/api/agenda/feed.ics?tenant=${encodeURIComponent(req.tenant)}&token=${token}`;
+    const webcalUrl = httpsUrl.replace(/^https?:/, 'webcal:');
+    res.json({ httpsUrl, webcalUrl, tenant: req.tenant });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Esposto come handler standalone, registrato in server.js PRIMA del middleware
+// di autenticazione, perché Google Calendar e altri client non possono inviare Bearer.
+// Sicurezza: HMAC del tenant_slug con AUTH_SECRET — non guessable.
+function publicFeedHandler(req, res) {
+  const tenant = String(req.query.tenant || '');
+  const token  = String(req.query.token  || '');
+  if (!verifyFeedToken(tenant, token)) return res.status(403).send('Forbidden');
+
+  // ALS non è attivo qui (siamo pre-auth). Apriamo direttamente il tenant DB e
+  // facciamo runWithContext per il calendario() che usa il proxy db.
+  const { openTenantDb } = require('../utils/tenantDb');
+  const { runWithContext } = require('../utils/tenantContext');
+  try {
+    openTenantDb(tenant); // verifica che esista
+  } catch (err) {
+    return res.status(404).send('Tenant non trovato');
+  }
+
+  runWithContext({ tenant, user: null }, () => {
+    try {
+      const today = new Date(); today.setMonth(today.getMonth() - 3);
+      const future = new Date(); future.setMonth(future.getMonth() + 12);
+      const da = today.toISOString().slice(0, 19);
+      const a  = future.toISOString().slice(0, 19);
+      const eventi = calendario(da, a);
+      const ics = buildIcs(eventi, `Invoxa Agenda (${tenant})`);
+      res.set('Content-Type', 'text/calendar; charset=utf-8');
+      // Cache breve: client come Google ricaricano ogni alcune ore comunque
+      res.set('Cache-Control', 'public, max-age=300');
+      res.send(ics);
+    } catch (err) {
+      res.status(500).send('Errore generazione ICS: ' + err.message);
+    }
+  });
+}
+
 module.exports = router;
+module.exports.publicFeedHandler = publicFeedHandler;

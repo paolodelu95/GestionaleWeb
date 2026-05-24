@@ -280,6 +280,9 @@ export class DataService {
   getAgendaImminenti(giorni = 7): Observable<{ da: string; a: string; eventi: any[] }> {
     return this.api.get(`agenda/imminenti?giorni=${giorni}`);
   }
+  getAgendaFeedUrl(): Observable<{ httpsUrl: string; webcalUrl: string; tenant: string }> {
+    return this.api.get('agenda/feed-url');
+  }
   /** Previsione cassa aggregata a 30/60/90 giorni. */
   getCashflow306090(): Observable<{
     saldoOggi: number;

@@ -91,6 +91,12 @@ app.post('/api/pay-link/webhook',
   express.raw({ type: 'application/json' }),
   stripeWebhookHandler);
 
+// ── Feed ICS pubblico (signed via HMAC nel query, pre-auth) ──────────────────
+// Permette a Google Calendar / Outlook / Apple Calendar di sottoscriversi al
+// calendario del tenant senza Bearer token. La protezione è il token HMAC.
+const { publicFeedHandler } = require('./routes/agenda');
+app.get('/api/agenda/feed.ics', publicFeedHandler);
+
 app.use(express.json({ limit: '10mb' }));
 
 // ── Login (pubblico) ─────────────────────────────────────────────────────────
