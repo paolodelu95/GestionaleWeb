@@ -22,6 +22,7 @@ import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 import { QuickAddProdottoDialogComponent } from './quick-add-prodotto-dialog';
+import { BarcodeScannerDialogComponent } from '../shared/barcode-scanner-dialog';
 
 const PRODOTTI_FIELDS: FieldDef[] = [
   { key: 'nome', label: 'Nome', required: true, aliases: [
@@ -117,11 +118,16 @@ const PRODOTTI_FIELDS: FieldDef[] = [
             </mat-form-field>
           </div>
           <div class="form-row">
-            <mat-form-field>
-              <mat-label>Barcode</mat-label>
-              <input matInput formControlName="barcode" placeholder="Scansiona o digita...">
-              <mat-icon matSuffix>qr_code_scanner</mat-icon>
-            </mat-form-field>
+            <div class="input-with-action" style="flex:1">
+              <mat-form-field>
+                <mat-label>Barcode</mat-label>
+                <input matInput formControlName="barcode" placeholder="Scansiona o digita...">
+              </mat-form-field>
+              <button mat-icon-button type="button" matTooltip="Scansiona barcode con la fotocamera"
+                      (click)="scannerBarcode()">
+                <mat-icon>qr_code_scanner</mat-icon>
+              </button>
+            </div>
             <mat-form-field>
               <mat-label>Codice fornitore</mat-label>
               <input matInput formControlName="codiceFornitore" placeholder="Codice usato dal fornitore">
@@ -350,6 +356,7 @@ export class ProdottoDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private ds: DataService,
+    private dialog: MatDialog,
     public dialogRef: MatDialogRef<ProdottoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Prodotto | null
   ) {
@@ -391,6 +398,13 @@ export class ProdottoDialogComponent implements OnInit {
 
   addVariante() { this.varianti.push({ taglia: '', colore: '', quantita: 0, barcode: '' }); }
   removeVariante(i: number) { this.varianti.splice(i, 1); }
+
+  scannerBarcode() {
+    const ref = this.dialog.open(BarcodeScannerDialogComponent, { width: '480px', maxWidth: '95vw' });
+    ref.afterClosed().subscribe((code: string | null | undefined) => {
+      if (code) this.form.patchValue({ barcode: code });
+    });
+  }
 
   save() {
     if (this.form.valid) {

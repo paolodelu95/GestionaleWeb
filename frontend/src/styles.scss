@@ -1570,3 +1570,78 @@ body:has(.cdk-overlay-container .mat-mdc-dialog-container) .bug-fab {
   // mat-table dense su mobile
   .mat-mdc-cell, .mat-mdc-header-cell { padding: 4px 6px !important; font-size: 12px !important; }
 }
+
+// ── Schermi alti e stretti (19.5:9, 20:9) — iPhone 14/15, Galaxy S22+ ───────
+// Ottimizzazioni aggressive per evitare bottoni sproporzionati e testi che escono
+@media (max-width: 480px) {
+  // Page padding ridotto per recuperare orizzontale
+  .page { padding: 12px 10px calc(80px + env(safe-area-inset-bottom)) !important; }
+
+  // Headings più contenuti
+  .page-title { font-size: 18px !important; line-height: 1.2 !important; }
+  h1.page-title { font-size: 18px !important; }
+  .section-title { font-size: 13px !important; }
+
+  // Bottoni: dimensioni più compatte, no overflow
+  button[mat-flat-button],
+  button[mat-stroked-button],
+  button[mat-raised-button],
+  button[mat-button],
+  a[mat-flat-button],
+  a[mat-stroked-button],
+  a[mat-button] {
+    font-size: 12px !important;
+    padding: 0 10px !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    letter-spacing: 0 !important;
+    .mdc-button__label {
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    mat-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      margin-right: 4px !important;
+    }
+  }
+  button.mat-mdc-icon-button {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 6px !important;
+    mat-icon { font-size: 20px !important; width: 20px !important; height: 20px !important; }
+  }
+
+  // Form fields più compatti
+  .mat-mdc-form-field { font-size: 13px; }
+  .mdc-floating-label { font-size: 13px !important; }
+
+  // Toolbar topbar: titolo più piccolo
+  .topbar .app-name { font-size: 14px !important; }
+
+  // KPI card più strette
+  .kpi-card .kpi-value { font-size: 17px !important; }
+  .kpi-card .kpi-label { font-size: 10px !important; }
+
+  // Tab labels più compatte
+  .mat-mdc-tab .mdc-tab__text-label { font-size: 13px !important; }
+  .mat-mdc-tab { min-width: 80px !important; padding: 0 12px !important; }
+
+  // Card content padding ridotto
+  .card { padding: 10px !important; }
+}
+
+// Ultra-stretto (≤360px)
+@media (max-width: 360px) {
+  .page-title { font-size: 17px !important; }
+  button[mat-flat-button],
+  button[mat-stroked-button] {
+    font-size: 11px !important;
+    padding: 0 8px !important;
+    mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
+  }
+}
