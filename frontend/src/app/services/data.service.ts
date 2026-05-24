@@ -283,6 +283,12 @@ export class DataService {
   getAgendaFeedUrl(): Observable<{ httpsUrl: string; webcalUrl: string; tenant: string }> {
     return this.api.get('agenda/feed-url');
   }
+  getTodoList(stato?: string): Observable<any[]> {
+    return this.api.get(stato ? `agenda/todo?stato=${stato}` : 'agenda/todo');
+  }
+  setTodoStato(id: number, stato: 'DA_FARE' | 'IN_CORSO' | 'FATTA'): Observable<any> {
+    return this.api.put(`agenda/todo/${id}`, { stato });
+  }
   /** Previsione cassa aggregata a 30/60/90 giorni. */
   getCashflow306090(): Observable<{
     saldoOggi: number;

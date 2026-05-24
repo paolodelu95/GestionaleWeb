@@ -12,6 +12,7 @@ import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angu
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { ApiService } from '../../services/api.service';
 import { DataService } from '../../services/data.service';
 import { Cliente, Fornitore } from '../../models';
@@ -53,31 +54,68 @@ interface Todo {
 @Component({
   selector: 'app-appuntamento-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule, MatButtonModule, MatIconModule, MatDatepickerModule],
   template: `
     <h2 mat-dialog-title>{{ data.app.id ? 'Modifica appuntamento' : 'Nuovo appuntamento' }}</h2>
-    <mat-dialog-content style="min-width:480px;max-width:600px">
-      <mat-form-field style="width:100%"><mat-label>Titolo *</mat-label>
+    <mat-dialog-content style="min-width:520px;max-width:640px">
+      <mat-form-field appearance="outline" style="width:100%"><mat-label>Titolo *</mat-label>
         <input matInput [(ngModel)]="data.app.titolo" required>
       </mat-form-field>
 
-      <mat-checkbox [(ngModel)]="data.app.tuttoGiorno" style="margin-bottom:8px">Tutto il giorno</mat-checkbox>
+      <mat-checkbox [(ngModel)]="tuttoGiorno" (change)="onTuttoGiornoChange()" style="margin-bottom:12px">Tutto il giorno</mat-checkbox>
 
-      <div style="display:flex;gap:8px">
-        <mat-form-field style="flex:1"><mat-label>Inizio *</mat-label>
-          <input matInput [type]="data.app.tuttoGiorno ? 'date' : 'datetime-local'" [(ngModel)]="data.app.inizio" required>
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:8px">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Data inizio *</mat-label>
+          <input matInput [matDatepicker]="dpStart" [(ngModel)]="dataInizio" required>
+          <mat-datepicker-toggle matIconSuffix [for]="dpStart"></mat-datepicker-toggle>
+          <mat-datepicker #dpStart></mat-datepicker>
         </mat-form-field>
-        <mat-form-field style="flex:1"><mat-label>Fine</mat-label>
-          <input matInput [type]="data.app.tuttoGiorno ? 'date' : 'datetime-local'" [(ngModel)]="data.app.fine">
-        </mat-form-field>
+        @if (!tuttoGiorno) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
+            <mat-label>Ore</mat-label>
+            <mat-select [(ngModel)]="oraInizio">
+              @for (h of ore; track h) { <mat-option [value]="h">{{ h }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
+            <mat-label>Min</mat-label>
+            <mat-select [(ngModel)]="minutiInizio">
+              @for (m of minuti; track m) { <mat-option [value]="m">{{ m }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+        }
       </div>
 
-      <mat-form-field style="width:100%"><mat-label>Luogo</mat-label>
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:12px">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Data fine</mat-label>
+          <input matInput [matDatepicker]="dpEnd" [(ngModel)]="dataFine">
+          <mat-datepicker-toggle matIconSuffix [for]="dpEnd"></mat-datepicker-toggle>
+          <mat-datepicker #dpEnd></mat-datepicker>
+        </mat-form-field>
+        @if (!tuttoGiorno) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
+            <mat-label>Ore</mat-label>
+            <mat-select [(ngModel)]="oraFine">
+              @for (h of ore; track h) { <mat-option [value]="h">{{ h }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
+            <mat-label>Min</mat-label>
+            <mat-select [(ngModel)]="minutiFine">
+              @for (m of minuti; track m) { <mat-option [value]="m">{{ m }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+        }
+      </div>
+
+      <mat-form-field appearance="outline" style="width:100%"><mat-label>Luogo</mat-label>
         <input matInput [(ngModel)]="data.app.luogo" placeholder="es. Ufficio cliente">
       </mat-form-field>
 
       <div style="display:flex;gap:8px">
-        <mat-form-field style="flex:1"><mat-label>Cliente</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>Cliente</mat-label>
           <mat-select [(ngModel)]="data.app.clienteId">
             <mat-option [value]="null">—</mat-option>
             @for (c of data.clienti; track c.id) {
@@ -85,7 +123,7 @@ interface Todo {
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field style="flex:1"><mat-label>Fornitore</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>Fornitore</mat-label>
           <mat-select [(ngModel)]="data.app.fornitoreId">
             <mat-option [value]="null">—</mat-option>
             @for (f of data.fornitori; track f.id) {
@@ -96,7 +134,7 @@ interface Todo {
       </div>
 
       <div style="display:flex;gap:8px;align-items:center">
-        <mat-form-field style="flex:1"><mat-label>Colore</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>Colore</mat-label>
           <mat-select [(ngModel)]="data.app.colore">
             <mat-option value="#3b82f6"><span style="display:inline-block;width:14px;height:14px;background:#3b82f6;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Blu</mat-option>
             <mat-option value="#16a34a"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Verde</mat-option>
@@ -105,7 +143,7 @@ interface Todo {
             <mat-option value="#8b5cf6"><span style="display:inline-block;width:14px;height:14px;background:#8b5cf6;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Viola</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field style="flex:1"><mat-label>Promemoria</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>Promemoria</mat-label>
           <mat-select [(ngModel)]="data.app.promemoria">
             <mat-option [value]="null">Nessuno</mat-option>
             <mat-option [value]="15">15 minuti prima</mat-option>
@@ -116,20 +154,99 @@ interface Todo {
         </mat-form-field>
       </div>
 
-      <mat-form-field style="width:100%"><mat-label>Note</mat-label>
+      <mat-form-field appearance="outline" style="width:100%"><mat-label>Note</mat-label>
         <textarea matInput rows="2" [(ngModel)]="data.app.descrizione"></textarea>
       </mat-form-field>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button [disabled]="!data.app.titolo || !data.app.inizio" (click)="ref.close(data.app)">
+      <button mat-flat-button color="primary" [disabled]="!data.app.titolo || !dataInizio" (click)="salva()">
         <mat-icon>save</mat-icon> Salva
       </button>
     </mat-dialog-actions>`,
 })
 export class AppuntamentoDialogComponent {
+  tuttoGiorno = false;
+  dataInizio: Date | null = null;
+  oraInizio = '09';
+  minutiInizio = '00';
+  dataFine: Date | null = null;
+  oraFine = '10';
+  minutiFine = '00';
+  readonly ore = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  readonly minuti = ['00', '15', '30', '45'];
+
   constructor(public ref: MatDialogRef<AppuntamentoDialogComponent>,
-              @Inject(MAT_DIALOG_DATA) public data: { app: Appuntamento; clienti: Cliente[]; fornitori: Fornitore[] }) {}
+              @Inject(MAT_DIALOG_DATA) public data: { app: Appuntamento; clienti: Cliente[]; fornitori: Fornitore[] }) {
+    this.tuttoGiorno = !!data.app.tuttoGiorno;
+    if (data.app.inizio) {
+      const d = this.parseIso(data.app.inizio);
+      this.dataInizio = d.data;
+      this.oraInizio = d.ore;
+      this.minutiInizio = d.minuti;
+    } else {
+      this.dataInizio = new Date();
+      this.oraInizio = '09'; this.minutiInizio = '00';
+    }
+    if (data.app.fine) {
+      const d = this.parseIso(data.app.fine);
+      this.dataFine = d.data;
+      this.oraFine = d.ore;
+      this.minutiFine = d.minuti;
+    } else if (this.dataInizio) {
+      this.dataFine = new Date(this.dataInizio);
+      const nextHour = (parseInt(this.oraInizio) + 1) % 24;
+      this.oraFine = String(nextHour).padStart(2, '0');
+      this.minutiFine = this.minutiInizio;
+    }
+  }
+
+  /** Estrae { data: Date, ore: 'HH', minuti: 'MM' } da una stringa ISO o datetime-local. */
+  private parseIso(s: string): { data: Date; ore: string; minuti: string } {
+    // Supporta "2026-05-26T15:30" o "2026-05-26 15:30:00" o "2026-05-26"
+    const m = s.match(/(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+    if (!m) return { data: new Date(s), ore: '09', minuti: '00' };
+    const data = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+    const ore = m[4] || '09';
+    const min = m[5] || '00';
+    // Snap minuti al multiplo di 15 più vicino
+    const minN = parseInt(min);
+    const snapped = String(Math.round(minN / 15) * 15 % 60).padStart(2, '0');
+    return { data, ore, minuti: snapped === '60' ? '00' : snapped };
+  }
+
+  onTuttoGiornoChange() {
+    if (this.tuttoGiorno && this.dataInizio && !this.dataFine) {
+      this.dataFine = new Date(this.dataInizio);
+    }
+  }
+
+  /** Ricompone la stringa locale "YYYY-MM-DDTHH:MM" (senza timezone). */
+  private toIsoLocal(d: Date, h: string, m: string): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${h}:${m}:00`;
+  }
+  private toIsoDate(d: Date): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  salva() {
+    if (!this.dataInizio || !this.data.app.titolo) return;
+    const result: Appuntamento = { ...this.data.app, tuttoGiorno: this.tuttoGiorno };
+    if (this.tuttoGiorno) {
+      result.inizio = this.toIsoDate(this.dataInizio);
+      result.fine   = this.dataFine ? this.toIsoDate(this.dataFine) : null;
+    } else {
+      result.inizio = this.toIsoLocal(this.dataInizio, this.oraInizio, this.minutiInizio);
+      result.fine   = this.dataFine ? this.toIsoLocal(this.dataFine, this.oraFine, this.minutiFine) : null;
+    }
+    this.ref.close(result);
+  }
 }
 
 @Component({
@@ -529,12 +646,12 @@ export class AgendaComponent implements OnInit {
   }
 
   caricaCalendario() {
-    const da = `${this.anno}-${String(this.mese + 1).padStart(2,'0')}-01T00:00:00`;
+    const fallbackDa = `${this.anno}-${String(this.mese + 1).padStart(2,'0')}-01T00:00:00`;
     const lastDay = new Date(this.anno, this.mese + 1, 0).getDate();
-    const a  = `${this.anno}-${String(this.mese + 1).padStart(2,'0')}-${lastDay}T23:59:59`;
-    // Estendi anche ai giorni "fuori mese" mostrati nelle celle
-    const start = this.celle[0]?.iso + 'T00:00:00' || da;
-    const end   = this.celle[this.celle.length-1]?.iso + 'T23:59:59' || a;
+    const fallbackA  = `${this.anno}-${String(this.mese + 1).padStart(2,'0')}-${lastDay}T23:59:59`;
+    // Estende il range ai giorni "fuori mese" mostrati nelle celle (6 settimane visibili)
+    const start = this.celle[0]?.iso ? `${this.celle[0].iso}T00:00:00` : fallbackDa;
+    const end   = this.celle.length ? `${this.celle[this.celle.length - 1].iso}T23:59:59` : fallbackA;
     this.api.get<CalEvent[]>(`agenda/calendario?dataDa=${start}&dataA=${end}`).subscribe(e => this.eventi = e);
   }
 
@@ -571,42 +688,68 @@ export class AgendaComponent implements OnInit {
   }
 
   nuovoAppuntamento(preset?: Partial<Appuntamento>) {
-    const app: Appuntamento = preset?.inizio
-      ? { titolo: '', inizio: preset.inizio, fine: preset.fine, colore: '#3b82f6', stato: 'PIANIFICATO' }
-      : { titolo: '', inizio: new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16), colore: '#3b82f6', stato: 'PIANIFICATO' };
+    const app: Appuntamento = {
+      titolo: '',
+      inizio: preset?.inizio || '',
+      fine: preset?.fine || null,
+      colore: '#3b82f6',
+      stato: 'PIANIFICATO',
+      ...preset,
+    } as Appuntamento;
     this.dialog.open(AppuntamentoDialogComponent, { data: { app, clienti: this.clienti, fornitori: this.fornitori } })
       .afterClosed().subscribe(saved => {
         if (!saved) return;
-        this.api.post('agenda/appuntamenti', saved).subscribe(() => {
-          this.caricaAppuntamenti(); this.caricaCalendario();
-          this.snack.open('Appuntamento creato', '', { duration: 2000 });
+        this.api.post<{ id: number }>('agenda/appuntamenti', saved).subscribe({
+          next: r => {
+            // Naviga al mese dell'appuntamento creato se è in un altro mese
+            this.navigaAlMeseDi(saved.inizio);
+            this.refreshAll();
+            this.snack.open('Appuntamento creato', '', { duration: 2000 });
+          },
+          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), 'OK', { duration: 4000 }),
         });
       });
   }
 
   modificaAppuntamento(a: any) {
-    const fix = (s: string) => s ? s.replace(' ', 'T').slice(0, a.tuttoGiorno ? 10 : 16) : s;
-    const app: Appuntamento = { ...a, inizio: fix(a.inizio), fine: fix(a.fine) };
+    const app: Appuntamento = { ...a };
     this.dialog.open(AppuntamentoDialogComponent, { data: { app, clienti: this.clienti, fornitori: this.fornitori } })
       .afterClosed().subscribe(saved => {
         if (!saved) return;
         this.api.put(`agenda/appuntamenti/${a.id}`, saved).subscribe(() => {
-          this.caricaAppuntamenti(); this.caricaCalendario();
+          this.navigaAlMeseDi(saved.inizio);
+          this.refreshAll();
         });
       });
   }
 
   cambiaStatoApp(a: any, stato: string) {
-    this.api.put(`agenda/appuntamenti/${a.id}`, { stato }).subscribe(() => {
-      this.caricaAppuntamenti(); this.caricaCalendario();
-    });
+    this.api.put(`agenda/appuntamenti/${a.id}`, { stato }).subscribe(() => this.refreshAll());
   }
 
   eliminaAppuntamento(a: any) {
     if (!confirm(`Eliminare "${a.titolo}"?`)) return;
-    this.api.delete(`agenda/appuntamenti/${a.id}`).subscribe(() => {
-      this.caricaAppuntamenti(); this.caricaCalendario();
-    });
+    this.api.delete(`agenda/appuntamenti/${a.id}`).subscribe(() => this.refreshAll());
+  }
+
+  /** Cambia mese visualizzato se la data passata è in un mese diverso da quello corrente. */
+  private navigaAlMeseDi(isoDate: string | null | undefined) {
+    if (!isoDate) return;
+    const m = String(isoDate).match(/^(\d{4})-(\d{2})/);
+    if (!m) return;
+    const anno = parseInt(m[1]);
+    const mese = parseInt(m[2]) - 1;
+    if (anno !== this.anno || mese !== this.mese) {
+      this.anno = anno; this.mese = mese;
+      this.calcolaCelle();
+    }
+  }
+
+  /** Ricarica tutti i dati visualizzati nell'agenda. */
+  private refreshAll() {
+    this.caricaAppuntamenti();
+    this.caricaCalendario();
+    this.caricaTodo();
   }
 
   // ── Todo ────────────────────────────────────────────────────────────────
@@ -635,18 +778,18 @@ export class AgendaComponent implements OnInit {
     const t: Todo = { titolo: '', priorita: 'MEDIA', stato: 'DA_FARE' };
     this.dialog.open(TodoDialogComponent, { data: { t } }).afterClosed().subscribe(saved => {
       if (!saved) return;
-      this.api.post('agenda/todo', saved).subscribe(() => { this.caricaTodo(); this.caricaCalendario(); });
+      this.api.post('agenda/todo', saved).subscribe(() => this.refreshAll());
     });
   }
   modificaTodo(t: Todo) {
     this.dialog.open(TodoDialogComponent, { data: { t: { ...t } } }).afterClosed().subscribe(saved => {
       if (!saved) return;
-      this.api.put(`agenda/todo/${t.id}`, saved).subscribe(() => { this.caricaTodo(); this.caricaCalendario(); });
+      this.api.put(`agenda/todo/${t.id}`, saved).subscribe(() => this.refreshAll());
     });
   }
   eliminaTodo(t: Todo) {
     if (!confirm(`Eliminare "${t.titolo}"?`)) return;
-    this.api.delete(`agenda/todo/${t.id}`).subscribe(() => { this.caricaTodo(); this.caricaCalendario(); });
+    this.api.delete(`agenda/todo/${t.id}`).subscribe(() => this.refreshAll());
   }
 
   // ── Sync calendario esterno (Google / Outlook / Apple) ─────────────────

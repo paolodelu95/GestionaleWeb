@@ -28,12 +28,12 @@ export interface DashboardWidget {
 }
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
+  { id: 'agenda-todo-row', label: 'Agenda + Todo',            icon: 'event_note',    visible: true },
   { id: 'alerts',          label: 'Avvisi',                  icon: 'warning',       visible: true },
   { id: 'kpi-magazzino',   label: 'KPI magazzino e clienti', icon: 'analytics',     visible: true },
   { id: 'kpi-anno',        label: 'KPI anno + cashflow',     icon: 'monitoring',    visible: true },
   { id: 'cashflow-forecast', label: 'Previsione cashflow 60gg', icon: 'show_chart', visible: true },
   { id: 'cashflow-3060-90',  label: 'Previsione cassa 30/60/90', icon: 'savings',    visible: true },
-  { id: 'agenda-imminenti',  label: 'Appuntamenti imminenti',    icon: 'event_note', visible: true },
   { id: 'chart-vendite',   label: 'Grafico vendite mensili', icon: 'bar_chart',     visible: true },
   { id: 'chart-top',       label: 'Top 5 prodotti',          icon: 'pie_chart',     visible: true },
   { id: 'table-sotto',     label: 'Prodotti sotto soglia',   icon: 'inventory',     visible: true },
@@ -42,7 +42,7 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: 'table-pagare',    label: 'Fatture da pagare',       icon: 'payments',      visible: true },
 ];
 
-const LS_KEY = 'dashboard-widgets-v1';
+const LS_KEY = 'dashboard-widgets-v2'; // bumped: nuovo layout con agenda+todo in cima
 
 @Component({
   selector: 'app-dashboard',
@@ -70,6 +70,25 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private chartForecast?: Chart;
   @ViewChild('forecastCanvas') forecastCanvas?: ElementRef<HTMLCanvasElement>;
 
+  // Top 5 todo non completate (per widget compatto)
+  get topTodoDaFare(): any[] {
+    return this.todoList
+      .filter(t => t.stato !== 'FATTA')
+      .sort((a, b) => {
+        const pw = { ALTA: 0, MEDIA: 1, BASSA: 2 } as any;
+        if (a.priorita !== b.priorita) return pw[a.priorita] - pw[b.priorita];
+        return (a.scadenza || '￿').localeCompare(b.scadenza || '￿');
+      })
+      .slice(0, 6);
+  }
+
+  toggleTodoQuick(t: any, fatta: boolean) {
+    this.ds.setTodoStato(t.id, fatta ? 'FATTA' : 'DA_FARE').subscribe(() => {
+      const i = this.todoList.findIndex(x => x.id === t.id);
+      if (i >= 0) this.todoList[i] = { ...this.todoList[i], stato: fatta ? 'FATTA' : 'DA_FARE' };
+    });
+  }
+
   prodottiSottoSoglia: Prodotto[] = [];
   ddtDaFatturare: Ddt[] = [];
   fattureDaIncassare: Fattura[] = [];
@@ -82,6 +101,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   } = { saldoOggi: 0, bucket30: { in: 0, out: 0, saldo: 0 }, bucket60: { in: 0, out: 0, saldo: 0 }, bucket90: { in: 0, out: 0, saldo: 0 } };
 
   agendaImminenti: { eventi: any[] } = { eventi: [] };
+  todoList: any[] = [];
   tipiPagamento: TipoPagamento[] = [];
 
   ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale', 'azione'];
@@ -125,6 +145,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       kpi: safe(this.ds.getKpiAnno(), null),
       cf306090: safe(this.ds.getCashflow306090(), this.cashflow306090),
       agenda: safe(this.ds.getAgendaImminenti(7), this.agendaImminenti),
+      todoList: safe(this.ds.getTodoList(), []),
     }).subscribe({
       next: (r: any) => {
         this.prodottiCount = r.count;
@@ -138,6 +159,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.forecast = r.forecast || { items: [], saldoFinale: 0, totEntrate: 0, totUscite: 0 };
         this.cashflow306090 = r.cf306090 || this.cashflow306090;
         this.agendaImminenti = r.agenda || this.agendaImminenti;
+        this.todoList = r.todoList || [];
         this.venditeMensili = r.vendite;
         this.topProdotti = r.top;
         this.ddtDaFatturare = (r.ddt || [])

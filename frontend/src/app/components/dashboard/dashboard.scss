@@ -1,6 +1,16 @@
 // ── Dashboard layout ─────────────────────────────────────────────────────────
 .dash-tables { display: flex; flex-direction: column; gap: 16px; }
 
+// Widget combinato agenda + todo: 2 colonne side-by-side su desktop, stack su mobile
+.agenda-todo-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .agenda-todo-row { grid-template-columns: 1fr; }
+}
+
 .section-title {
   margin: 0 0 14px;
   font-size: 15px;
