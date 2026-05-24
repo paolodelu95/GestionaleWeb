@@ -13,6 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { DataService } from '../../services/data.service';
 import { Cliente, Fornitore } from '../../models';
@@ -31,6 +32,8 @@ interface CalEvent {
   colore: string;
   stato?: string;
   route?: string;
+  userId?: number;
+  condiviso?: boolean;
 }
 interface Appuntamento {
   id?: number;
@@ -41,6 +44,10 @@ interface Appuntamento {
   fornitoreId?: number | null; fornitoreNome?: string;
   colore?: string; promemoria?: number | null;
   stato?: 'PIANIFICATO' | 'COMPLETATO' | 'ANNULLATO';
+  userId?: number;
+  autoreUsername?: string;
+  autoreNome?: string;
+  condiviso?: boolean;
 }
 interface Todo {
   id?: number;
@@ -157,6 +164,22 @@ interface Todo {
       <mat-form-field appearance="outline" style="width:100%"><mat-label>Note</mat-label>
         <textarea matInput rows="2" [(ngModel)]="data.app.descrizione"></textarea>
       </mat-form-field>
+
+      <div style="background:#f1f5f9;border-radius:8px;padding:10px 12px;margin-top:8px">
+        <mat-checkbox [(ngModel)]="data.app.condiviso">
+          <span style="font-weight:600">Condividi con il mio gruppo</span>
+        </mat-checkbox>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;margin-left:32px">
+          Se attivo, l'appuntamento sarà visibile a tutti gli utenti che condividono
+          un gruppo con te. Altrimenti lo vedi solo tu (e gli amministratori).
+        </div>
+      </div>
+
+      @if (data.app.id && data.app.autoreUsername) {
+        <p style="font-size:11px;color:#94a3b8;margin-top:8px;text-align:right">
+          Creato da: <b>{{ data.app.autoreNome || data.app.autoreUsername }}</b>
+        </p>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
@@ -394,14 +417,41 @@ export class TodoDialogComponent {
   template: `
     <div class="page agenda-page">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-        <h1 class="page-title">Agenda</h1>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <h1 class="page-title">Agenda</h1>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" style="min-width:180px">
+            <mat-label>Vista</mat-label>
+            <mat-select [(ngModel)]="vista" (selectionChange)="onVistaChange()">
+              <mat-option value="mia">
+                <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">person</mat-icon>
+                La mia agenda
+              </mat-option>
+              @if (haGruppi) {
+                <mat-option value="gruppo">
+                  <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">group</mat-icon>
+                  Il mio gruppo
+                </mat-option>
+              }
+              <mat-option value="auto">
+                <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">visibility</mat-icon>
+                Visibili (default)
+              </mat-option>
+              @if (isAdmin) {
+                <mat-option value="tutte">
+                  <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">supervisor_account</mat-icon>
+                  Tutti gli utenti
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button mat-flat-button (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> Nuovo appuntamento</button>
+          <button mat-flat-button color="primary" (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> Nuovo appuntamento</button>
           <button mat-stroked-button (click)="apriSync()">
-            <mat-icon>sync</mat-icon> Sincronizza calendario
+            <mat-icon>sync</mat-icon> Sincronizza
           </button>
           <button mat-stroked-button (click)="downloadIcs()">
-            <mat-icon>download</mat-icon> Esporta .ics
+            <mat-icon>download</mat-icon> .ics
           </button>
         </div>
       </div>
@@ -437,8 +487,10 @@ export class TodoDialogComponent {
                     @for (e of eventiDelGiorno(cell.iso).slice(0, 3); track e.id) {
                       <div class="cal-event"
                            [style.background]="e.colore"
-                           [title]="e.titolo + (e.controparte ? ' · ' + e.controparte : '')"
+                           [title]="eventTooltip(e)"
                            (click)="$event.stopPropagation(); apriEvento(e)">
+                        @if (e.condiviso && e.source === 'APPUNTAMENTO') { 👥 }
+                        @if (e.source === 'APPUNTAMENTO' && e.userId && e.userId !== userId) { 👤 }
                         {{ formatHora(e) }}{{ e.titolo }}
                       </div>
                     }
@@ -460,7 +512,7 @@ export class TodoDialogComponent {
               <button mat-flat-button (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> Nuovo</button>
             </div>
             <table class="lista">
-              <thead><tr><th>Quando</th><th>Titolo</th><th>Luogo</th><th>Controparte</th><th>Stato</th><th></th></tr></thead>
+              <thead><tr><th>Quando</th><th>Titolo</th><th>Autore</th><th>Luogo</th><th>Controparte</th><th>Stato</th><th></th></tr></thead>
               <tbody>
                 @for (a of appuntamenti; track a.id) {
                   <tr>
@@ -469,25 +521,37 @@ export class TodoDialogComponent {
                     </td>
                     <td>
                       <b>{{ a.titolo }}</b>
+                      @if (a.condiviso) { <span style="font-size:10px;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:8px;margin-left:6px">condiviso</span> }
                       @if (a.descrizione) { <div style="font-size:11px;color:#94a3b8">{{ a.descrizione }}</div> }
+                    </td>
+                    <td>
+                      @if (a.userId === userId) {
+                        <span style="color:#0f172a">io</span>
+                      } @else {
+                        <span style="color:#64748b">{{ a.autoreNome || a.autoreUsername || '—' }}</span>
+                      }
                     </td>
                     <td>{{ a.luogo || '—' }}</td>
                     <td>{{ a.clienteNome || a.fornitoreNome || '—' }}</td>
                     <td>{{ a.stato }}</td>
                     <td>
-                      <button mat-icon-button [matMenuTriggerFor]="aMenu"><mat-icon>more_vert</mat-icon></button>
-                      <mat-menu #aMenu="matMenu">
-                        <button mat-menu-item (click)="modificaAppuntamento(a)"><mat-icon>edit</mat-icon> Modifica</button>
-                        <button mat-menu-item (click)="cambiaStatoApp(a, 'COMPLETATO')" [disabled]="a.stato==='COMPLETATO'">
-                          <mat-icon style="color:#16a34a">check_circle</mat-icon> Segna completato
-                        </button>
-                        <button mat-menu-item (click)="cambiaStatoApp(a, 'ANNULLATO')" [disabled]="a.stato==='ANNULLATO'">
-                          <mat-icon style="color:#f59e0b">cancel</mat-icon> Annulla
-                        </button>
-                        <button mat-menu-item (click)="eliminaAppuntamento(a)" style="color:#dc2626">
-                          <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
-                        </button>
-                      </mat-menu>
+                      @if (canModifica(a)) {
+                        <button mat-icon-button [matMenuTriggerFor]="aMenu"><mat-icon>more_vert</mat-icon></button>
+                        <mat-menu #aMenu="matMenu">
+                          <button mat-menu-item (click)="modificaAppuntamento(a)"><mat-icon>edit</mat-icon> Modifica</button>
+                          <button mat-menu-item (click)="cambiaStatoApp(a, 'COMPLETATO')" [disabled]="a.stato==='COMPLETATO'">
+                            <mat-icon style="color:#16a34a">check_circle</mat-icon> Segna completato
+                          </button>
+                          <button mat-menu-item (click)="cambiaStatoApp(a, 'ANNULLATO')" [disabled]="a.stato==='ANNULLATO'">
+                            <mat-icon style="color:#f59e0b">cancel</mat-icon> Annulla
+                          </button>
+                          <button mat-menu-item (click)="eliminaAppuntamento(a)" style="color:#dc2626">
+                            <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+                          </button>
+                        </mat-menu>
+                      } @else {
+                        <mat-icon style="color:#94a3b8;font-size:18px;width:18px;height:18px" title="Solo letture: appuntamento di un altro utente">visibility</mat-icon>
+                      }
                     </td>
                   </tr>
                 }
@@ -604,16 +668,34 @@ export class AgendaComponent implements OnInit {
   clienti: Cliente[] = [];
   fornitori: Fornitore[] = [];
 
-  constructor(private api: ApiService, private ds: DataService,
+  // Vista multi-utente
+  isAdmin = false;
+  haGruppi = false;
+  vista: 'mia' | 'gruppo' | 'auto' | 'tutte' = 'auto';
+  userId = 0;
+
+  constructor(private api: ApiService, private ds: DataService, private auth: AuthService,
               private dialog: MatDialog, private snack: MatSnackBar, private date: DatePipe) {}
 
   ngOnInit() {
+    const u = this.auth.getUser();
+    this.isAdmin = !!u && (u.ruolo === 'SUPERADMIN' || u.ruolo === 'ADMIN');
+    this.userId = u?.id || 0;
+    this.vista = this.isAdmin ? 'tutte' : 'auto';
+
     this.ds.getClienti().subscribe(c => this.clienti = c);
     this.ds.getFornitori().subscribe(f => this.fornitori = f);
+    this.ds.getMyGruppi().subscribe(g => this.haGruppi = (g?.length || 0) > 0);
+
     this.calcolaCelle();
     this.caricaCalendario();
     this.caricaAppuntamenti();
     this.caricaTodo();
+  }
+
+  onVistaChange() {
+    this.caricaCalendario();
+    this.caricaAppuntamenti();
   }
 
   // ── Calendario ──────────────────────────────────────────────────────────
@@ -652,11 +734,27 @@ export class AgendaComponent implements OnInit {
     // Estende il range ai giorni "fuori mese" mostrati nelle celle (6 settimane visibili)
     const start = this.celle[0]?.iso ? `${this.celle[0].iso}T00:00:00` : fallbackDa;
     const end   = this.celle.length ? `${this.celle[this.celle.length - 1].iso}T23:59:59` : fallbackA;
-    this.api.get<CalEvent[]>(`agenda/calendario?dataDa=${start}&dataA=${end}`).subscribe(e => this.eventi = e);
+    this.api.get<CalEvent[]>(`agenda/calendario?dataDa=${start}&dataA=${end}&vista=${this.vista}`).subscribe(e => this.eventi = e);
   }
 
   eventiDelGiorno(iso: string): CalEvent[] {
     return this.eventi.filter(e => e.inizio.slice(0, 10) === iso);
+  }
+
+  /** True se l'utente corrente può modificare/eliminare l'appuntamento. */
+  canModifica(a: any): boolean {
+    return this.isAdmin || !a.userId || a.userId === this.userId;
+  }
+
+  eventTooltip(e: CalEvent): string {
+    const parts = [e.titolo];
+    if (e.controparte) parts.push(`· ${e.controparte}`);
+    if (e.userId && e.userId !== this.userId) {
+      const app = this.appuntamenti.find(a => a.id === e.sourceId);
+      if (app?.autoreNome || app?.autoreUsername) parts.push(`(${app.autoreNome || app.autoreUsername})`);
+    }
+    if (e.condiviso) parts.push('· condiviso');
+    return parts.join(' ');
   }
 
   formatHora(e: CalEvent): string {
@@ -684,7 +782,7 @@ export class AgendaComponent implements OnInit {
     const da = `${this.anno}-${String(this.mese + 1).padStart(2,'0')}-01T00:00:00`;
     const lastDay = new Date(this.anno, this.mese + 1, 0).getDate();
     const a  = `${this.anno}-${String(this.mese + 1).padStart(2,'0')}-${lastDay}T23:59:59`;
-    this.api.get<any[]>(`agenda/appuntamenti?dataDa=${da}&dataA=${a}`).subscribe(r => this.appuntamenti = r);
+    this.api.get<any[]>(`agenda/appuntamenti?dataDa=${da}&dataA=${a}&vista=${this.vista}`).subscribe(r => this.appuntamenti = r);
   }
 
   nuovoAppuntamento(preset?: Partial<Appuntamento>) {

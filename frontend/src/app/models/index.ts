@@ -466,6 +466,15 @@ export interface Tenant {
   created_at?: string;
 }
 
+export interface Gruppo {
+  id: number;
+  nome: string;
+  descrizione?: string;
+  num_membri?: number;
+  membri?: { id: number; username: string; nome: string; email: string; ruolo: string; attivo: number }[];
+  created_at?: string;
+}
+
 export interface ModuloDto {
   slug: string;
   nome: string;

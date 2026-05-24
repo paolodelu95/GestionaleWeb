@@ -14,6 +14,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { DataService } from '../../services/data.service';
+import { MatListModule } from '@angular/material/list';
+import { Gruppo } from '../../models';
 
 interface TenantRow { tenant: string; nome: string; moduli: { slug: string; attivo: boolean; core: boolean }[]; }
 interface User { id: number; username: string; nome: string; email: string; ruolo: string; tenant: string; attivo: boolean; }
@@ -94,6 +97,96 @@ export class UserDialogComponent {
 }
 
 @Component({
+  selector: 'app-gruppo-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title>{{ data.g.id ? 'Modifica gruppo' : 'Nuovo gruppo' }}</h2>
+    <mat-dialog-content style="min-width:380px;max-width:520px">
+      <mat-form-field appearance="outline" style="width:100%">
+        <mat-label>Nome gruppo *</mat-label>
+        <input matInput [(ngModel)]="data.g.nome" placeholder="es. Rappresentanti, Amministrazione" required>
+      </mat-form-field>
+      <mat-form-field appearance="outline" style="width:100%">
+        <mat-label>Descrizione</mat-label>
+        <textarea matInput rows="2" [(ngModel)]="data.g.descrizione"></textarea>
+      </mat-form-field>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button color="primary" [disabled]="!data.g.nome" (click)="ref.close(data.g)">
+        <mat-icon>save</mat-icon> Salva
+      </button>
+    </mat-dialog-actions>`,
+})
+export class GruppoDialogComponent {
+  constructor(public ref: MatDialogRef<GruppoDialogComponent>,
+              @Inject(MAT_DIALOG_DATA) public data: { g: { id?: number; nome: string; descrizione?: string } }) {}
+}
+
+@Component({
+  selector: 'app-membri-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatListModule],
+  template: `
+    <h2 mat-dialog-title>
+      <mat-icon style="vertical-align:middle">people</mat-icon>
+      Membri di "{{ data.gruppo.nome }}"
+    </h2>
+    <mat-dialog-content style="min-width:420px;max-width:560px;max-height:60vh">
+      <p style="font-size:13px;color:#64748b;margin:0 0 12px">
+        Seleziona gli utenti che condividono questo gruppo. Quando uno di loro
+        crea un appuntamento marcato "condiviso", tutti gli altri lo vedranno.
+      </p>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:100%;margin-bottom:12px">
+        <mat-label>Filtra utenti</mat-label>
+        <input matInput [(ngModel)]="filtro" placeholder="username o nome">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+      <div style="border:1px solid #e2e8f0;border-radius:8px;max-height:340px;overflow-y:auto">
+        @for (u of utentiFiltrati(); track u.id) {
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer">
+            <input type="checkbox" [checked]="isMember(u.id)" (change)="toggle(u.id, $event)">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:13px">{{ u.username }} <span style="color:#94a3b8;font-weight:400">· {{ u.nome }}</span></div>
+              <div style="font-size:11px;color:#64748b">{{ u.ruolo }} · {{ u.email || '—' }}</div>
+            </div>
+          </label>
+        }
+        @if (utentiFiltrati().length === 0) {
+          <p style="text-align:center;color:#94a3b8;padding:20px">Nessun utente corrisponde</p>
+        }
+      </div>
+      <p style="font-size:12px;color:#64748b;margin-top:8px">Selezionati: <b>{{ selezionati.size }}</b></p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button color="primary" (click)="ref.close([...selezionati])">
+        <mat-icon>save</mat-icon> Salva membri
+      </button>
+    </mat-dialog-actions>`,
+})
+export class MembriDialogComponent {
+  selezionati = new Set<number>();
+  filtro = '';
+  constructor(public ref: MatDialogRef<MembriDialogComponent>,
+              @Inject(MAT_DIALOG_DATA) public data: { gruppo: any; utentiTenant: any[] }) {
+    for (const m of (data.gruppo.membri || [])) this.selezionati.add(m.id);
+  }
+  utentiFiltrati() {
+    const f = this.filtro.trim().toLowerCase();
+    if (!f) return this.data.utentiTenant;
+    return this.data.utentiTenant.filter(u =>
+      String(u.username).toLowerCase().includes(f) ||
+      String(u.nome || '').toLowerCase().includes(f));
+  }
+  isMember(id: number) { return this.selezionati.has(id); }
+  toggle(id: number, ev: any) {
+    if (ev.target.checked) this.selezionati.add(id); else this.selezionati.delete(id);
+  }
+}
+
+@Component({
   selector: 'app-admin',
   standalone: true,
   imports: [
@@ -104,17 +197,21 @@ export class UserDialogComponent {
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">Amministrazione · Multi-tenant</h1>
-        <p style="color:#64748b;font-size:13px;margin:4px 0 0">Solo SUPERADMIN. Gestisci clienti (tenant), utenti e moduli attivi.</p>
+        <h1 class="page-title">Amministrazione</h1>
+        <p style="color:#64748b;font-size:13px;margin:4px 0 0">
+          Gestisci utenti e gruppi del tuo magazzino.
+          @if (isSuper) { Da SUPERADMIN puoi anche gestire altri clienti (tenant) e i loro moduli. }
+        </p>
       </div>
 
-      @if (!isSuper) {
+      @if (!isAdmin) {
         <div class="card" style="text-align:center;color:#dc2626;padding:32px">
           <mat-icon style="font-size:48px;width:48px;height:48px">block</mat-icon>
-          <div style="font-size:18px;margin-top:8px">Accesso riservato al SUPERADMIN</div>
+          <div style="font-size:18px;margin-top:8px">Accesso riservato ad ADMIN o SUPERADMIN</div>
         </div>
       } @else {
         <mat-tab-group animationDuration="0">
+          @if (isSuper) {
           <!-- Clienti (tenant) -->
           <mat-tab label="Clienti (tenant)">
             <div class="card" style="margin-top:16px">
@@ -189,6 +286,49 @@ export class UserDialogComponent {
               }
             </div>
           </mat-tab>
+          }
+
+          <!-- Gruppi -->
+          <mat-tab label="Gruppi">
+            <div class="card" style="margin-top:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div style="color:#64748b;font-size:13px">{{ gruppi.length }} gruppi</div>
+                <button mat-flat-button (click)="nuovoGruppo()"><mat-icon>group_add</mat-icon> Nuovo gruppo</button>
+              </div>
+              <table class="adm-table">
+                <thead><tr><th>Nome</th><th>Descrizione</th><th>Membri</th><th></th></tr></thead>
+                <tbody>
+                  @for (g of gruppi; track g.id) {
+                    <tr>
+                      <td><b>{{ g.nome }}</b></td>
+                      <td style="color:#64748b">{{ g.descrizione || '—' }}</td>
+                      <td>
+                        <span class="ruolo-chip" style="background:#dbeafe;color:#1e40af">
+                          <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle">people</mat-icon>
+                          {{ g.num_membri }}
+                        </span>
+                      </td>
+                      <td>
+                        <button mat-icon-button [matMenuTriggerFor]="gMenu"><mat-icon>more_vert</mat-icon></button>
+                        <mat-menu #gMenu="matMenu">
+                          <button mat-menu-item (click)="modificaMembri(g)"><mat-icon>people</mat-icon> Gestisci membri</button>
+                          <button mat-menu-item (click)="modificaGruppo(g)"><mat-icon>edit</mat-icon> Modifica</button>
+                          <button mat-menu-item (click)="eliminaGruppo(g)" style="color:#dc2626">
+                            <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+                          </button>
+                        </mat-menu>
+                      </td>
+                    </tr>
+                  }
+                  @if (gruppi.length === 0) {
+                    <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px">
+                      Nessun gruppo. Crea il primo per organizzare utenti che condividono le agende.
+                    </td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </mat-tab>
 
           <!-- Utenti -->
           <mat-tab label="Utenti">
@@ -246,17 +386,21 @@ export class UserDialogComponent {
 })
 export class AdminComponent implements OnInit {
   isSuper = false;
+  isAdmin = false;  // ADMIN o SUPERADMIN — può gestire gruppi/utenti
   tenants: any[] = [];
   utenti: User[] = [];
   matrice: TenantRow[] = [];
   slugsOrdinati: string[] = [];
+  gruppi: Gruppo[] = [];
 
-  constructor(private api: ApiService, private auth: AuthService,
+  constructor(private api: ApiService, private auth: AuthService, private ds: DataService,
               private dialog: MatDialog, private snack: MatSnackBar) {}
 
   ngOnInit() {
-    this.isSuper = this.auth.getUser()?.ruolo === 'SUPERADMIN';
-    if (!this.isSuper) return;
+    const u = this.auth.getUser();
+    this.isSuper = u?.ruolo === 'SUPERADMIN';
+    this.isAdmin = this.isSuper || u?.ruolo === 'ADMIN';
+    if (!this.isAdmin) return;
     this.loadAll();
   }
 
@@ -269,6 +413,50 @@ export class AdminComponent implements OnInit {
       const seen = new Set<string>();
       this.slugsOrdinati = [];
       for (const t of r) for (const m of t.moduli) if (!seen.has(m.slug)) { seen.add(m.slug); this.slugsOrdinati.push(m.slug); }
+    });
+    this.loadGruppi();
+  }
+
+  loadGruppi() {
+    this.ds.listGruppi().subscribe(g => this.gruppi = g);
+  }
+
+  nuovoGruppo() {
+    this.dialog.open(GruppoDialogComponent, { data: { g: { nome: '', descrizione: '' } } })
+      .afterClosed().subscribe(saved => {
+        if (!saved) return;
+        this.ds.createGruppo(saved).subscribe({
+          next: () => { this.loadGruppi(); this.snack.open('Gruppo creato', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000 }),
+        });
+      });
+  }
+
+  modificaGruppo(g: Gruppo) {
+    this.dialog.open(GruppoDialogComponent, { data: { g: { ...g } } })
+      .afterClosed().subscribe(saved => {
+        if (!saved) return;
+        this.ds.updateGruppo(g.id, saved).subscribe(() => this.loadGruppi());
+      });
+  }
+
+  eliminaGruppo(g: Gruppo) {
+    if (!confirm(`Eliminare il gruppo "${g.nome}"?`)) return;
+    this.ds.deleteGruppo(g.id).subscribe(() => this.loadGruppi());
+  }
+
+  modificaMembri(g: Gruppo) {
+    // Pre-carica i membri attuali + lista utenti del tenant del gruppo
+    this.ds.getGruppo(g.id).subscribe(full => {
+      const utentiTenant = this.utenti.filter(u => u.tenant === this.auth.getUser()?.tenant);
+      this.dialog.open(MembriDialogComponent, { data: { gruppo: full, utentiTenant } })
+        .afterClosed().subscribe((ids: number[] | undefined) => {
+          if (!ids) return;
+          this.ds.setGruppoMembri(g.id, ids).subscribe(() => {
+            this.loadGruppi();
+            this.snack.open('Membri aggiornati', '', { duration: 2000 });
+          });
+        });
     });
   }
 

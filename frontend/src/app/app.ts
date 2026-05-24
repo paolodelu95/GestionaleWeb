@@ -31,6 +31,8 @@ interface NavItem {
   children?: NavItem[];
   /** Se true, la voce è visibile solo agli utenti con ruolo SUPERADMIN. */
   superadminOnly?: boolean;
+  /** Se true, la voce è visibile a SUPERADMIN o ADMIN. */
+  adminOnly?: boolean;
 }
 
 @Component({
@@ -334,13 +336,19 @@ export class App implements OnInit {
         { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },
       ]
     },
-    { label: 'Amministrazione', icon: 'admin_panel_settings', route: '/admin', superadminOnly: true },
+    { label: 'Amministrazione', icon: 'admin_panel_settings', route: '/admin', adminOnly: true },
   ];
 
   /** Voci di menu filtrate dai moduli attivi e dal ruolo dell'utente. */
   get visibleNavItems(): NavItem[] {
-    const isSuper = this.authSvc.getUser()?.ruolo === 'SUPERADMIN';
-    const allowed = (it: NavItem) => !it.superadminOnly || isSuper;
+    const ruolo = this.authSvc.getUser()?.ruolo;
+    const isSuper = ruolo === 'SUPERADMIN';
+    const isAdmin = isSuper || ruolo === 'ADMIN';
+    const allowed = (it: NavItem) => {
+      if (it.superadminOnly && !isSuper) return false;
+      if (it.adminOnly && !isAdmin) return false;
+      return true;
+    };
     return this.navItems
       .filter(allowed)
       .map(item => {

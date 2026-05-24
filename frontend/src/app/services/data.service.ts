@@ -289,6 +289,21 @@ export class DataService {
   setTodoStato(id: number, stato: 'DA_FARE' | 'IN_CORSO' | 'FATTA'): Observable<any> {
     return this.api.put(`agenda/todo/${id}`, { stato });
   }
+
+  // ── Gruppi ────────────────────────────────────────────────────────────────
+  listGruppi(): Observable<any[]> { return this.api.get('gruppi'); }
+  getGruppo(id: number): Observable<any> { return this.api.get(`gruppi/${id}`); }
+  getMyGruppi(): Observable<any[]> { return this.api.get('gruppi/me/mine'); }
+  createGruppo(g: { nome: string; descrizione?: string }): Observable<any> {
+    return this.api.post('gruppi', g);
+  }
+  updateGruppo(id: number, g: { nome?: string; descrizione?: string }): Observable<any> {
+    return this.api.put(`gruppi/${id}`, g);
+  }
+  deleteGruppo(id: number): Observable<any> { return this.api.delete(`gruppi/${id}`); }
+  setGruppoMembri(id: number, userIds: number[]): Observable<any> {
+    return this.api.put(`gruppi/${id}/membri`, { userIds });
+  }
   /** Previsione cassa aggregata a 30/60/90 giorni. */
   getCashflow306090(): Observable<{
     saldoOggi: number;

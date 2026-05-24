@@ -5,6 +5,29 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const db = require('../database');
+const { getGroupMatesIds, getUserById } = require('../utils/authDb');
+
+/** Restituisce true se l'utente è un "admin di tenant" (vede tutto). */
+function isTenantAdmin(req) {
+  return req.user?.ruolo === 'SUPERADMIN' || req.user?.ruolo === 'ADMIN';
+}
+
+/**
+ * Costruisce un frammento SQL `WHERE` e i parametri per filtrare le righe di
+ * appuntamenti/todo visibili all'utente corrente.
+ *  - admin tenant: tutto (nessun filtro)
+ *  - altri: proprie righe + righe condivise dei membri dei propri gruppi
+ */
+function visibilityFilter(req, table = 'app') {
+  if (isTenantAdmin(req)) return { sql: '1=1', params: [] };
+  const me = req.user.id;
+  const mates = getGroupMatesIds(me); // include sempre me stesso
+  const placeholders = mates.map(() => '?').join(',');
+  return {
+    sql: `(${table}.user_id = ? OR (${table}.condiviso = 1 AND ${table}.user_id IN (${placeholders})))`,
+    params: [me, ...mates],
+  };
+}
 
 /** Token deterministico per il feed ICS pubblico (HMAC del tenant). */
 function feedTokenFor(tenantSlug) {
@@ -30,34 +53,61 @@ function appDto(r) {
     luogo: r.luogo, clienteId: r.cliente_id, clienteNome: r.cliente_nome || '',
     fornitoreId: r.fornitore_id, fornitoreNome: r.fornitore_nome || '',
     colore: r.colore, promemoria: r.promemoria_min, stato: r.stato,
+    userId: r.user_id, autoreUsername: r.autore_username || '', autoreNome: r.autore_nome || '',
+    condiviso: r.condiviso === 1,
     createdAt: r.created_at,
   };
+}
+
+/** Arricchisce le righe con autore (lookup in auth.db) */
+function attachAutori(rows) {
+  for (const r of rows) {
+    if (r.user_id) {
+      const u = getUserById(r.user_id);
+      if (u) { r.autore_username = u.username; r.autore_nome = u.nome; }
+    }
+  }
+  return rows;
 }
 
 router.get('/appuntamenti', (req, res) => {
   const da = req.query.dataDa || `${new Date().getFullYear()}-01-01T00:00:00`;
   const a  = req.query.dataA  || `${new Date().getFullYear()}-12-31T23:59:59`;
+  const vista = String(req.query.vista || 'auto'); // auto|mia|gruppo|tutte
+  let vis;
+  if (vista === 'mia') {
+    vis = { sql: 'app.user_id = ?', params: [req.user.id] };
+  } else if (vista === 'tutte' && isTenantAdmin(req)) {
+    vis = { sql: '1=1', params: [] };
+  } else if (vista === 'gruppo') {
+    const mates = getGroupMatesIds(req.user.id);
+    const ph = mates.map(() => '?').join(',');
+    vis = { sql: `app.user_id IN (${ph})`, params: mates };
+  } else {
+    vis = visibilityFilter(req, 'app');
+  }
   const rows = db.prepare(`
     SELECT app.*, c.ragione_sociale AS cliente_nome, f.ragione_sociale AS fornitore_nome
     FROM appuntamenti app
     LEFT JOIN clienti c ON c.id=app.cliente_id
     LEFT JOIN fornitori f ON f.id=app.fornitore_id
-    WHERE app.inizio BETWEEN ? AND ?
-    ORDER BY app.inizio`).all(da, a);
-  res.json(rows.map(appDto));
+    WHERE app.inizio BETWEEN ? AND ? AND ${vis.sql}
+    ORDER BY app.inizio`).all(da, a, ...vis.params);
+  res.json(attachAutori(rows).map(appDto));
 });
 
 router.post('/appuntamenti', (req, res) => {
   const a = req.body || {};
   if (!a.titolo || !a.inizio) return res.status(400).json({ error: 'titolo e inizio obbligatori' });
   const r = db.prepare(`INSERT INTO appuntamenti
-    (titolo, descrizione, inizio, fine, tutto_giorno, luogo, cliente_id, fornitore_id, colore, promemoria_min, stato)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
+    (titolo, descrizione, inizio, fine, tutto_giorno, luogo, cliente_id, fornitore_id, colore, promemoria_min, stato, user_id, condiviso)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
     a.titolo, a.descrizione || '', a.inizio, a.fine || null,
     a.tuttoGiorno ? 1 : 0, a.luogo || '',
     a.clienteId || null, a.fornitoreId || null,
     a.colore || '#3b82f6', a.promemoria || null,
-    a.stato || 'PIANIFICATO');
+    a.stato || 'PIANIFICATO',
+    req.user.id, a.condiviso ? 1 : 0);
   res.json({ id: r.lastInsertRowid });
 });
 
@@ -65,9 +115,13 @@ router.put('/appuntamenti/:id', (req, res) => {
   const a = req.body || {};
   const cur = db.prepare('SELECT * FROM appuntamenti WHERE id=?').get(req.params.id);
   if (!cur) return res.status(404).json({ error: 'Non trovato' });
+  // Solo il proprietario o un admin può modificare
+  if (!isTenantAdmin(req) && cur.user_id && cur.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Non sei il proprietario di questo appuntamento' });
+  }
   db.prepare(`UPDATE appuntamenti SET
     titolo=?, descrizione=?, inizio=?, fine=?, tutto_giorno=?, luogo=?,
-    cliente_id=?, fornitore_id=?, colore=?, promemoria_min=?, stato=? WHERE id=?`).run(
+    cliente_id=?, fornitore_id=?, colore=?, promemoria_min=?, stato=?, condiviso=? WHERE id=?`).run(
     a.titolo ?? cur.titolo, a.descrizione ?? cur.descrizione,
     a.inizio ?? cur.inizio, a.fine ?? cur.fine,
     a.tuttoGiorno !== undefined ? (a.tuttoGiorno ? 1 : 0) : cur.tutto_giorno,
@@ -77,11 +131,16 @@ router.put('/appuntamenti/:id', (req, res) => {
     a.colore ?? cur.colore,
     a.promemoria !== undefined ? a.promemoria : cur.promemoria_min,
     a.stato ?? cur.stato,
+    a.condiviso !== undefined ? (a.condiviso ? 1 : 0) : cur.condiviso,
     req.params.id);
   res.json({ success: true });
 });
 
 router.delete('/appuntamenti/:id', (req, res) => {
+  const cur = db.prepare('SELECT user_id FROM appuntamenti WHERE id=?').get(req.params.id);
+  if (cur && !isTenantAdmin(req) && cur.user_id && cur.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Non sei il proprietario di questo appuntamento' });
+  }
   db.prepare('DELETE FROM appuntamenti WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
@@ -97,24 +156,28 @@ function todoDto(r) {
 
 router.get('/todo', (req, res) => {
   const stato = req.query.stato;
-  const sql = `SELECT * FROM todo
-               ${stato ? "WHERE stato=?" : ''}
+  // Le todo sono private: ogni utente vede SOLO le proprie (anche gli admin
+  // vedono le proprie, niente cross-user — sarebbe rumore).
+  const where = [`user_id = ?`];
+  const params = [req.user.id];
+  if (stato) { where.push('stato=?'); params.push(stato); }
+  const sql = `SELECT * FROM todo WHERE ${where.join(' AND ')}
                ORDER BY
                  CASE stato WHEN 'FATTA' THEN 1 ELSE 0 END,
                  CASE WHEN scadenza IS NULL THEN 1 ELSE 0 END,
                  scadenza, id DESC`;
-  const rows = stato ? db.prepare(sql).all(stato) : db.prepare(sql).all();
-  res.json(rows.map(todoDto));
+  res.json(db.prepare(sql).all(...params).map(todoDto));
 });
 
 router.post('/todo', (req, res) => {
   const t = req.body || {};
   if (!t.titolo) return res.status(400).json({ error: 'titolo obbligatorio' });
   const r = db.prepare(`INSERT INTO todo
-    (titolo, descrizione, scadenza, priorita, categoria, stato)
-    VALUES (?,?,?,?,?,?)`).run(
+    (titolo, descrizione, scadenza, priorita, categoria, stato, user_id)
+    VALUES (?,?,?,?,?,?,?)`).run(
     t.titolo, t.descrizione || '', t.scadenza || null,
-    t.priorita || 'MEDIA', t.categoria || '', t.stato || 'DA_FARE');
+    t.priorita || 'MEDIA', t.categoria || '', t.stato || 'DA_FARE',
+    req.user.id);
   res.json({ id: r.lastInsertRowid });
 });
 
@@ -122,6 +185,9 @@ router.put('/todo/:id', (req, res) => {
   const t = req.body || {};
   const cur = db.prepare('SELECT * FROM todo WHERE id=?').get(req.params.id);
   if (!cur) return res.status(404).json({ error: 'Non trovata' });
+  if (cur.user_id && cur.user_id !== req.user.id && !isTenantAdmin(req)) {
+    return res.status(403).json({ error: 'Non sei il proprietario di questa todo' });
+  }
   const completaOra = (t.stato === 'FATTA' && cur.stato !== 'FATTA');
   const reset = (t.stato && t.stato !== 'FATTA' && cur.stato === 'FATTA');
   db.prepare(`UPDATE todo SET
@@ -137,6 +203,10 @@ router.put('/todo/:id', (req, res) => {
 });
 
 router.delete('/todo/:id', (req, res) => {
+  const cur = db.prepare('SELECT user_id FROM todo WHERE id=?').get(req.params.id);
+  if (cur && cur.user_id && cur.user_id !== req.user.id && !isTenantAdmin(req)) {
+    return res.status(403).json({ error: 'Non sei il proprietario di questa todo' });
+  }
   db.prepare('DELETE FROM todo WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
@@ -144,9 +214,11 @@ router.delete('/todo/:id', (req, res) => {
 // ── Calendario aggregato ────────────────────────────────────────────────────
 // Restituisce eventi normalizzati { id, source, titolo, inizio, fine?, colore, descrizione, route? }
 // dove `source` ∈ APPUNTAMENTO | SCADENZA_FATTURA | SCADENZA_ACQUISTO | CRM | RICORRENTE | TODO
-function calendario(dataDa, dataA) {
+function calendario(dataDa, dataA, opts = {}) {
   const out = [];
   const fmtIso = (s) => s.length === 10 ? s + 'T00:00:00' : s;
+  const visApp = opts.visApp  || { sql: '1=1', params: [] };  // filtro appuntamenti
+  const visTodo = opts.visTodo || { sql: '1=1', params: [] }; // filtro todo
 
   // 1) Appuntamenti
   db.prepare(`
@@ -154,8 +226,8 @@ function calendario(dataDa, dataA) {
     FROM appuntamenti app
     LEFT JOIN clienti c ON c.id=app.cliente_id
     LEFT JOIN fornitori f ON f.id=app.fornitore_id
-    WHERE app.inizio BETWEEN ? AND ? AND app.stato!='ANNULLATO'
-  `).all(dataDa, dataA).forEach(r => {
+    WHERE app.inizio BETWEEN ? AND ? AND app.stato!='ANNULLATO' AND ${visApp.sql}
+  `).all(dataDa, dataA, ...visApp.params).forEach(r => {
     out.push({
       id: `app-${r.id}`, source: 'APPUNTAMENTO', sourceId: r.id,
       titolo: r.titolo, inizio: r.inizio, fine: r.fine || null,
@@ -164,6 +236,8 @@ function calendario(dataDa, dataA) {
       descrizione: r.descrizione || '',
       colore: r.colore || '#3b82f6',
       stato: r.stato,
+      userId: r.user_id,
+      condiviso: r.condiviso === 1,
       route: '/agenda',
     });
   });
@@ -260,9 +334,10 @@ function calendario(dataDa, dataA) {
     });
   } catch(_) {}
 
-  // 6) Todo con scadenza
+  // 6) Todo con scadenza (solo proprie)
   try {
-    db.prepare(`SELECT * FROM todo WHERE scadenza IS NOT NULL AND stato!='FATTA'`).all().forEach(r => {
+    db.prepare(`SELECT * FROM todo WHERE scadenza IS NOT NULL AND stato!='FATTA' AND ${visTodo.sql}`)
+      .all(...visTodo.params).forEach(r => {
       const dt = fmtIso(r.scadenza);
       if (dt < dataDa || dt > dataA) return;
       const colorByPri = { ALTA: '#dc2626', MEDIA: '#f59e0b', BASSA: '#94a3b8' };
@@ -281,10 +356,30 @@ function calendario(dataDa, dataA) {
   return out.sort((a, b) => a.inizio.localeCompare(b.inizio));
 }
 
+/** Calcola visibilità separate per appuntamenti (filtrabile dal client via ?vista=)
+ *  e per todo (sempre solo proprie, indipendentemente dalla vista). */
+function buildVisFilters(req) {
+  const vista = String(req.query.vista || 'auto');
+  const visTodo = { sql: 'user_id = ?', params: [req.user.id] };
+  let visApp;
+  if (vista === 'mia') {
+    visApp = { sql: 'app.user_id = ?', params: [req.user.id] };
+  } else if (vista === 'tutte' && isTenantAdmin(req)) {
+    visApp = { sql: '1=1', params: [] };
+  } else if (vista === 'gruppo') {
+    const mates = getGroupMatesIds(req.user.id);
+    const ph = mates.map(() => '?').join(',');
+    visApp = { sql: `app.user_id IN (${ph})`, params: mates };
+  } else {
+    visApp = visibilityFilter(req, 'app');
+  }
+  return { visApp, visTodo };
+}
+
 router.get('/calendario', (req, res) => {
   const da = req.query.dataDa || new Date(new Date().setDate(1)).toISOString().slice(0, 10) + 'T00:00:00';
   const a  = req.query.dataA  || new Date(new Date().setMonth(new Date().getMonth() + 1, 0)).toISOString().slice(0, 10) + 'T23:59:59';
-  res.json(calendario(da, a));
+  res.json(calendario(da, a, buildVisFilters(req)));
 });
 
 // GET /api/agenda/imminenti?giorni=7 — eventi prossimi N giorni (per dashboard)
@@ -294,7 +389,7 @@ router.get('/imminenti', (req, res) => {
   const fine = new Date(oggi); fine.setDate(fine.getDate() + giorni);
   const da = oggi.toISOString().slice(0, 19);
   const a  = fine.toISOString().slice(0, 19);
-  const eventi = calendario(da, a).slice(0, 30);
+  const eventi = calendario(da, a, buildVisFilters(req)).slice(0, 30);
   res.json({ da, a, eventi });
 });
 

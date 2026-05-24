@@ -71,6 +71,25 @@ function getAuthDb() {
       FOREIGN KEY (tenant_slug) REFERENCES tenants(slug) ON DELETE CASCADE,
       FOREIGN KEY (modulo_slug) REFERENCES moduli(slug)
     );
+    CREATE TABLE IF NOT EXISTS gruppi (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_slug TEXT NOT NULL,
+      nome        TEXT NOT NULL,
+      descrizione TEXT DEFAULT '',
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (tenant_slug) REFERENCES tenants(slug) ON DELETE CASCADE,
+      UNIQUE (tenant_slug, nome)
+    );
+    CREATE TABLE IF NOT EXISTS user_gruppi (
+      user_id   INTEGER NOT NULL,
+      gruppo_id INTEGER NOT NULL,
+      PRIMARY KEY (user_id, gruppo_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (gruppo_id) REFERENCES gruppi(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_gruppi_tenant ON gruppi(tenant_slug);
+    CREATE INDEX IF NOT EXISTS idx_user_gruppi_user ON user_gruppi(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_gruppi_gruppo ON user_gruppi(gruppo_id);
   `);
   seedModuli(db);
   authDbInstance = db;
@@ -253,10 +272,89 @@ function countUsers() {
   return getAuthDb().prepare('SELECT COUNT(*) AS n FROM users').get().n;
 }
 
+// ── Gruppi (per tenant) ─────────────────────────────────────────────────────
+function listGruppi(tenantSlug) {
+  return getAuthDb().prepare(`
+    SELECT g.id, g.nome, g.descrizione, g.created_at,
+           (SELECT COUNT(*) FROM user_gruppi WHERE gruppo_id=g.id) AS num_membri
+    FROM gruppi g WHERE g.tenant_slug=? ORDER BY g.nome
+  `).all(tenantSlug);
+}
+
+function getGruppo(tenantSlug, id) {
+  const row = getAuthDb().prepare('SELECT * FROM gruppi WHERE id=? AND tenant_slug=?').get(id, tenantSlug);
+  if (!row) return null;
+  const membri = getAuthDb().prepare(`
+    SELECT u.id, u.username, u.nome, u.email, u.ruolo, u.attivo
+    FROM user_gruppi ug JOIN users u ON u.id=ug.user_id
+    WHERE ug.gruppo_id=? ORDER BY u.username
+  `).all(id);
+  return { ...row, membri };
+}
+
+function createGruppo({ tenantSlug, nome, descrizione }) {
+  if (!nome || !nome.trim()) throw new Error('Nome gruppo obbligatorio');
+  const r = getAuthDb().prepare('INSERT INTO gruppi (tenant_slug, nome, descrizione) VALUES (?,?,?)')
+    .run(tenantSlug, nome.trim(), descrizione || '');
+  return getGruppo(tenantSlug, r.lastInsertRowid);
+}
+
+function updateGruppo(tenantSlug, id, { nome, descrizione }) {
+  const g = getGruppo(tenantSlug, id);
+  if (!g) throw new Error('Gruppo non trovato');
+  getAuthDb().prepare('UPDATE gruppi SET nome=?, descrizione=? WHERE id=?')
+    .run(nome ?? g.nome, descrizione ?? g.descrizione, id);
+  return getGruppo(tenantSlug, id);
+}
+
+function deleteGruppo(tenantSlug, id) {
+  const g = getGruppo(tenantSlug, id);
+  if (!g) return;
+  getAuthDb().prepare('DELETE FROM gruppi WHERE id=?').run(id);
+}
+
+function setGruppoMembri(tenantSlug, gruppoId, userIds) {
+  const db = getAuthDb();
+  const g = getGruppo(tenantSlug, gruppoId);
+  if (!g) throw new Error('Gruppo non trovato');
+  // Verifica che tutti gli userIds appartengano al tenant
+  const valid = db.prepare(`SELECT id FROM users WHERE tenant_slug=? AND id IN (${userIds.length ? userIds.map(() => '?').join(',') : 'NULL'})`)
+    .all(tenantSlug, ...userIds).map(r => r.id);
+  db.transaction(() => {
+    db.prepare('DELETE FROM user_gruppi WHERE gruppo_id=?').run(gruppoId);
+    const ins = db.prepare('INSERT OR IGNORE INTO user_gruppi (user_id, gruppo_id) VALUES (?,?)');
+    for (const uid of valid) ins.run(uid, gruppoId);
+  })();
+  return getGruppo(tenantSlug, gruppoId);
+}
+
+function getUserGruppi(userId) {
+  return getAuthDb().prepare(`
+    SELECT g.id, g.nome FROM user_gruppi ug
+    JOIN gruppi g ON g.id=ug.gruppo_id
+    WHERE ug.user_id=?
+    ORDER BY g.nome
+  `).all(userId);
+}
+
+/** ID dei colleghi del gruppo (inclusi i propri). Usato per filtrare appuntamenti condivisi. */
+function getGroupMatesIds(userId) {
+  const rows = getAuthDb().prepare(`
+    SELECT DISTINCT ug2.user_id
+    FROM user_gruppi ug1
+    JOIN user_gruppi ug2 ON ug1.gruppo_id = ug2.gruppo_id
+    WHERE ug1.user_id = ?
+  `).all(userId);
+  const ids = new Set([userId, ...rows.map(r => r.user_id)]);
+  return [...ids];
+}
+
 module.exports = {
   getAuthDb,
   dataDir, tenantsDir, authDbPath, tenantDbPath,
   listTenants, getTenant, createTenant, updateTenant, deleteTenant,
   getUserByUsername, getUserById, listUsers, createUser, updateUser, deleteUser, countUsers,
   listModuliCatalogo, listTenantModuli, setTenantModulo, ensureTenantModuli, isModuloAttivo,
+  listGruppi, getGruppo, createGruppo, updateGruppo, deleteGruppo,
+  setGruppoMembri, getUserGruppi, getGroupMatesIds,
 };

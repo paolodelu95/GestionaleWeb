@@ -1514,3 +1514,59 @@ body:has(.cdk-overlay-container .mat-mdc-dialog-container) .bug-fab {
     &::before { width: 5px; height: 5px; }
   }
 }
+
+// ── Responsive guards: dialog e form non devono eccedere il viewport ────────
+// Annulla i min-width fissi (480/520/560px) impostati inline nei dialog quando
+// la viewport è più stretta di quei valori — evita overflow orizzontale su mobile.
+@media (max-width: 600px) {
+  .mat-mdc-dialog-container,
+  .mat-mdc-dialog-surface {
+    max-width: calc(100vw - 16px) !important;
+  }
+  .mat-mdc-dialog-content {
+    // Sovrascrive eventuali min-width inline dei contenuti
+    min-width: 0 !important;
+    max-width: calc(100vw - 24px);
+  }
+  // Form rows: stack quando lo spazio è poco
+  .form-row {
+    flex-direction: column !important;
+    gap: 4px !important;
+    > * { width: 100% !important; max-width: 100% !important; flex: 1 1 auto !important; }
+  }
+  // Page header: titolo a capo + bottoni stretti
+  .page-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .page { padding: 12px !important; }
+  // Filter bar: stack verticale
+  .filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    > * { width: 100% !important; }
+  }
+  // Bottoni di azione nelle pagine: vanno a capo, occupano larghezza piena se da soli
+  .mat-mdc-raised-button,
+  .mat-mdc-flat-button,
+  .mat-mdc-stroked-button,
+  .mat-mdc-button { min-height: 40px; }
+}
+
+// Tablet
+@media (min-width: 601px) and (max-width: 900px) {
+  .mat-mdc-dialog-surface { max-width: calc(100vw - 40px) !important; }
+}
+
+// Tabelle dentro card: scroll orizzontale invece di overflow
+.card > table,
+.card > .mat-mdc-table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  // mat-table dense su mobile
+  .mat-mdc-cell, .mat-mdc-header-cell { padding: 4px 6px !important; font-size: 12px !important; }
+}

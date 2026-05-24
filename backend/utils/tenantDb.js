@@ -486,6 +486,13 @@ function initTenantSchema(db) {
       created_at TEXT DEFAULT (datetime('now'))
     )`,
     'CREATE INDEX IF NOT EXISTS idx_appuntamenti_inizio ON appuntamenti(inizio)',
+    // Multi-utente: user_id = autore (FK soft verso auth.db.users.id);
+    // condiviso = visibile ai membri dei gruppi dell'autore.
+    'ALTER TABLE appuntamenti ADD COLUMN user_id INTEGER',
+    'ALTER TABLE appuntamenti ADD COLUMN condiviso INTEGER DEFAULT 0',
+    'CREATE INDEX IF NOT EXISTS idx_appuntamenti_user ON appuntamenti(user_id)',
+    'ALTER TABLE todo ADD COLUMN user_id INTEGER',
+    'CREATE INDEX IF NOT EXISTS idx_todo_user ON todo(user_id)',
     `CREATE TABLE IF NOT EXISTS todo (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       titolo TEXT NOT NULL,
