@@ -261,40 +261,61 @@ export class App implements OnInit {
   }
 
   readonly navItems: NavItem[] = [
+    { label: 'Home',         icon: 'apps',           route: '/app' },
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
-    { label: 'Prodotti',     icon: 'inventory_2',    route: '/prodotti' },
+    {
+      label: 'Vendite', icon: 'point_of_sale',
+      children: [
+        { label: 'Preventivi',       icon: 'request_quote',   route: '/preventivi' },
+        { label: 'Ordini cliente',   icon: 'shopping_cart',   route: '/ordini' },
+        { label: 'DDT',              icon: 'receipt_long',    route: '/ddt' },
+        { label: 'Fatture',          icon: 'receipt',         route: '/fatture' },
+        { label: 'Note di Credito',  icon: 'note_alt',        route: '/note-credito' },
+        { label: 'Ricorrenti',       icon: 'autorenew',       route: '/fatture-ricorrenti' },
+        { label: 'Vendita al banco', icon: 'point_of_sale',   route: '/vendita-banco' },
+      ]
+    },
+    {
+      label: 'Acquisti', icon: 'shopping_bag',
+      children: [
+        { label: 'Acquisti',     icon: 'shopping_bag',  route: '/acquisti' },
+        { label: 'Arrivi merce', icon: 'move_to_inbox', route: '/arrivi-merce' },
+      ]
+    },
     {
       label: 'Magazzino', icon: 'warehouse',
       children: [
-        { label: 'Movimenti',     icon: 'warehouse',       route: '/magazzino' },
-        { label: 'Arrivi Merce',  icon: 'move_to_inbox',   route: '/arrivi-merce' },
+        { label: 'Prodotti',  icon: 'inventory_2', route: '/prodotti' },
+        { label: 'Movimenti', icon: 'warehouse',   route: '/magazzino' },
       ]
     },
-    { label: 'Clienti',      icon: 'people',         route: '/clienti' },
-    { label: 'Fornitori',    icon: 'local_shipping', route: '/fornitori' },
     {
-      label: 'Documenti', icon: 'description',
+      label: 'Anagrafica', icon: 'contacts',
       children: [
-        { label: 'DDT',             icon: 'receipt_long',  route: '/ddt' },
-        { label: 'Fatture',         icon: 'receipt',       route: '/fatture' },
-        { label: 'Note di Credito', icon: 'note_alt',      route: '/note-credito' },
-        { label: 'Ordini',          icon: 'shopping_cart', route: '/ordini' },
-        { label: 'Preventivi',      icon: 'request_quote', route: '/preventivi' },
-        { label: 'Acquisti',        icon: 'shopping_bag',  route: '/acquisti' },
-        { label: 'Ricorrenti',      icon: 'autorenew',     route: '/fatture-ricorrenti' },
+        { label: 'Clienti',   icon: 'people',         route: '/clienti' },
+        { label: 'Fornitori', icon: 'local_shipping', route: '/fornitori' },
       ]
     },
-    { label: 'Vendita al banco', icon: 'point_of_sale', route: '/vendita-banco' },
-    { label: 'Pagamenti',    icon: 'payments',       route: '/pagamenti' },
-    { label: 'Scadenzario', icon: 'event',           route: '/scadenzario' },
-    { label: 'Prima Nota',   icon: 'menu_book',       route: '/prima-nota' },
-    { label: 'Report',       icon: 'bar_chart',      route: '/report' },
-    { label: 'Storico',      icon: 'history',        route: '/storico' },
-    { label: 'CRM',          icon: 'group_work',           route: '/crm' },
-    { label: 'Timesheet',    icon: 'schedule',             route: '/timesheet' },
-    { label: 'Riconciliazione', icon: 'account_balance',   route: '/riconciliazione' },
-    { label: 'Compliance',   icon: 'verified',       route: '/compliance' },
-    { label: 'Impostazioni', icon: 'settings',       route: '/impostazioni' },
+    {
+      label: 'Contabilità', icon: 'account_balance',
+      children: [
+        { label: 'Pagamenti',       icon: 'payments',         route: '/pagamenti' },
+        { label: 'Scadenzario',     icon: 'event',            route: '/scadenzario' },
+        { label: 'Prima nota',      icon: 'menu_book',        route: '/prima-nota' },
+        { label: 'Riconciliazione', icon: 'account_balance',  route: '/riconciliazione' },
+        { label: 'Compliance',      icon: 'verified',         route: '/compliance' },
+      ]
+    },
+    { label: 'CRM',       icon: 'group_work', route: '/crm' },
+    { label: 'Timesheet', icon: 'schedule',   route: '/timesheet' },
+    { label: 'Report',    icon: 'bar_chart',  route: '/report' },
+    {
+      label: 'Sistema', icon: 'settings',
+      children: [
+        { label: 'Storico',      icon: 'history',  route: '/storico' },
+        { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },
+      ]
+    },
   ];
 
   get flatNavItems(): NavItem[] {
