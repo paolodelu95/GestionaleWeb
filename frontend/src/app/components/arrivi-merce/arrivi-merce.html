@@ -69,18 +69,17 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let a" class="table-actions">
-          @if (a.stato === 'BOZZA') {
-            <button mat-icon-button type="button" title="Conferma ricezione" (click)="setStato(a, 'RICEVUTO')">
-              <mat-icon>inventory</mat-icon>
-            </button>
-          }
-          @if (a.stato === 'RICEVUTO') {
-            <button mat-icon-button type="button" title="Annulla ricezione" (click)="setStato(a, 'ANNULLATO')">
-              <mat-icon>undo</mat-icon>
-            </button>
-          }
-          <button mat-icon-button type="button" title="Modifica" (click)="open(a)"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button type="button" color="warn" title="Elimina" (click)="delete(a)"><mat-icon>delete</mat-icon></button>
+          <button mat-icon-button type="button" [matMenuTriggerFor]="arrMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+          <mat-menu #arrMenu="matMenu">
+            @if (a.stato === 'BOZZA') {
+              <button mat-menu-item type="button" (click)="setStato(a, 'RICEVUTO')"><mat-icon>inventory</mat-icon> Conferma ricezione</button>
+            }
+            @if (a.stato === 'RICEVUTO') {
+              <button mat-menu-item type="button" (click)="setStato(a, 'ANNULLATO')"><mat-icon>undo</mat-icon> Annulla ricezione</button>
+            }
+            <button mat-menu-item type="button" (click)="open(a)"><mat-icon>edit</mat-icon> Modifica</button>
+            <button mat-menu-item type="button" (click)="delete(a)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+          </mat-menu>
         </td>
       </ng-container>
 

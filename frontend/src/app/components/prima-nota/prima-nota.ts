@@ -11,6 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 
 // ── Dialog ─────────────────────────────────────────────────────────────────────
@@ -112,7 +113,7 @@ export class PrimaNotaDialogComponent {
     CommonModule, FormsModule,
     MatTableModule, MatSortModule, MatPaginatorModule,
     MatButtonModule, MatIconModule, MatDialogModule, MatSnackBarModule,
-    MatSelectModule, MatFormFieldModule,
+    MatSelectModule, MatFormFieldModule, MatMenuModule,
   ],
   templateUrl: './prima-nota.html',
   styleUrl: './prima-nota.scss',

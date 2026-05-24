@@ -80,10 +80,10 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let n" class="table-actions">
-          <button mat-icon-button type="button" title="Scheda nota di credito" (click)="info(n)" style="color:#3b82f6"><mat-icon>info_outline</mat-icon></button>
-          <button mat-icon-button type="button" title="Stampa" (click)="printDoc(n)"><mat-icon>print</mat-icon></button>
-          <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuNcAz"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="menuNcAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuNcAz="matMenu">
+            <button mat-menu-item type="button" (click)="info(n)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
+            <button mat-menu-item type="button" (click)="printDoc(n)"><mat-icon>print</mat-icon> Stampa</button>
             <button mat-menu-item type="button" (click)="inviaEmail(n)">
               <mat-icon>mail</mat-icon> Invia per email
             </button>

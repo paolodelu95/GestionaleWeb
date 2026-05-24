@@ -343,8 +343,11 @@
             <ng-container matColumnDef="azioni">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let u" class="table-actions">
-                <button mat-icon-button type="button" (click)="openUtente(u)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button type="button" color="warn" (click)="deleteUtente(u)"><mat-icon>delete</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="utMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #utMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openUtente(u)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteUtente(u)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="utenteColumns"></tr>
@@ -399,8 +402,11 @@
             <ng-container matColumnDef="azioni">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let t" class="table-actions">
-                <button mat-icon-button type="button" (click)="openTipoPagamento(t)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button type="button" color="warn" (click)="deleteTipoPagamento(t)"><mat-icon>delete</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="tpMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #tpMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openTipoPagamento(t)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteTipoPagamento(t)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="tpColumns"></tr>
@@ -429,8 +435,11 @@
             <ng-container matColumnDef="azioni">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let c" class="table-actions">
-                <button mat-icon-button type="button" (click)="openCategoria(c)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button type="button" color="warn" (click)="deleteCategoria(c)"><mat-icon>delete</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="catMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #catMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openCategoria(c)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteCategoria(c)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="catColumns"></tr>
@@ -501,8 +510,11 @@
             <ng-container matColumnDef="azioni">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let l" class="table-actions">
-                <button mat-icon-button type="button" (click)="openListino(l)" matTooltip="Modifica"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button type="button" color="warn" (click)="deleteListino(l)" matTooltip="Elimina"><mat-icon>delete</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="lstMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #lstMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openListino(l)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteListino(l)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="listiniColumns"></tr>
@@ -539,8 +551,11 @@
             <ng-container matColumnDef="azioni">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let u" class="table-actions">
-                <button mat-icon-button type="button" (click)="openUnitaMisura(u)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button type="button" color="warn" (click)="deleteUnitaMisura(u)"><mat-icon>delete</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="umMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #umMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openUnitaMisura(u)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteUnitaMisura(u)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="umColumns"></tr>
@@ -580,8 +595,11 @@
             <ng-container matColumnDef="azioni">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let a" class="table-actions">
-                <button mat-icon-button type="button" (click)="openAliquotaIva(a)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button type="button" color="warn" (click)="deleteAliquotaIva(a)"><mat-icon>delete</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="ivaMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #ivaMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openAliquotaIva(a)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteAliquotaIva(a)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="ivaColumns"></tr>
@@ -617,8 +635,11 @@
             <ng-container matColumnDef="azioni">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let n" class="table-actions">
-                <button mat-icon-button type="button" (click)="openNotaRapida(n)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button type="button" color="warn" (click)="deleteNotaRapida(n)"><mat-icon>delete</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="nrMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #nrMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openNotaRapida(n)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteNotaRapida(n)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="notaRapidaColumns"></tr>
@@ -839,18 +860,15 @@
               <ng-container matColumnDef="azioni">
                 <th mat-header-cell *matHeaderCellDef style="width:110px"></th>
                 <td mat-cell *matCellDef="let r">
-                  @if (r.stato === 'APERTO') {
-                    <button mat-icon-button title="Segna come risolto" (click)="resolveBug(r)">
-                      <mat-icon style="color:#16a34a">check_circle</mat-icon>
-                    </button>
-                  } @else {
-                    <button mat-icon-button title="Riapri" (click)="reopenBug(r)">
-                      <mat-icon style="color:#f59e0b">refresh</mat-icon>
-                    </button>
-                  }
-                  <button mat-icon-button color="warn" title="Elimina" (click)="deleteBug(r)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                  <button mat-icon-button type="button" [matMenuTriggerFor]="bugMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                  <mat-menu #bugMenu="matMenu">
+                    @if (r.stato === 'APERTO') {
+                      <button mat-menu-item type="button" (click)="resolveBug(r)"><mat-icon style="color:#16a34a">check_circle</mat-icon> Segna come risolto</button>
+                    } @else {
+                      <button mat-menu-item type="button" (click)="reopenBug(r)"><mat-icon style="color:#f59e0b">refresh</mat-icon> Riapri</button>
+                    }
+                    <button mat-menu-item type="button" (click)="deleteBug(r)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                  </mat-menu>
                 </td>
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="bugColumns"></tr>

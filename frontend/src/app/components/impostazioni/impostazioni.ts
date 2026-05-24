@@ -9,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -310,7 +311,7 @@ export class NotaRapidaDialogComponent {
             MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
             MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
-            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule],
+            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })

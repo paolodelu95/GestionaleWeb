@@ -15,6 +15,7 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { ArrivoMerce, Acquisto, Fornitore, Prodotto, RigaArrivoMerce, UnitaMisura } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
@@ -469,7 +470,8 @@ export class ArrivoMerceDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatSortModule,
-            MatFormFieldModule, MatInputModule, MatSelectModule, MatTooltipModule, MatPaginatorModule],
+            MatFormFieldModule, MatInputModule, MatSelectModule, MatTooltipModule, MatPaginatorModule,
+            MatMenuModule],
   templateUrl: './arrivi-merce.html',
 })
 export class ArriviMerceComponent implements OnInit, AfterViewInit {

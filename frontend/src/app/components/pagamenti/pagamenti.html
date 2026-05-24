@@ -130,10 +130,13 @@
         <ng-container matColumnDef="azioni">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let e" class="table-actions">
-            <button mat-stroked-button type="button" (click)="salda(e)"
-                    [style.color]="e.tipoEntry === 'FATTURA' ? '#16a34a' : '#dc2626'">
-              <mat-icon>payments</mat-icon> Salda
-            </button>
+            <button mat-icon-button type="button" [matMenuTriggerFor]="scadMenu" title="Azioni" (click)="$event.stopPropagation()"><mat-icon>more_vert</mat-icon></button>
+            <mat-menu #scadMenu="matMenu">
+              <button mat-menu-item type="button" (click)="salda(e)">
+                <mat-icon [style.color]="e.tipoEntry === 'FATTURA' ? '#16a34a' : '#dc2626'">payments</mat-icon>
+                Salda
+              </button>
+            </mat-menu>
           </td>
         </ng-container>
 
@@ -247,8 +250,11 @@
         <ng-container matColumnDef="azioni">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let p" class="table-actions">
-            <button mat-icon-button (click)="open(p)"><mat-icon>edit</mat-icon></button>
-            <button mat-icon-button color="warn" (click)="delete(p)"><mat-icon>delete</mat-icon></button>
+            <button mat-icon-button [matMenuTriggerFor]="pagMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+            <mat-menu #pagMenu="matMenu">
+              <button mat-menu-item type="button" (click)="open(p)"><mat-icon>edit</mat-icon> Modifica</button>
+              <button mat-menu-item type="button" (click)="delete(p)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+            </mat-menu>
           </td>
         </ng-container>
 

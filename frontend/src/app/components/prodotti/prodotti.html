@@ -140,9 +140,12 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let p" class="table-actions">
-          <button mat-icon-button type="button" title="Scheda prodotto" (click)="info(p)" style="color:#3b82f6"><mat-icon>info_outline</mat-icon></button>
-          <button mat-icon-button type="button" (click)="open(p)" title="Modifica"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button type="button" color="warn" (click)="delete(p)" title="Elimina"><mat-icon>delete</mat-icon></button>
+          <button mat-icon-button type="button" [matMenuTriggerFor]="prodMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+          <mat-menu #prodMenu="matMenu">
+            <button mat-menu-item type="button" (click)="info(p)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
+            <button mat-menu-item type="button" (click)="open(p)"><mat-icon>edit</mat-icon> Modifica</button>
+            <button mat-menu-item type="button" (click)="delete(p)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+          </mat-menu>
         </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

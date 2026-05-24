@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -251,7 +252,7 @@ export class FatturaRicorrenteDialogComponent implements OnInit {
     CommonModule, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule,
     MatDialogModule, MatSnackBarModule, MatSelectModule,
-    MatChipsModule, MatTooltipModule, MatSlideToggleModule
+    MatChipsModule, MatTooltipModule, MatSlideToggleModule, MatMenuModule
   ],
   templateUrl: './fatture-ricorrenti.html',
   styleUrl: './fatture-ricorrenti.scss'

@@ -12,6 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
 import { SelectionModel } from '@angular/cdk/collections';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
@@ -216,7 +217,7 @@ export class PagamentoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatButtonToggleModule,
-            FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule],
+            FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule, MatMenuModule],
   templateUrl: './pagamenti.html',
   styleUrl: './pagamenti.scss'
 })

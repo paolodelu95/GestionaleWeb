@@ -92,10 +92,10 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let a" class="table-actions">
-          <button mat-icon-button type="button" title="Scheda acquisto" (click)="info(a)" style="color:#3b82f6"><mat-icon>info_outline</mat-icon></button>
-          <button mat-icon-button type="button" title="Stampa" (click)="printDoc(a)"><mat-icon>print</mat-icon></button>
-          <button mat-icon-button type="button" title="Altre azioni" [matMenuTriggerFor]="menuAcqAz"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="menuAcqAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuAcqAz="matMenu">
+            <button mat-menu-item type="button" (click)="info(a)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
+            <button mat-menu-item type="button" (click)="printDoc(a)"><mat-icon>print</mat-icon> Stampa</button>
             @if (a.stato === 'RICEVUTA') {
               <button mat-menu-item type="button" (click)="setStato(a, 'PAGATA')">
                 <mat-icon>payments</mat-icon> Segna come Pagata
