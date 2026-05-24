@@ -19,10 +19,24 @@ interface LoginResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly KEY = 'invoxa_token';
-  private readonly USER_KEY = 'invoxa_user';
+  private readonly KEY = 'folvera_token';
+  private readonly USER_KEY = 'folvera_user';
+  private readonly LEGACY_KEY = 'invoxa_token';
+  private readonly LEGACY_USER_KEY = 'invoxa_user';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    // Migrazione storage da invoxa_* a folvera_* per non sloggare gli utenti esistenti.
+    const legacyToken = localStorage.getItem(this.LEGACY_KEY);
+    if (legacyToken && !localStorage.getItem(this.KEY)) {
+      localStorage.setItem(this.KEY, legacyToken);
+      localStorage.removeItem(this.LEGACY_KEY);
+    }
+    const legacyUser = localStorage.getItem(this.LEGACY_USER_KEY);
+    if (legacyUser && !localStorage.getItem(this.USER_KEY)) {
+      localStorage.setItem(this.USER_KEY, legacyUser);
+      localStorage.removeItem(this.LEGACY_USER_KEY);
+    }
+  }
 
   login(username: string, password: string) {
     return this.http

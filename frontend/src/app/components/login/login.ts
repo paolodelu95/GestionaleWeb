@@ -25,7 +25,7 @@ import { AuthService } from '../../services/auth.service';
           <div class="logo-mark">
             <mat-icon>business_center</mat-icon>
           </div>
-          <h1>Invoxa</h1>
+          <h1>Folvera</h1>
           <p>Gestionale ERP</p>
         </div>
 
@@ -64,7 +64,7 @@ import { AuthService } from '../../services/auth.service';
         </form>
 
         <div class="login-footer">
-          <span>© {{ year }} Invoxa</span>
+          <span>© {{ year }} Folvera</span>
           <span class="dot">·</span>
           <span>Gestione aziendale moderna</span>
         </div>

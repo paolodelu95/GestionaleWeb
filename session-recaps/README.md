@@ -1,6 +1,6 @@
 # Session Recaps
 
-Cartella di archivio dei lavori fatti con Claude (o altri assistenti) sul progetto Invoxa.
+Cartella di archivio dei lavori fatti con Claude (o altri assistenti) sul progetto Folvera (precedentemente Invoxa).
 
 ## Scopo
 
