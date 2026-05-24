@@ -270,7 +270,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           label: 'Saldo cumulativo (€)',
           data,
           borderColor: '#11769b',
-          backgroundColor: 'rgba(99,102,241,0.1)',
+          backgroundColor: 'rgba(21, 164, 162,0.1)',
           fill: true,
           tension: 0.25,
           pointRadius: 0,
@@ -302,7 +302,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         datasets: [{
           label: 'Imponibile (€)',
           data,
-          backgroundColor: 'rgba(99,102,241,0.7)',
+          backgroundColor: 'rgba(21, 164, 162,0.7)',
           borderColor: '#11769b',
           borderWidth: 1,
           borderRadius: 4,

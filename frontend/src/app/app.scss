@@ -9,10 +9,10 @@
 // ── Sidenav ──────────────────────────────────────────────────────────────────
 .sidenav {
   width: var(--sidenav-width);
-  background: #0b1220;
+  background: #0e2a38;
   background-image:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 50%),
-    linear-gradient(180deg, #0b1220 0%, #0a0f1c 100%);
+    radial-gradient(circle at top right, rgba(21, 164, 162, 0.10), transparent 50%),
+    linear-gradient(180deg, #0e2a38 0%, #0a1f2a 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
@@ -39,14 +39,14 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: linear-gradient(180deg, #0b1220 0%, rgba(11, 18, 32, 0.95) 100%);
+    background: linear-gradient(180deg, #0e2a38 0%, rgba(14, 42, 56, 0.95) 100%);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .sidenav-title {
-    background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #5eead4 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -108,9 +108,9 @@
       }
 
       &.active-link {
-        background: linear-gradient(135deg, #0e6480 0%, #11769b 100%);
+        background: linear-gradient(135deg, #11769b 0%, #15a4a2 100%);
         color: white;
-        box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.50);
+        box-shadow: 0 4px 12px -2px rgba(17, 118, 155, 0.50);
         mat-icon { color: white; }
       }
     }
@@ -150,10 +150,10 @@
       }
 
       &.active-link {
-        background: linear-gradient(135deg, rgba(79, 70, 229, 0.95) 0%, rgba(99, 102, 241, 0.95) 100%) !important;
+        background: linear-gradient(135deg, rgba(17, 118, 155, 0.95) 0%, rgba(21, 164, 162, 0.95) 100%) !important;
         color: white !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.40);
+        box-shadow: 0 4px 12px -2px rgba(17, 118, 155, 0.40);
         mat-icon { color: white !important; }
         .mdc-list-item__primary-text { color: white !important; }
       }
@@ -311,7 +311,7 @@
     font-size: 14px;
     flex-shrink: 0;
     letter-spacing: 0;
-    box-shadow: 0 2px 8px -1px rgba(79, 70, 229, 0.35);
+    box-shadow: 0 2px 8px -1px rgba(17, 118, 155, 0.35);
   }
 
   .company-info {
@@ -725,7 +725,7 @@
   &.info {
     background: linear-gradient(135deg, #0e6480 0%, #11769b 100%);
     color: white;
-    box-shadow: 0 2px 8px -2px rgba(79, 70, 229, 0.5);
+    box-shadow: 0 2px 8px -2px rgba(17, 118, 155, 0.5);
   }
 }
 
@@ -771,9 +771,9 @@
 
 .dark-mode .pwa-banner {
   &--install {
-    background: linear-gradient(90deg, rgba(79, 70, 229, 0.18) 0%, rgba(99, 102, 241, 0.10) 100%);
+    background: linear-gradient(90deg, rgba(17, 118, 155, 0.18) 0%, rgba(21, 164, 162, 0.10) 100%);
     color: #c7d2fe;
-    border-bottom-color: rgba(99, 102, 241, 0.30);
+    border-bottom-color: rgba(21, 164, 162, 0.30);
     mat-icon { color: #a5b4fc; }
   }
   &--update {

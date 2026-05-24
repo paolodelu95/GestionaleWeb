@@ -120,7 +120,7 @@ html {
   --danger-on: #f87171;
   --info-soft: rgba(14, 165, 233, 0.16);
   --info-on: #38bdf8;
-  --purple-soft: rgba(139, 92, 246, 0.16);
+  --purple-soft: rgba(8, 145, 178, 0.16);
   --purple-on: #a78bfa;
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.30);
@@ -549,7 +549,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
     justify-content: center;
     color: white;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.35);
+    box-shadow: 0 4px 12px -2px rgba(17, 118, 155, 0.35);
     mat-icon { font-size: 22px; width: 22px; height: 22px; color: white; }
   }
 
@@ -613,8 +613,8 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
     background: var(--bg-surface-2);
     border-color: var(--border);
     &.is-primary {
-      background: linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, var(--bg-surface-2) 100%);
-      border-color: rgba(99, 102, 241, 0.30);
+      background: linear-gradient(180deg, rgba(21, 164, 162, 0.12) 0%, var(--bg-surface-2) 100%);
+      border-color: rgba(21, 164, 162, 0.30);
     }
   }
   .form-section-header { color: var(--text-tertiary); }
@@ -1111,7 +1111,7 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .ddt-chip { background: rgba(59, 130, 246, 0.15) !important; color: var(--info-on) !important; }
   .chip-remove { color: var(--info-on) !important; }
   .rif-card-header { background: var(--bg-surface-2) !important; border-bottom-color: var(--border-subtle) !important; }
-  .suggerimenti-bar { background: rgba(99, 102, 241, 0.10) !important; border-color: rgba(99, 102, 241, 0.25) !important; }
+  .suggerimenti-bar { background: rgba(21, 164, 162, 0.10) !important; border-color: rgba(21, 164, 162, 0.25) !important; }
 
   body { background: var(--bg-page); color: var(--text-primary); }
 }

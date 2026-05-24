@@ -172,8 +172,8 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
       data: {
         labels,
         datasets: [
-          { label: `${annoStr}`, data: dataCorr, backgroundColor: 'rgba(99,102,241,0.8)', borderRadius: 4 },
-          { label: `${precStr}`, data: dataPrec, backgroundColor: 'rgba(99,102,241,0.2)', borderRadius: 4 },
+          { label: `${annoStr}`, data: dataCorr, backgroundColor: 'rgba(21, 164, 162,0.8)', borderRadius: 4 },
+          { label: `${precStr}`, data: dataPrec, backgroundColor: 'rgba(21, 164, 162,0.2)', borderRadius: 4 },
         ]
       },
       options: {
@@ -208,7 +208,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
           { label: 'Ricavi', data: fat, backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4, stack: 'a' },
           { label: 'Costi', data: acq, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4, stack: 'b' },
           { type: 'line', label: 'Margine', data: margini, borderColor: '#11769b',
-            backgroundColor: 'rgba(99,102,241,0.1)', tension: 0.4, fill: true, pointRadius: 3 } as any,
+            backgroundColor: 'rgba(21, 164, 162,0.1)', tension: 0.4, fill: true, pointRadius: 3 } as any,
         ]
       },
       options: {
@@ -252,7 +252,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
         datasets: [{
           label: 'Media mensile',
           data: byMese,
-          backgroundColor: 'rgba(99,102,241,0.2)',
+          backgroundColor: 'rgba(21, 164, 162,0.2)',
           borderColor: '#11769b',
           pointBackgroundColor: '#11769b',
         }]

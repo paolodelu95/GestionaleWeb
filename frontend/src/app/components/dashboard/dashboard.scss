@@ -306,9 +306,9 @@
   .alert-orange { background: rgba(245, 158, 11, 0.14); color: #fbbf24; border-color: rgba(245, 158, 11, 0.30); }
 
   .btn-fattura {
-    background: rgba(99, 102, 241, 0.16) !important;
+    background: rgba(21, 164, 162, 0.16) !important;
     color: #a5b4fc !important;
-    &:hover { background: rgba(99, 102, 241, 0.24) !important; }
+    &:hover { background: rgba(21, 164, 162, 0.24) !important; }
   }
 }
 
@@ -524,7 +524,7 @@
   }
   .edit-banner {
     background: var(--primary-soft);
-    border-color: rgba(99, 102, 241, 0.30);
+    border-color: rgba(21, 164, 162, 0.30);
     color: var(--primary-hover);
   }
   .cdk-drag-preview { background: var(--bg-elevated); }

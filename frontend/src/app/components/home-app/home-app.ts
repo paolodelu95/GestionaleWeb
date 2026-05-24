@@ -118,49 +118,48 @@ export class HomeAppComponent {
 
   readonly categories = ['Anagrafica', 'Vendite', 'Acquisti', 'Magazzino', 'Contabilità', 'Operativo', 'Sistema'];
 
-  // Palette Ordeva: cool-only (blue→teal→cyan→slate), derivata dal brand
-  // (#11769b/#15a4a2/#128498/#0e2a38). I tile sono raggruppati per categoria
-  // con tonalità coerenti: cyan per Anagrafica, teal per Vendite, blu profondo
-  // per Acquisti/Contabilità, slate per Sistema.
+  // Tile della home: palette distintiva ma elegante (pesi Material 600-700,
+  // niente tonalità sature/neon). Ogni macro-categoria ha la sua famiglia di
+  // colore così che i tile siano subito identificabili senza essere "arlecchino".
   readonly apps: App[] = [
-    // ── Anagrafica ── cyans (dati / persone) ──────────────────────────────
-    { label: 'Clienti',    description: 'Anagrafica clienti', icon: 'people',         route: '/clienti',   color: 'linear-gradient(135deg,#0ea5e9,#0284c7)', category: 'Anagrafica' },
-    { label: 'Fornitori',  description: 'Anagrafica fornitori', icon: 'local_shipping', route: '/fornitori', color: 'linear-gradient(135deg,#06b6d4,#0891b2)', category: 'Anagrafica' },
-    { label: 'Prodotti',   description: 'Catalogo, varianti, listini', icon: 'inventory_2', route: '/prodotti', color: 'linear-gradient(135deg,#22d3ee,#06b6d4)', category: 'Anagrafica' },
+    // ── Anagrafica ── cool blues / cyan / teal ────────────────────────────
+    { label: 'Clienti',    description: 'Anagrafica clienti', icon: 'people',         route: '/clienti',   color: 'linear-gradient(135deg,#0284c7,#0369a1)', category: 'Anagrafica' },
+    { label: 'Fornitori',  description: 'Anagrafica fornitori', icon: 'local_shipping', route: '/fornitori', color: 'linear-gradient(135deg,#0891b2,#0e7490)', category: 'Anagrafica' },
+    { label: 'Prodotti',   description: 'Catalogo, varianti, listini', icon: 'inventory_2', route: '/prodotti', color: 'linear-gradient(135deg,#0d9488,#0f766e)', category: 'Anagrafica' },
 
-    // ── Vendite ── teal del brand (signature) ─────────────────────────────
-    { label: 'Preventivi',        description: 'Offerte commerciali',    icon: 'request_quote',   route: '/preventivi',         color: 'linear-gradient(135deg,#2dd4bf,#14b8a6)', category: 'Vendite' },
-    { label: 'Ordini cliente',    description: 'Ordini da clienti',      icon: 'shopping_cart',   route: '/ordini',             color: 'linear-gradient(135deg,#15a4a2,#11769b)', category: 'Vendite' },
-    { label: 'DDT',               description: 'Documenti di trasporto', icon: 'receipt_long',    route: '/ddt',                color: 'linear-gradient(135deg,#38bdf8,#0ea5e9)', category: 'Vendite' },
-    { label: 'Fatture',           description: 'Emissione fatture + XML SDI', icon: 'receipt',    route: '/fatture',            color: 'linear-gradient(135deg,#0e7490,#155e75)', category: 'Vendite' },
-    { label: 'Note di credito',   description: 'Storni e rimborsi',      icon: 'note_alt',        route: '/note-credito',       color: 'linear-gradient(135deg,#0891b2,#155e75)', category: 'Vendite' },
-    { label: 'Ricorrenti',        description: 'Fatturazione periodica', icon: 'autorenew',       route: '/fatture-ricorrenti', color: 'linear-gradient(135deg,#06b6d4,#0e7490)', category: 'Vendite' },
+    // ── Vendite ── indigo / violet / pink scuri ────────────────────────────
+    { label: 'Preventivi',        description: 'Offerte commerciali',    icon: 'request_quote',   route: '/preventivi',         color: 'linear-gradient(135deg,#4f46e5,#4338ca)', category: 'Vendite' },
+    { label: 'Ordini cliente',    description: 'Ordini da clienti',      icon: 'shopping_cart',   route: '/ordini',             color: 'linear-gradient(135deg,#7c3aed,#6d28d9)', category: 'Vendite' },
+    { label: 'DDT',               description: 'Documenti di trasporto', icon: 'receipt_long',    route: '/ddt',                color: 'linear-gradient(135deg,#9333ea,#7e22ce)', category: 'Vendite' },
+    { label: 'Fatture',           description: 'Emissione fatture + XML SDI', icon: 'receipt',    route: '/fatture',            color: 'linear-gradient(135deg,#db2777,#be185d)', category: 'Vendite' },
+    { label: 'Note di credito',   description: 'Storni e rimborsi',      icon: 'note_alt',        route: '/note-credito',       color: 'linear-gradient(135deg,#e11d48,#be123c)', category: 'Vendite' },
+    { label: 'Ricorrenti',        description: 'Fatturazione periodica', icon: 'autorenew',       route: '/fatture-ricorrenti', color: 'linear-gradient(135deg,#ea580c,#c2410c)', category: 'Vendite' },
 
-    // ── Acquisti ── blu profondo (entrate) ────────────────────────────────
-    { label: 'Acquisti',     description: 'Fatture passive e ordini fornitore', icon: 'shopping_bag',  route: '/acquisti',     color: 'linear-gradient(135deg,#0369a1,#075985)', category: 'Acquisti' },
-    { label: 'Arrivi merce', description: 'Entrate magazzino', icon: 'move_to_inbox', route: '/arrivi-merce', color: 'linear-gradient(135deg,#1e6091,#134e6c)', category: 'Acquisti' },
+    // ── Acquisti ── amber / yellow scuri (warm, "outgoing") ───────────────
+    { label: 'Acquisti',     description: 'Fatture passive e ordini fornitore', icon: 'shopping_bag',  route: '/acquisti',     color: 'linear-gradient(135deg,#d97706,#b45309)', category: 'Acquisti' },
+    { label: 'Arrivi merce', description: 'Entrate magazzino', icon: 'move_to_inbox', route: '/arrivi-merce', color: 'linear-gradient(135deg,#ca8a04,#a16207)', category: 'Acquisti' },
 
-    // ── Magazzino ── mint chiaro (freschezza/movimento) ───────────────────
-    { label: 'Movimenti', description: 'Storico carichi/scarichi', icon: 'warehouse', route: '/magazzino', color: 'linear-gradient(135deg,#5eead4,#14b8a6)', category: 'Magazzino' },
+    // ── Magazzino ── lime scuro (movimento/freschezza) ────────────────────
+    { label: 'Movimenti', description: 'Storico carichi/scarichi', icon: 'warehouse', route: '/magazzino', color: 'linear-gradient(135deg,#65a30d,#4d7c0f)', category: 'Magazzino' },
 
-    // ── Contabilità ── primary del brand (precisione/serietà) ─────────────
-    { label: 'Pagamenti',       description: 'Incassi e pagamenti',     icon: 'payments',        route: '/pagamenti',       color: 'linear-gradient(135deg,#11769b,#0e6480)', category: 'Contabilità' },
-    { label: 'Scadenzario',     description: 'Scadenze attive e passive', icon: 'event',         route: '/scadenzario',     color: 'linear-gradient(135deg,#0e7490,#134e6c)', category: 'Contabilità' },
-    { label: 'Prima nota',      description: 'Movimenti cassa/banca',   icon: 'menu_book',       route: '/prima-nota',      color: 'linear-gradient(135deg,#0891b2,#0e7490)', category: 'Contabilità' },
-    { label: 'Riconciliazione', description: 'Import OFX/CSV bancario', icon: 'account_balance', route: '/riconciliazione', color: 'linear-gradient(135deg,#155e75,#134e6c)', category: 'Contabilità' },
-    { label: 'Compliance',      description: 'LIPE, esterometro, export', icon: 'verified',     route: '/compliance',      color: 'linear-gradient(135deg,#128498,#11769b)', category: 'Contabilità' },
+    // ── Contabilità ── verdi / teal (money flow) ──────────────────────────
+    { label: 'Pagamenti',       description: 'Incassi e pagamenti',     icon: 'payments',        route: '/pagamenti',       color: 'linear-gradient(135deg,#16a34a,#15803d)', category: 'Contabilità' },
+    { label: 'Scadenzario',     description: 'Scadenze attive e passive', icon: 'event',         route: '/scadenzario',     color: 'linear-gradient(135deg,#059669,#047857)', category: 'Contabilità' },
+    { label: 'Prima nota',      description: 'Movimenti cassa/banca',   icon: 'menu_book',       route: '/prima-nota',      color: 'linear-gradient(135deg,#0d9488,#0f766e)', category: 'Contabilità' },
+    { label: 'Riconciliazione', description: 'Import OFX/CSV bancario', icon: 'account_balance', route: '/riconciliazione', color: 'linear-gradient(135deg,#0284c7,#0369a1)', category: 'Contabilità' },
+    { label: 'Compliance',      description: 'LIPE, esterometro, export', icon: 'verified',     route: '/compliance',      color: 'linear-gradient(135deg,#0369a1,#075985)', category: 'Contabilità' },
 
-    // ── Operativo ── varianti cool (mix tool-by-tool) ─────────────────────
-    { label: 'Agenda',           description: 'Appuntamenti, todo, calendario', icon: 'event_note', route: '/agenda',     color: 'linear-gradient(135deg,#3b82f6,#2563eb)', category: 'Operativo' },
-    { label: 'CRM',              description: 'Pipeline opportunità',    icon: 'group_work',     route: '/crm',           color: 'linear-gradient(135deg,#2dd4bf,#15a4a2)', category: 'Operativo' },
-    { label: 'Timesheet',        description: 'Progetti e ore lavorate', icon: 'schedule',       route: '/timesheet',     color: 'linear-gradient(135deg,#0891b2,#155e75)', category: 'Operativo' },
-    { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', color: 'linear-gradient(135deg,#38bdf8,#0284c7)', category: 'Operativo' },
+    // ── Operativo ── purple / violet / red scuri ──────────────────────────
+    { label: 'Agenda',           description: 'Appuntamenti, todo, calendario', icon: 'event_note', route: '/agenda',     color: 'linear-gradient(135deg,#4f46e5,#4338ca)', category: 'Operativo' },
+    { label: 'CRM',              description: 'Pipeline opportunità',    icon: 'group_work',     route: '/crm',           color: 'linear-gradient(135deg,#9333ea,#7e22ce)', category: 'Operativo' },
+    { label: 'Timesheet',        description: 'Progetti e ore lavorate', icon: 'schedule',       route: '/timesheet',     color: 'linear-gradient(135deg,#7c3aed,#6d28d9)', category: 'Operativo' },
+    { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', color: 'linear-gradient(135deg,#dc2626,#b91c1c)', category: 'Operativo' },
 
-    // ── Sistema ── slate cool (utility) ───────────────────────────────────
+    // ── Sistema ── slate / zinc (utility, neutri) ─────────────────────────
     { label: 'Dashboard',    description: 'KPI e grafici',         icon: 'dashboard',  route: '/dashboard',    color: 'linear-gradient(135deg,#475569,#334155)', category: 'Sistema' },
     { label: 'Report',       description: 'Statistiche e analisi', icon: 'bar_chart',  route: '/report',       color: 'linear-gradient(135deg,#64748b,#475569)', category: 'Sistema' },
     { label: 'Storico',      description: 'Audit log',             icon: 'history',    route: '/storico',      color: 'linear-gradient(135deg,#94a3b8,#64748b)', category: 'Sistema' },
-    { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', color: 'linear-gradient(135deg,#0e2a38,#1e293b)', category: 'Sistema' },
+    { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', color: 'linear-gradient(135deg,#3f3f46,#27272a)', category: 'Sistema' },
   ];
 
   constructor(auth: AuthService, private moduli: ModuliService) {

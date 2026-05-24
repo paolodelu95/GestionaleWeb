@@ -42,7 +42,7 @@ interface ScadenzarioItem {
             MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule],
   template: `
     <div style="display:flex;align-items:center;gap:12px;padding:20px 24px 0">
-      <div style="width:44px;height:44px;background:linear-gradient(135deg,#11769b,#0891b2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px -2px rgba(99,102,241,.35)">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,#11769b,#0891b2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px -2px rgba(21, 164, 162,.35)">
         <mat-icon style="color:#fff;font-size:22px;width:22px;height:22px">payments</mat-icon>
       </div>
       <div>

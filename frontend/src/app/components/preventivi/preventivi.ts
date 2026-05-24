@@ -53,7 +53,7 @@ const RIGHE_STYLES = `
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);box-shadow:0 4px 12px -2px rgba(139,92,246,0.35)">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);box-shadow:0 4px 12px -2px rgba(8, 145, 178,0.35)">
           <mat-icon>request_quote</mat-icon>
         </div>
         <div class="dialog-hero-text">
