@@ -359,6 +359,55 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   }
 }
 
+// ── Sticky actions column ─────────────────────────────────────────────────────
+// Quando la tabella ha molte colonne e scorre orizzontalmente, la colonna
+// azioni rimane sempre visibile a destra del viewport.
+@media (min-width: 768px) {
+  th.mat-column-azioni,
+  th.mat-column-azione {
+    position: sticky !important;
+    right: 0 !important;
+    z-index: 3;
+    background: var(--bg-surface-2) !important;
+    // Ombra sinistra: indica che c'è contenuto scrollabile sotto
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0; left: -16px;
+      width: 16px;
+      background: linear-gradient(to right, transparent, var(--bg-surface-2));
+      pointer-events: none;
+    }
+  }
+
+  td.table-actions {
+    position: sticky !important;
+    right: 0 !important;
+    z-index: 2;
+    background: var(--bg-surface) !important;
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0; left: -16px;
+      width: 16px;
+      background: linear-gradient(to right, transparent, var(--bg-surface));
+      pointer-events: none;
+    }
+  }
+
+  // Righe pari: il fade segue il colore della riga
+  tr.mat-mdc-row:nth-child(even) td.table-actions {
+    background: var(--bg-surface-2) !important;
+    &::after { background: linear-gradient(to right, transparent, var(--bg-surface-2)); }
+  }
+
+  // Hover: segue il colore hover della riga
+  tr.mat-mdc-row:hover td.table-actions {
+    background: color-mix(in srgb, var(--primary) 10%, var(--bg-surface-2)) !important;
+    &::after { background: linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 10%, var(--bg-surface-2))); }
+  }
+}
+
 // ── Status chips (with dot indicator) ────────────────────────────────────────
 .stato-chip {
   display: inline-flex;
