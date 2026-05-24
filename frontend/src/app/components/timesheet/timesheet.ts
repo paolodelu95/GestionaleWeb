@@ -159,6 +159,11 @@ export class VoceDialogComponent {
                 <td mat-cell *matCellDef="let p">
                   <button mat-icon-button [matMenuTriggerFor]="pMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
                   <mat-menu #pMenu="matMenu">
+                    <button mat-menu-item (click)="generaFattura(p)"
+                            [disabled]="(p.oreTotali - p.oreFatturate) <= 0">
+                      <mat-icon style="color:#16a34a">receipt</mat-icon> Genera fattura
+                      <span style="color:#94a3b8;font-size:11px"> ({{ p.oreTotali - p.oreFatturate }} h da fatturare)</span>
+                    </button>
                     <button mat-menu-item (click)="modificaProgetto(p)"><mat-icon>edit</mat-icon> Modifica</button>
                     <button mat-menu-item (click)="eliminaProgetto(p)" style="color:#dc2626">
                       <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
@@ -283,6 +288,30 @@ export class TimesheetComponent implements OnInit {
   eliminaProgetto(p: Progetto) {
     if (!confirm(`Eliminare il progetto "${p.nome}"? Verranno cancellate anche le voci timesheet.`)) return;
     this.api.delete(`timesheet/progetti/${p.id}`).subscribe(() => { this.loadProgetti(); this.loadVoci(); });
+  }
+
+  generaFattura(p: Progetto) {
+    const oreDaFatt = p.oreTotali - p.oreFatturate;
+    if (oreDaFatt <= 0) {
+      this.snack.open('Nessuna ora da fatturare per questo progetto', 'OK', { duration: 3000 });
+      return;
+    }
+    if (!p.tariffaOraria || p.tariffaOraria <= 0) {
+      this.snack.open('Imposta prima la tariffa oraria sul progetto', 'OK', { duration: 3500 });
+      return;
+    }
+    const importo = (oreDaFatt * p.tariffaOraria).toFixed(2);
+    if (!confirm(`Generare fattura per "${p.nome}"?\n${oreDaFatt} h × € ${p.tariffaOraria.toFixed(2)}/h = € ${importo} (+ IVA)`)) return;
+    this.api.post<{ fatturaId: number; numero: string; oreTotali: number; importo: number }>(
+      `timesheet/progetti/${p.id}/fattura`, {}
+    ).subscribe({
+      next: r => {
+        this.snack.open(`Fattura ${r.numero} creata (${r.oreTotali} h, € ${r.importo.toFixed(2)})`, 'OK', { duration: 4000 });
+        this.loadProgetti();
+        this.loadVoci();
+      },
+      error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000 }),
+    });
   }
 
   nuovaVoce() {

@@ -33,4 +33,15 @@ router.get('/admin/all', (req, res) => {
   res.json(out);
 });
 
+// PUT /api/moduli/admin/:tenant/:slug — SUPERADMIN: toggle modulo cross-tenant
+router.put('/admin/:tenant/:slug', (req, res) => {
+  if (!isSuper(req)) return res.status(403).json({ error: 'Solo SUPERADMIN' });
+  try {
+    const m = setTenantModulo(req.params.tenant, req.params.slug, !!req.body?.attivo);
+    res.json(m);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 module.exports = router;

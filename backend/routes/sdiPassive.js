@@ -102,13 +102,105 @@ router.get('/providers', (req, res) => {
   ]);
 });
 
-// POST /api/sdi-passive/poll/:provider — esegue polling delle nuove fatture passive
-// Scaffold: ritorna 501 finché non si configurano le credenziali
+// POST /api/sdi-passive/poll/aruba — esegue polling fatture passive da Aruba
+// Setup:
+//   env ARUBA_USER, ARUBA_PASS (credenziali Aruba Fatturazione Elettronica)
+//   env ARUBA_BASE = https://ws.fatturazioneelettronica.aruba.it (default produzione)
+// API ref: https://fatturazioneelettronica.aruba.it/apidoc/v2/docs.html
+async function pollAruba({ fromDate, toDate }) {
+  const user = process.env.ARUBA_USER;
+  const pass = process.env.ARUBA_PASS;
+  const base = (process.env.ARUBA_BASE || 'https://ws.fatturazioneelettronica.aruba.it').replace(/\/$/, '');
+  if (!user || !pass) throw new Error('ARUBA_USER e ARUBA_PASS non configurati');
+
+  // Step 1: ottieni token OAuth (Aruba usa /auth/signin)
+  const tokenRes = await fetch(`${base}/auth/signin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=password&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+  });
+  if (!tokenRes.ok) {
+    const t = await tokenRes.text();
+    throw new Error(`Aruba auth ${tokenRes.status}: ${t.slice(0, 200)}`);
+  }
+  const tk = await tokenRes.json();
+  const accessToken = tk.access_token || tk.token;
+  if (!accessToken) throw new Error('Aruba: token non ricevuto');
+
+  // Step 2: lista fatture passive nel range
+  const q = new URLSearchParams({
+    fromDate: fromDate || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
+    toDate:   toDate   || new Date().toISOString().slice(0, 10),
+    type:     'ALL',
+  });
+  const listRes = await fetch(`${base}/services/invoice/in/list?${q}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+  if (!listRes.ok) {
+    const t = await listRes.text();
+    throw new Error(`Aruba list ${listRes.status}: ${t.slice(0, 200)}`);
+  }
+  const list = await listRes.json();
+  const invoices = Array.isArray(list?.invoices) ? list.invoices : (Array.isArray(list) ? list : []);
+
+  return { invoices, accessToken };
+}
+
+router.post('/poll/aruba', async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.body || {};
+    const { invoices, accessToken } = await pollAruba({ fromDate, toDate });
+    const base = (process.env.ARUBA_BASE || 'https://ws.fatturazioneelettronica.aruba.it').replace(/\/$/, '');
+
+    let importate = 0, saltate = 0;
+    const errori = [];
+
+    for (const inv of invoices) {
+      try {
+        const remoteId = inv.id || inv.invoiceId || inv.uuid;
+        if (!remoteId) { saltate++; continue; }
+
+        // Scarica XML
+        const xmlRes = await fetch(`${base}/services/invoice/in/${remoteId}/file`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        });
+        if (!xmlRes.ok) { errori.push({ remoteId, errore: `download ${xmlRes.status}` }); continue; }
+        const xml = await xmlRes.text();
+
+        // Riusa il parser dell'import manuale (POST locale verso noi stessi non serve:
+        // chiamiamo direttamente la funzione interna)
+        const result = await new Promise((resolve, reject) => {
+          // Riusa l'endpoint /import-xml passando il body
+          const reqClone = { body: xml, tenant: req.tenant, user: req.user };
+          const resClone = {
+            _status: 200,
+            status(s) { this._status = s; return this; },
+            json(d) { resolve({ status: this._status, data: d }); },
+          };
+          try { router.stack.find(l => l.route?.path === '/import-xml')?.route.stack[1].handle(reqClone, resClone); }
+          catch (e) { reject(e); }
+        });
+
+        if (result.status === 409) saltate++;
+        else if (result.status === 200) importate++;
+        else errori.push({ remoteId, errore: result.data?.error });
+      } catch (err) {
+        errori.push({ remoteId: inv.id, errore: err.message });
+      }
+    }
+
+    res.json({ trovate: invoices.length, importate, saltate, errori });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /poll/:provider — fallback per altri provider non ancora implementati
 router.post('/poll/:provider', (req, res) => {
+  if (req.params.provider === 'aruba') return; // gestito sopra
   res.status(501).json({
-    error: 'Integrazione provider non ancora configurata',
-    hint: 'Configura le credenziali API in Impostazioni → SDI e abilita il provider scelto.',
-    provider: req.params.provider,
+    error: `Provider "${req.params.provider}" non ancora implementato`,
+    hint: 'Provider supportati attualmente: aruba. Configurare ARUBA_USER e ARUBA_PASS nell\'ambiente.',
   });
 });
 

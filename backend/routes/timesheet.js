@@ -91,7 +91,58 @@ router.delete('/voci/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// TODO: POST /progetti/:id/fattura — genera fattura da voci non fatturate
-// raggruppate per progetto, applicando tariffa_oraria * ore. Riservato a fase 3.
+// POST /progetti/:id/fattura — genera fattura da voci non fatturate del progetto.
+// Crea una fattura in stato EMESSA con una riga "Ore lavorate (NN h x €/h = €...)"
+// e marca le voci come fatturate.
+const { getNextNumero } = require('../utils/nextNumero');
+router.post('/progetti/:id/fattura', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const progetto = db.prepare('SELECT * FROM progetti WHERE id=?').get(id);
+  if (!progetto) return res.status(404).json({ error: 'Progetto non trovato' });
+  if (!progetto.cliente_id) return res.status(400).json({ error: 'Progetto senza cliente: impossibile fatturare' });
+  if (!progetto.tariffa_oraria || progetto.tariffa_oraria <= 0) {
+    return res.status(400).json({ error: 'Tariffa oraria non impostata sul progetto' });
+  }
+  const voci = db.prepare(
+    `SELECT id, data, ore, descrizione FROM timesheet_voci WHERE progetto_id=? AND fatturata=0 ORDER BY data`
+  ).all(id);
+  if (!voci.length) return res.status(400).json({ error: 'Nessuna voce da fatturare' });
+
+  const oreTotali = voci.reduce((s, v) => s + v.ore, 0);
+  const importo   = +(oreTotali * progetto.tariffa_oraria).toFixed(2);
+  const oggi      = new Date().toISOString().slice(0, 10);
+  const numero    = getNextNumero('fatture', 'fatture');
+
+  const ivaDefault = 22;
+  const descrizione = `Prestazioni progetto "${progetto.nome}" — ${oreTotali} h x ${progetto.tariffa_oraria.toFixed(2)} €/h`;
+
+  const tx = db.transaction(() => {
+    const r = db.prepare(`INSERT INTO fatture
+      (numero, data_emissione, cliente_id, note, stato)
+      VALUES (?,?,?,?,?)`).run(numero, oggi, progetto.cliente_id,
+        `Fattura automatica da timesheet: progetto "${progetto.nome}"`, 'EMESSA');
+    const fatturaId = r.lastInsertRowid;
+
+    db.prepare(`INSERT INTO fatture_righe
+      (fattura_id, descrizione, quantita, prezzo, iva, unita_misura, tipo)
+      VALUES (?,?,?,?,?,?,?)`).run(
+      fatturaId, descrizione, oreTotali, progetto.tariffa_oraria, ivaDefault, 'h', 'PRODOTTO');
+
+    const upd = db.prepare('UPDATE timesheet_voci SET fatturata=1, fattura_id=? WHERE id=?');
+    for (const v of voci) upd.run(fatturaId, v.id);
+
+    return { fatturaId, numero };
+  });
+
+  try {
+    const { fatturaId, numero: num } = tx();
+    res.json({
+      fatturaId, numero: num,
+      voci: voci.length, oreTotali, importo,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

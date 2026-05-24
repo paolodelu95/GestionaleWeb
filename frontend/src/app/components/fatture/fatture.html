@@ -124,6 +124,10 @@
             <button mat-menu-item type="button" (click)="inviaEmail(f)">
               <mat-icon>email</mat-icon> Invia per email
             </button>
+            <button mat-menu-item type="button" (click)="generaPayLink(f)"
+                    [disabled]="f.stato === 'PAGATA' || f.stato === 'ANNULLATA'">
+              <mat-icon style="color:#635bff">credit_card</mat-icon> Link pagamento Stripe
+            </button>
             <button mat-menu-item type="button" (click)="inviaSdi(f)">
               <mat-icon [style.color]="f.statoSdi === 'INVIATA' ? '#16a34a' : undefined">send_time_extension</mat-icon>
               Invia all'SDI{{ f.statoSdi === 'INVIATA' ? ' ✓' : '' }}

@@ -267,6 +267,14 @@ export class DataService {
   setModulo(slug: string, attivo: boolean): Observable<ModuloDto> {
     return this.api.put<ModuloDto>(`moduli/${slug}`, { attivo });
   }
+
+  // ── Stripe pay link ───────────────────────────────────────────────────────
+  getStripeStatus(): Observable<{ configured: boolean; webhookConfigured: boolean; mode: string }> {
+    return this.api.get('pay-link/status');
+  }
+  generaPayLinkFattura(id: number): Observable<{ url: string; paymentLinkId: string; importo: number; currency: string }> {
+    return this.api.post(`pay-link/fattura/${id}`, {});
+  }
   /** Previsione cassa aggregata a 30/60/90 giorni. */
   getCashflow306090(): Observable<{
     saldoOggi: number;

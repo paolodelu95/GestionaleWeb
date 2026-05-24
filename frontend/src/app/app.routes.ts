@@ -27,4 +27,6 @@ export const routes: Routes = [
   { path: 'riconciliazione', loadComponent: () => import('./components/riconciliazione/riconciliazione').then(m => m.RiconciliazioneComponent) },
   { path: 'crm', loadComponent: () => import('./components/crm/crm').then(m => m.CrmComponent) },
   { path: 'timesheet', loadComponent: () => import('./components/timesheet/timesheet').then(m => m.TimesheetComponent) },
+  { path: 'admin', loadComponent: () => import('./components/admin/admin').then(m => m.AdminComponent) },
+  { path: 'reports', loadComponent: () => import('./components/reports/reports').then(m => m.ReportsComponent) },
 ];

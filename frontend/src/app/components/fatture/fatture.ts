@@ -1354,6 +1354,31 @@ export class FattureComponent implements OnInit, AfterViewInit {
     });
   }
 
+  generaPayLink(f: Fattura) {
+    this.ds.generaPayLinkFattura(f.id!).subscribe({
+      next: r => {
+        // Apre il link in una nuova scheda + lo copia negli appunti come backup
+        window.open(r.url, '_blank', 'noopener');
+        try { navigator.clipboard?.writeText(r.url); } catch (_) {}
+        this.snack.open(
+          `Link Stripe generato (€ ${r.importo.toFixed(2)}) — aperto in nuova scheda e copiato negli appunti`,
+          'OK', { duration: 5000 }
+        );
+      },
+      error: e => {
+        const msg = e.error?.error || e.message || '';
+        if (msg.includes('STRIPE_SECRET_KEY')) {
+          this.snack.open(
+            'Stripe non configurato. Imposta STRIPE_SECRET_KEY tra i secret server (env).',
+            'OK', { duration: 6000 }
+          );
+        } else {
+          this.snack.open('Errore: ' + msg, 'OK', { duration: 4000 });
+        }
+      },
+    });
+  }
+
   inviaSdi(f: Fattura) {
     this.ds.validateFatturaXml(f.id!).subscribe({
       next: v => {

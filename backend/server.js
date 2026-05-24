@@ -84,6 +84,13 @@ bootstrap();
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
   .split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
+
+// ── Stripe webhook (DEVE ricevere body raw, prima di express.json()) ─────────
+const { stripeWebhookHandler } = require('./routes/payLink');
+app.post('/api/pay-link/webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebhookHandler);
+
 app.use(express.json({ limit: '10mb' }));
 
 // ── Login (pubblico) ─────────────────────────────────────────────────────────
@@ -204,6 +211,8 @@ app.use('/api/stats',            require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
 app.use('/api/tenants',          require('./routes/tenants'));
 app.use('/api/moduli',           require('./routes/moduli'));
+app.use('/api/reports',          require('./routes/reports'));
+app.use('/api/ocr',              require('./routes/ocr'));
 app.use('/api/pay-link',         require('./routes/payLink'));
 app.use('/api/sdi-passive',      require('./routes/sdiPassive'));
 app.use('/api/riconciliazione',  require('./routes/riconciliazione'));

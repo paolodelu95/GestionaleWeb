@@ -51,19 +51,41 @@ router.delete('/configs/:id', (req, res) => {
 });
 
 // POST /configs/:id/sync-prodotti — push prodotti locali verso il provider
-router.post('/configs/:id/sync-prodotti', (req, res) => {
-  res.status(501).json({
-    error: 'Sync prodotti non ancora implementata',
-    hint: 'Richiede integrazione REST API verso WooCommerce/Shopify. Vedere routes/ecommerce.js per dettagli.',
-  });
+const { pushProdotti, pullOrdini } = require('../utils/ecommerceClients');
+
+router.post('/configs/:id/sync-prodotti', async (req, res) => {
+  const cfg = db.prepare('SELECT * FROM ecommerce_config WHERE id=? AND attivo=1').get(req.params.id);
+  if (!cfg) return res.status(404).json({ error: 'Configurazione non trovata o disattivata' });
+  if (!cfg.api_secret) return res.status(400).json({ error: 'API key/secret mancanti nella configurazione' });
+
+  // Selezione prodotti: tutti, o solo gli `ids` passati nel body
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+  const prodotti = ids
+    ? db.prepare(`SELECT * FROM prodotti WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids)
+    : db.prepare('SELECT * FROM prodotti').all();
+
+  try {
+    const r = await pushProdotti(cfg, prodotti, db);
+    db.prepare(`UPDATE ecommerce_config SET last_sync=datetime('now') WHERE id=?`).run(cfg.id);
+    res.json({ ...r, totali: prodotti.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// POST /configs/:id/pull-ordini — importa nuovi ordini dal provider come DDT/fatture
-router.post('/configs/:id/pull-ordini', (req, res) => {
-  res.status(501).json({
-    error: 'Pull ordini non ancora implementato',
-    hint: 'Richiede integrazione REST API verso WooCommerce/Shopify. Vedere routes/ecommerce.js per dettagli.',
-  });
+router.post('/configs/:id/pull-ordini', async (req, res) => {
+  const cfg = db.prepare('SELECT * FROM ecommerce_config WHERE id=? AND attivo=1').get(req.params.id);
+  if (!cfg) return res.status(404).json({ error: 'Configurazione non trovata o disattivata' });
+  if (!cfg.api_secret) return res.status(400).json({ error: 'API key/secret mancanti nella configurazione' });
+
+  const since = req.body?.since || cfg.last_sync || null;
+  try {
+    const r = await pullOrdini(cfg, since, db);
+    db.prepare(`UPDATE ecommerce_config SET last_sync=datetime('now') WHERE id=?`).run(cfg.id);
+    res.json(r);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

@@ -29,6 +29,8 @@ interface NavItem {
   icon: string;
   route?: string;
   children?: NavItem[];
+  /** Se true, la voce è visibile solo agli utenti con ruolo SUPERADMIN. */
+  superadminOnly?: boolean;
 }
 
 @Component({
@@ -314,7 +316,13 @@ export class App implements OnInit {
     },
     { label: 'CRM',       icon: 'group_work', route: '/crm' },
     { label: 'Timesheet', icon: 'schedule',   route: '/timesheet' },
-    { label: 'Report',    icon: 'bar_chart',  route: '/report' },
+    {
+      label: 'Report', icon: 'bar_chart',
+      children: [
+        { label: 'Dashboard analitica', icon: 'analytics',  route: '/report' },
+        { label: 'Report tabellari',    icon: 'table_chart', route: '/reports' },
+      ]
+    },
     {
       label: 'Sistema', icon: 'settings',
       children: [
@@ -322,14 +330,20 @@ export class App implements OnInit {
         { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },
       ]
     },
+    { label: 'Amministrazione', icon: 'admin_panel_settings', route: '/admin', superadminOnly: true },
   ];
 
-  /** Voci di menu filtrate dai moduli attivi. */
+  /** Voci di menu filtrate dai moduli attivi e dal ruolo dell'utente. */
   get visibleNavItems(): NavItem[] {
+    const isSuper = this.authSvc.getUser()?.ruolo === 'SUPERADMIN';
+    const allowed = (it: NavItem) => !it.superadminOnly || isSuper;
     return this.navItems
+      .filter(allowed)
       .map(item => {
         if (item.children) {
-          const visibleChildren = item.children.filter(c => !c.route || this.moduli.routeAbilitata(c.route));
+          const visibleChildren = item.children
+            .filter(allowed)
+            .filter(c => !c.route || this.moduli.routeAbilitata(c.route));
           return visibleChildren.length ? { ...item, children: visibleChildren } : null;
         }
         return (!item.route || this.moduli.routeAbilitata(item.route)) ? item : null;
