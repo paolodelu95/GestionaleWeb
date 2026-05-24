@@ -601,11 +601,12 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   inviaEmail(o: Ordine) {
     const isFornitore = o.tipo === 'FORNITORE';
-    const sources = isFornitore
+    const sources: any = isFornitore
       ? forkJoin({ az: this.ds.getAzienda(), parti: this.ds.getFornitori() })
       : forkJoin({ az: this.ds.getAzienda(), parti: this.ds.getClienti() });
-    sources.subscribe(({ az, parti }) => {
-      const parte: any = (parti as any[]).find(p => p.id === (isFornitore ? o.fornitoreId : o.clienteId));
+    sources.subscribe((r: { az: any; parti: any[] }) => {
+      const { az, parti } = r;
+      const parte: any = parti.find((p: any) => p.id === (isFornitore ? o.fornitoreId : o.clienteId));
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
