@@ -67,11 +67,15 @@
         }
       </mat-nav-list>
     }
-  </aside>
 
-  <button class="bug-fab" (click)="openBugReport()" matTooltip="Segnala un problema" matTooltipPosition="left">
-    <mat-icon>bug_report</mat-icon>
-  </button>
+    <div class="sidenav-footer">
+      <button class="sidenav-footer-btn" (click)="openBugReport()"
+              [matTooltip]="collapsed ? 'Segnala un problema' : ''" matTooltipPosition="right">
+        <mat-icon>bug_report</mat-icon>
+        @if (!collapsed) { <span>Segnala problema</span> }
+      </button>
+    </div>
+  </aside>
 
   <div class="main-content">
     <mat-toolbar class="topbar">

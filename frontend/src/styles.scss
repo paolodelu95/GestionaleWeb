@@ -345,6 +345,18 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   white-space: nowrap;
   width: 1%;
   padding-right: 12px !important;
+
+  // Kebab sempre visibile e con colore leggibile
+  .mat-mdc-icon-button {
+    opacity: 1 !important;
+    color: var(--text-tertiary) !important;
+    transition: color var(--transition-fast), background var(--transition-fast) !important;
+
+    &:hover {
+      color: var(--primary) !important;
+      background: var(--primary-soft) !important;
+    }
+  }
 }
 
 // ── Status chips (with dot indicator) ────────────────────────────────────────
@@ -784,7 +796,7 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
 @media print {
   mat-sidenav, .sidenav, mat-toolbar, .page-header button,
   .filter-bar, .search-field, mat-button-toggle-group, .bulk-bar,
-  .table-actions, .bug-fab, .pwa-banner { display: none !important; }
+  .table-actions, .pwa-banner, .sidenav-footer { display: none !important; }
   mat-sidenav-container { display: block !important; }
   mat-sidenav-content { margin-left: 0 !important; }
   .page { padding: 8px; background: white; }
@@ -1050,13 +1062,6 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .suggerimenti-bar { background: rgba(99, 102, 241, 0.10) !important; border-color: rgba(99, 102, 241, 0.25) !important; }
 
   body { background: var(--bg-page); color: var(--text-primary); }
-}
-
-// ── FAB nascosto quando un dialog è aperto ───────────────────────────────────
-// Evita che il bottone rosso "Segnala problema" sovrapponga il dialog.
-body:has(.cdk-overlay-container .mat-mdc-dialog-surface) .bug-fab,
-body:has(.cdk-overlay-container .mat-mdc-dialog-container) .bug-fab {
-  display: none !important;
 }
 
 // ── Mobile responsive ─────────────────────────────────────────────────────────
