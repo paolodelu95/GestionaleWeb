@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const db = require('../database');
+const { requireRole } = require('../middleware/auth');
+
+const ROLES_EMAIL_SEND = ['SUPERADMIN', 'ADMIN', 'COMMERCIALE', 'CONTABILE'];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function assertSafeRecipient(input) {
@@ -44,8 +47,8 @@ function bodyToHtml(text) {
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
-// ── POST /test – test connessione SMTP ───────────────────────────────────────
-router.post('/test', async (req, res) => {
+// ── POST /test – test connessione SMTP (solo ADMIN) ──────────────────────────
+router.post('/test', requireRole('SUPERADMIN', 'ADMIN'), async (req, res) => {
   try {
     const t = getTransporter();
     await t.verify();
@@ -55,8 +58,8 @@ router.post('/test', async (req, res) => {
   }
 });
 
-// ── POST /send – invio generico ───────────────────────────────────────────────
-router.post('/send', async (req, res) => {
+// ── POST /send – invio generico (solo ADMIN per evitare uso come open relay) ─
+router.post('/send', requireRole('SUPERADMIN', 'ADMIN'), async (req, res) => {
   const { to, subject, html, attachments } = req.body;
   if (!to || !subject) return res.status(400).json({ error: 'to e subject obbligatori' });
   if (/[\r\n]/.test(String(subject))) return res.status(400).json({ error: 'Subject non valido' });

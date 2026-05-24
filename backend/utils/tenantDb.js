@@ -491,8 +491,6 @@ function initTenantSchema(db) {
     'ALTER TABLE appuntamenti ADD COLUMN user_id INTEGER',
     'ALTER TABLE appuntamenti ADD COLUMN condiviso INTEGER DEFAULT 0',
     'CREATE INDEX IF NOT EXISTS idx_appuntamenti_user ON appuntamenti(user_id)',
-    'ALTER TABLE todo ADD COLUMN user_id INTEGER',
-    'CREATE INDEX IF NOT EXISTS idx_todo_user ON todo(user_id)',
     `CREATE TABLE IF NOT EXISTS todo (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       titolo TEXT NOT NULL,
@@ -502,9 +500,12 @@ function initTenantSchema(db) {
       stato TEXT NOT NULL DEFAULT 'DA_FARE' CHECK(stato IN ('DA_FARE','IN_CORSO','FATTA')),
       categoria TEXT DEFAULT '',
       completata_at TEXT,
+      user_id INTEGER,
       created_at TEXT DEFAULT (datetime('now'))
     )`,
     'CREATE INDEX IF NOT EXISTS idx_todo_scadenza ON todo(scadenza)',
+    'ALTER TABLE todo ADD COLUMN user_id INTEGER',
+    'CREATE INDEX IF NOT EXISTS idx_todo_user ON todo(user_id)',
     // CRM: stage + opportunità + attività
     `CREATE TABLE IF NOT EXISTS crm_stage (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

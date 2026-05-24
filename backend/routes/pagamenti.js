@@ -29,7 +29,7 @@ router.get('/scadenzario', (req, res) => {
   const fatture = db.prepare(`
     SELECT f.id, f.numero, f.data_emissione, f.cliente_id, c.ragione_sociale as controparte,
       tp.giorni_scadenza, tp.fine_mese, tp.conto, tp.immediato, tp.nome as tipo_pagamento_nome,
-      COALESCE(SUM(fr.quantita * fr.prezzo * (1 + fr.iva/100)), 0) as importo_totale,
+      COALESCE(SUM(fr.quantita * fr.prezzo * (1 - COALESCE(fr.sconto,0)/100.0) * (1 + COALESCE(fr.iva,0)/100.0)), 0) as importo_totale,
       COALESCE((SELECT SUM(p.importo) FROM pagamenti p WHERE p.fattura_id = f.id), 0) as importo_pagato,
       'FATTURA' as tipo_entry
     FROM fatture f
@@ -45,7 +45,7 @@ router.get('/scadenzario', (req, res) => {
     SELECT a.id, a.numero, a.data_emissione, a.fornitore_id as cliente_id,
       f.ragione_sociale as controparte,
       tp.giorni_scadenza, tp.fine_mese, tp.conto, tp.immediato, tp.nome as tipo_pagamento_nome,
-      COALESCE(SUM(ar.quantita * ar.prezzo * (1 + ar.iva/100)), 0) as importo_totale,
+      COALESCE(SUM(ar.quantita * ar.prezzo * (1 - COALESCE(ar.sconto,0)/100.0) * (1 + COALESCE(ar.iva,0)/100.0)), 0) as importo_totale,
       COALESCE((SELECT SUM(p.importo) FROM pagamenti p WHERE p.acquisto_id = a.id), 0) as importo_pagato,
       'ACQUISTO' as tipo_entry
     FROM acquisti a
@@ -104,7 +104,7 @@ router.delete('/:id', (req, res) => {
 });
 
 function aggiornaStatoFattura(fatturaId) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 + iva/100)), 0) as tot
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0)), 0) as tot
     FROM fatture_righe WHERE fattura_id=?`).get(fatturaId)?.tot || 0;
   const pagato = db.prepare(`SELECT COALESCE(SUM(importo), 0) as tot FROM pagamenti WHERE fattura_id=?`).get(fatturaId)?.tot || 0;
   const stato = pagato >= totale && totale > 0 ? 'PAGATA' : 'EMESSA';
@@ -112,7 +112,7 @@ function aggiornaStatoFattura(fatturaId) {
 }
 
 function aggiornaStatoAcquisto(acquistoId) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 + iva/100)), 0) as tot
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0)), 0) as tot
     FROM acquisti_righe WHERE acquisto_id=?`).get(acquistoId)?.tot || 0;
   const pagato = db.prepare(`SELECT COALESCE(SUM(importo), 0) as tot FROM pagamenti WHERE acquisto_id=?`).get(acquistoId)?.tot || 0;
   const stato = pagato >= totale && totale > 0 ? 'PAGATA' : 'RICEVUTA';

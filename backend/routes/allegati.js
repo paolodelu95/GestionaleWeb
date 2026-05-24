@@ -4,6 +4,7 @@ const db = require('../database');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { requireRole } = require('../middleware/auth');
 
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -76,14 +77,25 @@ router.post('/', (req, res, next) => {
   });
 });
 
-// DELETE /api/allegati/:id
-router.delete('/:id', (req, res) => {
+// Validates that the percorso column points to a file actually inside uploadDir.
+// Prevents path traversal if a malicious value sneaks into the DB.
+function safeFilePath(percorso) {
+  if (!percorso || typeof percorso !== 'string') return null;
+  const candidate = path.resolve(uploadDir, percorso);
+  const base = path.resolve(uploadDir);
+  if (!candidate.startsWith(base + path.sep) && candidate !== base) return null;
+  return candidate;
+}
+
+// DELETE /api/allegati/:id  (ADMIN/SUPERADMIN only)
+router.delete('/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
   const row = db.prepare('SELECT percorso FROM allegati WHERE id=?').get(req.params.id);
-  if (row) {
-    const filePath = path.join(uploadDir, row.percorso);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    db.prepare('DELETE FROM allegati WHERE id=?').run(req.params.id);
-  }
+  if (!row) return res.status(404).json({ error: 'Allegato non trovato' });
+  const filePath = safeFilePath(row.percorso);
+  try {
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch (_) { /* ignora errore filesystem, prosegui con DELETE record */ }
+  db.prepare('DELETE FROM allegati WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
 
@@ -91,8 +103,8 @@ router.delete('/:id', (req, res) => {
 router.get('/:id/download', (req, res) => {
   const row = db.prepare('SELECT * FROM allegati WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Non trovato' });
-  const filePath = path.join(uploadDir, row.percorso);
-  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File non trovato sul disco' });
+  const filePath = safeFilePath(row.percorso);
+  if (!filePath || !fs.existsSync(filePath)) return res.status(404).json({ error: 'File non trovato sul disco' });
   res.download(filePath, row.nome_file);
 });
 

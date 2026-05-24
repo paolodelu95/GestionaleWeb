@@ -310,11 +310,15 @@ router.get('/:id/print', (req, res) => {
 
 router.patch('/:id/stato', (req, res) => {
   const { stato } = req.body;
-  const before = db.prepare('SELECT stato FROM fatture WHERE id=?').get(req.params.id);
-  db.prepare('UPDATE fatture SET stato=? WHERE id=?').run(stato, req.params.id);
-  if (stato === 'EMESSA') {
-    creaPagamentoImmediato(req.params.id);
-  }
+  const tx = db.transaction(() => {
+    const before = db.prepare('SELECT stato FROM fatture WHERE id=?').get(req.params.id);
+    db.prepare('UPDATE fatture SET stato=? WHERE id=?').run(stato, req.params.id);
+    if (stato === 'EMESSA') {
+      creaPagamentoImmediato(req.params.id);
+    }
+    return before;
+  });
+  const before = tx();
   audit('fattura', Number(req.params.id), 'UPDATE', { before, after: { stato } });
   res.json({ success: true });
 });
@@ -324,7 +328,7 @@ function creaPagamentoImmediato(fatturaId) {
   if (!fattura?.tipo_pagamento_id) return;
   const tp = db.prepare('SELECT * FROM tipi_pagamento WHERE id=?').get(fattura.tipo_pagamento_id);
   if (tp?.immediato !== 1) return;
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0)), 0) as t
     FROM fatture_righe WHERE fattura_id=?`).get(fatturaId)?.t || 0;
   if (totale <= 0) return;
   db.prepare(`INSERT INTO pagamenti (fattura_id, data_pagamento, importo, metodo, note, tipo, tipo_pagamento_id, conto)

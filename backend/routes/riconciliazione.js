@@ -190,25 +190,33 @@ router.post('/conferma', (req, res) => {
       const importo = Math.abs(+it.importo);
       const tipo = it.tipoEntry === 'FATTURA' ? 'ENTRATA' : 'USCITA';
       const fkCol = it.tipoEntry === 'FATTURA' ? 'fattura_id' : 'acquisto_id';
-      db.prepare(`INSERT INTO pagamenti
-        (${fkCol}, data_pagamento, importo, metodo, note, tipo, conto)
-        VALUES (?,?,?,?,?,?,?)`)
-        .run(it.id, it.data, importo,
-             it.metodo || 'Bonifico',
-             it.note || 'Da riconciliazione bancaria',
-             tipo, 'BANCA');
-      // Auto-saldo se l'importo copre il residuo
-      if (it.tipoEntry === 'FATTURA') {
-        const r = db.prepare(`SELECT
-          (SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100)*(1+iva/100)),0) FROM fatture_righe WHERE fattura_id=?) -
-          (SELECT COALESCE(SUM(importo),0) FROM pagamenti WHERE fattura_id=?) AS res`).get(it.id, it.id);
-        if (r?.res <= 0.01) db.prepare('UPDATE fatture SET stato=? WHERE id=?').run('PAGATA', it.id);
-      } else {
-        const r = db.prepare(`SELECT
-          (SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100)*(1+iva/100)),0) FROM acquisti_righe WHERE acquisto_id=?) -
-          (SELECT COALESCE(SUM(importo),0) FROM pagamenti WHERE acquisto_id=?) AS res`).get(it.id, it.id);
-        if (r?.res <= 0.01) db.prepare('UPDATE acquisti SET stato=? WHERE id=?').run('PAGATA', it.id);
-      }
+
+      // Verifica esistenza documento prima di registrare
+      const docTable = it.tipoEntry === 'FATTURA' ? 'fatture' : 'acquisti';
+      const doc = db.prepare(`SELECT id FROM ${docTable} WHERE id=?`).get(it.id);
+      if (!doc) throw new Error(`${docTable} #${it.id} non trovato`);
+
+      const tx = db.transaction(() => {
+        db.prepare(`INSERT INTO pagamenti
+          (${fkCol}, data_pagamento, importo, metodo, note, tipo, conto)
+          VALUES (?,?,?,?,?,?,?)`)
+          .run(it.id, it.data, importo,
+               it.metodo || 'Bonifico',
+               it.note || 'Da riconciliazione bancaria',
+               tipo, 'BANCA');
+        if (it.tipoEntry === 'FATTURA') {
+          const r = db.prepare(`SELECT
+            (SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100.0)*(1+COALESCE(iva,0)/100.0)),0) FROM fatture_righe WHERE fattura_id=?) -
+            (SELECT COALESCE(SUM(importo),0) FROM pagamenti WHERE fattura_id=?) AS res`).get(it.id, it.id);
+          if (r?.res <= 0.01) db.prepare('UPDATE fatture SET stato=? WHERE id=?').run('PAGATA', it.id);
+        } else {
+          const r = db.prepare(`SELECT
+            (SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100.0)*(1+COALESCE(iva,0)/100.0)),0) FROM acquisti_righe WHERE acquisto_id=?) -
+            (SELECT COALESCE(SUM(importo),0) FROM pagamenti WHERE acquisto_id=?) AS res`).get(it.id, it.id);
+          if (r?.res <= 0.01) db.prepare('UPDATE acquisti SET stato=? WHERE id=?').run('PAGATA', it.id);
+        }
+      });
+      tx();
       creati++;
     } catch (err) { errori.push({ item: it, errore: err.message }); }
   }

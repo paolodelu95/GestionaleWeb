@@ -64,7 +64,18 @@ router.put('/:id', async (req, res) => {
   if (password) fields.password_hash = await bcrypt.hash(password, SALT);
 
   if (ruolo !== undefined) {
-    fields.ruolo = (ruolo === 'SUPERADMIN' && !isSuper(req)) ? existing.ruolo : ruolo;
+    // Solo SUPERADMIN può elevare a SUPERADMIN o declassare un SUPERADMIN esistente
+    if (!isSuper(req) && ruolo === 'SUPERADMIN') {
+      fields.ruolo = existing.ruolo;
+    } else if (!isSuper(req) && existing.ruolo === 'SUPERADMIN' && ruolo !== 'SUPERADMIN') {
+      return res.status(403).json({ error: 'Solo SUPERADMIN può declassare un SUPERADMIN' });
+    } else {
+      fields.ruolo = ruolo;
+    }
+  }
+  // Impedisce a un admin (non-super) di disattivare un SUPERADMIN
+  if (attivo !== undefined && existing.ruolo === 'SUPERADMIN' && !attivo && !isSuper(req)) {
+    return res.status(403).json({ error: 'Solo SUPERADMIN può disattivare un SUPERADMIN' });
   }
   if (tenant !== undefined) {
     if (!isSuper(req) && tenant !== existing.tenant_slug) {

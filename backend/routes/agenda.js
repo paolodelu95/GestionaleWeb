@@ -453,6 +453,9 @@ router.get('/export.ics', (req, res) => {
 
 // GET /api/agenda/feed-url — restituisce l'URL signed del feed pubblico per il tenant corrente
 router.get('/feed-url', (req, res) => {
+  if (!process.env.AUTH_SECRET) {
+    return res.status(503).json({ error: 'Feed agenda non disponibile: AUTH_SECRET non configurato sul server' });
+  }
   try {
     const token = feedTokenFor(req.tenant);
     const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
@@ -473,12 +476,18 @@ function publicFeedHandler(req, res) {
   const token  = String(req.query.token  || '');
   if (!verifyFeedToken(tenant, token)) return res.status(403).send('Forbidden');
 
+  // Verifica che il tenant esista E sia attivo nel master auth.db
+  const { getTenant } = require('../utils/authDb');
+  const tenantRow = getTenant(tenant);
+  if (!tenantRow) return res.status(404).send('Tenant non trovato');
+  if (!tenantRow.attivo) return res.status(403).send('Tenant non attivo');
+
   // ALS non è attivo qui (siamo pre-auth). Apriamo direttamente il tenant DB e
   // facciamo runWithContext per il calendario() che usa il proxy db.
   const { openTenantDb } = require('../utils/tenantDb');
   const { runWithContext } = require('../utils/tenantContext');
   try {
-    openTenantDb(tenant); // verifica che esista
+    openTenantDb(tenant); // verifica che esista a livello DB
   } catch (err) {
     return res.status(404).send('Tenant non trovato');
   }

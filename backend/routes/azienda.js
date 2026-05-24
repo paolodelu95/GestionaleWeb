@@ -1,13 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { requireRole } = require('../middleware/auth');
+
+const ADMIN_ROLES = ['SUPERADMIN', 'ADMIN'];
 
 router.get('/', (req, res) => {
   const row = db.prepare('SELECT * FROM azienda WHERE id = 1').get();
-  res.json(row ? toDto(row) : {});
+  if (!row) return res.json({});
+  const isAdmin = req.user && ADMIN_ROLES.includes(req.user.ruolo);
+  res.json(toDto(row, isAdmin));
 });
 
-router.put('/', (req, res) => {
+router.put('/', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
   const a = req.body;
   db.prepare(`UPDATE azienda SET ragione_sociale=?, indirizzo=?, cap=?, citta=?, provincia=?, stato=?,
     p_iva=?, cod_fiscale=?, email=?, telefono=?, pec=?, sdi=?, banca=?, iban=?, logo=?,
@@ -30,7 +35,9 @@ router.put('/', (req, res) => {
   res.json({ success: true });
 });
 
-function toDto(r) {
+function toDto(r, includeSecrets = false) {
+  const maskedPass = r.smtp_pass ? '••••••••' : '';
+  const maskedKey  = r.sdi_api_key ? '••••••••' : '';
   return {
     id: r.id, ragioneSociale: r.ragione_sociale, indirizzo: r.indirizzo,
     cap: r.cap, citta: r.citta, provincia: r.provincia, stato: r.stato,
@@ -38,9 +45,9 @@ function toDto(r) {
     email: r.email, telefono: r.telefono, pec: r.pec, sdi: r.sdi,
     banca: r.banca, iban: r.iban, logo: r.logo || '',
     smtpHost: r.smtp_host || '', smtpPort: r.smtp_port || 587,
-    smtpUser: r.smtp_user || '', smtpPass: r.smtp_pass || '',
+    smtpUser: r.smtp_user || '', smtpPass: includeSecrets ? (r.smtp_pass || '') : maskedPass,
     smtpFrom: r.smtp_from || '', smtpSecure: r.smtp_secure === 1,
-    sdiApiUrl: r.sdi_api_url || '', sdiApiKey: r.sdi_api_key || '',
+    sdiApiUrl: r.sdi_api_url || '', sdiApiKey: includeSecrets ? (r.sdi_api_key || '') : maskedKey,
     riordinoAutomatico: r.riordino_automatico === 1,
     multiUtenteAttivo: r.multi_utente_attivo === 1,
     numerazioneAnnuale: (r.numerazione_annuale ?? 1) !== 0,

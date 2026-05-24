@@ -5,6 +5,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { requireRole } = require('../middleware/auth');
+
+const MANAGE_PROGETTI = requireRole('SUPERADMIN', 'ADMIN', 'COMMERCIALE');
+const FATTURABILE     = requireRole('SUPERADMIN', 'ADMIN', 'COMMERCIALE', 'CONTABILE');
 
 function projDto(r) {
   return {
@@ -29,7 +33,7 @@ router.get('/progetti', (req, res) => {
   res.json(rows.map(projDto));
 });
 
-router.post('/progetti', (req, res) => {
+router.post('/progetti', MANAGE_PROGETTI, (req, res) => {
   const p = req.body || {};
   const r = db.prepare(`INSERT INTO progetti
     (nome, descrizione, cliente_id, stato, data_inizio, data_fine, budget, tariffa_oraria, note)
@@ -39,7 +43,7 @@ router.post('/progetti', (req, res) => {
   res.json({ id: r.lastInsertRowid });
 });
 
-router.put('/progetti/:id', (req, res) => {
+router.put('/progetti/:id', MANAGE_PROGETTI, (req, res) => {
   const p = req.body || {};
   db.prepare(`UPDATE progetti SET
     nome=?, descrizione=?, cliente_id=?, stato=?, data_inizio=?, data_fine=?,
@@ -50,7 +54,7 @@ router.put('/progetti/:id', (req, res) => {
   res.json({ success: true });
 });
 
-router.delete('/progetti/:id', (req, res) => {
+router.delete('/progetti/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
   db.prepare('DELETE FROM progetti WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
@@ -95,7 +99,7 @@ router.delete('/voci/:id', (req, res) => {
 // Crea una fattura in stato EMESSA con una riga "Ore lavorate (NN h x €/h = €...)"
 // e marca le voci come fatturate.
 const { getNextNumero } = require('../utils/nextNumero');
-router.post('/progetti/:id/fattura', (req, res) => {
+router.post('/progetti/:id/fattura', FATTURABILE, (req, res) => {
   const id = parseInt(req.params.id, 10);
   const progetto = db.prepare('SELECT * FROM progetti WHERE id=?').get(id);
   if (!progetto) return res.status(404).json({ error: 'Progetto non trovato' });
@@ -111,12 +115,22 @@ router.post('/progetti/:id/fattura', (req, res) => {
   const oreTotali = voci.reduce((s, v) => s + v.ore, 0);
   const importo   = +(oreTotali * progetto.tariffa_oraria).toFixed(2);
   const oggi      = new Date().toISOString().slice(0, 10);
-  const numero    = getNextNumero('fatture', 'fatture');
 
-  const ivaDefault = 22;
+  // IVA: prende l'aliquota dal cliente (aliquota_iva_id), altrimenti la predefinita
+  // azienda, altrimenti 22.
+  const ivaCliente = db.prepare(`
+    SELECT ai.valore FROM clienti c
+    LEFT JOIN aliquote_iva ai ON ai.id = c.aliquota_iva_id
+    WHERE c.id=?`).get(progetto.cliente_id)?.valore;
+  const ivaPred = db.prepare("SELECT valore FROM aliquote_iva WHERE predefinito=1 LIMIT 1").get()?.valore;
+  const ivaCalcolata = (ivaCliente != null && ivaCliente !== '') ? Number(ivaCliente)
+                      : (ivaPred != null ? Number(ivaPred) : 22);
+  const ivaDefault = Number.isFinite(ivaCalcolata) ? ivaCalcolata : 22;
+
   const descrizione = `Prestazioni progetto "${progetto.nome}" — ${oreTotali} h x ${progetto.tariffa_oraria.toFixed(2)} €/h`;
 
   const tx = db.transaction(() => {
+    const numero = getNextNumero('fatture', 'fatture');
     const r = db.prepare(`INSERT INTO fatture
       (numero, data_emissione, cliente_id, note, stato)
       VALUES (?,?,?,?,?)`).run(numero, oggi, progetto.cliente_id,

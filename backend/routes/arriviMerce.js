@@ -28,103 +28,116 @@ router.get('/:id', (req, res) => {
 // ── POST / – crea arrivo merce e aggiorna magazzino ─────────────────────────
 router.post('/', (req, res) => {
   const d = req.body;
-  const result = db.prepare(`
-    INSERT INTO arrivi_merce (numero, data, fornitore_id, acquisto_id, numero_documento_fornitore, note, stato)
-    VALUES (?,?,?,?,?,?,?)`)
-    .run(
-      d.numero, d.data, d.fornitoreId || null, d.acquistoId || null,
-      d.numeroDocumentoFornitore || '', d.note || '', d.stato || 'RICEVUTO'
-    );
-  const arrivoId = result.lastInsertRowid;
-  if (d.righe?.length) {
-    saveRighe(arrivoId, d.righe);
-    if (d.stato === 'RICEVUTO') {
-      const forn = d.fornitoreId ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(d.fornitoreId) : null;
-      aggiornaQuantita(d.righe, +1, {
-        data: d.data, causale: 'ARRIVO_MERCE', documentoTipo: 'ARRIVO_MERCE',
-        documentoId: arrivoId, documentoNumero: d.numero,
-        fornitoreId: d.fornitoreId || null, fornitoreNome: forn?.ragione_sociale || ''
-      });
+  const tx = db.transaction(() => {
+    const result = db.prepare(`
+      INSERT INTO arrivi_merce (numero, data, fornitore_id, acquisto_id, numero_documento_fornitore, note, stato)
+      VALUES (?,?,?,?,?,?,?)`)
+      .run(
+        d.numero, d.data, d.fornitoreId || null, d.acquistoId || null,
+        d.numeroDocumentoFornitore || '', d.note || '', d.stato || 'RICEVUTO'
+      );
+    const arrivoId = result.lastInsertRowid;
+    if (d.righe?.length) {
+      saveRighe(arrivoId, d.righe);
+      if (d.stato === 'RICEVUTO') {
+        const forn = d.fornitoreId ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(d.fornitoreId) : null;
+        aggiornaQuantita(d.righe, +1, {
+          data: d.data, causale: 'ARRIVO_MERCE', documentoTipo: 'ARRIVO_MERCE',
+          documentoId: arrivoId, documentoNumero: d.numero,
+          fornitoreId: d.fornitoreId || null, fornitoreNome: forn?.ragione_sociale || ''
+        });
+      }
     }
-  }
+    return arrivoId;
+  });
+  const arrivoId = tx();
   res.json({ id: arrivoId });
 });
 
 // ── PUT /:id – aggiorna (storno + ricarico) ──────────────────────────────────
 router.put('/:id', (req, res) => {
   const d = req.body;
-  const old = db.prepare('SELECT numero, fornitore_id, stato FROM arrivi_merce WHERE id=?').get(req.params.id);
-  const vecchieRighe = getRighe(req.params.id);
+  const tx = db.transaction(() => {
+    const old = db.prepare('SELECT numero, fornitore_id, stato FROM arrivi_merce WHERE id=?').get(req.params.id);
+    const vecchieRighe = getRighe(req.params.id);
 
-  if (vecchieRighe.length && old?.stato === 'RICEVUTO') {
-    const oldForn = old.fornitore_id ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(old.fornitore_id) : null;
-    aggiornaQuantita(vecchieRighe, -1, {
-      causale: 'STORNO', documentoTipo: 'ARRIVO_MERCE',
-      documentoId: req.params.id, documentoNumero: old?.numero || '',
-      fornitoreId: old?.fornitore_id || null, fornitoreNome: oldForn?.ragione_sociale || ''
-    });
-  }
-
-  db.prepare(`
-    UPDATE arrivi_merce SET numero=?, data=?, fornitore_id=?, acquisto_id=?,
-      numero_documento_fornitore=?, note=?, stato=? WHERE id=?`)
-    .run(
-      d.numero, d.data, d.fornitoreId || null, d.acquistoId || null,
-      d.numeroDocumentoFornitore || '', d.note || '', d.stato, req.params.id
-    );
-
-  db.prepare('DELETE FROM arrivi_merce_righe WHERE arrivo_merce_id=?').run(req.params.id);
-  if (d.righe?.length) {
-    saveRighe(req.params.id, d.righe);
-    if (d.stato === 'RICEVUTO') {
-      const forn = d.fornitoreId ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(d.fornitoreId) : null;
-      aggiornaQuantita(d.righe, +1, {
-        data: d.data, causale: 'ARRIVO_MERCE', documentoTipo: 'ARRIVO_MERCE',
-        documentoId: req.params.id, documentoNumero: d.numero,
-        fornitoreId: d.fornitoreId || null, fornitoreNome: forn?.ragione_sociale || ''
+    if (vecchieRighe.length && old?.stato === 'RICEVUTO') {
+      const oldForn = old.fornitore_id ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(old.fornitore_id) : null;
+      aggiornaQuantita(vecchieRighe, -1, {
+        causale: 'STORNO', documentoTipo: 'ARRIVO_MERCE',
+        documentoId: req.params.id, documentoNumero: old?.numero || '',
+        fornitoreId: old?.fornitore_id || null, fornitoreNome: oldForn?.ragione_sociale || ''
       });
     }
-  }
+
+    db.prepare(`
+      UPDATE arrivi_merce SET numero=?, data=?, fornitore_id=?, acquisto_id=?,
+        numero_documento_fornitore=?, note=?, stato=? WHERE id=?`)
+      .run(
+        d.numero, d.data, d.fornitoreId || null, d.acquistoId || null,
+        d.numeroDocumentoFornitore || '', d.note || '', d.stato, req.params.id
+      );
+
+    db.prepare('DELETE FROM arrivi_merce_righe WHERE arrivo_merce_id=?').run(req.params.id);
+    if (d.righe?.length) {
+      saveRighe(req.params.id, d.righe);
+      if (d.stato === 'RICEVUTO') {
+        const forn = d.fornitoreId ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(d.fornitoreId) : null;
+        aggiornaQuantita(d.righe, +1, {
+          data: d.data, causale: 'ARRIVO_MERCE', documentoTipo: 'ARRIVO_MERCE',
+          documentoId: req.params.id, documentoNumero: d.numero,
+          fornitoreId: d.fornitoreId || null, fornitoreNome: forn?.ragione_sociale || ''
+        });
+      }
+    }
+  });
+  tx();
   res.json({ success: true });
 });
 
 // ── PATCH /:id/stato ─────────────────────────────────────────────────────────
 router.patch('/:id/stato', (req, res) => {
   const { stato } = req.body;
-  const old = db.prepare('SELECT stato, numero, fornitore_id FROM arrivi_merce WHERE id=?').get(req.params.id);
-  const righe = getRighe(req.params.id);
-  const forn = old?.fornitore_id ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(old.fornitore_id) : null;
-  const ctx = {
-    documentoTipo: 'ARRIVO_MERCE', documentoId: req.params.id,
-    documentoNumero: old?.numero || '', fornitoreId: old?.fornitore_id || null,
-    fornitoreNome: forn?.ragione_sociale || ''
-  };
+  const tx = db.transaction(() => {
+    const old = db.prepare('SELECT stato, numero, fornitore_id FROM arrivi_merce WHERE id=?').get(req.params.id);
+    const righe = getRighe(req.params.id);
+    const forn = old?.fornitore_id ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(old.fornitore_id) : null;
+    const ctx = {
+      documentoTipo: 'ARRIVO_MERCE', documentoId: req.params.id,
+      documentoNumero: old?.numero || '', fornitoreId: old?.fornitore_id || null,
+      fornitoreNome: forn?.ragione_sociale || ''
+    };
 
-  if (stato === 'RICEVUTO' && old?.stato !== 'RICEVUTO') {
-    aggiornaQuantita(righe, +1, { ...ctx, causale: 'ARRIVO_MERCE', data: new Date().toISOString().split('T')[0] });
-  } else if (stato === 'ANNULLATO' && old?.stato === 'RICEVUTO') {
-    aggiornaQuantita(righe, -1, { ...ctx, causale: 'ANNULLAMENTO' });
-  }
-  db.prepare('UPDATE arrivi_merce SET stato=? WHERE id=?').run(stato, req.params.id);
+    if (stato === 'RICEVUTO' && old?.stato !== 'RICEVUTO') {
+      aggiornaQuantita(righe, +1, { ...ctx, causale: 'ARRIVO_MERCE', data: new Date().toISOString().split('T')[0] });
+    } else if (stato === 'ANNULLATO' && old?.stato === 'RICEVUTO') {
+      aggiornaQuantita(righe, -1, { ...ctx, causale: 'ANNULLAMENTO' });
+    }
+    db.prepare('UPDATE arrivi_merce SET stato=? WHERE id=?').run(stato, req.params.id);
+  });
+  tx();
   res.json({ success: true });
 });
 
 // ── DELETE /:id ───────────────────────────────────────────────────────────────
 router.delete('/:id', (req, res) => {
-  const arrivo = db.prepare('SELECT stato, numero, fornitore_id FROM arrivi_merce WHERE id=?').get(req.params.id);
-  if (arrivo?.stato === 'RICEVUTO') {
-    const righe = getRighe(req.params.id);
-    if (righe.length) {
-      const forn = arrivo.fornitore_id ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(arrivo.fornitore_id) : null;
-      aggiornaQuantita(righe, -1, {
-        causale: 'ELIMINAZIONE', documentoTipo: 'ARRIVO_MERCE',
-        documentoId: req.params.id, documentoNumero: arrivo?.numero || '',
-        fornitoreId: arrivo?.fornitore_id || null, fornitoreNome: forn?.ragione_sociale || ''
-      });
+  const tx = db.transaction(() => {
+    const arrivo = db.prepare('SELECT stato, numero, fornitore_id FROM arrivi_merce WHERE id=?').get(req.params.id);
+    if (arrivo?.stato === 'RICEVUTO') {
+      const righe = getRighe(req.params.id);
+      if (righe.length) {
+        const forn = arrivo.fornitore_id ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(arrivo.fornitore_id) : null;
+        aggiornaQuantita(righe, -1, {
+          causale: 'ELIMINAZIONE', documentoTipo: 'ARRIVO_MERCE',
+          documentoId: req.params.id, documentoNumero: arrivo?.numero || '',
+          fornitoreId: arrivo?.fornitore_id || null, fornitoreNome: forn?.ragione_sociale || ''
+        });
+      }
     }
-  }
-  db.prepare('DELETE FROM arrivi_merce_righe WHERE arrivo_merce_id=?').run(req.params.id);
-  db.prepare('DELETE FROM arrivi_merce WHERE id=?').run(req.params.id);
+    db.prepare('DELETE FROM arrivi_merce_righe WHERE arrivo_merce_id=?').run(req.params.id);
+    db.prepare('DELETE FROM arrivi_merce WHERE id=?').run(req.params.id);
+  });
+  tx();
   res.json({ success: true });
 });
 

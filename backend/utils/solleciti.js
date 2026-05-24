@@ -7,9 +7,13 @@ async function inviaSOllecitiAutomatici() {
   const oggi = new Date().toISOString().split('T')[0];
 
   const fatture = db.prepare(`
-    SELECT f.id, f.numero, f.data_emissione, f.totale,
+    SELECT f.id, f.numero, f.data_emissione,
            c.ragione_sociale as cliente_nome, c.email as cliente_email,
-           COALESCE(tp.giorni_pagamento, 30) as giorni_pagamento
+           COALESCE(tp.giorni_scadenza, 30) as giorni_pagamento,
+           COALESCE((
+             SELECT SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0))
+             FROM fatture_righe WHERE fattura_id = f.id
+           ), 0) as totale
     FROM fatture f
     JOIN clienti c ON f.cliente_id = c.id
     LEFT JOIN tipi_pagamento tp ON f.tipo_pagamento_id = tp.id

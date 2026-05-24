@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { requireRole } = require('../middleware/auth');
+
+const MANAGE_PIPELINE = requireRole('SUPERADMIN', 'ADMIN', 'COMMERCIALE');
 
 // ── Stages (colonne Kanban) ──────────────────────────────────────────────────
 router.get('/stages', (req, res) => {
@@ -8,7 +11,7 @@ router.get('/stages', (req, res) => {
   res.json(rows.map(r => ({ ...r, vinto: r.vinto === 1, perso: r.perso === 1 })));
 });
 
-router.post('/stages', (req, res) => {
+router.post('/stages', MANAGE_PIPELINE, (req, res) => {
   const s = req.body || {};
   const r = db.prepare(
     `INSERT INTO crm_stage (nome, ordine, colore, vinto, perso) VALUES (?,?,?,?,?)`
@@ -16,7 +19,7 @@ router.post('/stages', (req, res) => {
   res.json({ id: r.lastInsertRowid });
 });
 
-router.put('/stages/:id', (req, res) => {
+router.put('/stages/:id', MANAGE_PIPELINE, (req, res) => {
   const s = req.body || {};
   db.prepare(
     `UPDATE crm_stage SET nome=?, ordine=?, colore=?, vinto=?, perso=? WHERE id=?`
@@ -24,7 +27,7 @@ router.put('/stages/:id', (req, res) => {
   res.json({ success: true });
 });
 
-router.delete('/stages/:id', (req, res) => {
+router.delete('/stages/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
   db.prepare('UPDATE crm_opportunita SET stage_id=NULL WHERE stage_id=?').run(req.params.id);
   db.prepare('DELETE FROM crm_stage WHERE id=?').run(req.params.id);
   res.json({ success: true });
@@ -53,7 +56,7 @@ router.get('/opportunita', (req, res) => {
   res.json(rows.map(toDto));
 });
 
-router.post('/opportunita', (req, res) => {
+router.post('/opportunita', MANAGE_PIPELINE, (req, res) => {
   const o = req.body || {};
   const r = db.prepare(`INSERT INTO crm_opportunita
     (titolo, cliente_id, contatto, email, telefono, stage_id, valore, probabilita,
@@ -65,7 +68,7 @@ router.post('/opportunita', (req, res) => {
   res.json({ id: r.lastInsertRowid });
 });
 
-router.put('/opportunita/:id', (req, res) => {
+router.put('/opportunita/:id', MANAGE_PIPELINE, (req, res) => {
   const o = req.body || {};
   db.prepare(`UPDATE crm_opportunita SET
       titolo=?, cliente_id=?, contatto=?, email=?, telefono=?, stage_id=?,
@@ -79,14 +82,14 @@ router.put('/opportunita/:id', (req, res) => {
 });
 
 // Sposta opportunità in un'altra colonna (drag&drop Kanban)
-router.patch('/opportunita/:id/stage', (req, res) => {
+router.patch('/opportunita/:id/stage', MANAGE_PIPELINE, (req, res) => {
   const { stageId, ordine } = req.body || {};
   db.prepare(`UPDATE crm_opportunita SET stage_id=?, ordine=?, updated_at=datetime('now') WHERE id=?`)
     .run(stageId || null, ordine ?? 0, req.params.id);
   res.json({ success: true });
 });
 
-router.delete('/opportunita/:id', (req, res) => {
+router.delete('/opportunita/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
   db.prepare('DELETE FROM crm_opportunita WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });

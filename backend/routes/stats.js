@@ -246,9 +246,9 @@ router.get('/iva-trimestre', (req, res) => {
 
   // IVA debito (vendite)
   const venditeRows = db.prepare(`
-    SELECT fr.iva,
-           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile,
-           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(fr.iva/100)),0) as iva
+    SELECT fr.iva AS aliquota,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100.0)),0) as imponibile,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100.0)*(COALESCE(fr.iva,0)/100.0)),0) as iva
     FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
     WHERE f.data_emissione BETWEEN ? AND ?
       AND f.stato != 'ANNULLATA'
@@ -257,9 +257,9 @@ router.get('/iva-trimestre', (req, res) => {
 
   // IVA credito (acquisti)
   const acquistiRows = db.prepare(`
-    SELECT ar.iva,
-           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)),0) as imponibile,
-           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(ar.iva/100)),0) as iva
+    SELECT ar.iva AS aliquota,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100.0)),0) as imponibile,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100.0)*(COALESCE(ar.iva,0)/100.0)),0) as iva
     FROM acquisti a JOIN acquisti_righe ar ON ar.acquisto_id=a.id
     WHERE a.data_emissione BETWEEN ? AND ?
     GROUP BY ar.iva ORDER BY ar.iva
@@ -275,8 +275,8 @@ router.get('/iva-trimestre', (req, res) => {
     ivaCredito: +ivaCredito.toFixed(2),
     saldo: +saldo.toFixed(2),
     debito: saldo > 0,
-    venditePerAliquota: venditeRows.map(r => ({ aliquota: r.iva, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
-    acquistiPerAliquota: acquistiRows.map(r => ({ aliquota: r.iva, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
+    venditePerAliquota: venditeRows.map(r => ({ aliquota: r.aliquota, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
+    acquistiPerAliquota: acquistiRows.map(r => ({ aliquota: r.aliquota, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
   });
 });
 

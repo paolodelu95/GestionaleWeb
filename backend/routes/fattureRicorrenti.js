@@ -37,40 +37,43 @@ function getNextFatturaNumero() {
   return getNextNumero('fatture', 'fatture');
 }
 
-/** Emit a real fattura from a ricorrente template row */
+/** Emit a real fattura from a ricorrente template row (transactional) */
 function emettiFattura(r) {
   const righe = JSON.parse(r.righe || '[]');
   const today = new Date().toISOString().substring(0, 10);
-  const numero = getNextFatturaNumero();
 
-  const result = db.prepare(
-    `INSERT INTO fatture (numero, data_emissione, cliente_id, note, stato, tipo_pagamento_id)
-     VALUES (?,?,?,?,?,?)`
-  ).run(numero, today, r.cliente_id, r.note || '', 'EMESSA', r.tipo_pagamento_id || null);
+  const tx = db.transaction(() => {
+    const numero = getNextFatturaNumero();
+    const result = db.prepare(
+      `INSERT INTO fatture (numero, data_emissione, cliente_id, note, stato, tipo_pagamento_id)
+       VALUES (?,?,?,?,?,?)`
+    ).run(numero, today, r.cliente_id, r.note || '', 'EMESSA', r.tipo_pagamento_id || null);
 
-  const fatturaId = result.lastInsertRowid;
-
-  for (const riga of righe) {
-    db.prepare(
+    const fatturaId = result.lastInsertRowid;
+    const insertRiga = db.prepare(
       `INSERT INTO fatture_righe (fattura_id, prodotto_id, descrizione, quantita, prezzo, iva, sconto, unita_misura)
        VALUES (?,?,?,?,?,?,?,?)`
-    ).run(
-      fatturaId,
-      riga.prodottoId || null,
-      riga.descrizione || '',
-      riga.quantita ?? 1,
-      riga.prezzo ?? 0,
-      riga.iva ?? 22,
-      riga.sconto ?? 0,
-      riga.unitaMisura || ''
     );
-  }
+    for (const riga of righe) {
+      insertRiga.run(
+        fatturaId,
+        riga.prodottoId || null,
+        riga.descrizione || '',
+        riga.quantita ?? 1,
+        riga.prezzo ?? 0,
+        riga.iva ?? 22,
+        riga.sconto ?? 0,
+        riga.unitaMisura || ''
+      );
+    }
 
-  // Update prossima_emissione
-  const nuovaProssima = nextEmissione(r.prossima_emissione, r.frequenza, r.giorno_emissione);
-  db.prepare('UPDATE fatture_ricorrenti SET prossima_emissione=? WHERE id=?').run(nuovaProssima, r.id);
+    const nuovaProssima = nextEmissione(r.prossima_emissione, r.frequenza, r.giorno_emissione);
+    db.prepare('UPDATE fatture_ricorrenti SET prossima_emissione=? WHERE id=?').run(nuovaProssima, r.id);
 
-  return { fatturaId, numero, nuovaProssima };
+    return { fatturaId, numero, nuovaProssima };
+  });
+
+  return tx();
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────

@@ -210,6 +210,7 @@ app.use('/api/categorie-prodotto', require('./routes/categorieProdotto'));
 app.use('/api/unita-misura',     require('./routes/unitaMisura'));
 app.use('/api/aliquote-iva',     require('./routes/aliquoteIva'));
 app.use('/api/conti-acquisto',  require('./routes/contiAcquisto'));
+app.use('/api/listini',          require('./routes/listini'));
 app.use('/api/fattura-xml',      require('./routes/fatturaXml'));
 app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
 app.use('/api/email',            require('./routes/email'));
@@ -279,13 +280,15 @@ function forEachActiveTenant(taskName, fn) {
 
 cron.schedule('0 2 * * *', () => {
   console.log('[Cron] Avvio backup giornaliero');
-  for (const t of listTenants({ activeOnly: false })) {
-    runBackup(t.slug);
+  for (const t of listTenants({ activeOnly: true })) {
+    try { runBackup(t.slug); }
+    catch (err) { console.error(`[Cron:backup] tenant=${t.slug}:`, err.message); }
   }
 });
 setTimeout(() => {
-  for (const t of listTenants({ activeOnly: false })) {
-    runBackup(t.slug);
+  for (const t of listTenants({ activeOnly: true })) {
+    try { runBackup(t.slug); }
+    catch (err) { console.error(`[Boot:backup] tenant=${t.slug}:`, err.message); }
   }
 }, 5000);
 
@@ -314,8 +317,21 @@ cron.schedule('0 7 * * *', () => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: err.message });
+  // Body parser errors (JSON malformato, body troppo grande, ecc.)
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'JSON non valido' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Body troppo grande' });
+  }
+  // SqliteError: violazione constraint UNIQUE → 400
+  if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || /UNIQUE constraint/.test(err.message || '')) {
+    return res.status(400).json({ error: 'Valore duplicato' });
+  }
+  // Default: log e 500. In produzione non rivelo lo stack ma il messaggio.
+  console.error('[error]', err.message);
+  if (process.env.NODE_ENV !== 'production') console.error(err.stack);
+  res.status(500).json({ error: err.message || 'Errore interno' });
 });
 
 if (fs.existsSync(DIST)) {
