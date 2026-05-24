@@ -197,6 +197,8 @@ app.use('/api/email',            require('./routes/email'));
 app.use('/api/stats',            require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
 app.use('/api/tenants',          require('./routes/tenants'));
+app.use('/api/pay-link',         require('./routes/payLink'));
+app.use('/api/sdi-passive',      require('./routes/sdiPassive'));
 app.use('/api/piva',             require('./routes/piva'));
 app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/prima-nota',       require('./routes/primaNota'));

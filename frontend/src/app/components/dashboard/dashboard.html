@@ -188,6 +188,48 @@
             </div>
           }
 
+          <!-- ── Widget: Previsione cassa 30/60/90 giorni ──────────────── -->
+          @if (w.id === 'cashflow-3060-90') {
+            <div class="card">
+              <h3 class="section-title" style="margin:0 0 8px">Previsione cassa · 30 / 60 / 90 giorni</h3>
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:12px">
+                Saldo attuale (prima nota): <b>{{ cashflow306090.saldoOggi | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+              </div>
+              <div class="kpi-grid kpi-3col">
+                <div class="kpi-card">
+                  <div class="kpi-label">A 30 giorni</div>
+                  <div class="kpi-value" [style.color]="cashflow306090.bucket30.saldo >= 0 ? '#16a34a' : '#dc2626'">
+                    {{ cashflow306090.bucket30.saldo | currency:'EUR':'symbol':'1.2-2':'it' }}
+                  </div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:6px">
+                    +{{ cashflow306090.bucket30.in | currency:'EUR':'symbol':'1.0-0':'it' }}
+                    / −{{ cashflow306090.bucket30.out | currency:'EUR':'symbol':'1.0-0':'it' }}
+                  </div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">A 60 giorni</div>
+                  <div class="kpi-value" [style.color]="cashflow306090.bucket60.saldo >= 0 ? '#16a34a' : '#dc2626'">
+                    {{ cashflow306090.bucket60.saldo | currency:'EUR':'symbol':'1.2-2':'it' }}
+                  </div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:6px">
+                    +{{ cashflow306090.bucket60.in | currency:'EUR':'symbol':'1.0-0':'it' }}
+                    / −{{ cashflow306090.bucket60.out | currency:'EUR':'symbol':'1.0-0':'it' }}
+                  </div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">A 90 giorni</div>
+                  <div class="kpi-value" [style.color]="cashflow306090.bucket90.saldo >= 0 ? '#16a34a' : '#dc2626'">
+                    {{ cashflow306090.bucket90.saldo | currency:'EUR':'symbol':'1.2-2':'it' }}
+                  </div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:6px">
+                    +{{ cashflow306090.bucket90.in | currency:'EUR':'symbol':'1.0-0':'it' }}
+                    / −{{ cashflow306090.bucket90.out | currency:'EUR':'symbol':'1.0-0':'it' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
           <!-- ── Widget: Chart vendite ──────────────────────────────────── -->
           @if (w.id === 'chart-vendite') {
             <div class="card">

@@ -15,6 +15,7 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Observable, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
@@ -173,7 +174,8 @@ export class AziendaSearchDialogFComponent {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule,
-            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule],
+            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule,
+            MatCheckboxModule],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -247,6 +249,11 @@ export class AziendaSearchDialogFComponent {
             <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
               <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
             </mat-form-field>
+          </div>
+          <div class="form-row">
+            <mat-checkbox formControlName="estero">
+              Soggetto estero (incluso nell'esterometro / autofattura TD17-TD19)
+            </mat-checkbox>
           </div>
         </div>
 
@@ -338,6 +345,7 @@ export class FornitoreDialogComponent implements OnInit {
       citta: [data?.citta ?? ''], provincia: [data?.provincia ?? ''],
       stato: [data?.stato ?? 'Italia'], pIva: [data?.pIva ?? '', pIvaValidator, this.pivaAsyncValidator('fornitori', data?.id)],
       sdi: [data?.sdi ?? ''], pec: [data?.pec ?? ''],
+      estero: [data?.estero ?? false],
     });
   }
 

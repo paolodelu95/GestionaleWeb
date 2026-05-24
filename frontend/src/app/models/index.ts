@@ -33,6 +33,7 @@ export interface Azienda {
   smtpFrom?: string;
   smtpSecure?: boolean;
   emailCorpoDocumento?: string;
+  emailMode?: 'SMTP' | 'MAILTO' | 'WEBMAIL_GMAIL' | 'WEBMAIL_OUTLOOK';
   sdiApiUrl?: string;
   sdiApiKey?: string;
   riordinoAutomatico?: boolean;
@@ -154,6 +155,8 @@ export interface Fornitore {
   pIva?: string;
   sdi?: string;
   pec?: string;
+  /** Soggetto estero — usato per esterometro e autofatture TD17/18/19. */
+  estero?: boolean;
 }
 
 export interface RigaDocumento {

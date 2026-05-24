@@ -21,9 +21,9 @@ router.get('/check-piva', (req, res) => {
 router.post('/', (req, res) => {
   const f = req.body;
   const result = db.prepare(`INSERT INTO fornitori
-    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, p_iva, sdi, pec)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '');
+    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, p_iva, sdi, pec, estero)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0);
   res.json({ id: result.lastInsertRowid });
 });
 
@@ -67,8 +67,8 @@ router.post('/import', (req, res) => {
 router.put('/:id', (req, res) => {
   const f = req.body;
   db.prepare(`UPDATE fornitori SET ragione_sociale=?, email=?, telefono=?, cellulare=?, via=?, cap=?,
-    citta=?, provincia=?, stato=?, p_iva=?, sdi=?, pec=? WHERE id=?`)
-    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', req.params.id);
+    citta=?, provincia=?, stato=?, p_iva=?, sdi=?, pec=?, estero=? WHERE id=?`)
+    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0, req.params.id);
   res.json({ success: true });
 });
 
@@ -87,7 +87,8 @@ function normalizePiva(piva) {
 function toDto(r) {
   return {
     id: r.id, ragioneSociale: r.ragione_sociale, email: r.email, telefono: r.telefono, cellulare: r.cellulare,
-    via: r.via, cap: r.cap, citta: r.citta, provincia: r.provincia, stato: r.stato, pIva: r.p_iva, sdi: r.sdi, pec: r.pec
+    via: r.via, cap: r.cap, citta: r.citta, provincia: r.provincia, stato: r.stato, pIva: r.p_iva, sdi: r.sdi, pec: r.pec,
+    estero: r.estero === 1,
   };
 }
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap, shareReplay, map } from 'rxjs';
 import { ApiService } from './api.service';
 import {
   Azienda, NotificheConfig, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
@@ -251,32 +251,124 @@ export class DataService {
   getBiStats(anno?: number): Observable<any> {
     return this.api.get(anno ? `stats/bi?anno=${anno}` : 'stats/bi');
   }
+  /** Previsione cassa aggregata a 30/60/90 giorni. */
+  getCashflow306090(): Observable<{
+    saldoOggi: number;
+    bucket30: { in: number; out: number; saldo: number };
+    bucket60: { in: number; out: number; saldo: number };
+    bucket90: { in: number; out: number; saldo: number };
+  }> {
+    return this.api.get('stats/cashflow-3060-90');
+  }
+  /** Scarica il file XML della Comunicazione Liquidazione Periodica IVA (LIPE). */
+  downloadLipeXml(anno: number, opts: { trimestre?: number; mese?: number }): void {
+    const q = opts.mese
+      ? `anno=${anno}&mese=${opts.mese}`
+      : `anno=${anno}&trimestre=${opts.trimestre || 1}`;
+    this.api.getBlob(`stats/lipe-xml?${q}`).subscribe(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = opts.mese ? `LIPE_${anno}_${String(opts.mese).padStart(2,'0')}.xml` : `LIPE_${anno}_T${opts.trimestre}.xml`;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    });
+  }
+  /** Scarica il CSV dell'Esterometro per il periodo. */
+  downloadEsterometroCsv(dataDa: string, dataA: string): void {
+    this.api.getBlob(`stats/esterometro-csv?dataDa=${dataDa}&dataA=${dataA}`).subscribe(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `Esterometro_${dataDa}_${dataA}.csv`;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    });
+  }
 
   // Email
   testSmtp(): Observable<any> { return this.api.post('email/test', {}); }
   sendEmail(to: string, subject: string, html?: string): Observable<any> {
     return this.api.post('email/send', { to, subject, html });
   }
+
+  private emailMode$: Observable<Azienda['emailMode']> | null = null;
+  /** Modalità invio (cache breve, evita una GET azienda per ogni invio). */
+  getEmailMode(force = false): Observable<Azienda['emailMode']> {
+    if (force || !this.emailMode$) {
+      this.emailMode$ = this.getAzienda().pipe(
+        map(a => {
+          const m = a?.emailMode;
+          return ['SMTP','MAILTO','WEBMAIL_GMAIL','WEBMAIL_OUTLOOK'].includes(m as string) ? m : 'SMTP';
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    }
+    return this.emailMode$;
+  }
+  /** Invalida la cache della modalità (da chiamare dopo aver salvato in Impostazioni). */
+  invalidateEmailMode() { this.emailMode$ = null; }
+
+  /** Apre il composer mail: client di sistema (mailto:) o webmail in un nuovo tab. */
+  private openComposer(mode: Azienda['emailMode'], to: string, subject: string, body: string): void {
+    const enc = (s: string) => encodeURIComponent(s || '');
+    let url: string;
+    let target = '_self';
+    if (mode === 'WEBMAIL_GMAIL') {
+      url = `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(to)}&su=${enc(subject)}&body=${enc(body)}`;
+      target = '_blank';
+    } else if (mode === 'WEBMAIL_OUTLOOK') {
+      url = `https://outlook.live.com/mail/0/deeplink/compose?to=${enc(to)}&subject=${enc(subject)}&body=${enc(body)}`;
+      target = '_blank';
+    } else {
+      url = `mailto:${enc(to)}?subject=${enc(subject)}&body=${enc(body)}`;
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = target;
+    a.rel = 'noopener noreferrer';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} }, 0);
+  }
+
+  /** Dispatcher: invia un documento via SMTP backend, o apre il composer mail dell'utente. */
+  private dispatchSend(tipo: string, id: number, to?: string, note?: string): Observable<any> {
+    return this.getEmailMode().pipe(switchMap(mode => {
+      if (mode === 'MAILTO' || mode === 'WEBMAIL_GMAIL' || mode === 'WEBMAIL_OUTLOOK') {
+        return this.api.post<{ to: string; subject: string; body: string }>(`email/preview/${tipo}/${id}`, { to, note })
+          .pipe(map(p => {
+            this.openComposer(mode, p.to, p.subject, p.body);
+            return { ok: true, mode };
+          }));
+      }
+      const url = tipo.startsWith('sollecito-')
+        ? `email/sollecito/${tipo === 'sollecito-fattura' ? 'fattura' : 'acquisto'}/${id}`
+        : `email/${tipo}/${id}`;
+      return this.api.post(url, { to, note });
+    }));
+  }
+
   sendFatturaEmail(id: number, to?: string, note?: string): Observable<any> {
-    return this.api.post(`email/fattura/${id}`, { to, note });
+    return this.dispatchSend('fattura', id, to, note);
   }
   sendAcquistoEmail(id: number, to?: string, note?: string): Observable<any> {
-    return this.api.post(`email/acquisto/${id}`, { to, note });
+    return this.dispatchSend('acquisto', id, to, note);
   }
   sendDdtEmail(id: number, to?: string, note?: string): Observable<any> {
-    return this.api.post(`email/ddt/${id}`, { to, note });
+    return this.dispatchSend('ddt', id, to, note);
   }
   sendPreventivoEmail(id: number, to?: string, note?: string): Observable<any> {
-    return this.api.post(`email/preventivo/${id}`, { to, note });
+    return this.dispatchSend('preventivo', id, to, note);
   }
   sendNotaCreditoEmail(id: number, to?: string, note?: string): Observable<any> {
-    return this.api.post(`email/nota-credito/${id}`, { to, note });
+    return this.dispatchSend('nota-credito', id, to, note);
   }
   sendOrdineEmail(id: number, to?: string, note?: string): Observable<any> {
-    return this.api.post(`email/ordine/${id}`, { to, note });
+    return this.dispatchSend('ordine', id, to, note);
   }
   sendSollecito(tipo: 'fattura' | 'acquisto', id: number, to?: string, note?: string): Observable<any> {
-    return this.api.post(`email/sollecito/${tipo}/${id}`, { to, note });
+    return this.dispatchSend(`sollecito-${tipo}`, id, to, note);
   }
   getSolleciti(tipo: 'fattura' | 'acquisto', id: number): Observable<Sollecito[]> {
     return this.api.get(`email/solleciti/${tipo}/${id}`);

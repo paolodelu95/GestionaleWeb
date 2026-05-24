@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -309,7 +310,7 @@ export class NotaRapidaDialogComponent {
             MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
             MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
-            MatSlideToggleModule, MatProgressSpinnerModule],
+            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })
@@ -372,6 +373,7 @@ export class ImpostazioniComponent implements OnInit {
       iban: ['', ibanValidator], banca: [''], logo: [''],
       smtpHost: [''], smtpPort: [587, [Validators.min(1), Validators.max(65535)]], smtpUser: [''], smtpPass: [''], smtpFrom: [''], smtpSecure: [false],
       emailCorpoDocumento: [''],
+      emailMode: ['SMTP'],
       sdiApiUrl: [''], sdiApiKey: [''],
       riordinoAutomatico: [false], multiUtenteAttivo: [false],
       numerazioneAnnuale: [true],
@@ -482,7 +484,7 @@ export class ImpostazioniComponent implements OnInit {
       vendite_banco: v.prefissoVenditeBanco || '', arrivi_merce: v.prefissoArriviMerce || '',
     };
     this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi, templateConfig: this.templateConfig, notificheConfig: this.notificheConfig } as Azienda).subscribe({
-      next: () => this.snack.open('Dati salvati', '', { duration: 2000 }),
+      next: () => { this.ds.invalidateEmailMode(); this.snack.open('Dati salvati', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });
   }

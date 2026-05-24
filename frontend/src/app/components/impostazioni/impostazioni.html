@@ -104,10 +104,49 @@
     <!-- ── Email / SMTP ───────────────────────────────────────────────────────── -->
     <mat-tab label="Email">
       <div class="tab-content">
+
+        <div class="card" style="max-width:700px;margin-bottom:16px">
+          <h3 class="section-title">Modalità di invio</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:16px">
+            Scegli come inviare le email dei documenti.
+          </p>
+          <form [formGroup]="form">
+            <mat-radio-group formControlName="emailMode" style="display:flex;flex-direction:column;gap:10px">
+              <mat-radio-button value="SMTP">
+                <div style="display:flex;flex-direction:column;line-height:1.3">
+                  <span style="font-weight:600">Client integrato (SMTP)</span>
+                  <span style="font-size:12px;color:#64748b">L'invio avviene dal server con le credenziali SMTP configurate qui sotto. Supporta HTML e allegati.</span>
+                </div>
+              </mat-radio-button>
+              <mat-radio-button value="MAILTO">
+                <div style="display:flex;flex-direction:column;line-height:1.3">
+                  <span style="font-weight:600">App mail del dispositivo</span>
+                  <span style="font-size:12px;color:#64748b">Apre il client mail predefinito (Mail.app / Outlook desktop / app mobile). Richiede che il sistema abbia un client mail vero come default — su molti Mac il default è un browser, in quel caso scegli una delle opzioni webmail qui sotto.</span>
+                </div>
+              </mat-radio-button>
+              <mat-radio-button value="WEBMAIL_GMAIL">
+                <div style="display:flex;flex-direction:column;line-height:1.3">
+                  <span style="font-weight:600">Gmail (web)</span>
+                  <span style="font-size:12px;color:#64748b">Apre il composer di Gmail in una nuova scheda con destinatario, oggetto e testo precompilati. Funziona sempre se sei loggato a Gmail.</span>
+                </div>
+              </mat-radio-button>
+              <mat-radio-button value="WEBMAIL_OUTLOOK">
+                <div style="display:flex;flex-direction:column;line-height:1.3">
+                  <span style="font-weight:600">Outlook (web)</span>
+                  <span style="font-size:12px;color:#64748b">Apre il composer di Outlook web in una nuova scheda. Per chi usa Microsoft 365 / Outlook.com.</span>
+                </div>
+              </mat-radio-button>
+            </mat-radio-group>
+          </form>
+          <div style="display:flex;justify-content:flex-end;padding:8px 0 0">
+            <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
+          </div>
+        </div>
+
         <div class="card" style="max-width:700px">
           <h3 class="section-title">Configurazione SMTP</h3>
           <p style="color:#64748b;font-size:13px;margin-bottom:16px">
-            Configura il server di posta per inviare fatture, acquisti e solleciti direttamente dal gestionale.
+            Necessaria solo in modalità "Client integrato". Configura il server di posta per inviare fatture, acquisti e solleciti direttamente dal gestionale.
           </p>
           <form [formGroup]="form" class="dialog-form">
             <div class="form-row">

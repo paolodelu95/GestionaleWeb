@@ -286,6 +286,112 @@ router.post('/sollecito/:tipo/:id', async (req, res) => {
   }
 });
 
+// ── POST /preview/:tipo/:id – costruisce subject+body plain text per mailto: ─
+// tipo ∈ fattura | ddt | preventivo | ordine | nota-credito | acquisto | sollecito-fattura | sollecito-acquisto
+router.post('/preview/:tipo/:id', (req, res) => {
+  const { tipo, id } = req.params;
+  const { to, note } = req.body || {};
+  const fmt = (n) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
+  const az = db.prepare('SELECT ragione_sociale FROM azienda WHERE id=1').get();
+  const corpo = (note && String(note).trim()) ? note : getDefaultEmailBody();
+  const saluti = `Cordiali saluti,\n${az?.ragione_sociale || ''}`.trim();
+
+  try {
+    let row, dest, subject, body, righe, totale;
+
+    const docInfo = (heading, numero, data, totale = null) => {
+      const lines = [`Documento: ${heading} n. ${numero}`, `Data: ${data || ''}`];
+      if (totale !== null) lines.push(`Totale: ${fmt(totale)}`);
+      return lines.join('\n');
+    };
+
+    const sumTotal = (rows) => rows.reduce(
+      (s, r) => s + (r.quantita || 0) * (r.prezzo || 0) * (1 - (r.sconto || 0) / 100) * (1 + (r.iva || 0) / 100), 0
+    );
+
+    if (tipo === 'fattura') {
+      row = db.prepare(`SELECT f.*, c.email as c_email FROM fatture f LEFT JOIN clienti c ON f.cliente_id=c.id WHERE f.id=?`).get(id);
+      if (!row) return res.status(404).json({ error: 'Fattura non trovata' });
+      righe = db.prepare(`SELECT quantita, prezzo, sconto, iva FROM fatture_righe WHERE fattura_id=?`).all(id);
+      totale = sumTotal(righe);
+      dest = to || row.c_email;
+      subject = `Fattura n. ${row.numero}`;
+      body = `${corpo}\n\n${docInfo('Fattura', row.numero, row.data_emissione, totale)}\n\n${saluti}`;
+    } else if (tipo === 'ddt') {
+      row = db.prepare(`SELECT d.*, c.email as c_email FROM ddt d LEFT JOIN clienti c ON d.cliente_id=c.id WHERE d.id=?`).get(id);
+      if (!row) return res.status(404).json({ error: 'DDT non trovato' });
+      dest = to || row.c_email;
+      subject = `DDT n. ${row.numero}`;
+      body = `${corpo}\n\n${docInfo('DDT', row.numero, row.data_emissione)}\n\n${saluti}`;
+    } else if (tipo === 'preventivo') {
+      row = db.prepare(`SELECT p.*, c.email as c_email FROM preventivi p LEFT JOIN clienti c ON p.cliente_id=c.id WHERE p.id=?`).get(id);
+      if (!row) return res.status(404).json({ error: 'Preventivo non trovato' });
+      righe = db.prepare(`SELECT quantita, prezzo, sconto, iva FROM preventivi_righe WHERE preventivo_id=?`).all(id);
+      totale = sumTotal(righe);
+      dest = to || row.c_email;
+      subject = `Preventivo n. ${row.numero}`;
+      body = `${corpo}\n\n${docInfo('Preventivo', row.numero, row.data_emissione, totale)}\n\n${saluti}`;
+    } else if (tipo === 'ordine') {
+      row = db.prepare(`SELECT o.*, c.email as c_email, f.email as f_email FROM ordini o LEFT JOIN clienti c ON o.cliente_id=c.id LEFT JOIN fornitori f ON o.fornitore_id=f.id WHERE o.id=?`).get(id);
+      if (!row) return res.status(404).json({ error: 'Ordine non trovato' });
+      const isFornitore = row.tipo === 'FORNITORE' || (!row.cliente_id && row.fornitore_id);
+      righe = db.prepare(`SELECT quantita, prezzo, sconto, iva FROM ordini_righe WHERE ordine_id=?`).all(id);
+      totale = sumTotal(righe);
+      dest = to || (isFornitore ? row.f_email : row.c_email);
+      subject = `Ordine n. ${row.numero}`;
+      body = `${corpo}\n\n${docInfo('Ordine', row.numero, row.data_ordine, totale)}\n\n${saluti}`;
+    } else if (tipo === 'nota-credito') {
+      row = db.prepare(`SELECT n.*, c.email as c_email FROM note_credito n LEFT JOIN clienti c ON n.cliente_id=c.id WHERE n.id=?`).get(id);
+      if (!row) return res.status(404).json({ error: 'Nota di credito non trovata' });
+      righe = db.prepare(`SELECT quantita, prezzo, sconto, iva FROM note_credito_righe WHERE nota_credito_id=?`).all(id);
+      totale = sumTotal(righe);
+      dest = to || row.c_email;
+      subject = `Nota di credito n. ${row.numero}`;
+      body = `${corpo}\n\n${docInfo('Nota di credito', row.numero, row.data_emissione, totale)}\n\n${saluti}`;
+    } else if (tipo === 'acquisto') {
+      row = db.prepare(`SELECT a.*, f.email as f_email FROM acquisti a LEFT JOIN fornitori f ON a.fornitore_id=f.id WHERE a.id=?`).get(id);
+      if (!row) return res.status(404).json({ error: 'Acquisto non trovato' });
+      righe = db.prepare(`SELECT quantita, prezzo, sconto, iva FROM acquisti_righe WHERE acquisto_id=?`).all(id);
+      totale = sumTotal(righe);
+      dest = to || row.f_email;
+      subject = `Acquisto n. ${row.numero}`;
+      body = `${corpo}\n\n${docInfo('Acquisto', row.numero, row.data_emissione, totale)}\n\n${saluti}`;
+    } else if (tipo === 'sollecito-fattura' || tipo === 'sollecito-acquisto') {
+      const isFat = tipo === 'sollecito-fattura';
+      row = isFat
+        ? db.prepare(`SELECT f.*, c.email as c_email FROM fatture f LEFT JOIN clienti c ON f.cliente_id=c.id WHERE f.id=?`).get(id)
+        : db.prepare(`SELECT a.*, f.email as c_email FROM acquisti a LEFT JOIN fornitori f ON a.fornitore_id=f.id WHERE a.id=?`).get(id);
+      if (!row) return res.status(404).json({ error: 'Documento non trovato' });
+      const pagatiQ = isFat
+        ? `SELECT COALESCE(SUM(importo),0) as t FROM pagamenti WHERE fattura_id=?`
+        : `SELECT COALESCE(SUM(importo),0) as t FROM pagamenti WHERE acquisto_id=?`;
+      const totQ = isFat
+        ? `SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100)*(1+iva/100)),0) as t FROM fatture_righe WHERE fattura_id=?`
+        : `SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100)*(1+iva/100)),0) as t FROM acquisti_righe WHERE acquisto_id=?`;
+      const pagati = db.prepare(pagatiQ).get(id)?.t || 0;
+      const tot = db.prepare(totQ).get(id)?.t || 0;
+      const residuo = tot - pagati;
+      const label = isFat ? 'Fattura' : 'Acquisto';
+      dest = to || row.c_email;
+      subject = `Sollecito pagamento – ${label} n. ${row.numero}`;
+      body = [
+        `${corpo}`,
+        '',
+        `${label} n. ${row.numero} del ${row.data_emissione}`,
+        `Importo residuo da saldare: ${fmt(residuo)}`,
+        '',
+        saluti,
+      ].join('\n');
+    } else {
+      return res.status(400).json({ error: 'Tipo documento non supportato' });
+    }
+
+    res.json({ to: dest || '', subject, body });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /solleciti/:tipo/:id – storico solleciti ──────────────────────────────
 router.get('/solleciti/:tipo/:id', (req, res) => {
   const rows = db.prepare(

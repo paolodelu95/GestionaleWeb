@@ -156,6 +156,64 @@ router.get('/cashflow-forecast', (req, res) => {
   });
 });
 
+// ── GET /cashflow-3060-90 – previsione aggregata a 30/60/90 giorni ──────────
+router.get('/cashflow-3060-90', (req, res) => {
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const oggiIso = oggi.toISOString().slice(0, 10);
+  const addDays = (n) => { const d = new Date(oggi); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const d30 = addDays(30), d60 = addDays(60), d90 = addDays(90);
+
+  const rowsIn = db.prepare(`
+    SELECT date(f.data_emissione, '+' || COALESCE(tp.giorni_scadenza, 30) || ' days') AS scadenza,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100)),0)
+             - COALESCE((SELECT SUM(importo) FROM pagamenti p WHERE p.fattura_id=f.id),0) AS rimanente
+    FROM fatture f
+    JOIN fatture_righe fr ON fr.fattura_id=f.id
+    LEFT JOIN tipi_pagamento tp ON tp.id=f.tipo_pagamento_id
+    WHERE f.stato NOT IN ('PAGATA','ANNULLATA')
+    GROUP BY f.id HAVING rimanente > 0
+  `).all();
+
+  const rowsOut = db.prepare(`
+    SELECT date(a.data_emissione, '+' || COALESCE(tp.giorni_scadenza, 30) || ' days') AS scadenza,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(1+ar.iva/100)),0)
+             - COALESCE((SELECT SUM(importo) FROM pagamenti p WHERE p.acquisto_id=a.id),0) AS rimanente
+    FROM acquisti a
+    JOIN acquisti_righe ar ON ar.acquisto_id=a.id
+    LEFT JOIN tipi_pagamento tp ON tp.id=a.tipo_pagamento_id
+    WHERE a.stato NOT IN ('PAGATA','PAGATO','ANNULLATA','ANNULLATO')
+    GROUP BY a.id HAVING rimanente > 0
+  `).all();
+
+  // Saldo cassa "oggi" = saldo banca/cassa attuale ricavato da prima_nota (entrate - uscite registrate).
+  const saldoRow = db.prepare(`
+    SELECT
+      COALESCE(SUM(CASE WHEN tipo='ENTRATA' THEN importo ELSE 0 END), 0) -
+      COALESCE(SUM(CASE WHEN tipo='USCITA' THEN importo ELSE 0 END), 0) AS saldo
+    FROM prima_nota`).get();
+  const saldoOggi = +(saldoRow?.saldo || 0).toFixed(2);
+
+  const bucket = (entro) => {
+    let inn = 0, out = 0;
+    for (const r of rowsIn) {
+      const d = r.scadenza < oggiIso ? oggiIso : r.scadenza;
+      if (d <= entro) inn += +r.rimanente;
+    }
+    for (const r of rowsOut) {
+      const d = r.scadenza < oggiIso ? oggiIso : r.scadenza;
+      if (d <= entro) out += +r.rimanente;
+    }
+    return { in: +inn.toFixed(2), out: +out.toFixed(2), saldo: +(saldoOggi + inn - out).toFixed(2) };
+  };
+
+  res.json({
+    saldoOggi,
+    bucket30: bucket(d30),
+    bucket60: bucket(d60),
+    bucket90: bucket(d90),
+  });
+});
+
 // ── GET /kpi-anno – KPI dell'anno corrente ────────────────────────────────────
 router.get('/kpi-anno', (req, res) => {
   const anno = req.query.anno || new Date().getFullYear();
@@ -220,6 +278,144 @@ router.get('/iva-trimestre', (req, res) => {
     venditePerAliquota: venditeRows.map(r => ({ aliquota: r.iva, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
     acquistiPerAliquota: acquistiRows.map(r => ({ aliquota: r.iva, imponibile: +r.imponibile.toFixed(2), iva: +r.iva.toFixed(2) })),
   });
+});
+
+// ── GET /lipe-xml – Export Comunicazione Liquidazione Periodica IVA (LIPE) ───
+// query: anno (es. 2026), trimestre (1-4)  OPPURE  anno + mese (1-12)
+// Schema AGE "IVP21" (versione vigente). Genera XML scaricabile da caricare su Fisconline.
+router.get('/lipe-xml', (req, res) => {
+  const anno = parseInt(String(req.query.anno || new Date().getFullYear()), 10);
+  const isMensile = !!req.query.mese;
+  let monthStart, monthEnd, periodoTag;
+  if (isMensile) {
+    const mese = Math.min(Math.max(parseInt(String(req.query.mese || '1'), 10), 1), 12);
+    monthStart = mese; monthEnd = mese;
+    periodoTag = `<Mese>${String(mese).padStart(2,'0')}</Mese>`;
+  } else {
+    const trim = Math.min(Math.max(parseInt(String(req.query.trimestre || '1'), 10), 1), 4);
+    monthStart = (trim - 1) * 3 + 1;
+    monthEnd = monthStart + 2;
+    periodoTag = `<Trimestre>${trim}</Trimestre>`;
+  }
+  const from = `${anno}-${String(monthStart).padStart(2,'0')}-01`;
+  const lastDay = new Date(anno, monthEnd, 0).getDate();
+  const to = `${anno}-${String(monthEnd).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+
+  const az = db.prepare('SELECT * FROM azienda WHERE id=1').get() || {};
+
+  const venditeRows = db.prepare(`
+    SELECT COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(fr.iva/100)),0) as iva
+    FROM fatture f JOIN fatture_righe fr ON fr.fattura_id=f.id
+    WHERE f.data_emissione BETWEEN ? AND ? AND f.stato != 'ANNULLATA'`).get(from, to);
+
+  const acquistiRows = db.prepare(`
+    SELECT COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(ar.iva/100)),0) as iva
+    FROM acquisti a JOIN acquisti_righe ar ON ar.acquisto_id=a.id
+    WHERE a.data_emissione BETWEEN ? AND ?`).get(from, to);
+
+  const VP2 = +(venditeRows.imponibile || 0).toFixed(2);
+  const VP3 = +(acquistiRows.imponibile || 0).toFixed(2);
+  const VP4 = +(venditeRows.iva || 0).toFixed(2);
+  const VP5 = +(acquistiRows.iva || 0).toFixed(2);
+  const VP6 = +(VP4 - VP5).toFixed(2);
+  const VP14_versare = VP6 > 0 ? VP6 : 0;
+  const VP14_credito = VP6 < 0 ? -VP6 : 0;
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+  const cf = esc((az.cod_fiscale || az.p_iva || '').toString().replace(/\D/g, ''));
+  const piva = esc((az.p_iva || '').toString().replace(/\D/g, ''));
+  const fmt = (n) => n === 0 ? '' : `<Importo>${Math.round(n)}</Importo>`; // LIPE usa importi in euro interi
+  // Periodo identificativo nella comunicazione
+  const identif = isMensile ? monthStart : (monthEnd / 3);
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Fornitura xmlns="urn:www.agenziaentrate.gov.it:specificheTecniche:sco:ivp">
+  <Intestazione>
+    <CodiceFornitura>IVP21</CodiceFornitura>
+    <CodiceFiscaleDichiarante>${cf}</CodiceFiscaleDichiarante>
+  </Intestazione>
+  <Comunicazione identificativo="${identif}">
+    <Frontespizio>
+      <CodiceFiscale>${cf}</CodiceFiscale>
+      <AnnoImposta>${anno}</AnnoImposta>
+      <PartitaIVA>${piva}</PartitaIVA>
+      <CFDichiarante>${cf}</CFDichiarante>
+      <CodiceCaricaDichiarante>1</CodiceCaricaDichiarante>
+    </Frontespizio>
+    <DatiContabili>
+      <Modulo numeroModulo="1">
+        <QuadroVP>
+          ${periodoTag}
+          ${VP2 ? `<VP2>${VP2.toFixed(2)}</VP2>` : ''}
+          ${VP3 ? `<VP3>${VP3.toFixed(2)}</VP3>` : ''}
+          ${VP4 ? `<VP4>${VP4.toFixed(2)}</VP4>` : ''}
+          ${VP5 ? `<VP5>${VP5.toFixed(2)}</VP5>` : ''}
+          ${VP6 ? `<VP6>${VP6.toFixed(2)}</VP6>` : ''}
+          ${VP14_versare ? `<VP14>${VP14_versare.toFixed(2)}</VP14>` : ''}
+        </QuadroVP>
+      </Modulo>
+    </DatiContabili>
+  </Comunicazione>
+</Fornitura>`;
+
+  const fileName = isMensile
+    ? `LIPE_${anno}_${String(monthStart).padStart(2,'0')}.xml`
+    : `LIPE_${anno}_T${(monthEnd/3)|0}.xml`;
+  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.send(xml);
+});
+
+// ── GET /esterometro-csv – Esterometro (operazioni transfrontaliere) ────────
+// query: dataDa, dataA. Filtra fatture/acquisti collegati a controparti con estero=1.
+router.get('/esterometro-csv', (req, res) => {
+  const dataDa = String(req.query.dataDa || `${new Date().getFullYear()}-01-01`);
+  const dataA  = String(req.query.dataA  || `${new Date().getFullYear()}-12-31`);
+
+  const vendite = db.prepare(`
+    SELECT f.numero, f.data_emissione, c.ragione_sociale, c.p_iva, c.codice_fiscale, c.stato,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(fr.iva/100)),0) as iva
+    FROM fatture f
+    JOIN clienti c ON c.id=f.cliente_id
+    LEFT JOIN fatture_righe fr ON fr.fattura_id=f.id
+    WHERE c.estero=1 AND f.data_emissione BETWEEN ? AND ? AND f.stato != 'ANNULLATA'
+    GROUP BY f.id ORDER BY f.data_emissione, f.numero`).all(dataDa, dataA);
+
+  const acquisti = db.prepare(`
+    SELECT a.numero, a.data_emissione, forn.ragione_sociale, forn.p_iva, forn.stato,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)),0) as imponibile,
+           COALESCE(SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(ar.iva/100)),0) as iva
+    FROM acquisti a
+    JOIN fornitori forn ON forn.id=a.fornitore_id
+    LEFT JOIN acquisti_righe ar ON ar.acquisto_id=a.id
+    WHERE forn.estero=1 AND a.data_emissione BETWEEN ? AND ?
+    GROUP BY a.id ORDER BY a.data_emissione, a.numero`).all(dataDa, dataA);
+
+  const csvEsc = (v) => {
+    const s = String(v ?? '');
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [['Tipo','Numero','Data','Controparte','PartitaIVA','CodiceFiscale','Paese','Imponibile','IVA','Totale'].join(';')];
+  for (const r of vendite) {
+    lines.push([
+      'ATTIVA', r.numero, r.data_emissione, r.ragione_sociale, r.p_iva || '', r.codice_fiscale || '',
+      r.stato || '', r.imponibile.toFixed(2), r.iva.toFixed(2), (r.imponibile + r.iva).toFixed(2),
+    ].map(csvEsc).join(';'));
+  }
+  for (const r of acquisti) {
+    lines.push([
+      'PASSIVA', r.numero, r.data_emissione, r.ragione_sociale, r.p_iva || '', '',
+      r.stato || '', r.imponibile.toFixed(2), r.iva.toFixed(2), (r.imponibile + r.iva).toFixed(2),
+    ].map(csvEsc).join(';'));
+  }
+
+  const csv = '﻿' + lines.join('\r\n');
+  res.set('Content-Type', 'text/csv; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="Esterometro_${dataDa}_${dataA}.csv"`);
+  res.send(csv);
 });
 
 // ── GET /export-contabile – righe per il commercialista ──────────────────────

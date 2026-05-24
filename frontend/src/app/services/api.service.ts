@@ -24,4 +24,8 @@ export class ApiService {
   delete<T>(path: string): Observable<T> {
     return this.http.delete<T>(`${this.base}/${path}`);
   }
+  /** GET binario con Authorization header — usato per download file (XML, CSV, ecc.). */
+  getBlob(path: string): Observable<Blob> {
+    return this.http.get(`${this.base}/${path}`, { responseType: 'blob' });
+  }
 }

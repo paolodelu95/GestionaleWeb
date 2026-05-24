@@ -43,6 +43,9 @@ import { ExcelService } from '../../services/excel.service';
               <button mat-flat-button (click)="loadIva()">
                 <mat-icon>calculate</mat-icon> Calcola
               </button>
+              <button mat-stroked-button (click)="downloadLipe()" [disabled]="!iva">
+                <mat-icon>download</mat-icon> Esporta LIPE (XML)
+              </button>
             </div>
 
             @if (iva) {
@@ -123,6 +126,33 @@ import { ExcelService } from '../../services/excel.service';
           </div>
         </mat-tab>
 
+        <!-- ── Esterometro (operazioni transfrontaliere) ─────────────────────── -->
+        <mat-tab label="Esterometro">
+          <div class="card" style="margin-top:16px">
+            <div class="filter-bar">
+              <mat-form-field appearance="outline">
+                <mat-label>Dal</mat-label>
+                <input matInput type="date" [(ngModel)]="dataDa">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Al</mat-label>
+                <input matInput type="date" [(ngModel)]="dataA">
+              </mat-form-field>
+              <button mat-flat-button (click)="downloadEsterometro()">
+                <mat-icon>download</mat-icon> Scarica CSV
+              </button>
+            </div>
+            <p style="margin-top:8px;font-size:13px;color:#64748b">
+              Genera un CSV con tutte le fatture attive (vendite a clienti esteri) e
+              passive (acquisti da fornitori esteri) nel periodo. Per essere incluso
+              nell'estero, il cliente o il fornitore deve avere il flag <b>"Soggetto
+              estero"</b> attivo nella sua scheda anagrafica. Da gennaio 2022
+              l'esterometro è confluito nello SDI tramite autofatture TD17/18/19 —
+              questo CSV serve da bozza per il commercialista o per controllo.
+            </p>
+          </div>
+        </mat-tab>
+
       </mat-tab-group>
     </div>
   `,
@@ -153,6 +183,14 @@ export class ComplianceComponent implements OnInit {
       next: r => this.iva = r,
       error: () => this.snack.open('Errore caricamento liquidazione', 'OK', { duration: 3000, panelClass: 'snack-error' })
     });
+  }
+
+  downloadLipe() {
+    this.ds.downloadLipeXml(this.anno, { trimestre: this.trimestre });
+  }
+
+  downloadEsterometro() {
+    this.ds.downloadEsterometroCsv(this.dataDa, this.dataA);
   }
 
   downloadExport() {
