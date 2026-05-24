@@ -416,10 +416,10 @@ export class TodoDialogComponent {
   ],
   template: `
     <div class="page agenda-page">
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div class="page-header agenda-header">
+        <div class="agenda-header-left">
           <h1 class="page-title">Agenda</h1>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" style="min-width:180px">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vista-select">
             <mat-label>Vista</mat-label>
             <mat-select [(ngModel)]="vista" (selectionChange)="onVistaChange()">
               <mat-option value="mia">
@@ -445,12 +445,21 @@ export class TodoDialogComponent {
             </mat-select>
           </mat-form-field>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button mat-flat-button color="primary" (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> Nuovo appuntamento</button>
-          <button mat-stroked-button (click)="apriSync()">
+        <div class="agenda-header-actions">
+          <button mat-flat-button color="primary" class="btn-nuovo" (click)="nuovoAppuntamento()">
+            <mat-icon>add</mat-icon> <span class="btn-text">Nuovo appuntamento</span>
+          </button>
+          <button mat-icon-button class="hide-desktop" [matMenuTriggerFor]="menuExtra" title="Altre azioni">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menuExtra="matMenu">
+            <button mat-menu-item type="button" (click)="apriSync()"><mat-icon>sync</mat-icon> Sincronizza calendario</button>
+            <button mat-menu-item type="button" (click)="downloadIcs()"><mat-icon>download</mat-icon> Esporta .ics</button>
+          </mat-menu>
+          <button mat-stroked-button class="hide-mobile" (click)="apriSync()">
             <mat-icon>sync</mat-icon> Sincronizza
           </button>
-          <button mat-stroked-button (click)="downloadIcs()">
+          <button mat-stroked-button class="hide-mobile" (click)="downloadIcs()">
             <mat-icon>download</mat-icon> .ics
           </button>
         </div>
@@ -511,7 +520,7 @@ export class TodoDialogComponent {
               <div style="color:#64748b;font-size:13px">{{ appuntamenti.length }} appuntamenti</div>
               <button mat-flat-button (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> Nuovo</button>
             </div>
-            <table class="lista">
+            <table class="lista hide-mobile">
               <thead><tr><th>Quando</th><th>Titolo</th><th>Autore</th><th>Luogo</th><th>Controparte</th><th>Stato</th><th></th></tr></thead>
               <tbody>
                 @for (a of appuntamenti; track a.id) {
@@ -560,6 +569,45 @@ export class TodoDialogComponent {
                 }
               </tbody>
             </table>
+            <!-- Card list mobile -->
+            <div class="agenda-list-mobile show-only-mobile">
+              @for (a of appuntamenti; track a.id) {
+                <div class="app-card" [style.border-left-color]="a.colore">
+                  <div class="app-card-time">
+                    <div class="app-card-day">{{ a.inizio | date:'EEE' }}</div>
+                    <div class="app-card-date">{{ a.inizio | date:'dd MMM' }}</div>
+                    @if (!a.tuttoGiorno && a.inizio.includes('T')) {
+                      <div class="app-card-hour">{{ a.inizio | date:'HH:mm' }}</div>
+                    }
+                  </div>
+                  <div class="app-card-body">
+                    <div class="app-card-title">
+                      {{ a.titolo }}
+                      @if (a.condiviso) { <span class="badge-cond">👥</span> }
+                    </div>
+                    @if (a.luogo) { <div class="app-card-meta"><mat-icon class="mi">location_on</mat-icon> {{ a.luogo }}</div> }
+                    @if (a.clienteNome || a.fornitoreNome) {
+                      <div class="app-card-meta"><mat-icon class="mi">person</mat-icon> {{ a.clienteNome || a.fornitoreNome }}</div>
+                    }
+                    @if (a.userId !== userId) {
+                      <div class="app-card-meta"><mat-icon class="mi">badge</mat-icon> {{ a.autoreNome || a.autoreUsername }}</div>
+                    }
+                  </div>
+                  @if (canModifica(a)) {
+                    <button mat-icon-button [matMenuTriggerFor]="mMenu" class="app-card-action"><mat-icon>more_vert</mat-icon></button>
+                    <mat-menu #mMenu="matMenu">
+                      <button mat-menu-item type="button" (click)="modificaAppuntamento(a)"><mat-icon>edit</mat-icon> Modifica</button>
+                      <button mat-menu-item type="button" (click)="cambiaStatoApp(a, 'COMPLETATO')" [disabled]="a.stato==='COMPLETATO'"><mat-icon style="color:#16a34a">check_circle</mat-icon> Completato</button>
+                      <button mat-menu-item type="button" (click)="cambiaStatoApp(a, 'ANNULLATO')" [disabled]="a.stato==='ANNULLATO'"><mat-icon style="color:#f59e0b">cancel</mat-icon> Annulla</button>
+                      <button mat-menu-item type="button" (click)="eliminaAppuntamento(a)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                    </mat-menu>
+                  }
+                </div>
+              }
+              @if (appuntamenti.length === 0) {
+                <p style="text-align:center;color:#94a3b8;padding:24px">Nessun appuntamento in questo periodo.</p>
+              }
+            </div>
           </div>
         </mat-tab>
 
@@ -612,6 +660,65 @@ export class TodoDialogComponent {
     .page-title { font-size: 24px; font-weight: 700; margin: 0; }
     .card { background: var(--bg-surface, #fff); border-radius: 10px; padding: 16px; border: 1px solid var(--border-subtle, #e2e8f0); }
 
+    .agenda-header {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .agenda-header-left {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap; flex: 1 1 auto;
+    }
+    .vista-select { min-width: 180px; }
+    .agenda-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .hide-desktop { display: none; }
+
+    @media (max-width: 600px) {
+      .agenda-header { gap: 8px; }
+      .agenda-header-left { width: 100%; gap: 8px; }
+      .vista-select { flex: 1 1 100%; min-width: 0; }
+      .agenda-header-actions { width: 100%; justify-content: space-between; }
+      .btn-nuovo { flex: 1; }
+      .btn-nuovo .btn-text { display: inline; }
+      .hide-desktop { display: inline-flex; }
+      .hide-mobile { display: none !important; }
+    }
+
+    /* Card list agenda — mobile */
+    .agenda-list-mobile { display: flex; flex-direction: column; gap: 10px; }
+    .show-only-mobile { display: none; }
+    @media (max-width: 600px) { .show-only-mobile { display: flex; flex-direction: column; } }
+
+    .app-card {
+      display: grid;
+      grid-template-columns: 78px 1fr auto;
+      gap: 10px; align-items: center;
+      padding: 10px 12px;
+      background: var(--bg-surface, #fff);
+      border: 1px solid var(--border-subtle, #e2e8f0);
+      border-left: 3px solid #3b82f6;
+      border-radius: 8px;
+    }
+    .app-card-time {
+      display: flex; flex-direction: column; align-items: flex-start;
+      border-right: 1px solid var(--border-subtle, #f1f5f9);
+      padding-right: 8px;
+    }
+    .app-card-day { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: #94a3b8; }
+    .app-card-date { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .app-card-hour { font-size: 13px; font-weight: 600; color: #475569; margin-top: 2px; }
+    .app-card-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .app-card-title {
+      font-weight: 600; font-size: 14px; color: #0f172a;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .badge-cond { font-size: 12px; margin-left: 4px; }
+    .app-card-meta {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 12px; color: #64748b;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .app-card-meta .mi { font-size: 12px; width: 12px; height: 12px; color: #94a3b8; flex-shrink: 0; }
+    .app-card-action { flex-shrink: 0; }
+
     .cal-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
     .cal-title { font-size: 18px; font-weight: 700; flex: 1; text-transform: capitalize; }
     .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-tertiary, #64748b); }
@@ -645,8 +752,25 @@ export class TodoDialogComponent {
     .cat { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; background: #dbeafe; color: #1e40af; margin-left: 4px; }
 
     @media (max-width: 700px) {
-      .cal-cell { min-height: 70px; }
-      .cal-event { font-size: 9px; }
+      .cal-toolbar { gap: 6px; }
+      .cal-title { font-size: 15px; flex: 1 1 100%; order: -1; text-align: center; }
+      .cal-legend { display: none; }   // legenda nascosta su mobile, occupa troppo
+      .cal-grid-head > div { padding: 4px 2px; font-size: 9px; }
+      .cal-cell { min-height: 56px; padding: 2px 3px; }
+      .cal-num { font-size: 10px; width: 18px; height: 18px; }
+      .cal-event { font-size: 9px; padding: 1px 3px; line-height: 1.2; }
+      .cal-more { font-size: 9px; padding-left: 2px; }
+    }
+
+    @media (max-width: 480px) {
+      // Su schermi molto stretti: solo un pallino colorato per cella + lista nel modal
+      .cal-cell { min-height: 44px; }
+      .cal-eventi { flex-direction: row; flex-wrap: wrap; gap: 2px; justify-content: center; }
+      .cal-event {
+        width: 6px !important; height: 6px !important; padding: 0 !important;
+        border-radius: 50%; overflow: hidden; text-indent: -9999px;
+      }
+      .cal-more { display: none; }
     }
   `],
 })
@@ -682,6 +806,12 @@ export class AgendaComponent implements OnInit {
     this.isAdmin = !!u && (u.ruolo === 'SUPERADMIN' || u.ruolo === 'ADMIN');
     this.userId = u?.id || 0;
     this.vista = this.isAdmin ? 'tutte' : 'auto';
+
+    // Su mobile parti dalla tab "Lista appuntamenti" (calendario mensile è
+    // claustrofobico su schermi stretti).
+    if (typeof window !== 'undefined' && window.innerWidth <= 600) {
+      this.tabIndex = 1;
+    }
 
     this.ds.getClienti().subscribe(c => this.clienti = c);
     this.ds.getFornitori().subscribe(f => this.fornitori = f);

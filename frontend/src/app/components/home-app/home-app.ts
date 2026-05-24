@@ -98,8 +98,18 @@ interface App {
     }
 
     @media (max-width: 640px) {
-      .home-app { padding: 16px; }
-      .app-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .home-app { padding: 12px; }
+      .home-app-hero h1 { font-size: 22px; }
+      .home-app-hero p { font-size: 13px; }
+      .app-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .app-tile { padding: 12px; gap: 10px; border-radius: 12px; }
+      .app-tile-icon { width: 36px; height: 36px; border-radius: 8px; }
+      .app-tile-icon mat-icon { font-size: 22px; width: 22px; height: 22px; }
+      .app-tile-label { font-size: 13px; }
+      .app-tile-desc { font-size: 11px; white-space: normal; line-height: 1.25; overflow: visible; }
+    }
+    @media (max-width: 380px) {
+      .app-grid { grid-template-columns: 1fr; }
     }
   `],
 })
