@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, switchMap, shareReplay, map } from 'rxjs';
+import { ModuloDto } from '../models';
 import { ApiService } from './api.service';
 import {
   Azienda, NotificheConfig, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
@@ -250,6 +251,21 @@ export class DataService {
 
   getBiStats(anno?: number): Observable<any> {
     return this.api.get(anno ? `stats/bi?anno=${anno}` : 'stats/bi');
+  }
+
+  // ── Moduli (Livello 2: attivazione moduli per tenant) ────────────────────
+  private moduli$: Observable<ModuloDto[]> | null = null;
+  getModuli(force = false): Observable<ModuloDto[]> {
+    if (force || !this.moduli$) {
+      this.moduli$ = this.api.get<ModuloDto[]>('moduli').pipe(
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    }
+    return this.moduli$;
+  }
+  invalidateModuli() { this.moduli$ = null; }
+  setModulo(slug: string, attivo: boolean): Observable<ModuloDto> {
+    return this.api.put<ModuloDto>(`moduli/${slug}`, { attivo });
   }
   /** Previsione cassa aggregata a 30/60/90 giorni. */
   getCashflow306090(): Observable<{

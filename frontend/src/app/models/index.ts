@@ -466,6 +466,18 @@ export interface Tenant {
   created_at?: string;
 }
 
+export interface ModuloDto {
+  slug: string;
+  nome: string;
+  descrizione: string;
+  categoria: string;
+  icona: string;
+  core: boolean;
+  defaultAttivo: boolean;
+  attivo: boolean;
+  updatedAt?: string;
+}
+
 export interface StatsVenditeMensili {
   mese: string;
   imponibile: number;

@@ -19,7 +19,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, Listino } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, Listino, ModuloDto } from '../../models';
+import { ModuliService } from '../../services/moduli.service';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 import { ListinoDialogComponent } from './listino-dialog';
 
@@ -347,6 +348,9 @@ export class ImpostazioniComponent implements OnInit {
 
   emailTesting = false;
 
+  moduli: ModuloDto[] = [];
+  moduliSaving = false;
+
   templateConfig: TemplateConfig = { stile: 'classico' };
   notificheConfig: NotificheConfig = { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
   readonly templateBlocks: { key: string; label: string }[] = [
@@ -365,7 +369,8 @@ export class ImpostazioniComponent implements OnInit {
     private ds: DataService,
     private cityService: CityService,
     private dialog: MatDialog,
-    private snack: MatSnackBar
+    private snack: MatSnackBar,
+    private moduliSvc: ModuliService,
   ) {
     this.form = this.fb.group({
       ragioneSociale: [''], pIva: ['', pIvaValidator], codFiscale: ['', codiceFiscaleValidator],
@@ -433,6 +438,46 @@ export class ImpostazioniComponent implements OnInit {
     this.loadUtenti();
     this.loadNoteRapide();
     this.loadBugReports();
+    this.loadModuli();
+  }
+
+  // ── Moduli (Livello 2) ──────────────────────────────────────────────────────
+  loadModuli() {
+    this.ds.getModuli(true).subscribe(m => this.moduli = m);
+  }
+
+  categorieModuli(): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const m of this.moduli) {
+      if (!seen.has(m.categoria)) { seen.add(m.categoria); out.push(m.categoria); }
+    }
+    return out;
+  }
+
+  moduliPerCategoria(cat: string): ModuloDto[] {
+    return this.moduli.filter(m => m.categoria === cat);
+  }
+
+  toggleModulo(m: ModuloDto, attivo: boolean) {
+    if (m.core) return;
+    this.moduliSaving = true;
+    this.ds.setModulo(m.slug, attivo).subscribe({
+      next: updated => {
+        const i = this.moduli.findIndex(x => x.slug === m.slug);
+        if (i >= 0) this.moduli[i] = updated;
+        // Aggiorna lo stato globale così menu/HomeApp filtrano subito
+        this.ds.invalidateModuli();
+        this.moduliSvc.load(true).subscribe();
+        this.moduliSaving = false;
+        this.snack.open(attivo ? `Modulo "${m.nome}" attivato` : `Modulo "${m.nome}" disattivato`, '', { duration: 2200 });
+      },
+      error: e => {
+        this.moduliSaving = false;
+        this.snack.open(e.error?.error || e.message, '', { duration: 3000 });
+        this.loadModuli();
+      },
+    });
   }
 
   // ── Listini ─────────────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@
 
     @if (collapsed) {
       <div class="nav-icons">
-        @for (item of flatNavItems; track item.label) {
+        @for (item of visibleFlatNavItems; track item.label) {
           <a class="nav-icon-btn" [routerLink]="item.route" routerLinkActive="active-link"
              [matTooltip]="item.label" matTooltipPosition="right" (click)="closeOnMobile()">
             <mat-icon>{{ item.icon }}</mat-icon>
@@ -26,7 +26,7 @@
       </div>
     } @else {
       <mat-nav-list dense>
-        @for (item of navItems; track item.label) {
+        @for (item of visibleNavItems; track item.label) {
           @if (!item.children) {
             <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>

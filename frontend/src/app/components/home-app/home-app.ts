@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth.service';
+import { ModuliService } from '../../services/moduli.service';
 
 interface App {
   label: string;
@@ -25,11 +26,11 @@ interface App {
       </div>
 
       @for (cat of categories; track cat) {
-        <div class="app-section">
-          <h2 class="app-section-title">{{ cat }}</h2>
-          <div class="app-grid">
-            @for (a of apps; track a.route) {
-              @if (a.category === cat) {
+        @if (appsVisibili(cat).length > 0) {
+          <div class="app-section">
+            <h2 class="app-section-title">{{ cat }}</h2>
+            <div class="app-grid">
+              @for (a of appsVisibili(cat); track a.route) {
                 <a class="app-tile" [routerLink]="a.route" [style.background]="a.color">
                   <div class="app-tile-icon">
                     <mat-icon>{{ a.icon }}</mat-icon>
@@ -40,9 +41,9 @@ interface App {
                   </div>
                 </a>
               }
-            }
+            </div>
           </div>
-        </div>
+        }
       }
     </div>
   `,
@@ -147,8 +148,13 @@ export class HomeAppComponent {
     { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', color: 'linear-gradient(135deg,#71717a,#52525b)', category: 'Sistema' },
   ];
 
-  constructor(auth: AuthService) {
+  constructor(auth: AuthService, private moduli: ModuliService) {
     const u = auth.getUser();
     this.userName = u?.nome || u?.username || '';
+  }
+
+  /** Tile visibili per una categoria: filtra in base ai moduli attivi. */
+  appsVisibili(categoria: string): App[] {
+    return this.apps.filter(a => a.category === categoria && this.moduli.routeAbilitata(a.route));
   }
 }

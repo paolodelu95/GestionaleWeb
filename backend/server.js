@@ -12,6 +12,7 @@ const {
   getAuthDb, dataDir, tenantsDir, tenantDbPath,
   listTenants, getTenant, createTenant,
   getUserByUsername, countUsers, createUser,
+  ensureTenantModuli,
 } = require('./utils/authDb');
 const { sign } = require('./utils/authToken');
 const { authMiddleware } = require('./middleware/auth');
@@ -55,6 +56,11 @@ function bootstrap() {
   if (!getTenant('default')) {
     createTenant({ slug: 'default', nome: 'Default' });
     console.log('[bootstrap] Tenant "default" creato');
+  }
+
+  // Garantisce le righe tenant_moduli per ogni tenant esistente (idempotente)
+  for (const t of listTenants()) {
+    try { ensureTenantModuli(t.slug); } catch(_) {}
   }
 
   if (countUsers() === 0) {
@@ -197,6 +203,7 @@ app.use('/api/email',            require('./routes/email'));
 app.use('/api/stats',            require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
 app.use('/api/tenants',          require('./routes/tenants'));
+app.use('/api/moduli',           require('./routes/moduli'));
 app.use('/api/pay-link',         require('./routes/payLink'));
 app.use('/api/sdi-passive',      require('./routes/sdiPassive'));
 app.use('/api/riconciliazione',  require('./routes/riconciliazione'));

@@ -18,6 +18,7 @@ import { DataService } from './services/data.service';
 import { AuthService } from './services/auth.service';
 import { NotificationService, NotificationBadges } from './services/notifications.service';
 import { OfflineService } from './services/offline.service';
+import { ModuliService } from './services/moduli.service';
 import { LoginComponent } from './components/login/login';
 import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
 import { Azienda } from './models';
@@ -84,6 +85,7 @@ export class App implements OnInit {
     private swUpdate: SwUpdate,
     private dialog: MatDialog,
     private offlineSvc: OfflineService,
+    public moduli: ModuliService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
   }
@@ -112,6 +114,7 @@ export class App implements OnInit {
 
     if (!this.loggedIn) return;
     this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
+    this.moduli.load().subscribe();
     if (window.innerWidth < 768) this.collapsed = true;
 
     this.notifSvc.start();
@@ -137,6 +140,7 @@ export class App implements OnInit {
   onLogin() {
     this.loggedIn = true;
     this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
+    this.moduli.load(true).subscribe();
     if (window.innerWidth < 768) this.collapsed = true;
     this.notifSvc.start();
   }
@@ -146,6 +150,8 @@ export class App implements OnInit {
     this.loggedIn = false;
     this.azienda = null;
     this.notifSvc.stop();
+    this.moduli.reset();
+    this.ds.invalidateModuli();
   }
 
   @HostListener('window:resize')
@@ -317,6 +323,24 @@ export class App implements OnInit {
       ]
     },
   ];
+
+  /** Voci di menu filtrate dai moduli attivi. */
+  get visibleNavItems(): NavItem[] {
+    return this.navItems
+      .map(item => {
+        if (item.children) {
+          const visibleChildren = item.children.filter(c => !c.route || this.moduli.routeAbilitata(c.route));
+          return visibleChildren.length ? { ...item, children: visibleChildren } : null;
+        }
+        return (!item.route || this.moduli.routeAbilitata(item.route)) ? item : null;
+      })
+      .filter((x): x is NavItem => x !== null);
+  }
+
+  /** Versione "flat" delle voci visibili (per la sidebar collassata). */
+  get visibleFlatNavItems(): NavItem[] {
+    return this.visibleNavItems.flatMap(item => item.children ?? [item]);
+  }
 
   get flatNavItems(): NavItem[] {
     return this.navItems.flatMap(item => item.children ?? [item]);
