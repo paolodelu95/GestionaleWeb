@@ -23,4 +23,7 @@ export const routes: Routes = [
   { path: 'fatture-ricorrenti', loadComponent: () => import('./components/fatture-ricorrenti/fatture-ricorrenti').then(m => m.FattureRicorrentiComponent) },
   { path: 'storico', loadComponent: () => import('./components/storico/storico').then(m => m.StoricoComponent) },
   { path: 'compliance', loadComponent: () => import('./components/compliance/compliance').then(m => m.ComplianceComponent) },
+  { path: 'riconciliazione', loadComponent: () => import('./components/riconciliazione/riconciliazione').then(m => m.RiconciliazioneComponent) },
+  { path: 'crm', loadComponent: () => import('./components/crm/crm').then(m => m.CrmComponent) },
+  { path: 'timesheet', loadComponent: () => import('./components/timesheet/timesheet').then(m => m.TimesheetComponent) },
 ];

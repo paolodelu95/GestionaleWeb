@@ -469,6 +469,89 @@ function initTenantSchema(db) {
     "ALTER TABLE azienda ADD COLUMN email_mode TEXT DEFAULT 'SMTP'",
     'ALTER TABLE fornitori ADD COLUMN estero INTEGER DEFAULT 0',
     'ALTER TABLE clienti   ADD COLUMN estero INTEGER DEFAULT 0',
+    // CRM: stage + opportunità + attività
+    `CREATE TABLE IF NOT EXISTS crm_stage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      ordine INTEGER DEFAULT 0,
+      colore TEXT DEFAULT '#6366f1',
+      vinto INTEGER DEFAULT 0,
+      perso INTEGER DEFAULT 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS crm_opportunita (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titolo TEXT NOT NULL,
+      cliente_id INTEGER REFERENCES clienti(id) ON DELETE SET NULL,
+      contatto TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      telefono TEXT DEFAULT '',
+      stage_id INTEGER REFERENCES crm_stage(id) ON DELETE SET NULL,
+      valore REAL DEFAULT 0,
+      probabilita INTEGER DEFAULT 50,
+      data_prevista TEXT DEFAULT '',
+      assegnatario TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      ordine INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS crm_attivita (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      opportunita_id INTEGER REFERENCES crm_opportunita(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL CHECK(tipo IN ('CHIAMATA','EMAIL','RIUNIONE','TASK','NOTA')),
+      titolo TEXT NOT NULL,
+      descrizione TEXT DEFAULT '',
+      data_pianificata TEXT,
+      data_completamento TEXT,
+      completata INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    // Timesheet / Commesse / Progetti
+    `CREATE TABLE IF NOT EXISTS progetti (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      descrizione TEXT DEFAULT '',
+      cliente_id INTEGER REFERENCES clienti(id) ON DELETE SET NULL,
+      stato TEXT DEFAULT 'APERTO' CHECK(stato IN ('APERTO','IN_CORSO','SOSPESO','CHIUSO')),
+      data_inizio TEXT DEFAULT '',
+      data_fine TEXT DEFAULT '',
+      budget REAL DEFAULT 0,
+      tariffa_oraria REAL DEFAULT 0,
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS timesheet_voci (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      progetto_id INTEGER REFERENCES progetti(id) ON DELETE CASCADE,
+      data TEXT NOT NULL,
+      ore REAL NOT NULL CHECK(ore > 0),
+      descrizione TEXT DEFAULT '',
+      utente TEXT DEFAULT '',
+      fatturata INTEGER DEFAULT 0,
+      fattura_id INTEGER REFERENCES fatture(id) ON DELETE SET NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    // E-commerce sync (WooCommerce / Shopify)
+    `CREATE TABLE IF NOT EXISTS ecommerce_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider TEXT NOT NULL CHECK(provider IN ('WOOCOMMERCE','SHOPIFY')),
+      nome TEXT NOT NULL,
+      base_url TEXT NOT NULL,
+      api_key TEXT DEFAULT '',
+      api_secret TEXT DEFAULT '',
+      attivo INTEGER DEFAULT 1,
+      last_sync TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS ecommerce_mapping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      config_id INTEGER REFERENCES ecommerce_config(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL CHECK(tipo IN ('PRODOTTO','CLIENTE','ORDINE')),
+      remote_id TEXT NOT NULL,
+      local_id INTEGER NOT NULL,
+      last_sync TEXT DEFAULT (datetime('now')),
+      UNIQUE(config_id, tipo, remote_id)
+    )`,
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 
@@ -910,6 +993,20 @@ function initTenantSchema(db) {
       console.warn(`[migrate] indice UNIQUE su ${t}.numero non creato (probabili duplicati esistenti): ${err.message}`);
     }
   }
+
+  // Seed default CRM stages
+  try {
+    const cnt = db.prepare('SELECT COUNT(*) as n FROM crm_stage').get().n;
+    if (cnt === 0) {
+      const ins = db.prepare('INSERT INTO crm_stage (nome, ordine, colore, vinto, perso) VALUES (?,?,?,?,?)');
+      ins.run('Lead',          1, '#94a3b8', 0, 0);
+      ins.run('Qualificato',   2, '#6366f1', 0, 0);
+      ins.run('Proposta',      3, '#f59e0b', 0, 0);
+      ins.run('Trattativa',    4, '#8b5cf6', 0, 0);
+      ins.run('Vinto',         5, '#16a34a', 1, 0);
+      ins.run('Perso',         6, '#dc2626', 0, 1);
+    }
+  } catch(_) {}
 
   try {
     db.exec(`
