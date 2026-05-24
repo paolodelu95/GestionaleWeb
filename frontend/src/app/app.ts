@@ -286,8 +286,10 @@ export class App implements OnInit {
     {
       label: 'Acquisti', icon: 'shopping_bag',
       children: [
-        { label: 'Acquisti',     icon: 'shopping_bag',  route: '/acquisti' },
-        { label: 'Arrivi merce', icon: 'move_to_inbox', route: '/arrivi-merce' },
+        { label: 'Acquisti',          icon: 'shopping_bag',     route: '/acquisti' },
+        { label: 'Arrivi merce',      icon: 'move_to_inbox',    route: '/arrivi-merce' },
+        { label: 'OCR fatture (PDF)', icon: 'document_scanner', route: '/ocr-fatture' },
+        { label: 'SDI ricezione',     icon: 'cloud_download',   route: '/sdi-passive' },
       ]
     },
     {
@@ -314,8 +316,9 @@ export class App implements OnInit {
         { label: 'Compliance',      icon: 'verified',         route: '/compliance' },
       ]
     },
-    { label: 'CRM',       icon: 'group_work', route: '/crm' },
-    { label: 'Timesheet', icon: 'schedule',   route: '/timesheet' },
+    { label: 'CRM',       icon: 'group_work',     route: '/crm' },
+    { label: 'Timesheet', icon: 'schedule',       route: '/timesheet' },
+    { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },
     {
       label: 'Report', icon: 'bar_chart',
       children: [

@@ -29,4 +29,7 @@ export const routes: Routes = [
   { path: 'timesheet', loadComponent: () => import('./components/timesheet/timesheet').then(m => m.TimesheetComponent) },
   { path: 'admin', loadComponent: () => import('./components/admin/admin').then(m => m.AdminComponent) },
   { path: 'reports', loadComponent: () => import('./components/reports/reports').then(m => m.ReportsComponent) },
+  { path: 'ecommerce', loadComponent: () => import('./components/ecommerce/ecommerce').then(m => m.EcommerceComponent) },
+  { path: 'sdi-passive', loadComponent: () => import('./components/sdi-passive/sdi-passive').then(m => m.SdiPassiveComponent) },
+  { path: 'ocr-fatture', loadComponent: () => import('./components/ocr-fatture/ocr-fatture').then(m => m.OcrFattureComponent) },
 ];

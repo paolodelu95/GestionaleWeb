@@ -54,6 +54,7 @@ export class ModuliService {
       '/fatture-ricorrenti': 'fatture_ricorrenti',
       '/vendita-banco': 'vendita_banco',
       '/acquisti': 'acquisti', '/arrivi-merce': 'acquisti',
+      '/ocr-fatture': 'acquisti', '/sdi-passive': 'acquisti',
       '/prodotti': 'magazzino', '/magazzino': 'magazzino',
       '/clienti': 'anagrafica', '/fornitori': 'anagrafica',
       '/pagamenti': 'contabilita', '/scadenzario': 'contabilita', '/prima-nota': 'contabilita',
@@ -61,6 +62,7 @@ export class ModuliService {
       '/compliance': 'compliance',
       '/crm': 'crm',
       '/timesheet': 'timesheet',
+      '/ecommerce': 'ecommerce',
     };
     return map[route] || '';
   }
