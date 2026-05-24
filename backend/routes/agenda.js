@@ -407,12 +407,12 @@ function toIcsDate(iso, allDay = false) {
 }
 
 /** Genera la stringa ICS per gli eventi nel range. */
-function buildIcs(eventi, calName = 'Folvera Agenda') {
+function buildIcs(eventi, calName = 'Ordeva Agenda') {
   const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Folvera//Agenda//IT',
+    'PRODID:-//Ordeva//Agenda//IT',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escIcs(calName)}`,
     'X-WR-TIMEZONE:Europe/Rome',
@@ -450,7 +450,7 @@ router.get('/export.ics', (req, res) => {
   const eventi = calendario(da, a);
   const ics = buildIcs(eventi);
   res.set('Content-Type', 'text/calendar; charset=utf-8');
-  res.set('Content-Disposition', 'attachment; filename="folvera-agenda.ics"');
+  res.set('Content-Disposition', 'attachment; filename="ordeva-agenda.ics"');
   res.send(ics);
 });
 
@@ -502,7 +502,7 @@ function publicFeedHandler(req, res) {
       const da = today.toISOString().slice(0, 19);
       const a  = future.toISOString().slice(0, 19);
       const eventi = calendario(da, a);
-      const ics = buildIcs(eventi, `Folvera Agenda (${tenant})`);
+      const ics = buildIcs(eventi, `Ordeva Agenda (${tenant})`);
       res.set('Content-Type', 'text/calendar; charset=utf-8');
       // Cache breve: client come Google ricaricano ogni alcune ore comunque
       res.set('Cache-Control', 'public, max-age=300');

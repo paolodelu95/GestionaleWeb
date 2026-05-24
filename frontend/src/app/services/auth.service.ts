@@ -19,22 +19,28 @@ interface LoginResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly KEY = 'folvera_token';
-  private readonly USER_KEY = 'folvera_user';
-  private readonly LEGACY_KEY = 'invoxa_token';
-  private readonly LEGACY_USER_KEY = 'invoxa_user';
+  private readonly KEY = 'ordeva_token';
+  private readonly USER_KEY = 'ordeva_user';
+  // Chiavi precedenti (in ordine di anzianità): folvera_*, invoxa_*
+  private readonly LEGACY_KEYS = [
+    { token: 'folvera_token', user: 'folvera_user' },
+    { token: 'invoxa_token',  user: 'invoxa_user'  },
+  ];
 
   constructor(private http: HttpClient) {
-    // Migrazione storage da invoxa_* a folvera_* per non sloggare gli utenti esistenti.
-    const legacyToken = localStorage.getItem(this.LEGACY_KEY);
-    if (legacyToken && !localStorage.getItem(this.KEY)) {
-      localStorage.setItem(this.KEY, legacyToken);
-      localStorage.removeItem(this.LEGACY_KEY);
-    }
-    const legacyUser = localStorage.getItem(this.LEGACY_USER_KEY);
-    if (legacyUser && !localStorage.getItem(this.USER_KEY)) {
-      localStorage.setItem(this.USER_KEY, legacyUser);
-      localStorage.removeItem(this.LEGACY_USER_KEY);
+    // Migrazione storage dalle chiavi precedenti per non sloggare gli utenti esistenti.
+    for (const legacy of this.LEGACY_KEYS) {
+      const lt = localStorage.getItem(legacy.token);
+      if (lt && !localStorage.getItem(this.KEY)) {
+        localStorage.setItem(this.KEY, lt);
+      }
+      if (lt) localStorage.removeItem(legacy.token);
+
+      const lu = localStorage.getItem(legacy.user);
+      if (lu && !localStorage.getItem(this.USER_KEY)) {
+        localStorage.setItem(this.USER_KEY, lu);
+      }
+      if (lu) localStorage.removeItem(legacy.user);
     }
   }
 

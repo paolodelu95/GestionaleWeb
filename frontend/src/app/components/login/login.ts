@@ -25,7 +25,7 @@ import { AuthService } from '../../services/auth.service';
           <div class="logo-mark">
             <mat-icon>business_center</mat-icon>
           </div>
-          <h1>Folvera</h1>
+          <h1>Ordeva</h1>
           <p>Gestionale ERP</p>
         </div>
 
@@ -64,7 +64,7 @@ import { AuthService } from '../../services/auth.service';
         </form>
 
         <div class="login-footer">
-          <span>© {{ year }} Folvera</span>
+          <span>© {{ year }} Ordeva</span>
           <span class="dot">·</span>
           <span>Gestione aziendale moderna</span>
         </div>
@@ -74,7 +74,7 @@ import { AuthService } from '../../services/auth.service';
   styles: [`
     .login-overlay {
       position: fixed; inset: 0;
-      background: #0a0e17;
+      background: #0e2a38;
       display: flex; align-items: center; justify-content: center;
       z-index: 9999;
       overflow: hidden;
@@ -98,19 +98,19 @@ import { AuthService } from '../../services/auth.service';
 
     .blob-1 {
       width: 520px; height: 520px;
-      background: radial-gradient(circle, #4f46e5 0%, transparent 70%);
+      background: radial-gradient(circle, #11769b 0%, transparent 70%);
       top: -180px; left: -140px;
       animation-delay: 0s;
     }
     .blob-2 {
       width: 580px; height: 580px;
-      background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+      background: radial-gradient(circle, #15a4a2 0%, transparent 70%);
       bottom: -200px; right: -120px;
       animation-delay: -6s;
     }
     .blob-3 {
       width: 380px; height: 380px;
-      background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+      background: radial-gradient(circle, #128498 0%, transparent 70%);
       top: 40%; left: 50%;
       transform: translate(-50%, -50%);
       animation-delay: -12s;
@@ -169,13 +169,13 @@ import { AuthService } from '../../services/auth.service';
         width: 56px;
         height: 56px;
         border-radius: 14px;
-        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #11769b 0%, #128498 50%, #15a4a2 100%);
         margin: 0 auto 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         box-shadow:
-          0 8px 24px -4px rgba(79, 70, 229, 0.55),
+          0 8px 24px -4px rgba(17, 118, 155, 0.55),
           0 0 0 1px rgba(255, 255, 255, 0.10) inset;
 
         mat-icon {
@@ -263,10 +263,10 @@ import { AuthService } from '../../services/auth.service';
       font-size: 15px !important;
       font-weight: 600 !important;
       border-radius: 10px !important;
-      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%) !important;
+      background: linear-gradient(135deg, #11769b 0%, #128498 50%, #15a4a2 100%) !important;
       color: white !important;
       box-shadow:
-        0 8px 20px -4px rgba(79, 70, 229, 0.50),
+        0 8px 20px -4px rgba(17, 118, 155, 0.50),
         0 0 0 1px rgba(255, 255, 255, 0.10) inset !important;
       transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
                   box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1),
@@ -285,7 +285,7 @@ import { AuthService } from '../../services/auth.service';
       &:hover:not([disabled]) {
         transform: translateY(-1px);
         box-shadow:
-          0 12px 28px -6px rgba(79, 70, 229, 0.60),
+          0 12px 28px -6px rgba(17, 118, 155, 0.60),
           0 0 0 1px rgba(255, 255, 255, 0.15) inset !important;
         mat-icon { transform: translateX(2px); }
       }

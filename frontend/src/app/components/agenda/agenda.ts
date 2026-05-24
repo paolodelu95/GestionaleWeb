@@ -329,7 +329,7 @@ export class AppuntamentoDialogComponent {
           </summary>
           <ol style="font-size:13px;color:#475569;margin:8px 0 0;padding-left:20px;line-height:1.7">
             <li>Outlook web → Calendario → <b>"Aggiungi calendario"</b> → <b>"Sottoscrivi dal web"</b></li>
-            <li>Incolla l'URL HTTPS, dai un nome (es. "Folvera") e salva</li>
+            <li>Incolla l'URL HTTPS, dai un nome (es. "Ordeva") e salva</li>
           </ol>
         </details>
 
@@ -1034,7 +1034,7 @@ export class AgendaComponent implements OnInit {
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'folvera-agenda.ics';
+        a.href = url; a.download = 'ordeva-agenda.ics';
         document.body.appendChild(a); a.click();
         setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
       },

@@ -197,7 +197,7 @@ export class RiconciliazioneComponent {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${this.api['base']}/${url}`);
         xhr.setRequestHeader('Content-Type', 'text/plain');
-        const token = localStorage.getItem('folvera_token') || localStorage.getItem('invoxa_token');
+        const token = localStorage.getItem('ordeva_token') || localStorage.getItem('folvera_token') || localStorage.getItem('invoxa_token');
         if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
         xhr.onload = () => xhr.status < 400 ? resolve(JSON.parse(xhr.responseText)) : reject(new Error(xhr.responseText));
         xhr.onerror = () => reject(new Error('rete'));

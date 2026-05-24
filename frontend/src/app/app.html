@@ -8,7 +8,7 @@
   <aside class="sidenav" [class.collapsed]="collapsed">
     <div class="sidenav-header">
       @if (!collapsed) {
-        <span class="sidenav-title">Folvera</span>
+        <span class="sidenav-title">Ordeva</span>
         <span class="sidenav-sub">Gestionale ERP</span>
       } @else {
         <mat-icon class="collapsed-logo">business</mat-icon>
@@ -187,7 +187,7 @@
       @if (showUpdateBanner) {
         <div class="pwa-banner pwa-banner--update">
           <mat-icon>system_update</mat-icon>
-          <span>È disponibile una nuova versione di Folvera.</span>
+          <span>È disponibile una nuova versione di Ordeva.</span>
           <button mat-flat-button type="button" (click)="reloadForUpdate()">Aggiorna ora</button>
           <button mat-icon-button type="button" (click)="showUpdateBanner = false"><mat-icon>close</mat-icon></button>
         </div>
@@ -195,7 +195,7 @@
       @if (showInstallBanner) {
         <div class="pwa-banner pwa-banner--install">
           <mat-icon>install_mobile</mat-icon>
-          <span>Installa Folvera sul tuo dispositivo per accedervi come app.</span>
+          <span>Installa Ordeva sul tuo dispositivo per accedervi come app.</span>
           <button mat-flat-button type="button" (click)="installApp()">Installa</button>
           <button mat-icon-button type="button" (click)="dismissInstall()"><mat-icon>close</mat-icon></button>
         </div>

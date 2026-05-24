@@ -1,9 +1,9 @@
 {
-  "name": "Folvera — Gestionale ERP",
-  "short_name": "Folvera",
+  "name": "Ordeva — Gestionale ERP",
+  "short_name": "Ordeva",
   "description": "Gestionale ERP per fatture, DDT, magazzino e molto altro",
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#0e2a38",
+  "background_color": "#0e2a38",
   "display": "standalone",
   "orientation": "portrait-primary",
   "scope": "./",
