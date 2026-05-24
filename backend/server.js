@@ -213,6 +213,7 @@ app.use('/api/tenants',          require('./routes/tenants'));
 app.use('/api/moduli',           require('./routes/moduli'));
 app.use('/api/reports',          require('./routes/reports'));
 app.use('/api/ocr',              require('./routes/ocr'));
+app.use('/api/agenda',           require('./routes/agenda'));
 app.use('/api/pay-link',         require('./routes/payLink'));
 app.use('/api/sdi-passive',      require('./routes/sdiPassive'));
 app.use('/api/riconciliazione',  require('./routes/riconciliazione'));

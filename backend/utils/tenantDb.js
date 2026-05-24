@@ -469,6 +469,35 @@ function initTenantSchema(db) {
     "ALTER TABLE azienda ADD COLUMN email_mode TEXT DEFAULT 'SMTP'",
     'ALTER TABLE fornitori ADD COLUMN estero INTEGER DEFAULT 0',
     'ALTER TABLE clienti   ADD COLUMN estero INTEGER DEFAULT 0',
+    // Agenda: appuntamenti generici + todo list
+    `CREATE TABLE IF NOT EXISTS appuntamenti (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titolo TEXT NOT NULL,
+      descrizione TEXT DEFAULT '',
+      inizio TEXT NOT NULL,
+      fine TEXT,
+      tutto_giorno INTEGER DEFAULT 0,
+      luogo TEXT DEFAULT '',
+      cliente_id INTEGER REFERENCES clienti(id) ON DELETE SET NULL,
+      fornitore_id INTEGER REFERENCES fornitori(id) ON DELETE SET NULL,
+      colore TEXT DEFAULT '#3b82f6',
+      promemoria_min INTEGER,
+      stato TEXT NOT NULL DEFAULT 'PIANIFICATO' CHECK(stato IN ('PIANIFICATO','COMPLETATO','ANNULLATO')),
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    'CREATE INDEX IF NOT EXISTS idx_appuntamenti_inizio ON appuntamenti(inizio)',
+    `CREATE TABLE IF NOT EXISTS todo (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titolo TEXT NOT NULL,
+      descrizione TEXT DEFAULT '',
+      scadenza TEXT,
+      priorita TEXT NOT NULL DEFAULT 'MEDIA' CHECK(priorita IN ('BASSA','MEDIA','ALTA')),
+      stato TEXT NOT NULL DEFAULT 'DA_FARE' CHECK(stato IN ('DA_FARE','IN_CORSO','FATTA')),
+      categoria TEXT DEFAULT '',
+      completata_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    'CREATE INDEX IF NOT EXISTS idx_todo_scadenza ON todo(scadenza)',
     // CRM: stage + opportunità + attività
     `CREATE TABLE IF NOT EXISTS crm_stage (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

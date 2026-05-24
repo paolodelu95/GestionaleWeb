@@ -316,6 +316,7 @@ export class App implements OnInit {
         { label: 'Compliance',      icon: 'verified',         route: '/compliance' },
       ]
     },
+    { label: 'Agenda',    icon: 'event_note',     route: '/agenda' },
     { label: 'CRM',       icon: 'group_work',     route: '/crm' },
     { label: 'Timesheet', icon: 'schedule',       route: '/timesheet' },
     { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },

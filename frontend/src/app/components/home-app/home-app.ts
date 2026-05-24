@@ -137,6 +137,7 @@ export class HomeAppComponent {
     { label: 'Compliance',      description: 'LIPE, esterometro, export', icon: 'verified',     route: '/compliance',      color: 'linear-gradient(135deg,#0284c7,#0369a1)', category: 'Contabilità' },
 
     // ── Operativo ───────────────────────────────────────────────────────────
+    { label: 'Agenda',           description: 'Appuntamenti, todo, calendario', icon: 'event_note', route: '/agenda',     color: 'linear-gradient(135deg,#6366f1,#4f46e5)', category: 'Operativo' },
     { label: 'CRM',              description: 'Pipeline opportunità',    icon: 'group_work',     route: '/crm',           color: 'linear-gradient(135deg,#a855f7,#9333ea)', category: 'Operativo' },
     { label: 'Timesheet',        description: 'Progetti e ore lavorate', icon: 'schedule',       route: '/timesheet',     color: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', category: 'Operativo' },
     { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', color: 'linear-gradient(135deg,#ef4444,#dc2626)', category: 'Operativo' },

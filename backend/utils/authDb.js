@@ -94,6 +94,7 @@ const MODULI_CATALOGO = [
   { slug: 'crm',                nome: 'CRM',                      descrizione: 'Pipeline opportunità + attività', categoria: 'Operativo', icona: 'group_work', core: 0, default_attivo: 0, ordine: 30 },
   { slug: 'timesheet',          nome: 'Timesheet',                descrizione: 'Progetti e ore lavorate',         categoria: 'Operativo', icona: 'schedule', core: 0, default_attivo: 0, ordine: 31 },
   { slug: 'ecommerce',          nome: 'E-commerce',               descrizione: 'Sync WooCommerce / Shopify',      categoria: 'Operativo', icona: 'shopping_basket', core: 0, default_attivo: 0, ordine: 32 },
+  { slug: 'agenda',             nome: 'Agenda',                   descrizione: 'Appuntamenti, todo list, vista calendario + ICS export', categoria: 'Operativo', icona: 'event_note', core: 0, default_attivo: 1, ordine: 33 },
 ];
 
 function seedModuli(db) {

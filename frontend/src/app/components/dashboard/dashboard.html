@@ -188,6 +188,44 @@
             </div>
           }
 
+          <!-- ── Widget: Appuntamenti imminenti (7 giorni) ──────────────── -->
+          @if (w.id === 'agenda-imminenti') {
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <h3 class="section-title" style="margin:0">Appuntamenti imminenti · 7 giorni</h3>
+                <a routerLink="/agenda" mat-stroked-button>
+                  <mat-icon>event_note</mat-icon> Apri agenda
+                </a>
+              </div>
+              @if (agendaImminenti.eventi.length === 0) {
+                <p class="empty-msg" style="text-align:center;color:#94a3b8;padding:16px">
+                  Nessun evento nei prossimi 7 giorni.
+                </p>
+              } @else {
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  @for (e of agendaImminenti.eventi.slice(0, 10); track e.id) {
+                    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-left:3px solid;border-color:transparent;background:var(--bg-surface-2,#f8fafc);border-radius:6px"
+                         [style.border-left-color]="e.colore">
+                      <div style="min-width:90px;font-size:12px;font-weight:600;color:#0f172a">
+                        {{ e.inizio | date:'EEE dd MMM' }}
+                        @if (!e.tuttoGiorno && e.inizio.includes('T')) {
+                          <div style="font-size:11px;color:#64748b">{{ e.inizio | date:'HH:mm' }}</div>
+                        }
+                      </div>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-weight:600;font-size:13px">{{ e.titolo }}</div>
+                        @if (e.controparte) {
+                          <div style="font-size:11px;color:#64748b">{{ e.controparte }}</div>
+                        }
+                      </div>
+                      <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:#e2e8f0;color:#475569">{{ e.source }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
           <!-- ── Widget: Previsione cassa 30/60/90 giorni ──────────────── -->
           @if (w.id === 'cashflow-3060-90') {
             <div class="card">

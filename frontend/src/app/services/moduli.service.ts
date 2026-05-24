@@ -63,6 +63,7 @@ export class ModuliService {
       '/crm': 'crm',
       '/timesheet': 'timesheet',
       '/ecommerce': 'ecommerce',
+      '/agenda': 'agenda',
     };
     return map[route] || '';
   }

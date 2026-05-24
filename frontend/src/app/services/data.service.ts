@@ -275,6 +275,11 @@ export class DataService {
   generaPayLinkFattura(id: number): Observable<{ url: string; paymentLinkId: string; importo: number; currency: string }> {
     return this.api.post(`pay-link/fattura/${id}`, {});
   }
+
+  // ── Agenda ────────────────────────────────────────────────────────────────
+  getAgendaImminenti(giorni = 7): Observable<{ da: string; a: string; eventi: any[] }> {
+    return this.api.get(`agenda/imminenti?giorni=${giorni}`);
+  }
   /** Previsione cassa aggregata a 30/60/90 giorni. */
   getCashflow306090(): Observable<{
     saldoOggi: number;

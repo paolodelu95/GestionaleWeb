@@ -32,4 +32,5 @@ export const routes: Routes = [
   { path: 'ecommerce', loadComponent: () => import('./components/ecommerce/ecommerce').then(m => m.EcommerceComponent) },
   { path: 'sdi-passive', loadComponent: () => import('./components/sdi-passive/sdi-passive').then(m => m.SdiPassiveComponent) },
   { path: 'ocr-fatture', loadComponent: () => import('./components/ocr-fatture/ocr-fatture').then(m => m.OcrFattureComponent) },
+  { path: 'agenda', loadComponent: () => import('./components/agenda/agenda').then(m => m.AgendaComponent) },
 ];

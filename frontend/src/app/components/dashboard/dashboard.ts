@@ -33,6 +33,7 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: 'kpi-anno',        label: 'KPI anno + cashflow',     icon: 'monitoring',    visible: true },
   { id: 'cashflow-forecast', label: 'Previsione cashflow 60gg', icon: 'show_chart', visible: true },
   { id: 'cashflow-3060-90',  label: 'Previsione cassa 30/60/90', icon: 'savings',    visible: true },
+  { id: 'agenda-imminenti',  label: 'Appuntamenti imminenti',    icon: 'event_note', visible: true },
   { id: 'chart-vendite',   label: 'Grafico vendite mensili', icon: 'bar_chart',     visible: true },
   { id: 'chart-top',       label: 'Top 5 prodotti',          icon: 'pie_chart',     visible: true },
   { id: 'table-sotto',     label: 'Prodotti sotto soglia',   icon: 'inventory',     visible: true },
@@ -79,6 +80,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     bucket60: { in: number; out: number; saldo: number };
     bucket90: { in: number; out: number; saldo: number };
   } = { saldoOggi: 0, bucket30: { in: 0, out: 0, saldo: 0 }, bucket60: { in: 0, out: 0, saldo: 0 }, bucket90: { in: 0, out: 0, saldo: 0 } };
+
+  agendaImminenti: { eventi: any[] } = { eventi: [] };
   tipiPagamento: TipoPagamento[] = [];
 
   ddtCols = ['numero', 'dataEmissione', 'clienteNome', 'totale', 'azione'];
@@ -121,6 +124,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       forecast: safe(this.ds.getCashflowForecast(60), { items: [], saldoFinale: 0, totEntrate: 0, totUscite: 0 }),
       kpi: safe(this.ds.getKpiAnno(), null),
       cf306090: safe(this.ds.getCashflow306090(), this.cashflow306090),
+      agenda: safe(this.ds.getAgendaImminenti(7), this.agendaImminenti),
     }).subscribe({
       next: (r: any) => {
         this.prodottiCount = r.count;
@@ -133,6 +137,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.cashflow = r.cashflow;
         this.forecast = r.forecast || { items: [], saldoFinale: 0, totEntrate: 0, totUscite: 0 };
         this.cashflow306090 = r.cf306090 || this.cashflow306090;
+        this.agendaImminenti = r.agenda || this.agendaImminenti;
         this.venditeMensili = r.vendite;
         this.topProdotti = r.top;
         this.ddtDaFatturare = (r.ddt || [])
