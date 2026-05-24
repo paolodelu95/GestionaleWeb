@@ -51,14 +51,14 @@ import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker
                   (mouseenter)="hovered=a.id??null" (mouseleave)="hovered=null"
                   [style.background]="hovered===a.id ? '#f1f5f9' : 'white'"
                   (click)="select(a)">
-                <td style="padding:10px 12px;font-weight:600;color:#4f46e5">{{ a.numero }}</td>
+                <td style="padding:10px 12px;font-weight:600;color:#0e6480">{{ a.numero }}</td>
                 <td style="padding:10px 12px;color:#64748b">{{ a.dataEmissione | date:'dd/MM/yyyy' }}</td>
                 <td style="padding:10px 12px">{{ a.fornitoreNome || '—' }}</td>
                 <td style="padding:10px 12px;text-align:right;font-weight:600">
                   {{ a.totale | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </td>
                 <td style="padding:10px 4px;text-align:center">
-                  <mat-icon style="color:#4f46e5;font-size:18px">chevron_right</mat-icon>
+                  <mat-icon style="color:#0e6480;font-size:18px">chevron_right</mat-icon>
                 </td>
               </tr>
             }

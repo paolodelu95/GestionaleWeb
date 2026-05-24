@@ -155,7 +155,7 @@ export interface DocInfoData {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      background: linear-gradient(135deg, #0e6480 0%, #11769b 100%);
       padding: 20px 20px 16px;
       color: #fff;
       border-radius: 4px 4px 0 0;
@@ -259,7 +259,7 @@ export interface DocInfoData {
       border: 1px solid #e2e8f0;
     }
     .dih-card-totale {
-      background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%);
+      background: linear-gradient(135deg, #e6f1f6 0%, #f0f9ff 100%);
       border: 1px solid #c7d2fe;
       text-align: right;
     }
@@ -268,7 +268,7 @@ export interface DocInfoData {
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #6366f1;
+      color: #11769b;
       margin-bottom: 6px;
     }
     .dih-card-nome {

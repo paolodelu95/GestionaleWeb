@@ -3,7 +3,7 @@
 html {
   height: 100%;
   @include mat.theme((
-    color: (primary: mat.$violet-palette, tertiary: mat.$blue-palette),
+    color: (primary: mat.$cyan-palette, tertiary: mat.$azure-palette),
     typography: Inter,
     density: 0,
   ));
@@ -30,13 +30,16 @@ html {
   --text-muted: #b6bdc9;
   --text-inverse: #ffffff;
 
-  // Brand / accents
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-active: #3730a3;
-  --primary-soft: #eef2ff;
-  --primary-soft-hover: #e0e7ff;
+  // Brand / accents — Ordeva palette
+  --primary: #11769b;
+  --primary-hover: #0e6480;
+  --primary-active: #0b5066;
+  --primary-soft: #e6f1f6;
+  --primary-soft-hover: #cde3ec;
   --primary-on: #ffffff;
+  --brand-teal: #15a4a2;
+  --brand-mid: #128498;
+  --brand-dark: #0e2a38;
 
   --success: #10b981;
   --success-soft: #d1fae5;
@@ -64,7 +67,7 @@ html {
   --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
   --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.10), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
-  --shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.20);
+  --shadow-focus: 0 0 0 3px rgba(17, 118, 155, 0.22);
 
   // Radii
   --radius-xs: 4px;
@@ -103,11 +106,11 @@ html {
   --text-tertiary: #94a3b8;
   --text-muted: #64748b;
 
-  --primary: #6366f1;
-  --primary-hover: #818cf8;
-  --primary-active: #4f46e5;
-  --primary-soft: rgba(99, 102, 241, 0.14);
-  --primary-soft-hover: rgba(99, 102, 241, 0.22);
+  --primary: #15a4a2;
+  --primary-hover: #2dd4cb;
+  --primary-active: #11769b;
+  --primary-soft: rgba(21, 164, 162, 0.14);
+  --primary-soft-hover: rgba(21, 164, 162, 0.22);
 
   --success-soft: rgba(16, 185, 129, 0.16);
   --success-on: #34d399;
@@ -125,7 +128,7 @@ html {
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.40), 0 2px 4px -2px rgba(0, 0, 0, 0.30);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.45), 0 4px 6px -4px rgba(0, 0, 0, 0.30);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.55), 0 8px 10px -6px rgba(0, 0, 0, 0.40);
-  --shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.35);
+  --shadow-focus: 0 0 0 3px rgba(21, 164, 162, 0.35);
 }
 
 body {
@@ -540,7 +543,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
     width: 44px;
     height: 44px;
     border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--brand-teal) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1061,7 +1064,7 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   [style*="color:#6366f1"], [style*="color: #6366f1"] { color: var(--primary-hover) !important; }
 
   // ── KPI card icon overlay (background hardcoded): aggiusta opacity ───────
-  [style*="background:#eef2ff"], [style*="background: #eef2ff"] { background: rgba(99,102,241,0.18) !important; }
+  [style*="background:#eef2ff"], [style*="background: #eef2ff"] { background: rgba(21,164,162,0.18) !important; }
   [style*="background:#f0fdf4"], [style*="background: #f0fdf4"] { background: rgba(16,185,129,0.18) !important; }
   [style*="background:#fff7ed"], [style*="background: #fff7ed"] { background: rgba(245,158,11,0.18) !important; }
   [style*="background:#fef2f2"], [style*="background: #fef2f2"] { background: rgba(239,68,68,0.18) !important; }

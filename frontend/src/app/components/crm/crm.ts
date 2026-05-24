@@ -167,7 +167,7 @@ export class CrmOppDialogComponent {
     .page-title { font-size: 24px; font-weight: 700; margin: 0; }
     .kanban-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 16px; align-items: flex-start; }
     .kanban-col { flex: 0 0 290px; min-height: 200px; background: var(--bg-surface-2, #f1f5f9); border-radius: 10px; padding: 8px; }
-    .kanban-col-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 10px; border-top: 3px solid #6366f1; margin-bottom: 8px; }
+    .kanban-col-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 10px; border-top: 3px solid #11769b; margin-bottom: 8px; }
     .kanban-col-title { font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--text-primary, #0f172a); }
     .kanban-col-meta { font-size: 11px; color: var(--text-tertiary, #64748b); }
     .kanban-col-body { display: flex; flex-direction: column; gap: 8px; min-height: 60px; }

@@ -193,7 +193,7 @@ const RIGHE_STYLES = `
                       <td class="td-history">
                         @if (prezziRecenti[$index]?.length) {
                           <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
-                            <mat-icon style="font-size:16px;color:#6366f1">history</mat-icon>
+                            <mat-icon style="font-size:16px;color:#11769b">history</mat-icon>
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
                             <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>

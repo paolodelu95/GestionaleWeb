@@ -147,7 +147,7 @@ interface Todo {
             <mat-option value="#16a34a"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Verde</mat-option>
             <mat-option value="#dc2626"><span style="display:inline-block;width:14px;height:14px;background:#dc2626;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Rosso</mat-option>
             <mat-option value="#f59e0b"><span style="display:inline-block;width:14px;height:14px;background:#f59e0b;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Arancio</mat-option>
-            <mat-option value="#8b5cf6"><span style="display:inline-block;width:14px;height:14px;background:#8b5cf6;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Viola</mat-option>
+            <mat-option value="#0891b2"><span style="display:inline-block;width:14px;height:14px;background:#0891b2;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Viola</mat-option>
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" style="flex:1"><mat-label>Promemoria</mat-label>
@@ -278,7 +278,7 @@ export class AppuntamentoDialogComponent {
   imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule],
   template: `
     <h2 mat-dialog-title>
-      <mat-icon style="vertical-align:middle;color:#6366f1">sync</mat-icon>
+      <mat-icon style="vertical-align:middle;color:#11769b">sync</mat-icon>
       Sincronizza con calendario esterno
     </h2>
     <mat-dialog-content style="min-width:520px;max-width:600px">
@@ -478,7 +478,7 @@ export class TodoDialogComponent {
                 <span><span class="dot" style="background:#3b82f6"></span> Appuntamenti</span>
                 <span><span class="dot" style="background:#16a34a"></span> Incassi</span>
                 <span><span class="dot" style="background:#dc2626"></span> Pagamenti</span>
-                <span><span class="dot" style="background:#8b5cf6"></span> CRM</span>
+                <span><span class="dot" style="background:#0891b2"></span> CRM</span>
                 <span><span class="dot" style="background:#f59e0b"></span> Ricorrenti</span>
               </div>
             </div>
@@ -530,7 +530,7 @@ export class TodoDialogComponent {
                     </td>
                     <td>
                       <b>{{ a.titolo }}</b>
-                      @if (a.condiviso) { <span style="font-size:10px;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:8px;margin-left:6px">condiviso</span> }
+                      @if (a.condiviso) { <span style="font-size:10px;background:#cde3ec;color:#0b5066;padding:1px 6px;border-radius:8px;margin-left:6px">condiviso</span> }
                       @if (a.descrizione) { <div style="font-size:11px;color:#94a3b8">{{ a.descrizione }}</div> }
                     </td>
                     <td>

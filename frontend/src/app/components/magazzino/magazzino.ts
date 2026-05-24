@@ -38,7 +38,7 @@ import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente } from '../../mo
     .chip.carico  { background: #dcfce7; color: #15803d; }
     .chip.scarico { background: #fee2e2; color: #dc2626; }
     .causale-label { font-size: 11px; color: #64748b; font-weight: 600; }
-    .doc-link { font-weight: 600; color: #4f46e5; }
+    .doc-link { font-weight: 600; color: #0e6480; }
     .empty-msg { text-align: center; padding: 40px; color: #94a3b8; }
     .storico-bar { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; }
     .storico-bar input[type=date] { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; font-size: 14px; }

@@ -176,7 +176,7 @@ const RIGHE_STYLES = `
                 <td class="td-history">
                   @if (prezziRecenti[$index]?.length) {
                     <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti - questo cliente">
-                      <mat-icon style="font-size:18px;color:#7c3aed">history</mat-icon>
+                      <mat-icon style="font-size:18px;color:#0e7490">history</mat-icon>
                     </button>
                   }
                   @if (riga.prodottoId) {

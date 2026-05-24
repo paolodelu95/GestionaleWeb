@@ -44,7 +44,7 @@ const RIGHE_STYLES = `
   template: `
     <mat-dialog-content style="min-width:680px;max-width:900px">
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0e7490 0%,#a78bfa 100%)">
           <mat-icon>repeat</mat-icon>
         </div>
         <div class="dialog-hero-text">

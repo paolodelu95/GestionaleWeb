@@ -269,7 +269,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         datasets: [{
           label: 'Saldo cumulativo (€)',
           data,
-          borderColor: '#6366f1',
+          borderColor: '#11769b',
           backgroundColor: 'rgba(99,102,241,0.1)',
           fill: true,
           tension: 0.25,
@@ -303,7 +303,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           label: 'Imponibile (€)',
           data,
           backgroundColor: 'rgba(99,102,241,0.7)',
-          borderColor: '#6366f1',
+          borderColor: '#11769b',
           borderWidth: 1,
           borderRadius: 4,
         }]
@@ -321,7 +321,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.chartTopRef || !this.topProdotti.length || !this.isVisible('chart-top')) return;
     this.chartTop?.destroy();
     const top5 = this.topProdotti.slice(0, 5);
-    const colors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6'];
+    const colors = ['#11769b','#22c55e','#f59e0b','#ef4444','#0891b2'];
     this.chartTop = new Chart(this.chartTopRef.nativeElement, {
       type: 'doughnut',
       data: {

@@ -151,8 +151,8 @@
   &.classe-A { background: #22c55e; }
   &.classe-B { background: #f59e0b; }
   &.classe-C { background: #94a3b8; }
-  &.stag     { background: #6366f1; }
-  &:not(.classe-A):not(.classe-B):not(.classe-C):not(.stag) { background: #6366f1; }
+  &.stag     { background: #11769b; }
+  &:not(.classe-A):not(.classe-B):not(.classe-C):not(.stag) { background: #11769b; }
 }
 
 .text-right { text-align: right; }
@@ -257,7 +257,7 @@
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--primary) 0%, #8b5cf6 100%);
+    background: linear-gradient(90deg, var(--primary) 0%, #0891b2 100%);
   }
 
   &--success::before { background: linear-gradient(90deg, #10b981 0%, #34d399 100%); }

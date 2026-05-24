@@ -57,7 +57,7 @@ import { ListinoDialogComponent } from './listino-dialog';
           <mat-checkbox [(ngModel)]="tp.attivo">Attivo</mat-checkbox>
         </div>
         @if (tp.immediato) {
-          <p style="color:#6366f1;font-size:13px;margin:0">
+          <p style="color:#11769b;font-size:13px;margin:0">
             Il pagamento viene registrato automaticamente all'emissione della fattura.
           </p>
         }

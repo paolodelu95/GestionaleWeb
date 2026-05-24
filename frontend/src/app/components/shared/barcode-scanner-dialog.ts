@@ -51,7 +51,7 @@ declare const BarcodeDetector: any;
     .bs-frame {
       width: 70%;
       height: 130px;
-      border: 3px solid #6366f1;
+      border: 3px solid #11769b;
       border-radius: 12px;
       box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
     }

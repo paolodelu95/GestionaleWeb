@@ -28,7 +28,7 @@ import { Listino, ListinoPrezzo, Prodotto } from '../../models';
   template: `
     <mat-dialog-content class="listino-dialog-content">
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%)">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0891b2 0%,#11769b 100%)">
           <mat-icon>price_change</mat-icon>
         </div>
         <div class="dialog-hero-text">

@@ -67,7 +67,7 @@
   }
 
   .collapsed-logo {
-    color: #818cf8;
+    color: #128498;
     font-size: 24px;
     display: flex;
     align-items: center;
@@ -108,7 +108,7 @@
       }
 
       &.active-link {
-        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        background: linear-gradient(135deg, #0e6480 0%, #11769b 100%);
         color: white;
         box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.50);
         mat-icon { color: white; }
@@ -302,7 +302,7 @@
     width: 34px;
     height: 34px;
     border-radius: var(--radius-md);
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #0e6480 0%, #11769b 50%, #0891b2 100%);
     color: white;
     display: flex;
     align-items: center;
@@ -723,7 +723,7 @@
     box-shadow: 0 2px 8px -2px rgba(239, 68, 68, 0.5);
   }
   &.info {
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #0e6480 0%, #11769b 100%);
     color: white;
     box-shadow: 0 2px 8px -2px rgba(79, 70, 229, 0.5);
   }
@@ -750,10 +750,10 @@
   }
 
   &--install {
-    background: linear-gradient(90deg, #eef2ff 0%, #e0e7ff 100%);
-    color: #3730a3;
+    background: linear-gradient(90deg, #e6f1f6 0%, #cde3ec 100%);
+    color: #155e75;
     border-bottom-color: #c7d2fe;
-    mat-icon { color: #4f46e5; }
+    mat-icon { color: #0e6480; }
   }
   &--update {
     background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%);

@@ -47,7 +47,7 @@ export interface InfoDialogData {
               <div class="info-value" [class.mono]="row.mono">
                 {{ row.value }}
                 @if (row.chip) {
-                  <span class="chip" [style.background]="row.chipColor || '#e0e7ff'" [style.color]="row.chipColor ? '#fff' : '#4338ca'">{{ row.chip }}</span>
+                  <span class="chip" [style.background]="row.chipColor || '#cde3ec'" [style.color]="row.chipColor ? '#fff' : '#0b5066'">{{ row.chip }}</span>
                 }
               </div>
             </div>

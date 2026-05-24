@@ -30,7 +30,7 @@ export interface ColDef { key: string; label: string; defaultVisible?: boolean; 
     }
     .col-row:hover { background: #f8fafc; }
     .drag-handle { color: #cbd5e1; font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; cursor: grab; }
-    .col-row.cdk-drag-placeholder { opacity: .3; background: #e0e7ff; }
+    .col-row.cdk-drag-placeholder { opacity: .3; background: #cde3ec; }
     .cdk-drop-list-dragging .col-row:not(.cdk-drag-placeholder) { transition: transform 200ms; }
   `],
   template: `

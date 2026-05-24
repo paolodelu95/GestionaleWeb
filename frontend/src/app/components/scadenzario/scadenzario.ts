@@ -42,7 +42,7 @@ interface ScadenzarioItem {
             MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule],
   template: `
     <div style="display:flex;align-items:center;gap:12px;padding:20px 24px 0">
-      <div style="width:44px;height:44px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px -2px rgba(99,102,241,.35)">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,#11769b,#0891b2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px -2px rgba(99,102,241,.35)">
         <mat-icon style="color:#fff;font-size:22px;width:22px;height:22px">payments</mat-icon>
       </div>
       <div>
@@ -124,7 +124,7 @@ interface ScadenzarioItem {
     <mat-dialog-actions align="end" style="padding:12px 24px 16px;gap:8px">
       <button mat-button mat-dialog-close>Annulla</button>
       <button mat-flat-button [disabled]="!dataPagamento" (click)="confirm()"
-              style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff">
+              style="background:linear-gradient(135deg,#11769b,#0891b2);color:#fff">
         <mat-icon>check_circle</mat-icon>
         Conferma saldo ({{ data.items.length }})
       </button>

@@ -45,7 +45,7 @@ export interface ProdottoPick {
               <span class="picker-nome">
                 {{ p.nome }}
                 @if (p.haVarianti) {
-                  <span style="font-size:10px;background:#ede9fe;color:#6d28d9;padding:1px 5px;border-radius:99px;margin-left:4px;font-weight:700">VARIANTI</span>
+                  <span style="font-size:10px;background:#cffafe;color:#6d28d9;padding:1px 5px;border-radius:99px;margin-left:4px;font-weight:700">VARIANTI</span>
                 }
               </span>
               <span class="picker-cat">{{ p.categoria }}</span>
@@ -76,7 +76,7 @@ export interface ProdottoPick {
                   <span style="background:#f1f5f9;border-radius:6px;padding:3px 10px;font-weight:700;font-size:13px">{{ v.taglia }}</span>
                 }
                 @if (v.colore) {
-                  <span style="background:#ede9fe;color:#6d28d9;border-radius:6px;padding:3px 10px;font-weight:700;font-size:13px">{{ v.colore }}</span>
+                  <span style="background:#cffafe;color:#6d28d9;border-radius:6px;padding:3px 10px;font-weight:700;font-size:13px">{{ v.colore }}</span>
                 }
                 @if (v.barcode) {
                   <span style="font-size:11px;color:#94a3b8;font-family:monospace">{{ v.barcode }}</span>
@@ -105,7 +105,7 @@ export interface ProdottoPick {
     }
     .picker-row:hover { background: #f0f4ff; }
     .picker-row-no-variant { border: 1px dashed #e2e8f0; border-radius: 8px; margin-bottom: 8px; }
-    .picker-code { font-family: monospace; font-weight: 700; min-width: 90px; color: #4f46e5; font-size: 13px; }
+    .picker-code { font-family: monospace; font-weight: 700; min-width: 90px; color: #0e6480; font-size: 13px; }
     .picker-nome { flex: 1; font-weight: 500; }
     .picker-cat { color: #64748b; font-size: 12px; min-width: 80px; }
     .picker-barcode { font-family: monospace; font-size: 11px; color: #94a3b8; min-width: 100px; }

@@ -4,7 +4,7 @@
     <div style="display:flex;gap:8px;align-items:center">
       @if (selection.hasValue()) {
         <button mat-flat-button type="button" (click)="saldoMultiplo()"
-                style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;gap:6px">
+                style="background:linear-gradient(135deg,#11769b,#0891b2);color:#fff;gap:6px">
           <mat-icon>payments</mat-icon>
           Saldo multiplo
           <span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;margin-left:2px">
@@ -36,9 +36,9 @@
       <div class="kpi-value" style="color:#d97706">{{ countScaduti }}</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-accent" style="background:#6366f1"></div>
+      <div class="kpi-accent" style="background:#11769b"></div>
       <div class="kpi-label">In scadenza (30 gg)</div>
-      <div class="kpi-value" style="color:#6366f1">{{ countInScadenza30 }}</div>
+      <div class="kpi-value" style="color:#11769b">{{ countInScadenza30 }}</div>
     </div>
   </div>
 
@@ -70,7 +70,7 @@
     </div>
 
     @if (selection.hasValue()) {
-      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 4px;color:#6366f1;font-size:13px;font-weight:500">
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 4px;color:#11769b;font-size:13px;font-weight:500">
         <mat-icon style="font-size:16px;width:16px;height:16px">check_box</mat-icon>
         {{ selection.selected.length }} selezionati
         · {{ selectedTotal | currency:'EUR':'symbol':'1.2-2':'it' }}

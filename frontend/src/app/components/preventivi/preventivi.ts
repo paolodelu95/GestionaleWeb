@@ -53,7 +53,7 @@ const RIGHE_STYLES = `
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%);box-shadow:0 4px 12px -2px rgba(139,92,246,0.35)">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);box-shadow:0 4px 12px -2px rgba(139,92,246,0.35)">
           <mat-icon>request_quote</mat-icon>
         </div>
         <div class="dialog-hero-text">
@@ -183,7 +183,7 @@ const RIGHE_STYLES = `
                 <td class="td-history">
                   @if (prezziRecenti[$index]?.length) {
                     <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
-                      <mat-icon style="font-size:16px;color:#6366f1">history</mat-icon>
+                      <mat-icon style="font-size:16px;color:#11769b">history</mat-icon>
                     </button>
                     <mat-menu #menuPrezzi="matMenu">
                       <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>

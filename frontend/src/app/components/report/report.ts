@@ -207,7 +207,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
         datasets: [
           { label: 'Ricavi', data: fat, backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4, stack: 'a' },
           { label: 'Costi', data: acq, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4, stack: 'b' },
-          { type: 'line', label: 'Margine', data: margini, borderColor: '#6366f1',
+          { type: 'line', label: 'Margine', data: margini, borderColor: '#11769b',
             backgroundColor: 'rgba(99,102,241,0.1)', tension: 0.4, fill: true, pointRadius: 3 } as any,
         ]
       },
@@ -224,7 +224,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
   private buildCategorieChart() {
     if (!this.chartCatRef || !this.bi?.categorie?.length) return;
     const top = this.bi.categorie.slice(0, 8);
-    const colors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6'];
+    const colors = ['#11769b','#22c55e','#f59e0b','#ef4444','#06b6d4','#0891b2','#ec4899','#14b8a6'];
     this.charts.push(new Chart(this.chartCatRef.nativeElement, {
       type: 'doughnut',
       data: {
@@ -253,8 +253,8 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
           label: 'Media mensile',
           data: byMese,
           backgroundColor: 'rgba(99,102,241,0.2)',
-          borderColor: '#6366f1',
-          pointBackgroundColor: '#6366f1',
+          borderColor: '#11769b',
+          pointBackgroundColor: '#11769b',
         }]
       },
       options: {

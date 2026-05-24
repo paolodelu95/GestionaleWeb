@@ -120,8 +120,8 @@
   &.kpi-tint-blue   { .kpi-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); } .kpi-value { color: #1d4ed8; } }
   &.kpi-tint-green  { .kpi-icon { background: linear-gradient(135deg, #10b981, #059669); } .kpi-value { color: #047857; } }
   &.kpi-tint-amber  { .kpi-icon { background: linear-gradient(135deg, #f59e0b, #d97706); } .kpi-value { color: #b45309; } }
-  &.kpi-tint-purple { .kpi-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); } .kpi-value { color: #6d28d9; } }
-  &.kpi-tint-indigo { .kpi-icon { background: linear-gradient(135deg, #6366f1, #4f46e5); } .kpi-value { color: #4338ca; } }
+  &.kpi-tint-purple { .kpi-icon { background: linear-gradient(135deg, #0891b2, #0e7490); } .kpi-value { color: #6d28d9; } }
+  &.kpi-tint-indigo { .kpi-icon { background: linear-gradient(135deg, #11769b, #0e6480); } .kpi-value { color: #0b5066; } }
   &.kpi-tint-red    { .kpi-icon { background: linear-gradient(135deg, #ef4444, #dc2626); } .kpi-value { color: #b91c1c; } }
 }
 
@@ -297,7 +297,7 @@
     &.kpi-tint-green  .kpi-value { color: #34d399; }
     &.kpi-tint-amber  .kpi-value { color: #fbbf24; }
     &.kpi-tint-purple .kpi-value { color: #a78bfa; }
-    &.kpi-tint-indigo .kpi-value { color: #818cf8; }
+    &.kpi-tint-indigo .kpi-value { color: #128498; }
     &.kpi-tint-red    .kpi-value { color: #f87171; }
   }
 

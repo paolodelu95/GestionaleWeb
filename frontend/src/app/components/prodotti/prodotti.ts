@@ -295,11 +295,11 @@ const PRODOTTI_FIELDS: FieldDef[] = [
     </mat-dialog-actions>`,
   styles: [`
     .var-input { border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:13px;width:100%;box-sizing:border-box; }
-    .var-input:focus { outline:none;border-color:#4f46e5; }
+    .var-input:focus { outline:none;border-color:#0e6480; }
     .var-input.num { width:70px;text-align:right; }
     .varianti-box { margin-top:12px;border:1px solid #e2e8f0;border-radius:10px;padding:16px; }
     .varianti-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px; }
-    .varianti-title { font-size:12px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.5px; }
+    .varianti-title { font-size:12px;font-weight:700;color:#0e6480;text-transform:uppercase;letter-spacing:.5px; }
     .var-table-wrap { overflow-x:auto; }
     .var-table { width:100%;border-collapse:collapse;min-width:420px; }
     .prezzo-mode-toggle ::ng-deep .mat-button-toggle { font-size:11px; }

@@ -70,7 +70,7 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
                   [indeterminate]="isGroupIndeterminate(g)"
                   (change)="toggleGroup(g, $event.checked)">
                 </mat-checkbox>
-                <mat-icon style="color:#6366f1;font-size:18px;width:18px;height:18px">person</mat-icon>
+                <mat-icon style="color:#11769b;font-size:18px;width:18px;height:18px">person</mat-icon>
                 <span class="gd-cliente">{{ g.clienteNome }}</span>
                 <mat-select [(ngModel)]="g.tipoPagamentoId" class="gd-pagamento-select"
                             placeholder="Tipo pagamento">
@@ -235,7 +235,7 @@ const RIGHE_STYLES = `
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%)">
+        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0e6480 0%,#11769b 100%)">
           <mat-icon>receipt</mat-icon>
         </div>
         <div class="dialog-hero-text">
@@ -306,12 +306,12 @@ const RIGHE_STYLES = `
 
             <div class="righe-section">
               @if (suggerimenti.length) {
-                <div class="suggerimenti-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#f5f3ff;border:1px solid #e0e7ff;border-radius:8px;margin-bottom:10px">
-                  <mat-icon style="color:#6366f1;font-size:18px;width:18px;height:18px">auto_awesome</mat-icon>
-                  <span style="font-size:12px;font-weight:600;color:#4338ca">Suggeriti per questo cliente:</span>
+                <div class="suggerimenti-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#f5f3ff;border:1px solid #cde3ec;border-radius:8px;margin-bottom:10px">
+                  <mat-icon style="color:#11769b;font-size:18px;width:18px;height:18px">auto_awesome</mat-icon>
+                  <span style="font-size:12px;font-weight:600;color:#0b5066">Suggeriti per questo cliente:</span>
                   @for (s of suggerimenti; track s.id) {
                     <button type="button" class="sugg-chip" (click)="addRigaDaSuggerimento(s)"
-                            style="background:#fff;border:1px solid #c7d2fe;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600;color:#4338ca;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+                            style="background:#fff;border:1px solid #c7d2fe;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600;color:#0b5066;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
                       <mat-icon style="font-size:14px;width:14px;height:14px">add</mat-icon>
                       {{ s.nome }}
                       <span style="opacity:.6;font-weight:400">·{{ s.occorrenze }}</span>
@@ -406,7 +406,7 @@ const RIGHE_STYLES = `
                       <td class="td-history">
                         @if (prezziRecenti[$index]?.length) {
                           <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
-                            <mat-icon style="font-size:16px;color:#6366f1">history</mat-icon>
+                            <mat-icon style="font-size:16px;color:#11769b">history</mat-icon>
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
                             <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>
@@ -586,7 +586,7 @@ const RIGHE_STYLES = `
             <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">account_balance</mat-icon>
             Riferimenti
             @if (riferimenti.length) {
-              <span style="background:#6366f1;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:6px">{{ riferimenti.length }}</span>
+              <span style="background:#11769b;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:6px">{{ riferimenti.length }}</span>
             }
           </ng-template>
           <div style="padding-top:16px">
@@ -610,7 +610,7 @@ const RIGHE_STYLES = `
             @for (rif of riferimenti; track $index) {
               <div class="rif-card">
                 <div class="rif-card-header">
-                  <mat-icon style="font-size:16px;width:16px;height:16px;color:#6366f1">link</mat-icon>
+                  <mat-icon style="font-size:16px;width:16px;height:16px;color:#11769b">link</mat-icon>
                   <span style="font-size:13px;font-weight:600;color:#374151;flex:1">Riga {{ $index + 1 }}</span>
                   <button mat-icon-button color="warn" type="button" (click)="removeRiferimento($index)">
                     <mat-icon style="font-size:18px">delete</mat-icon>
@@ -663,7 +663,7 @@ const RIGHE_STYLES = `
   styles: [RIGHE_STYLES + `
     .pagamento-info { background:#f8fafc; border-radius:8px; padding:16px; margin-top:8px; display:flex; flex-direction:column; gap:12px; }
     .info-row { display:flex; align-items:center; gap:8px; color:#374151; }
-    .info-row mat-icon { color:#6366f1; font-size:20px; }
+    .info-row mat-icon { color:#11769b; font-size:20px; }
     .righe-error { display:flex; align-items:center; gap:4px; color:#dc2626; font-size:12px; font-weight:500; }
     .righe-error mat-icon { font-size:15px; width:15px; height:15px; }
     .input-error { border-color:#dc2626 !important; }
