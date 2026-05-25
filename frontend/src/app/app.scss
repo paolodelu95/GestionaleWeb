@@ -767,6 +767,12 @@
     border-bottom-color: #fde68a;
     mat-icon { color: #d97706; }
   }
+  &--verify {
+    background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+    color: #78350f;
+    border-bottom-color: #fcd34d;
+    mat-icon { color: #b45309; }
+  }
 }
 
 .dark-mode .pwa-banner {

@@ -9,6 +9,7 @@ export const routes: Routes = [
   { path: 'privacy', loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'privacy' } },
   { path: 'cookie',  loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'cookies' } },
   { path: 'reset-password', loadComponent: () => import('./components/reset-password/reset-password').then(m => m.ResetPasswordComponent) },
+  { path: 'verify-email',   loadComponent: () => import('./components/verify-email/verify-email').then(m => m.VerifyEmailComponent) },
   // ─────────────────────────────────────────────────────────────────────────
   { path: 'app',          loadComponent: () => import('./components/home-app/home-app').then(m => m.HomeAppComponent) },
   { path: 'dashboard',    loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent) },
@@ -42,4 +43,5 @@ export const routes: Routes = [
   { path: 'ocr-fatture', loadComponent: () => import('./components/ocr-fatture/ocr-fatture').then(m => m.OcrFattureComponent) },
   { path: 'agenda', loadComponent: () => import('./components/agenda/agenda').then(m => m.AgendaComponent) },
   { path: 'aiuto',  loadComponent: () => import('./components/aiuto/aiuto').then(m => m.AiutoComponent) },
+  { path: 'super-admin', loadComponent: () => import('./components/super-admin/super-admin').then(m => m.SuperAdminComponent) },
 ];

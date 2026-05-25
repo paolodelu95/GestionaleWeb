@@ -106,7 +106,24 @@ function getAuthDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_prt_user ON password_reset_tokens(user_id);
     CREATE INDEX IF NOT EXISTS idx_prt_expires ON password_reset_tokens(expires_at);
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      token       TEXT PRIMARY KEY,
+      user_id     INTEGER NOT NULL,
+      expires_at  TEXT NOT NULL,
+      used        INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      ip          TEXT DEFAULT '',
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_evt_user ON email_verification_tokens(user_id);
+    CREATE INDEX IF NOT EXISTS idx_evt_expires ON email_verification_tokens(expires_at);
   `);
+  // Migrazioni per email_verified su users esistenti
+  const userMigrations = [
+    'ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN email_verified_at TEXT DEFAULT NULL',
+  ];
+  for (const sql of userMigrations) { try { db.exec(sql); } catch(_) {} }
   // Migrazioni per campi commerciali sui tenant esistenti
   const tenantMigrations = [
     "ALTER TABLE tenants ADD COLUMN ragione_sociale TEXT DEFAULT ''",
@@ -454,6 +471,58 @@ function purgeExpiredResetTokens() {
   ).run();
 }
 
+// ── Email verification tokens ───────────────────────────────────────────────
+
+function createEmailVerificationToken({ userId, token, expiresAt, ip }) {
+  getAuthDb().prepare(
+    `INSERT INTO email_verification_tokens (token, user_id, expires_at, ip)
+     VALUES (?,?,?,?)`
+  ).run(token, userId, expiresAt, ip || '');
+}
+
+function getEmailVerificationToken(token) {
+  const row = getAuthDb().prepare(
+    `SELECT token, user_id, expires_at, used, created_at, ip
+     FROM email_verification_tokens WHERE token=?`
+  ).get(token);
+  if (!row) return null;
+  return { ...row, used: row.used === 1 };
+}
+
+function markEmailVerificationTokenUsed(token) {
+  getAuthDb().prepare(
+    `UPDATE email_verification_tokens SET used=1 WHERE token=?`
+  ).run(token);
+}
+
+function markUserEmailVerified(userId) {
+  getAuthDb().prepare(
+    `UPDATE users SET email_verified=1, email_verified_at=datetime('now') WHERE id=?`
+  ).run(userId);
+}
+
+function invalidateOtherEmailVerificationTokens(userId, exceptToken) {
+  getAuthDb().prepare(
+    `UPDATE email_verification_tokens SET used=1
+     WHERE user_id=? AND token!=? AND used=0`
+  ).run(userId, exceptToken);
+}
+
+function countRecentEmailVerificationRequests(userId, minutesWindow = 60) {
+  const sinceIso = new Date(Date.now() - minutesWindow * 60000).toISOString();
+  return getAuthDb().prepare(
+    `SELECT COUNT(*) AS n FROM email_verification_tokens
+     WHERE user_id=? AND created_at >= ?`
+  ).get(userId, sinceIso).n;
+}
+
+function purgeExpiredEmailVerificationTokens() {
+  getAuthDb().prepare(
+    `DELETE FROM email_verification_tokens
+     WHERE expires_at < datetime('now', '-7 days')`
+  ).run();
+}
+
 function findUserByEmail(email) {
   const e = String(email || '').trim().toLowerCase();
   if (!e) return null;
@@ -477,4 +546,8 @@ module.exports = {
   setGruppoMembri, getUserGruppi, getGroupMatesIds,
   createPasswordResetToken, getPasswordResetToken, markPasswordResetTokenUsed,
   invalidateOtherResetTokens, countRecentResetRequests, purgeExpiredResetTokens,
+  createEmailVerificationToken, getEmailVerificationToken,
+  markEmailVerificationTokenUsed, markUserEmailVerified,
+  invalidateOtherEmailVerificationTokens,
+  countRecentEmailVerificationRequests, purgeExpiredEmailVerificationTokens,
 };

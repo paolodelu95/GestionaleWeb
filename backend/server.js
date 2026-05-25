@@ -11,11 +11,15 @@ const { runWithContext } = require('./utils/tenantContext');
 const {
   getAuthDb, dataDir, tenantsDir, tenantDbPath,
   listTenants, getTenant, createTenant,
-  getUserByUsername, countUsers, createUser, updateUser,
+  getUserByUsername, getUserById, countUsers, createUser, updateUser,
   ensureTenantModuli, findUserByEmail,
   createPasswordResetToken, getPasswordResetToken,
   markPasswordResetTokenUsed, invalidateOtherResetTokens,
   countRecentResetRequests, purgeExpiredResetTokens,
+  createEmailVerificationToken, getEmailVerificationToken,
+  markEmailVerificationTokenUsed, markUserEmailVerified,
+  invalidateOtherEmailVerificationTokens,
+  countRecentEmailVerificationRequests, purgeExpiredEmailVerificationTokens,
 } = require('./utils/authDb');
 const { sign } = require('./utils/authToken');
 const { authMiddleware } = require('./middleware/auth');
@@ -23,7 +27,9 @@ const { runBackup } = require('./utils/backup');
 const { inviaSOllecitiAutomatici } = require('./utils/solleciti');
 const { getNextNumero } = require('./utils/nextNumero');
 const crypto = require('crypto');
-const { sendPasswordResetEmail, appBaseUrl } = require('./utils/systemMailer');
+const { sendPasswordResetEmail, sendEmailVerification, appBaseUrl } = require('./utils/systemMailer');
+
+const VERIFY_TOKEN_TTL_H = 24;             // validità link conferma email
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -191,9 +197,27 @@ app.post('/api/auth/register', registerLimiter, async (req, res) => {
     const user = getUserByUsername(email);
     const token = sign({ uid: user.id, username: user.username, ruolo: user.ruolo, tenant: slug });
 
+    // Genera token di verifica email + invia (fire-and-forget: la registrazione
+    // resta valida anche se l'invio email fallisce; l'utente potrà reinviare).
+    try {
+      const vt = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_H * 3600000).toISOString();
+      const clientIp = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+      createEmailVerificationToken({ userId: user.id, token: vt, expiresAt, ip: clientIp });
+      const verifyUrl = `${appBaseUrl()}/verify-email?token=${vt}`;
+      sendEmailVerification({ to: email, nome: user.nome, verifyUrl, expiresInHours: VERIFY_TOKEN_TTL_H })
+        .catch(err => console.error('[register] invio verifica email fallito:', err.message));
+    } catch (err) {
+      console.error('[register] token verifica email:', err.message);
+    }
+
     res.status(201).json({
       token,
-      user: { id: user.id, username: user.username, nome: user.nome, email: user.email, ruolo: user.ruolo, tenant: slug },
+      user: {
+        id: user.id, username: user.username, nome: user.nome,
+        email: user.email, ruolo: user.ruolo, tenant: slug,
+        emailVerified: false,
+      },
       tenant: { slug: tenant.slug, nome: tenant.nome, piano: tenant.piano, trialScadeIl: tenant.trialScadeIl },
     });
   } catch (e) {
@@ -219,8 +243,36 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     user: {
       id: user.id, username: user.username, nome: user.nome,
       email: user.email, ruolo: user.ruolo, tenant: user.tenant_slug,
+      emailVerified: user.email_verified === 1,
     },
   });
+});
+
+// ── Email verification (pubblico) ────────────────────────────────────────────
+const verifyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppe richieste — riprova tra un\'ora.' }
+});
+
+app.get('/api/auth/verify-email/:token', verifyLimiter, (req, res) => {
+  try { purgeExpiredEmailVerificationTokens(); } catch(_) {}
+  const t = getEmailVerificationToken(req.params.token);
+  if (!t || t.used) return res.status(400).json({ verified: false, reason: 'Link non valido o già usato.' });
+  if (new Date(t.expires_at) < new Date()) {
+    return res.status(400).json({ verified: false, reason: 'Link scaduto. Richiedi un nuovo invio.' });
+  }
+  try {
+    markUserEmailVerified(t.user_id);
+    markEmailVerificationTokenUsed(req.params.token);
+    invalidateOtherEmailVerificationTokens(t.user_id, req.params.token);
+    res.json({ verified: true, message: 'Email confermata. Ora puoi accedere a tutte le funzioni.' });
+  } catch (e) {
+    console.error('[verify-email]', e.message);
+    res.status(500).json({ verified: false, reason: 'Errore durante la conferma.' });
+  }
 });
 
 // ── Forgot password (pubblico) ───────────────────────────────────────────────
@@ -336,7 +388,37 @@ app.use('/api', authMiddleware);
 
 const db = require('./database');
 
-app.get('/api/me', (req, res) => res.json(req.user));
+app.get('/api/me', (req, res) => {
+  const fresh = getUserById(req.user.id);
+  res.json({ ...req.user, emailVerified: fresh?.email_verified === 1 });
+});
+
+// ── Resend email verifica (utente loggato) ──────────────────────────────────
+app.post('/api/auth/resend-verification', verifyLimiter, async (req, res) => {
+  const userId = req.user.id;
+  const user = getUserById(userId);
+  if (!user) return res.status(404).json({ error: 'Utente non trovato' });
+  if (user.email_verified === 1) return res.status(400).json({ error: 'Email già verificata.' });
+  if (!user.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
+    return res.status(400).json({ error: 'Email account non valida.' });
+  }
+  // Rate limit per utente: max 3/ora
+  if (countRecentEmailVerificationRequests(userId, 60) >= 3) {
+    return res.status(429).json({ error: 'Hai richiesto troppe email recentemente. Riprova tra un\'ora.' });
+  }
+  try {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_H * 3600000).toISOString();
+    const clientIp = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+    createEmailVerificationToken({ userId, token, expiresAt, ip: clientIp });
+    const verifyUrl = `${appBaseUrl()}/verify-email?token=${token}`;
+    await sendEmailVerification({ to: user.email, nome: user.nome, verifyUrl, expiresInHours: VERIFY_TOKEN_TTL_H });
+    res.json({ ok: true, message: 'Email di verifica inviata. Controlla la tua casella.' });
+  } catch (e) {
+    console.error('[resend-verification]', e.message);
+    res.status(500).json({ error: 'Errore durante l\'invio. Riprova più tardi.' });
+  }
+});
 
 app.get('/api/prezzi-recenti', (req, res) => {
   const pid = parseInt(req.query.prodottoId);
@@ -420,6 +502,7 @@ app.use('/api/email',            require('./routes/email'));
 app.use('/api/stats',            require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
 app.use('/api/tenants',          require('./routes/tenants'));
+app.use('/api/admin',            require('./routes/admin'));
 app.use('/api/moduli',           require('./routes/moduli'));
 app.use('/api/reports',          require('./routes/reports'));
 app.use('/api/ocr',              require('./routes/ocr'));

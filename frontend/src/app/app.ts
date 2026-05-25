@@ -62,7 +62,7 @@ export class App implements OnInit {
    * un bypass dell'auth, che resta enforced dal backend.
    */
   publicRoute = false;
-  private readonly PUBLIC_PATHS = ['/faq', '/guida', '/termini', '/privacy', '/cookie', '/reset-password'];
+  private readonly PUBLIC_PATHS = ['/faq', '/guida', '/termini', '/privacy', '/cookie', '/reset-password', '/verify-email'];
   badges: NotificationBadges = { scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0 };
   darkMode = false;
   searchQuery = '';
@@ -85,6 +85,8 @@ export class App implements OnInit {
   ];
   showInstallBanner = false;
   showUpdateBanner = false;
+  showEmailVerifyBanner = false;
+  resendingVerification = false;
   isOffline = false;
   private searchSubject = new Subject<string>();
   private installPromptEvent: any = null;
@@ -138,6 +140,16 @@ export class App implements OnInit {
     this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
     this.moduli.load().subscribe();
     if (window.innerWidth < 768) this.collapsed = true;
+
+    // Verifica freshness dello stato email del'utente: se ha appena confermato
+    // da un altro tab, il banner deve sparire automaticamente.
+    this.authSvc.refreshUser().subscribe({
+      next: (u) => {
+        const dismissed = sessionStorage.getItem('email-verify-dismissed') === '1';
+        this.showEmailVerifyBanner = !!u && u.emailVerified === false && !dismissed;
+      },
+      error: () => {},
+    });
 
     this.notifSvc.start();
     this.notifSvc.badges.subscribe(b => this.badges = b);
@@ -283,6 +295,29 @@ export class App implements OnInit {
     this.swUpdate.activateUpdate().then(() => window.location.reload());
   }
 
+  dismissVerifyBanner() {
+    this.showEmailVerifyBanner = false;
+    sessionStorage.setItem('email-verify-dismissed', '1');
+  }
+
+  resendVerification() {
+    if (this.resendingVerification) return;
+    this.resendingVerification = true;
+    this.authSvc.resendVerification().subscribe({
+      next: () => {
+        this.resendingVerification = false;
+        this.showEmailVerifyBanner = false;
+        sessionStorage.setItem('email-verify-dismissed', '1');
+        // Snackbar non disponibile qui senza injection; uso alert leggero
+        alert('Email di verifica inviata. Controlla la tua casella (anche spam).');
+      },
+      error: (err) => {
+        this.resendingVerification = false;
+        alert(err.error?.error || 'Errore durante l\'invio. Riprova più tardi.');
+      },
+    });
+  }
+
   openBugReport() {
     const pagina = this.router.url.replace(/^\//, '').split('/')[0];
     this.dialog.open(BugReportDialogComponent, { data: { pagina }, width: '540px' });
@@ -356,6 +391,7 @@ export class App implements OnInit {
       ]
     },
     { label: 'Amministrazione', icon: 'admin_panel_settings', route: '/admin', adminOnly: true },
+    { label: 'Console SaaS',    icon: 'space_dashboard', route: '/super-admin', superadminOnly: true },
   ];
 
   /** Voci di menu filtrate dai moduli attivi e dal ruolo dell'utente. */

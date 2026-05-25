@@ -10,6 +10,7 @@ interface AuthUser {
   email?: string;
   ruolo: string;
   tenant: string;
+  emailVerified?: boolean;
 }
 
 interface LoginResponse {
@@ -93,6 +94,27 @@ export class AuthService {
       `${environment.apiUrl}/auth/reset-password`,
       { token, password },
     );
+  }
+
+  verifyEmail(token: string) {
+    return this.http.get<{ verified: boolean; reason?: string; message?: string }>(
+      `${environment.apiUrl}/auth/verify-email/${encodeURIComponent(token)}`,
+    );
+  }
+
+  resendVerification() {
+    return this.http.post<{ ok: boolean; message: string }>(
+      `${environment.apiUrl}/auth/resend-verification`, {},
+    ).pipe(tap(() => {
+      // dopo il resend, niente di particolare lato client
+    }));
+  }
+
+  /** Refresh dei dati utente dal server (utile dopo verifica email). */
+  refreshUser() {
+    return this.http.get<AuthUser>(`${environment.apiUrl}/me`).pipe(tap(u => {
+      if (u) localStorage.setItem(this.USER_KEY, JSON.stringify(u));
+    }));
   }
 
   getToken(): string | null { return localStorage.getItem(this.KEY); }

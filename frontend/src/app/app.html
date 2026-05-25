@@ -202,6 +202,17 @@
           <button mat-icon-button type="button" (click)="dismissInstall()"><mat-icon>close</mat-icon></button>
         </div>
       }
+      @if (showEmailVerifyBanner) {
+        <div class="pwa-banner pwa-banner--verify">
+          <mat-icon>mark_email_unread</mat-icon>
+          <span>Conferma il tuo indirizzo email per attivare tutte le funzioni.</span>
+          <button mat-flat-button type="button" (click)="resendVerification()"
+                  [disabled]="resendingVerification">
+            {{ resendingVerification ? 'Invio…' : 'Reinvia email' }}
+          </button>
+          <button mat-icon-button type="button" (click)="dismissVerifyBanner()"><mat-icon>close</mat-icon></button>
+        </div>
+      }
       <router-outlet />
     </div>
   </div>

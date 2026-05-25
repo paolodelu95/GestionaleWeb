@@ -104,6 +104,28 @@ function escapeHtml(s) {
   }[c]));
 }
 
+async function sendEmailVerification({ to, nome, verifyUrl, expiresInHours }) {
+  const greeting = nome ? `Ciao ${escapeHtml(nome)},` : 'Ciao,';
+  const body = `
+    <p style="margin:0 0 14px;font-size:18px;font-weight:600;color:#0e2a38">Conferma il tuo indirizzo email</p>
+    <p style="margin:0 0 18px">${greeting}<br>
+    grazie per esserti registrato a Ordeva. Per completare la registrazione e attivare tutte le funzioni, conferma il tuo indirizzo email cliccando sul pulsante qui sotto:</p>
+    <p style="margin:24px 0 28px;text-align:center">
+      <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#11769b 0%,#15a4a2 100%);color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:10px;font-weight:600;font-size:15px">
+        Conferma email
+      </a>
+    </p>
+    <p style="margin:0 0 14px;font-size:13px;color:#64748b">Il link è valido per <b>${expiresInHours} ore</b>. Dopo questo periodo dovrai richiedere un nuovo invio dall'area riservata.</p>
+    <p style="margin:0 0 6px;font-size:13px;color:#64748b">Se il pulsante non funziona, copia e incolla questo indirizzo nel tuo browser:</p>
+    <p style="margin:0 0 14px;font-size:12px;color:#11769b;word-break:break-all"><a href="${verifyUrl}" style="color:#11769b;text-decoration:none">${verifyUrl}</a></p>
+    <p style="margin:0;font-size:12px;color:#94a3b8">Se non hai creato un account Ordeva, puoi ignorare questa email.</p>`;
+  return sendSystemEmail({
+    to,
+    subject: 'Conferma il tuo indirizzo email — Ordeva',
+    html: htmlShell('Conferma il tuo indirizzo email', body),
+  });
+}
+
 async function sendPasswordResetEmail({ to, nome, resetUrl, expiresInMin }) {
   const greeting = nome ? `Ciao ${escapeHtml(nome)},` : 'Ciao,';
   const body = `
@@ -128,5 +150,6 @@ async function sendPasswordResetEmail({ to, nome, resetUrl, expiresInMin }) {
 module.exports = {
   sendSystemEmail,
   sendPasswordResetEmail,
+  sendEmailVerification,
   appBaseUrl,
 };
