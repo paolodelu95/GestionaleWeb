@@ -225,6 +225,17 @@ import { AuthService } from '../../services/auth.service';
           background: rgba(255, 255, 255, 0.04);
           border-radius: 10px;
         }
+        .mat-mdc-input-element {
+          color: #f1f5f9 !important;
+          caret-color: #818cf8 !important;
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+          -webkit-text-fill-color: #f1f5f9 !important;
+          -webkit-box-shadow: 0 0 0px 1000px #131c2e inset !important;
+          caret-color: #818cf8;
+        }
         .mat-mdc-form-field-icon-suffix mat-icon,
         .mat-mdc-form-field-icon-suffix .mat-mdc-icon-button mat-icon {
           color: #94a3b8;
@@ -354,7 +365,16 @@ export class LoginComponent {
     this.error = '';
     this.authSvc.login(this.username, this.password).subscribe({
       next: () => { this.loading = false; this.loggedIn.emit(); },
-      error: () => { this.loading = false; this.error = 'Username o password non corretti'; }
+      error: (err) => {
+        this.loading = false;
+        if (err.status === 0) {
+          this.error = 'Server non raggiungibile — avvia il backend (npm run dev)';
+        } else if (err.status === 429) {
+          this.error = 'Troppi tentativi — riprova tra qualche minuto';
+        } else {
+          this.error = 'Username o password non corretti';
+        }
+      }
     });
   }
 }
