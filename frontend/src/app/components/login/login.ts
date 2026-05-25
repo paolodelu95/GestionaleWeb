@@ -24,7 +24,7 @@ import type { RegisterPayload } from '../../services/auth.service';
       <div class="login-card">
         <div class="login-logo">
           <div class="logo-mark">
-            <mat-icon>business_center</mat-icon>
+            <img src="icons/ordeva-icon.png" alt="Ordeva" width="80" height="80">
           </div>
           <h1>Ordeva</h1>
           <p>{{ mode === 'login' ? 'Gestionale ERP' : 'Crea il tuo account' }}</p>
@@ -246,23 +246,19 @@ import type { RegisterPayload } from '../../services/auth.service';
       margin-bottom: 28px;
 
       .logo-mark {
-        width: 56px;
-        height: 56px;
-        border-radius: 14px;
-        background: linear-gradient(135deg, #11769b 0%, #128498 50%, #15a4a2 100%);
+        width: 80px;
+        height: 80px;
         margin: 0 auto 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow:
-          0 8px 24px -4px rgba(17, 118, 155, 0.55),
-          0 0 0 1px rgba(255, 255, 255, 0.10) inset;
+        filter: drop-shadow(0 8px 16px rgba(17, 118, 155, 0.35));
 
-        mat-icon {
-          font-size: 28px;
-          width: 28px;
-          height: 28px;
-          color: white;
+        img {
+          width: 80px;
+          height: 80px;
+          object-fit: contain;
+          display: block;
         }
       }
 
