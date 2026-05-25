@@ -1,12 +1,12 @@
-// OCR fatture passive — usa Mindee Invoice API v4.
+// OCR fatture passive — usa Mindee Invoice API v2.
 //
 // Setup:
 //   - registrati su https://www.mindee.com → API Token gratuito (250 chiamate/mese)
-//   - env MINDEE_API_KEY = il token (non lo prefisso con "Token", lo aggiunge il client)
+//   - env MINDEE_API_KEY = il token (prefisso "Token" aggiunto dal client)
 //
 // Flusso:
 //   1) Il client invia POST /api/ocr/fattura con body = PDF (binario)
-//   2) Server lo inoltra a Mindee, ottiene JSON estratto
+//   2) Server lo inoltra a Mindee v2, ottiene JSON estratto
 //   3) Risponde con i campi suggeriti (fornitore, totale, IVA, data, righe)
 //      lasciando all'utente di confermare prima di creare l'acquisto.
 
@@ -25,34 +25,35 @@ router.post('/fattura', upload.single('file'), async (req, res) => {
 
   try {
     const form = new FormData();
-    form.append('document', new Blob([req.file.buffer], { type: req.file.mimetype || 'application/pdf' }), req.file.originalname || 'document.pdf');
-    const r = await fetch('https://api.mindee.net/v1/products/mindee/invoices/v4/predict', {
+    form.append('file', new Blob([req.file.buffer], { type: req.file.mimetype || 'application/pdf' }), req.file.originalname || 'document.pdf');
+    const r = await fetch('https://api.mindee.net/v2/products/mindee/invoices/inferences', {
       method: 'POST',
       headers: { 'Authorization': `Token ${key}` },
       body: form,
     });
     if (!r.ok) {
       const t = await r.text();
-      return res.status(r.status).json({ error: `Mindee ${r.status}: ${t.slice(0, 300)}` });
+      // Mappa sempre a 502 per non far credere al frontend che il JWT sia scaduto
+      return res.status(502).json({ error: `Mindee ${r.status}: ${t.slice(0, 300)}` });
     }
     const data = await r.json();
-    const pred = data?.document?.inference?.prediction || {};
+    // Mindee v2: { inference: { prediction: {...}, pages: [...] } }
+    const pred = data?.inference?.prediction || {};
 
-    // Estrazione campi (Mindee Invoice v4)
     const fornitore = pred.supplier_name?.value || '';
     const pIvaFornitore = (pred.supplier_company_registrations || [])
       .find(x => /VAT|P\.?IVA/i.test(x.type || ''))?.value || '';
     const dataDoc = pred.date?.value || null;
     const numero = pred.invoice_number?.value || '';
-    const totaleLordo = parseFloat(pred.total_amount?.value || pred.total_incl?.value || 0) || 0;
-    const totaleNetto = parseFloat(pred.total_net?.value || pred.total_excl?.value || 0) || 0;
-    const totaleIva   = parseFloat(pred.total_tax?.value || (totaleLordo - totaleNetto) || 0) || 0;
+    const totaleLordo = parseFloat(pred.total_amount?.value ?? pred.total_incl?.value ?? 0) || 0;
+    const totaleNetto = parseFloat(pred.total_net?.value ?? pred.total_excl?.value ?? 0) || 0;
+    const totaleIva   = parseFloat(pred.total_tax?.value ?? (totaleLordo - totaleNetto) ?? 0) || 0;
 
     const righe = (pred.line_items || []).map(l => ({
       descrizione: l.description || '',
-      quantita:    parseFloat(l.quantity || 1) || 1,
-      prezzo:      parseFloat(l.unit_price || l.total_amount || 0) || 0,
-      iva:         parseFloat(l.tax_rate || 22) || 22,
+      quantita:    parseFloat(l.quantity ?? 1) || 1,
+      prezzo:      parseFloat(l.unit_price ?? l.total_amount ?? 0) || 0,
+      iva:         parseFloat(l.tax_rate ?? 22) || 22,
     }));
 
     res.json({
@@ -62,7 +63,7 @@ router.post('/fattura', upload.single('file'), async (req, res) => {
         totaleLordo, totaleNetto, totaleIva,
         righe,
       },
-      mindeeRequestId: data?.api_request?.request_id,
+      mindeeRequestId: data?.inference?.id,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

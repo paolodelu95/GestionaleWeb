@@ -17,7 +17,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     tap(() => offlineSvc.setOffline(false)),
     catchError(err => {
       if (err.status === 0) offlineSvc.setOffline(true);
-      if (err.status === 401) auth.logout();
+      // Logout solo se è il nostro backend a dire che il token è invalido,
+      // non se è un proxy 401 da servizi esterni (es. Mindee via /api/ocr)
+      if (err.status === 401 && !req.url.includes('/ocr/')) auth.logout();
       return throwError(() => err);
     })
   );
