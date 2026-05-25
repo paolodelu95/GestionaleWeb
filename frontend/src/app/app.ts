@@ -62,7 +62,7 @@ export class App implements OnInit {
    * un bypass dell'auth, che resta enforced dal backend.
    */
   publicRoute = false;
-  private readonly PUBLIC_PATHS = ['/faq', '/guida', '/termini', '/privacy', '/cookie', '/reset-password', '/verify-email'];
+  private readonly PUBLIC_PATHS = ['/faq', '/guida', '/termini', '/privacy', '/cookie', '/reset-password', '/verify-email', '/trial-expired'];
   badges: NotificationBadges = { scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0 };
   darkMode = false;
   searchQuery = '';
@@ -87,6 +87,8 @@ export class App implements OnInit {
   showUpdateBanner = false;
   showEmailVerifyBanner = false;
   resendingVerification = false;
+  /** Giorni residui del trial; null se non in trial o oltre 7gg. */
+  trialDaysLeft: number | null = null;
   isOffline = false;
   private searchSubject = new Subject<string>();
   private installPromptEvent: any = null;
@@ -144,9 +146,16 @@ export class App implements OnInit {
     // Verifica freshness dello stato email del'utente: se ha appena confermato
     // da un altro tab, il banner deve sparire automaticamente.
     this.authSvc.refreshUser().subscribe({
-      next: (u) => {
+      next: (u: any) => {
         const dismissed = sessionStorage.getItem('email-verify-dismissed') === '1';
         this.showEmailVerifyBanner = !!u && u.emailVerified === false && !dismissed;
+        // Countdown trial
+        if (u?.piano === 'trial' && u?.trialScadeIl) {
+          const diff = (new Date(u.trialScadeIl + 'T23:59:59').getTime() - Date.now()) / 86400000;
+          this.trialDaysLeft = diff >= 0 && diff <= 7 ? Math.ceil(diff) : null;
+        } else {
+          this.trialDaysLeft = null;
+        }
       },
       error: () => {},
     });

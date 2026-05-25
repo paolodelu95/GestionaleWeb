@@ -213,6 +213,18 @@
           <button mat-icon-button type="button" (click)="dismissVerifyBanner()"><mat-icon>close</mat-icon></button>
         </div>
       }
+      @if (trialDaysLeft !== null && trialDaysLeft >= 0 && trialDaysLeft <= 7) {
+        <div class="pwa-banner pwa-banner--trial">
+          <mat-icon>schedule</mat-icon>
+          <span>
+            @if (trialDaysLeft === 0) { Il tuo trial scade <b>oggi</b>. }
+            @else if (trialDaysLeft === 1) { Il tuo trial scade <b>domani</b>. }
+            @else { Il tuo trial scade tra <b>{{ trialDaysLeft }} giorni</b>. }
+            Sottoscrivi un piano per non interrompere il servizio.
+          </span>
+          <a routerLink="/faq" fragment="prezzi"><button mat-flat-button type="button">Vedi piani</button></a>
+        </div>
+      }
       <router-outlet />
     </div>
   </div>

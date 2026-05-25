@@ -11,6 +11,9 @@ interface AuthUser {
   ruolo: string;
   tenant: string;
   emailVerified?: boolean;
+  piano?: string;
+  trialScadeIl?: string | null;
+  tenantAttivo?: boolean;
 }
 
 interface LoginResponse {

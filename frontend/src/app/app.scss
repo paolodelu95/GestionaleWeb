@@ -773,6 +773,14 @@
     border-bottom-color: #fcd34d;
     mat-icon { color: #b45309; }
   }
+  &--trial {
+    background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 100%);
+    color: #7c2d12;
+    border-bottom-color: #fdba74;
+    mat-icon { color: #c2410c; }
+    a { color: inherit; text-decoration: none; }
+    b { font-weight: 700; }
+  }
 }
 
 .dark-mode .pwa-banner {

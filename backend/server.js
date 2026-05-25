@@ -22,7 +22,7 @@ const {
   countRecentEmailVerificationRequests, purgeExpiredEmailVerificationTokens,
 } = require('./utils/authDb');
 const { sign } = require('./utils/authToken');
-const { authMiddleware } = require('./middleware/auth');
+const { authMiddleware, trialEnforcement } = require('./middleware/auth');
 const { runBackup } = require('./utils/backup');
 const { inviaSOllecitiAutomatici } = require('./utils/solleciti');
 const { getNextNumero } = require('./utils/nextNumero');
@@ -385,12 +385,22 @@ app.post('/api/auth/reset-password', forgotLimiter, async (req, res) => {
 
 // ── Da qui in poi tutte le rotte richiedono autenticazione e contesto tenant ──
 app.use('/api', authMiddleware);
+// Dopo l'auth, blocca le richieste WRITE se il trial del tenant è scaduto.
+// I SUPERADMIN e le GET su whitelist (vedi middleware/auth.js) passano sempre.
+app.use('/api', trialEnforcement);
 
 const db = require('./database');
 
 app.get('/api/me', (req, res) => {
   const fresh = getUserById(req.user.id);
-  res.json({ ...req.user, emailVerified: fresh?.email_verified === 1 });
+  const tenant = getTenant(req.user.tenant);
+  res.json({
+    ...req.user,
+    emailVerified: fresh?.email_verified === 1,
+    piano: tenant?.piano || null,
+    trialScadeIl: tenant?.trialScadeIl || null,
+    tenantAttivo: tenant?.attivo !== false,
+  });
 });
 
 // ── Resend email verifica (utente loggato) ──────────────────────────────────
