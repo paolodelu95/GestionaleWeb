@@ -83,6 +83,149 @@ interface Faq { domanda: string; risposta: string; }
         </section>
       }
 
+      <!-- Galleria mockup (visibile senza ricerca) -->
+      @if (!query) {
+        <section class="gallery">
+          <h2>Le schermate principali, a colpo d'occhio</h2>
+          <p class="gallery-sub">Esempi di interfaccia con dati di fantasia per illustrare il funzionamento. I tuoi dati reali compaiono solo dopo il login.</p>
+          <div class="gallery-grid">
+
+            <!-- Mockup 1: Dashboard -->
+            <figure class="mockup">
+              <div class="mock-frame">
+                <div class="mock-titlebar">
+                  <span class="mock-dot mock-dot-r"></span>
+                  <span class="mock-dot mock-dot-y"></span>
+                  <span class="mock-dot mock-dot-g"></span>
+                  <span class="mock-url">ordeva.it · Dashboard</span>
+                </div>
+                <div class="mock-body mock-body-dashboard">
+                  <div class="mock-kpis">
+                    <div class="mock-kpi">
+                      <span class="mock-kpi-label">Fatturato mese</span>
+                      <span class="mock-kpi-value">€ 12.450</span>
+                      <span class="mock-kpi-trend mock-trend-up">↑ 12% vs mese precedente</span>
+                    </div>
+                    <div class="mock-kpi">
+                      <span class="mock-kpi-label">Da incassare</span>
+                      <span class="mock-kpi-value">€ 3.240</span>
+                      <span class="mock-kpi-trend mock-trend-warn">3 fatture in scadenza</span>
+                    </div>
+                    <div class="mock-kpi">
+                      <span class="mock-kpi-label">Scorta bassa</span>
+                      <span class="mock-kpi-value">2 prodotti</span>
+                      <span class="mock-kpi-trend mock-trend-danger">Sotto soglia minima</span>
+                    </div>
+                  </div>
+                  <div class="mock-chart">
+                    <div class="mock-bar" style="height:34%"></div>
+                    <div class="mock-bar" style="height:52%"></div>
+                    <div class="mock-bar" style="height:44%"></div>
+                    <div class="mock-bar" style="height:68%"></div>
+                    <div class="mock-bar" style="height:58%"></div>
+                    <div class="mock-bar mock-bar-current" style="height:76%"></div>
+                  </div>
+                </div>
+              </div>
+              <figcaption>Dashboard — panoramica KPI fatturato, incassi, scorte</figcaption>
+            </figure>
+
+            <!-- Mockup 2: Nuova fattura -->
+            <figure class="mockup">
+              <div class="mock-frame">
+                <div class="mock-titlebar">
+                  <span class="mock-dot mock-dot-r"></span>
+                  <span class="mock-dot mock-dot-y"></span>
+                  <span class="mock-dot mock-dot-g"></span>
+                  <span class="mock-url">ordeva.it · Nuova fattura</span>
+                </div>
+                <div class="mock-body">
+                  <div class="mock-form-row">
+                    <div class="mock-field"><span class="mock-label">Cliente *</span><span class="mock-input">Mario Rossi SRL</span></div>
+                    <div class="mock-field mock-field-sm"><span class="mock-label">Numero</span><span class="mock-input">2026/0042</span></div>
+                    <div class="mock-field mock-field-sm"><span class="mock-label">Data</span><span class="mock-input">25/05/2026</span></div>
+                  </div>
+                  <table class="mock-table">
+                    <thead><tr><th>Descrizione</th><th>Q.tà</th><th>Prezzo</th><th>IVA</th><th>Totale</th></tr></thead>
+                    <tbody>
+                      <tr><td>Consulenza tecnica</td><td>8 h</td><td>€ 50,00</td><td>22%</td><td>€ 488,00</td></tr>
+                      <tr><td>Sopralluogo + report</td><td>1</td><td>€ 80,00</td><td>22%</td><td>€ 97,60</td></tr>
+                    </tbody>
+                  </table>
+                  <div class="mock-totals">
+                    <div><span>Imponibile</span><b>€ 480,00</b></div>
+                    <div><span>IVA 22%</span><b>€ 105,60</b></div>
+                    <div class="mock-total-row"><span>Totale</span><b>€ 585,60</b></div>
+                  </div>
+                </div>
+              </div>
+              <figcaption>Nuova fattura — cliente, righe, IVA, totali calcolati automaticamente</figcaption>
+            </figure>
+
+            <!-- Mockup 3: Magazzino -->
+            <figure class="mockup">
+              <div class="mock-frame">
+                <div class="mock-titlebar">
+                  <span class="mock-dot mock-dot-r"></span>
+                  <span class="mock-dot mock-dot-y"></span>
+                  <span class="mock-dot mock-dot-g"></span>
+                  <span class="mock-url">ordeva.it · Magazzino</span>
+                </div>
+                <div class="mock-body">
+                  <table class="mock-table">
+                    <thead><tr><th>Prodotto</th><th>Codice</th><th>Giacenza</th><th>Soglia</th><th>Stato</th></tr></thead>
+                    <tbody>
+                      <tr><td>Polo cotone L</td><td>POLO-L-01</td><td>24 pz</td><td>10</td><td><span class="mock-badge mock-badge-ok">OK</span></td></tr>
+                      <tr><td>T-shirt basic M</td><td>TSH-M-02</td><td>2 pz</td><td>10</td><td><span class="mock-badge mock-badge-warn">Scorta bassa</span></td></tr>
+                      <tr><td>Felpa pile XL</td><td>FLP-XL-03</td><td>15 pz</td><td>5</td><td><span class="mock-badge mock-badge-ok">OK</span></td></tr>
+                      <tr><td>Cappellino brand</td><td>CAP-01</td><td>0 pz</td><td>20</td><td><span class="mock-badge mock-badge-danger">Esaurito</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <figcaption>Magazzino — giacenze in tempo reale con alert su soglia minima</figcaption>
+            </figure>
+
+            <!-- Mockup 4: CRM Kanban -->
+            <figure class="mockup">
+              <div class="mock-frame">
+                <div class="mock-titlebar">
+                  <span class="mock-dot mock-dot-r"></span>
+                  <span class="mock-dot mock-dot-y"></span>
+                  <span class="mock-dot mock-dot-g"></span>
+                  <span class="mock-url">ordeva.it · CRM</span>
+                </div>
+                <div class="mock-body mock-body-crm">
+                  <div class="mock-kanban">
+                    <div class="mock-col">
+                      <div class="mock-col-head" style="color:#0284c7">Lead · 3</div>
+                      <div class="mock-card"><b>Bianchi &amp; Co.</b><span>€ 4.500</span></div>
+                      <div class="mock-card"><b>Verdi Snc</b><span>€ 1.200</span></div>
+                      <div class="mock-card"><b>Neri SRL</b><span>€ 8.000</span></div>
+                    </div>
+                    <div class="mock-col">
+                      <div class="mock-col-head" style="color:#7c3aed">Qualificato · 2</div>
+                      <div class="mock-card"><b>ACME SpA</b><span>€ 15.000</span></div>
+                      <div class="mock-card"><b>Studio Galli</b><span>€ 2.800</span></div>
+                    </div>
+                    <div class="mock-col">
+                      <div class="mock-col-head" style="color:#d97706">Offerta · 1</div>
+                      <div class="mock-card"><b>Rossi SRL</b><span>€ 6.200</span></div>
+                    </div>
+                    <div class="mock-col">
+                      <div class="mock-col-head" style="color:#16a34a">Vinto · 1</div>
+                      <div class="mock-card mock-card-won"><b>Tech4U SAS</b><span>€ 9.500</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <figcaption>CRM — pipeline opportunità in stile Kanban, drag&amp;drop tra stage</figcaption>
+            </figure>
+
+          </div>
+        </section>
+      }
+
       <!-- Sezioni del manuale -->
       <section class="manual">
         @if (!query) { <h2>Il manuale per area</h2> }
@@ -400,6 +543,237 @@ interface Faq { domanda: string; risposta: string; }
     .support-card a {
       color: #11769b; text-decoration: underline;
       text-underline-offset: 2px;
+    }
+
+    /* ── Gallery / mockup ───────────────────────────────────────────── */
+    .gallery { margin-bottom: 44px; }
+    .gallery-sub {
+      font-size: 13px; color: var(--text-tertiary);
+      margin: -10px 0 18px;
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 18px;
+    }
+    .mockup { margin: 0; }
+    .mockup figcaption {
+      font-size: 12px; color: var(--text-tertiary);
+      text-align: center; margin-top: 8px;
+      line-height: 1.4;
+    }
+    .mock-frame {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px -4px rgba(15,23,42,0.10);
+    }
+    .mock-titlebar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .mock-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .mock-dot-r { background: #ef5350; }
+    .mock-dot-y { background: #ffb74d; }
+    .mock-dot-g { background: #66bb6a; }
+    .mock-url {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-left: 8px;
+      font-family: 'SF Mono', Menlo, monospace;
+    }
+    .mock-body {
+      padding: 14px 16px;
+      min-height: 200px;
+      font-size: 12px;
+    }
+    .mock-body-dashboard { padding: 14px; }
+
+    /* KPIs */
+    .mock-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .mock-kpi {
+      background: var(--bg-subtle);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .mock-kpi-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+    .mock-kpi-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    .mock-kpi-trend { font-size: 10px; font-weight: 500; }
+    .mock-trend-up { color: #16a34a; }
+    .mock-trend-warn { color: #d97706; }
+    .mock-trend-danger { color: #dc2626; }
+
+    /* Chart */
+    .mock-chart {
+      height: 80px;
+      display: flex; align-items: flex-end;
+      gap: 10px;
+      padding: 0 6px;
+    }
+    .mock-bar {
+      flex: 1;
+      background: linear-gradient(180deg, #15a4a2 0%, #11769b 100%);
+      border-radius: 4px 4px 0 0;
+      opacity: 0.55;
+    }
+    .mock-bar-current { opacity: 1; }
+
+    /* Form */
+    .mock-form-row {
+      display: flex; gap: 8px;
+      margin-bottom: 12px;
+    }
+    .mock-field {
+      display: flex; flex-direction: column;
+      flex: 1; gap: 3px;
+    }
+    .mock-field-sm { flex: 0 0 auto; min-width: 90px; }
+    .mock-label {
+      font-size: 10px; color: var(--text-tertiary);
+      font-weight: 500;
+    }
+    .mock-input {
+      font-size: 12px;
+      padding: 6px 10px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Tables */
+    .mock-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      background: var(--bg-surface);
+    }
+    .mock-table thead th {
+      text-align: left;
+      padding: 7px 9px;
+      background: var(--bg-subtle);
+      color: var(--text-tertiary);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+    }
+    .mock-table tbody td {
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .mock-table tbody tr:last-child td { border-bottom: none; }
+    .mock-table th:not(:first-child),
+    .mock-table td:not(:first-child) { text-align: right; }
+
+    .mock-totals {
+      margin-top: 10px;
+      padding: 8px 9px;
+      background: var(--bg-subtle);
+      border-radius: 6px;
+      font-size: 11px;
+    }
+    .mock-totals > div {
+      display: flex; justify-content: space-between;
+      padding: 3px 0;
+      color: var(--text-secondary);
+    }
+    .mock-total-row {
+      border-top: 1px solid var(--border);
+      margin-top: 4px; padding-top: 6px !important;
+      color: var(--text-primary) !important;
+      font-size: 13px;
+    }
+    .mock-total-row b { color: #11769b; font-size: 14px; }
+
+    /* Badges */
+    .mock-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .mock-badge-ok {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+    }
+    .mock-badge-warn {
+      background: rgba(217, 119, 6, 0.14);
+      color: #b45309;
+    }
+    .mock-badge-danger {
+      background: rgba(220, 38, 38, 0.14);
+      color: #b91c1c;
+    }
+
+    /* CRM Kanban */
+    .mock-body-crm { padding: 12px; }
+    .mock-kanban {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .mock-col {
+      background: var(--bg-subtle);
+      border-radius: 8px;
+      padding: 8px;
+      display: flex; flex-direction: column; gap: 6px;
+      min-height: 180px;
+    }
+    .mock-col-head {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+    .mock-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-size: 11px;
+      display: flex; flex-direction: column; gap: 2px;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    }
+    .mock-card b {
+      font-size: 11px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .mock-card span { color: var(--text-secondary); font-size: 10px; }
+    .mock-card-won {
+      border-color: #16a34a;
+      background: rgba(22, 163, 74, 0.06);
+    }
+    .mock-card-won b { color: #15803d; }
+
+    @media (max-width: 800px) {
+      .gallery-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 600px) {
