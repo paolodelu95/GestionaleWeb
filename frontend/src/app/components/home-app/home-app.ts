@@ -159,6 +159,7 @@ export class HomeAppComponent {
     { label: 'Dashboard',    description: 'KPI e grafici',         icon: 'dashboard',  route: '/dashboard',    color: 'linear-gradient(135deg,#475569,#334155)', category: 'Sistema' },
     { label: 'Report',       description: 'Statistiche e analisi', icon: 'bar_chart',  route: '/report',       color: 'linear-gradient(135deg,#64748b,#475569)', category: 'Sistema' },
     { label: 'Storico',      description: 'Audit log',             icon: 'history',    route: '/storico',      color: 'linear-gradient(135deg,#94a3b8,#64748b)', category: 'Sistema' },
+    { label: 'Aiuto',        description: 'Manuale + FAQ + scorciatoie', icon: 'menu_book', route: '/aiuto',     color: 'linear-gradient(135deg,#11769b,#15a4a2)', category: 'Sistema' },
     { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', color: 'linear-gradient(135deg,#3f3f46,#27272a)', category: 'Sistema' },
   ];
 

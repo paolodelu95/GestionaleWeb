@@ -41,4 +41,5 @@ export const routes: Routes = [
   { path: 'sdi-passive', loadComponent: () => import('./components/sdi-passive/sdi-passive').then(m => m.SdiPassiveComponent) },
   { path: 'ocr-fatture', loadComponent: () => import('./components/ocr-fatture/ocr-fatture').then(m => m.OcrFattureComponent) },
   { path: 'agenda', loadComponent: () => import('./components/agenda/agenda').then(m => m.AgendaComponent) },
+  { path: 'aiuto',  loadComponent: () => import('./components/aiuto/aiuto').then(m => m.AiutoComponent) },
 ];
