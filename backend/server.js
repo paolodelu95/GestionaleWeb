@@ -108,6 +108,82 @@ const loginLimiter = rateLimit({
   message: { error: 'Troppi tentativi di login, riprova tra 15 minuti.' }
 });
 
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppi tentativi di registrazione, riprova tra un\'ora.' }
+});
+
+// ── Registrazione self-service nuova azienda (pubblico) ──────────────────────
+app.post('/api/auth/register', registerLimiter, async (req, res) => {
+  const { ragioneSociale, piva, email, password, nome } = req.body || {};
+  if (!ragioneSociale || !email || !password) {
+    return res.status(400).json({ error: 'ragioneSociale, email e password sono obbligatori' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'La password deve essere di almeno 8 caratteri' });
+  }
+
+  const { openTenantDb } = require('./utils/tenantDb');
+
+  // Verifica email non già usata come username
+  const existing = getAuthDb().prepare('SELECT id FROM users WHERE username=?').get(email);
+  if (existing) return res.status(400).json({ error: 'Email già registrata' });
+
+  // Genera uno slug unico da ragioneSociale
+  const baseSlug = ragioneSociale
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 28) || 'azienda';
+  let slug = baseSlug;
+  let attempt = 0;
+  while (getTenant(slug)) {
+    attempt++;
+    slug = `${baseSlug}-${attempt}`;
+  }
+
+  try {
+    const tenant = createTenant({
+      slug,
+      nome: ragioneSociale,
+      ragioneSociale,
+      piva: piva || '',
+      piano: 'trial',
+      stato: 'attiva',
+    });
+
+    // Inizializza subito il DB del tenant (crea lo schema)
+    openTenantDb(slug);
+
+    const hash = await bcrypt.hash(password, 10);
+    createUser({
+      username: email,
+      password_hash: hash,
+      nome: nome || '',
+      email,
+      ruolo: 'OWNER',
+      tenant_slug: slug,
+    });
+
+    const user = getUserByUsername(email);
+    const token = sign({ uid: user.id, username: user.username, ruolo: user.ruolo, tenant: slug });
+
+    res.status(201).json({
+      token,
+      user: { id: user.id, username: user.username, nome: user.nome, email: user.email, ruolo: user.ruolo, tenant: slug },
+      tenant: { slug: tenant.slug, nome: tenant.nome, piano: tenant.piano, trialScadeIl: tenant.trialScadeIl },
+    });
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) return res.status(400).json({ error: 'Email già registrata' });
+    console.error('[register]', e.message);
+    res.status(500).json({ error: 'Errore durante la registrazione' });
+  }
+});
+
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Credenziali mancanti' });

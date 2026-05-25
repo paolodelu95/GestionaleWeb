@@ -17,6 +17,14 @@ interface LoginResponse {
   user?: AuthUser;
 }
 
+export interface RegisterPayload {
+  ragioneSociale: string;
+  piva?: string;
+  email: string;
+  password: string;
+  nome?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly KEY = 'ordeva_token';
@@ -47,6 +55,15 @@ export class AuthService {
   login(username: string, password: string) {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, { username, password })
+      .pipe(tap(res => {
+        localStorage.setItem(this.KEY, res.token);
+        if (res.user) localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
+      }));
+  }
+
+  register(payload: RegisterPayload) {
+    return this.http
+      .post<LoginResponse>(`${environment.apiUrl}/auth/register`, payload)
       .pipe(tap(res => {
         localStorage.setItem(this.KEY, res.token);
         if (res.user) localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));

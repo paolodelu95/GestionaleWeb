@@ -34,10 +34,15 @@ function getAuthDb() {
   db.pragma('foreign_keys = ON');
   db.exec(`
     CREATE TABLE IF NOT EXISTS tenants (
-      slug       TEXT PRIMARY KEY,
-      nome       TEXT NOT NULL DEFAULT '',
-      attivo     INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      slug             TEXT PRIMARY KEY,
+      nome             TEXT NOT NULL DEFAULT '',
+      attivo           INTEGER NOT NULL DEFAULT 1,
+      ragione_sociale  TEXT DEFAULT '',
+      piva             TEXT DEFAULT '',
+      piano            TEXT NOT NULL DEFAULT 'trial',
+      stato            TEXT NOT NULL DEFAULT 'attiva',
+      trial_scade_il   TEXT DEFAULT NULL,
+      created_at       TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS users (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,6 +96,16 @@ function getAuthDb() {
     CREATE INDEX IF NOT EXISTS idx_user_gruppi_user ON user_gruppi(user_id);
     CREATE INDEX IF NOT EXISTS idx_user_gruppi_gruppo ON user_gruppi(gruppo_id);
   `);
+  // Migrazioni per campi commerciali sui tenant esistenti
+  const tenantMigrations = [
+    "ALTER TABLE tenants ADD COLUMN ragione_sociale TEXT DEFAULT ''",
+    "ALTER TABLE tenants ADD COLUMN piva TEXT DEFAULT ''",
+    "ALTER TABLE tenants ADD COLUMN piano TEXT NOT NULL DEFAULT 'trial'",
+    "ALTER TABLE tenants ADD COLUMN stato TEXT NOT NULL DEFAULT 'attiva'",
+    "ALTER TABLE tenants ADD COLUMN trial_scade_il TEXT DEFAULT NULL",
+  ];
+  for (const sql of tenantMigrations) { try { db.exec(sql); } catch(_) {} }
+
   seedModuli(db);
   authDbInstance = db;
   return db;
@@ -186,30 +201,63 @@ function isModuloAttivo(tenantSlug, moduloSlug) {
   return tm ? tm.attivo === 1 : false;
 }
 
+function _tenantRowToDto(t) {
+  return {
+    ...t,
+    attivo: t.attivo === 1,
+    ragioneSociale: t.ragione_sociale ?? '',
+    piva: t.piva ?? '',
+    piano: t.piano ?? 'trial',
+    stato: t.stato ?? 'attiva',
+    trialScadeIl: t.trial_scade_il ?? null,
+  };
+}
+
 function listTenants({ activeOnly = false } = {}) {
   const db = getAuthDb();
-  const where = activeOnly ? 'WHERE attivo=1' : '';
-  return db.prepare(`SELECT slug, nome, attivo, created_at FROM tenants ${where} ORDER BY slug`).all()
-    .map(t => ({ ...t, attivo: t.attivo === 1 }));
+  const where = activeOnly ? 'WHERE attivo=1 AND stato=\'attiva\'' : '';
+  return db.prepare(
+    `SELECT slug, nome, attivo, ragione_sociale, piva, piano, stato, trial_scade_il, created_at
+     FROM tenants ${where} ORDER BY slug`
+  ).all().map(_tenantRowToDto);
 }
 
 function getTenant(slug) {
-  const row = getAuthDb().prepare('SELECT slug, nome, attivo, created_at FROM tenants WHERE slug=?').get(slug);
-  return row ? { ...row, attivo: row.attivo === 1 } : null;
+  const row = getAuthDb().prepare(
+    `SELECT slug, nome, attivo, ragione_sociale, piva, piano, stato, trial_scade_il, created_at
+     FROM tenants WHERE slug=?`
+  ).get(slug);
+  return row ? _tenantRowToDto(row) : null;
 }
 
-function createTenant({ slug, nome }) {
+function createTenant({ slug, nome, ragioneSociale, piva, piano, stato, trialScadeIl }) {
   if (!/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(slug)) throw new Error('Slug tenant non valido');
-  getAuthDb().prepare('INSERT INTO tenants (slug, nome) VALUES (?,?)').run(slug, nome || '');
+  const trialExp = trialScadeIl ?? new Date(Date.now() + 14 * 86400000).toISOString().substring(0, 10);
+  getAuthDb().prepare(
+    `INSERT INTO tenants (slug, nome, ragione_sociale, piva, piano, stato, trial_scade_il)
+     VALUES (?,?,?,?,?,?,?)`
+  ).run(slug, nome || ragioneSociale || slug, ragioneSociale || '', piva || '',
+        piano || 'trial', stato || 'attiva', trialExp);
   ensureTenantModuli(slug);
   return getTenant(slug);
 }
 
-function updateTenant(slug, { nome, attivo }) {
+function updateTenant(slug, { nome, attivo, ragioneSociale, piva, piano, stato, trialScadeIl }) {
   const t = getTenant(slug);
   if (!t) throw new Error('Tenant non trovato');
-  getAuthDb().prepare('UPDATE tenants SET nome=?, attivo=? WHERE slug=?')
-    .run(nome ?? t.nome, attivo === undefined ? (t.attivo ? 1 : 0) : (attivo ? 1 : 0), slug);
+  getAuthDb().prepare(
+    `UPDATE tenants SET nome=?, attivo=?, ragione_sociale=?, piva=?, piano=?, stato=?, trial_scade_il=?
+     WHERE slug=?`
+  ).run(
+    nome ?? t.nome,
+    attivo === undefined ? (t.attivo ? 1 : 0) : (attivo ? 1 : 0),
+    ragioneSociale ?? t.ragioneSociale,
+    piva ?? t.piva,
+    piano ?? t.piano,
+    stato ?? t.stato,
+    trialScadeIl !== undefined ? trialScadeIl : t.trialScadeIl,
+    slug,
+  );
   return getTenant(slug);
 }
 

@@ -16,8 +16,11 @@ function b64urlDecode(str) {
   return Buffer.from(str, 'base64').toString('utf8');
 }
 
+const TOKEN_TTL_S = 12 * 3600; // 12 ore
+
 function sign(payload) {
-  const body = b64urlEncode(JSON.stringify({ ...payload, iat: Math.floor(Date.now() / 1000) }));
+  const iat = Math.floor(Date.now() / 1000);
+  const body = b64urlEncode(JSON.stringify({ ...payload, iat, exp: iat + TOKEN_TTL_S }));
   const sig = crypto.createHmac('sha256', getSecret()).update(body).digest('hex');
   return `${body}.${sig}`;
 }
@@ -31,7 +34,9 @@ function verify(token) {
   const b = Buffer.from(expected, 'hex');
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   try {
-    return JSON.parse(b64urlDecode(body));
+    const payload = JSON.parse(b64urlDecode(body));
+    if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) return null;
+    return payload;
   } catch (_) {
     return null;
   }

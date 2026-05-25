@@ -9,7 +9,8 @@ const {
 const SALT = 10;
 
 function isSuper(req)  { return req.user?.ruolo === 'SUPERADMIN'; }
-function isAdmin(req)  { return req.user?.ruolo === 'ADMIN' || isSuper(req); }
+function isOwner(req)  { return req.user?.ruolo === 'OWNER' || isSuper(req); }
+function isAdmin(req)  { return ['ADMIN', 'OWNER', 'SUPERADMIN'].includes(req.user?.ruolo); }
 
 function toDto(u) {
   return {
@@ -64,11 +65,14 @@ router.put('/:id', async (req, res) => {
   if (password) fields.password_hash = await bcrypt.hash(password, SALT);
 
   if (ruolo !== undefined) {
-    // Solo SUPERADMIN può elevare a SUPERADMIN o declassare un SUPERADMIN esistente
+    // Solo SUPERADMIN può elevare a SUPERADMIN o declassare un SUPERADMIN
     if (!isSuper(req) && ruolo === 'SUPERADMIN') {
       fields.ruolo = existing.ruolo;
     } else if (!isSuper(req) && existing.ruolo === 'SUPERADMIN' && ruolo !== 'SUPERADMIN') {
       return res.status(403).json({ error: 'Solo SUPERADMIN può declassare un SUPERADMIN' });
+    } else if (!isSuper(req) && !isOwner(req) && ruolo === 'OWNER') {
+      // Solo OWNER o SUPERADMIN possono assegnare il ruolo OWNER
+      fields.ruolo = existing.ruolo;
     } else {
       fields.ruolo = ruolo;
     }

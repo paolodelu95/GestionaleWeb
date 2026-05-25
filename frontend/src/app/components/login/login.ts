@@ -6,6 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth.service';
+import type { RegisterPayload } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -26,42 +27,121 @@ import { AuthService } from '../../services/auth.service';
             <mat-icon>business_center</mat-icon>
           </div>
           <h1>Ordeva</h1>
-          <p>Gestionale ERP</p>
+          <p>{{ mode === 'login' ? 'Gestionale ERP' : 'Crea il tuo account' }}</p>
         </div>
 
-        <form class="login-form" (ngSubmit)="submit()">
-          <mat-form-field appearance="outline">
-            <mat-label>Username</mat-label>
-            <input matInput [(ngModel)]="username" name="username"
-                   autocomplete="username" [disabled]="loading">
-            <mat-icon matSuffix>person_outline</mat-icon>
-          </mat-form-field>
+        <!-- ── Form Login ─────────────────────────────────────────── -->
+        @if (mode === 'login') {
+          <form class="login-form" (ngSubmit)="submitLogin()">
+            <mat-form-field appearance="outline">
+              <mat-label>Username / Email</mat-label>
+              <input matInput [(ngModel)]="username" name="username"
+                     autocomplete="username" [disabled]="loading">
+              <mat-icon matSuffix>person_outline</mat-icon>
+            </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Password</mat-label>
-            <input matInput [(ngModel)]="password" name="password"
-                   [type]="showPass ? 'text' : 'password'"
-                   autocomplete="current-password" [disabled]="loading">
-            <button mat-icon-button matSuffix type="button" (click)="showPass = !showPass" tabindex="-1">
-              <mat-icon>{{ showPass ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-          </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Password</mat-label>
+              <input matInput [(ngModel)]="password" name="password"
+                     [type]="showPass ? 'text' : 'password'"
+                     autocomplete="current-password" [disabled]="loading">
+              <button mat-icon-button matSuffix type="button" (click)="showPass = !showPass" tabindex="-1">
+                <mat-icon>{{ showPass ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
 
-          @if (error) {
-            <div class="login-error">
-              <mat-icon>error_outline</mat-icon> {{ error }}
-            </div>
-          }
-
-          <button mat-flat-button type="submit" class="login-btn"
-                  [disabled]="loading || !username || !password">
-            @if (loading) {
-              <span class="btn-content"><span class="btn-spinner"></span><span>Accesso in corso…</span></span>
-            } @else {
-              <span class="btn-content"><span>Accedi</span><mat-icon>arrow_forward</mat-icon></span>
+            @if (error) {
+              <div class="login-error">
+                <mat-icon>error_outline</mat-icon> {{ error }}
+              </div>
             }
-          </button>
-        </form>
+
+            <button mat-flat-button type="submit" class="login-btn"
+                    [disabled]="loading || !username || !password">
+              @if (loading) {
+                <span class="btn-content"><span class="btn-spinner"></span><span>Accesso in corso…</span></span>
+              } @else {
+                <span class="btn-content"><span>Accedi</span><mat-icon>arrow_forward</mat-icon></span>
+              }
+            </button>
+          </form>
+
+          <div class="mode-switch">
+            Primo accesso?
+            <button type="button" class="link-btn" (click)="switchMode('register')">
+              Registra la tua azienda
+            </button>
+          </div>
+        }
+
+        <!-- ── Form Registrazione ─────────────────────────────────── -->
+        @if (mode === 'register') {
+          <form class="login-form" (ngSubmit)="submitRegister()">
+            <mat-form-field appearance="outline">
+              <mat-label>Ragione Sociale *</mat-label>
+              <input matInput [(ngModel)]="reg.ragioneSociale" name="ragioneSociale"
+                     autocomplete="organization" [disabled]="loading">
+              <mat-icon matSuffix>business</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Partita IVA</mat-label>
+              <input matInput [(ngModel)]="reg.piva" name="piva"
+                     autocomplete="off" [disabled]="loading">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Email *</mat-label>
+              <input matInput [(ngModel)]="reg.email" name="email"
+                     type="email" autocomplete="email" [disabled]="loading">
+              <mat-icon matSuffix>email</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Il tuo nome</mat-label>
+              <input matInput [(ngModel)]="reg.nome" name="nome"
+                     autocomplete="name" [disabled]="loading">
+              <mat-icon matSuffix>person_outline</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Password *</mat-label>
+              <input matInput [(ngModel)]="reg.password" name="password"
+                     [type]="showPass ? 'text' : 'password'"
+                     autocomplete="new-password" [disabled]="loading">
+              <button mat-icon-button matSuffix type="button" (click)="showPass = !showPass" tabindex="-1">
+                <mat-icon>{{ showPass ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
+
+            @if (error) {
+              <div class="login-error">
+                <mat-icon>error_outline</mat-icon> {{ error }}
+              </div>
+            }
+            @if (success) {
+              <div class="login-success">
+                <mat-icon>check_circle_outline</mat-icon> {{ success }}
+              </div>
+            }
+
+            <button mat-flat-button type="submit" class="login-btn"
+                    [disabled]="loading || !reg.ragioneSociale || !reg.email || !reg.password">
+              @if (loading) {
+                <span class="btn-content"><span class="btn-spinner"></span><span>Creazione account…</span></span>
+              } @else {
+                <span class="btn-content"><span>Inizia gratis — 14 giorni di prova</span><mat-icon>arrow_forward</mat-icon></span>
+              }
+            </button>
+          </form>
+
+          <div class="mode-switch">
+            Hai già un account?
+            <button type="button" class="link-btn" (click)="switchMode('login')">
+              Accedi
+            </button>
+          </div>
+        }
 
         <div class="login-footer">
           <span>© {{ year }} Ordeva</span>
@@ -337,6 +417,42 @@ import { AuthService } from '../../services/auth.service';
       .dot { opacity: 0.6; }
     }
 
+    .mode-switch {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      margin-left: 4px;
+      color: #38bdf8;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      &:hover { color: #7dd3fc; }
+    }
+
+    .login-success {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #86efac;
+      background: rgba(34, 197, 94, 0.10);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 8px 0 4px;
+      mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+    }
+
     @media (max-width: 480px) {
       .login-card {
         padding: 32px 24px 22px;
@@ -350,16 +466,31 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   @Output() loggedIn = new EventEmitter<void>();
 
+  mode: 'login' | 'register' = 'login';
+
+  // Login
   username = '';
   password = '';
+
+  // Registrazione
+  reg: RegisterPayload = { ragioneSociale: '', piva: '', email: '', password: '', nome: '' };
+
   error = '';
+  success = '';
   loading = false;
   showPass = false;
   readonly year = new Date().getFullYear();
 
   constructor(private authSvc: AuthService) {}
 
-  submit() {
+  switchMode(m: 'login' | 'register') {
+    this.mode = m;
+    this.error = '';
+    this.success = '';
+    this.showPass = false;
+  }
+
+  submitLogin() {
     if (!this.username || !this.password) return;
     this.loading = true;
     this.error = '';
@@ -373,6 +504,26 @@ export class LoginComponent {
           this.error = 'Troppi tentativi — riprova tra qualche minuto';
         } else {
           this.error = 'Username o password non corretti';
+        }
+      }
+    });
+  }
+
+  submitRegister() {
+    if (!this.reg.ragioneSociale || !this.reg.email || !this.reg.password) return;
+    this.loading = true;
+    this.error = '';
+    this.success = '';
+    this.authSvc.register(this.reg).subscribe({
+      next: () => { this.loading = false; this.loggedIn.emit(); },
+      error: (err) => {
+        this.loading = false;
+        if (err.status === 0) {
+          this.error = 'Server non raggiungibile — avvia il backend (npm run dev)';
+        } else if (err.status === 429) {
+          this.error = 'Troppi tentativi — riprova più tardi';
+        } else {
+          this.error = err.error?.error || 'Errore durante la registrazione';
         }
       }
     });
