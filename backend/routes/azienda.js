@@ -12,7 +12,7 @@ router.get('/', (req, res) => {
   res.json(toDto(row, isAdmin));
 });
 
-router.put('/', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
+router.put('/', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
   const a = req.body;
   db.prepare(`UPDATE azienda SET ragione_sociale=?, indirizzo=?, cap=?, citta=?, provincia=?, stato=?,
     p_iva=?, cod_fiscale=?, email=?, telefono=?, pec=?, sdi=?, banca=?, iban=?, logo=?,

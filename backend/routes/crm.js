@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../database');
 const { requireRole } = require('../middleware/auth');
 
-const MANAGE_PIPELINE = requireRole('SUPERADMIN', 'ADMIN', 'COMMERCIALE');
+const MANAGE_PIPELINE = requireRole('SUPERADMIN', 'OWNER', 'ADMIN', 'COMMERCIALE');
 
 // ── Stages (colonne Kanban) ──────────────────────────────────────────────────
 router.get('/stages', (req, res) => {
@@ -27,7 +27,7 @@ router.put('/stages/:id', MANAGE_PIPELINE, (req, res) => {
   res.json({ success: true });
 });
 
-router.delete('/stages/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
+router.delete('/stages/:id', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
   db.prepare('UPDATE crm_opportunita SET stage_id=NULL WHERE stage_id=?').run(req.params.id);
   db.prepare('DELETE FROM crm_stage WHERE id=?').run(req.params.id);
   res.json({ success: true });
@@ -89,7 +89,7 @@ router.patch('/opportunita/:id/stage', MANAGE_PIPELINE, (req, res) => {
   res.json({ success: true });
 });
 
-router.delete('/opportunita/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
+router.delete('/opportunita/:id', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
   db.prepare('DELETE FROM crm_opportunita WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });

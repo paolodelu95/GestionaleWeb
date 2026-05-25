@@ -88,7 +88,7 @@ function safeFilePath(percorso) {
 }
 
 // DELETE /api/allegati/:id  (ADMIN/SUPERADMIN only)
-router.delete('/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
+router.delete('/:id', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
   const row = db.prepare('SELECT percorso FROM allegati WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Allegato non trovato' });
   const filePath = safeFilePath(row.percorso);

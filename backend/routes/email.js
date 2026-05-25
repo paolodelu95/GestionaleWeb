@@ -48,7 +48,7 @@ function bodyToHtml(text) {
 }
 
 // ── POST /test – test connessione SMTP (solo ADMIN) ──────────────────────────
-router.post('/test', requireRole('SUPERADMIN', 'ADMIN'), async (req, res) => {
+router.post('/test', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), async (req, res) => {
   try {
     const t = getTransporter();
     await t.verify();
@@ -59,7 +59,7 @@ router.post('/test', requireRole('SUPERADMIN', 'ADMIN'), async (req, res) => {
 });
 
 // ── POST /send – invio generico (solo ADMIN per evitare uso come open relay) ─
-router.post('/send', requireRole('SUPERADMIN', 'ADMIN'), async (req, res) => {
+router.post('/send', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), async (req, res) => {
   const { to, subject, html, attachments } = req.body;
   if (!to || !subject) return res.status(400).json({ error: 'to e subject obbligatori' });
   if (/[\r\n]/.test(String(subject))) return res.status(400).json({ error: 'Subject non valido' });

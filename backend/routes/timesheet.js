@@ -7,8 +7,8 @@ const router = express.Router();
 const db = require('../database');
 const { requireRole } = require('../middleware/auth');
 
-const MANAGE_PROGETTI = requireRole('SUPERADMIN', 'ADMIN', 'COMMERCIALE');
-const FATTURABILE     = requireRole('SUPERADMIN', 'ADMIN', 'COMMERCIALE', 'CONTABILE');
+const MANAGE_PROGETTI = requireRole('SUPERADMIN', 'OWNER', 'ADMIN', 'COMMERCIALE');
+const FATTURABILE     = requireRole('SUPERADMIN', 'OWNER', 'ADMIN', 'COMMERCIALE', 'CONTABILE');
 
 function projDto(r) {
   return {
@@ -54,7 +54,7 @@ router.put('/progetti/:id', MANAGE_PROGETTI, (req, res) => {
   res.json({ success: true });
 });
 
-router.delete('/progetti/:id', requireRole('SUPERADMIN', 'ADMIN'), (req, res) => {
+router.delete('/progetti/:id', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
   db.prepare('DELETE FROM progetti WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
