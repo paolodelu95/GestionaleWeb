@@ -88,7 +88,7 @@ const RIGHE_STYLES = `
             <mat-label>Data emissione *</mat-label>
             <input matInput type="date" formControlName="dataEmissione">
           </mat-form-field>
-          <mat-form-field style="flex:0 0 100px">
+          <mat-form-field style="flex:0 0 140px">
             <mat-label>Validità (gg)</mat-label>
             <input matInput type="number" formControlName="validita">
             <mat-icon matSuffix>schedule</mat-icon>
