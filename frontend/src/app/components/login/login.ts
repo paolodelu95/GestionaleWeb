@@ -31,6 +31,16 @@ import type { RegisterPayload } from '../../services/auth.service';
           <p>{{ mode === 'login' ? 'Gestionale ERP' : 'Crea il tuo account' }}</p>
         </div>
 
+        <!--
+          Honeypot anti-bot: campo "website" visivamente nascosto fuori
+          schermo (NON display:none, alcuni bot lo rilevano e skippano).
+          Gli utenti reali non lo vedono né compilano. I bot stupidi sì.
+          Il backend rifiuta silenziosamente se valorizzato.
+        -->
+        <input type="text" name="website" autocomplete="off" tabindex="-1"
+               aria-hidden="true" class="hp-field"
+               [(ngModel)]="honeypot" [ngModelOptions]="{ standalone: true }">
+
         <!-- ── Form Login ─────────────────────────────────────────── -->
         @if (mode === 'login') {
           <form class="login-form" (ngSubmit)="submitLogin()">
@@ -201,6 +211,17 @@ import type { RegisterPayload } from '../../services/auth.service';
     </div>
   `,
   styles: [`
+    /* Honeypot field: invisibile agli utenti reali, visibile ai bot stupidi.
+       Off-screen invece di display:none perché alcuni bot skippano gli
+       elementi nascosti via CSS. */
+    .hp-field {
+      position: absolute !important;
+      left: -10000px; top: -10000px;
+      width: 1px; height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .login-overlay {
       position: fixed; inset: 0;
       background: #0e2a38;
@@ -549,6 +570,10 @@ export class LoginComponent {
   // Forgot password
   forgotEmail = '';
 
+  // Honeypot anti-bot (campo nascosto via CSS off-screen).
+  // Se valorizzato, il backend rifiuta silenziosamente.
+  honeypot = '';
+
   error = '';
   success = '';
   loading = false;
@@ -588,7 +613,7 @@ export class LoginComponent {
     this.loading = true;
     this.error = '';
     this.success = '';
-    this.authSvc.forgotPassword(this.forgotEmail).subscribe({
+    this.authSvc.forgotPassword(this.forgotEmail, this.honeypot).subscribe({
       next: (r) => {
         this.loading = false;
         this.success = r?.message || 'Se l\'email è registrata, riceverai un\'email con le istruzioni.';
@@ -609,7 +634,7 @@ export class LoginComponent {
     this.loading = true;
     this.error = '';
     this.success = '';
-    this.authSvc.register(this.reg).subscribe({
+    this.authSvc.register(this.reg, this.honeypot).subscribe({
       next: () => { this.loading = false; this.loggedIn.emit(); },
       error: (err) => {
         this.loading = false;

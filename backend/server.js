@@ -121,8 +121,22 @@ const registerLimiter = rateLimit({
   message: { error: 'Troppi tentativi di registrazione, riprova tra un\'ora.' }
 });
 
+// Honeypot anti-bot: i form pubblici hanno un campo nascosto "website" che gli
+// utenti reali NON compilano mai (è invisibile). Se arriva valorizzato è un bot.
+// Rispondiamo "ok" finto per non rivelare il meccanismo: il bot pensa di aver
+// avuto successo ma il backend non fa nulla.
+function isBotHoneypot(body) {
+  return Boolean(body?.website && String(body.website).trim().length > 0);
+}
+
 // ── Registrazione self-service nuova azienda (pubblico) ──────────────────────
 app.post('/api/auth/register', registerLimiter, async (req, res) => {
+  if (isBotHoneypot(req.body)) {
+    console.log('[register] honeypot triggered ip=', req.ip);
+    // Risposta finta plausibile: niente token, niente tenant. Il bot non si
+    // accorge che è stato bloccato, ma il sistema non ha creato nulla.
+    return res.status(201).json({ ok: true });
+  }
   const { ragioneSociale, piva, email, password, nome } = req.body || {};
   if (!ragioneSociale || !email || !password) {
     return res.status(400).json({ error: 'ragioneSociale, email e password sono obbligatori' });
@@ -222,16 +236,22 @@ const forgotLimiter = rateLimit({
 });
 
 app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
+  // Risposta generica usata sia per email inesistenti sia per honeypot:
+  // gli stessi messaggio + status code rendono impossibile distinguere bot vs
+  // utente reale via timing/contenuto.
+  const genericOk = { ok: true, message: 'Se l\'email è registrata, riceverai un\'email con le istruzioni.' };
+  if (isBotHoneypot(req.body)) {
+    console.log('[forgot-password] honeypot triggered ip=', req.ip);
+    return res.json(genericOk);
+  }
   const email = String(req.body?.email || '').trim();
   if (!email) return res.status(400).json({ error: 'Email obbligatoria' });
 
   // Cleanup tokens scaduti (lazy)
   try { purgeExpiredResetTokens(); } catch(_) {}
 
-  // Risposta SEMPRE 200 anche se l'utente non esiste, per non rivelare quali
-  // email sono registrate (enumeration prevention).
-  const genericOk = { ok: true, message: 'Se l\'email è registrata, riceverai un\'email con le istruzioni.' };
-
+  // genericOk già definita sopra (uniformità con honeypot per
+  // prevenire enumeration via tempo di risposta / contenuto).
   const user = findUserByEmail(email);
   if (!user || !user.attivo) {
     // Piccolo delay artificiale per uniformare il tempo di risposta

@@ -61,11 +61,11 @@ export class AuthService {
       }));
   }
 
-  register(payload: RegisterPayload) {
+  register(payload: RegisterPayload, honeypot = '') {
     return this.http
-      .post<LoginResponse>(`${environment.apiUrl}/auth/register`, payload)
+      .post<LoginResponse>(`${environment.apiUrl}/auth/register`, { ...payload, website: honeypot })
       .pipe(tap(res => {
-        localStorage.setItem(this.KEY, res.token);
+        if (res.token) localStorage.setItem(this.KEY, res.token);
         if (res.user) localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
       }));
   }
@@ -75,10 +75,10 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
   }
 
-  forgotPassword(email: string) {
+  forgotPassword(email: string, honeypot = '') {
     return this.http.post<{ ok: boolean; message: string }>(
       `${environment.apiUrl}/auth/forgot-password`,
-      { email },
+      { email, website: honeypot },
     );
   }
 
