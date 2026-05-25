@@ -1,14 +1,13 @@
-// OCR fatture passive — usa Mindee Invoice API v2.
+// OCR fatture passive — usa Mindee Invoice API v2 (asincrona).
 //
 // Setup:
 //   - registrati su https://www.mindee.com → API Token gratuito (250 chiamate/mese)
-//   - env MINDEE_API_KEY = il token (prefisso "Token" aggiunto dal client)
+//   - env MINDEE_API_KEY = il token (senza prefisso "Token")
 //
-// Flusso:
-//   1) Il client invia POST /api/ocr/fattura con body = PDF (binario)
-//   2) Server lo inoltra a Mindee v2, ottiene JSON estratto
-//   3) Risponde con i campi suggeriti (fornitore, totale, IVA, data, righe)
-//      lasciando all'utente di confermare prima di creare l'acquisto.
+// Flusso v2:
+//   1) POST /v2/inferences/enqueue  → ottieni inference.id
+//   2) GET  /v2/inferences/{id}     → poll finché inference.result.fields è presente
+//   3) Estrai i campi e rispondi al client
 
 const express = require('express');
 const router = express.Router();
@@ -17,6 +16,11 @@ const db = require('../database');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+const MINDEE_ENQUEUE = 'https://api-v2.mindee.net/v2/inferences/enqueue';
+const MINDEE_GET     = 'https://api-v2.mindee.net/v2/inferences';
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 // POST /api/ocr/fattura  (multipart/form-data, campo "file")
 router.post('/fattura', upload.single('file'), async (req, res) => {
   const key = process.env.MINDEE_API_KEY;
@@ -24,46 +28,68 @@ router.post('/fattura', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'File mancante (campo "file")' });
 
   try {
+    // 1. Enqueue
     const form = new FormData();
     form.append('file', new Blob([req.file.buffer], { type: req.file.mimetype || 'application/pdf' }), req.file.originalname || 'document.pdf');
-    const r = await fetch('https://api.mindee.net/v2/products/mindee/invoices/inferences', {
+    form.append('model_id', 'mindee/invoices');
+
+    const enqueueResp = await fetch(MINDEE_ENQUEUE, {
       method: 'POST',
-      headers: { 'Authorization': `Token ${key}` },
+      headers: { 'Authorization': key },
       body: form,
     });
-    if (!r.ok) {
-      const t = await r.text();
-      // Mappa sempre a 502 per non far credere al frontend che il JWT sia scaduto
-      return res.status(502).json({ error: `Mindee ${r.status}: ${t.slice(0, 300)}` });
+    if (!enqueueResp.ok) {
+      const t = await enqueueResp.text();
+      return res.status(502).json({ error: `Mindee ${enqueueResp.status}: ${t.slice(0, 300)}` });
     }
-    const data = await r.json();
-    // Mindee v2: { inference: { prediction: {...}, pages: [...] } }
-    const pred = data?.inference?.prediction || {};
 
-    const fornitore = pred.supplier_name?.value || '';
-    const pIvaFornitore = (pred.supplier_company_registrations || [])
+    const enqueueData = await enqueueResp.json();
+    const inferenceId = enqueueData.inference?.id;
+    if (!inferenceId) {
+      return res.status(502).json({ error: 'Mindee non ha restituito un inference ID' });
+    }
+
+    // 2. Poll (max 30s, check ogni 2s)
+    let fields = enqueueData.inference?.result?.fields ?? null;
+    for (let i = 0; i < 15 && !fields; i++) {
+      await sleep(2000);
+      const pollResp = await fetch(`${MINDEE_GET}/${inferenceId}`, {
+        headers: { 'Authorization': key },
+      });
+      if (!pollResp.ok) continue;
+      const pollData = await pollResp.json();
+      fields = pollData.inference?.result?.fields ?? null;
+    }
+
+    if (!fields) {
+      return res.status(502).json({ error: 'Timeout: Mindee non ha completato l\'analisi (30s)' });
+    }
+
+    // 3. Estrazione campi (Mindee v2: inference.result.fields)
+    const fornitore = fields.supplier_name?.value || '';
+    const pIvaFornitore = (fields.supplier_company_registrations || [])
       .find(x => /VAT|P\.?IVA/i.test(x.type || ''))?.value || '';
-    const dataDoc = pred.date?.value || null;
-    const numero = pred.invoice_number?.value || '';
-    const totaleLordo = parseFloat(pred.total_amount?.value ?? pred.total_incl?.value ?? 0) || 0;
-    const totaleNetto = parseFloat(pred.total_net?.value ?? pred.total_excl?.value ?? 0) || 0;
-    const totaleIva   = parseFloat(pred.total_tax?.value ?? (totaleLordo - totaleNetto) ?? 0) || 0;
+    const dataDoc = fields.date?.value || null;
+    const numero  = fields.invoice_number?.value || '';
+    const totaleLordo = parseFloat(fields.total_amount?.value ?? 0) || 0;
+    const totaleNetto = parseFloat(fields.total_net?.value ?? fields.total_excl?.value ?? 0) || 0;
+    const totaleIva   = parseFloat(
+      fields.total_tax?.value ??
+      fields.taxes?.[0]?.value ??
+      (totaleLordo - totaleNetto)
+    ) || 0;
 
-    const righe = (pred.line_items || []).map(l => ({
+    const righe = (fields.line_items || []).map(l => ({
       descrizione: l.description || '',
-      quantita:    parseFloat(l.quantity ?? 1) || 1,
+      quantita:    parseFloat(l.quantity  ?? 1)  || 1,
       prezzo:      parseFloat(l.unit_price ?? l.total_amount ?? 0) || 0,
-      iva:         parseFloat(l.tax_rate ?? 22) || 22,
+      iva:         parseFloat(l.tax_rate   ?? 22) || 22,
     }));
 
     res.json({
       ok: true,
-      suggerito: {
-        fornitore, pIvaFornitore, dataDoc, numero,
-        totaleLordo, totaleNetto, totaleIva,
-        righe,
-      },
-      mindeeRequestId: data?.inference?.id,
+      suggerito: { fornitore, pIvaFornitore, dataDoc, numero, totaleLordo, totaleNetto, totaleIva, righe },
+      mindeeRequestId: inferenceId,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

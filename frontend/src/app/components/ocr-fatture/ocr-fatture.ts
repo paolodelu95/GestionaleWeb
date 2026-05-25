@@ -187,7 +187,7 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
       <div class="card center-card">
         <mat-spinner diameter="52"></mat-spinner>
         <p class="loading-title">Analisi in corso…</p>
-        <p class="loading-sub">Mindee sta estraendo i dati dalla fattura</p>
+        <p class="loading-sub">Mindee sta elaborando la fattura, attendi qualche secondo</p>
       </div>
     }
 
