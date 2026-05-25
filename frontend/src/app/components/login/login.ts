@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,7 +12,7 @@ import type { RegisterPayload } from '../../services/auth.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, RouterLink, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule],
   template: `
     <div class="login-overlay">
       <div class="login-bg">
@@ -146,7 +147,7 @@ import type { RegisterPayload } from '../../services/auth.service';
         <div class="login-footer">
           <span>© {{ year }} Ordeva</span>
           <span class="dot">·</span>
-          <span>Gestione aziendale moderna</span>
+          <a routerLink="/faq" class="footer-link">FAQ &amp; Guida</a>
         </div>
       </div>
     </div>
@@ -411,6 +412,12 @@ import type { RegisterPayload } from '../../services/auth.service';
       font-weight: 500;
       letter-spacing: 0.02em;
       .dot { opacity: 0.6; }
+      .footer-link {
+        color: #5eead4;
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      .footer-link:hover { color: #99f6e4; text-decoration: underline; }
     }
 
     .mode-switch {

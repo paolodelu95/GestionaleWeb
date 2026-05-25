@@ -1,4 +1,6 @@
-@if (!loggedIn) {
+@if (publicRoute) {
+  <router-outlet />
+} @else if (!loggedIn) {
   <app-login (loggedIn)="onLogin()" />
 } @else {
 <div class="shell">

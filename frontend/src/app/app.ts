@@ -1,6 +1,6 @@
 import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -54,6 +54,15 @@ export class App implements OnInit {
   azienda: Azienda | null = null;
   collapsed = false;
   loggedIn = false;
+  /**
+   * True quando l'URL corrente è una route pubblica (es. /faq).
+   * Le public route NON richiedono autenticazione: vengono renderizzate
+   * direttamente senza login overlay né sidebar/shell. Sono pagine
+   * statiche che NON chiamano API protette — quindi non rappresentano
+   * un bypass dell'auth, che resta enforced dal backend.
+   */
+  publicRoute = false;
+  private readonly PUBLIC_PATHS = ['/faq', '/guida'];
   badges: NotificationBadges = { scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0 };
   darkMode = false;
   searchQuery = '';
@@ -92,6 +101,15 @@ export class App implements OnInit {
     public moduli: ModuliService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
+    this.updatePublicRoute(this.router.url);
+    this.router.events.subscribe(e => {
+      if (e instanceof NavigationEnd) this.updatePublicRoute(e.urlAfterRedirects);
+    });
+  }
+
+  private updatePublicRoute(url: string) {
+    const path = (url.split('?')[0] || '').toLowerCase();
+    this.publicRoute = this.PUBLIC_PATHS.some(p => path === p || path.startsWith(p + '/'));
   }
 
   ngOnInit() {
