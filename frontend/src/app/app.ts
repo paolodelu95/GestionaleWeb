@@ -62,7 +62,7 @@ export class App implements OnInit {
    * un bypass dell'auth, che resta enforced dal backend.
    */
   publicRoute = false;
-  private readonly PUBLIC_PATHS = ['/faq', '/guida'];
+  private readonly PUBLIC_PATHS = ['/faq', '/guida', '/termini', '/privacy', '/cookie'];
   badges: NotificationBadges = { scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0 };
   darkMode = false;
   searchQuery = '';

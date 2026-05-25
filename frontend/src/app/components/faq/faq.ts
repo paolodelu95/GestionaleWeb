@@ -300,6 +300,9 @@ import { MatButtonModule } from '@angular/material/button';
             <a href="#cose">Cos'è</a>
             <a href="#funzioni">Funzioni</a>
             <a href="#prezzi">Prezzi</a>
+            <a routerLink="/termini">Termini</a>
+            <a routerLink="/privacy">Privacy</a>
+            <a routerLink="/cookie">Cookie</a>
             <a routerLink="/">Accedi</a>
           </nav>
           <p class="footer-legal">

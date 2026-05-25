@@ -3,8 +3,11 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   { path: '', redirectTo: 'app', pathMatch: 'full' },
   // ── Public routes (accessibili senza login) ──────────────────────────────
-  { path: 'faq',   loadComponent: () => import('./components/faq/faq').then(m => m.FaqComponent) },
-  { path: 'guida', redirectTo: 'faq', pathMatch: 'full' },
+  { path: 'faq',     loadComponent: () => import('./components/faq/faq').then(m => m.FaqComponent) },
+  { path: 'guida',   redirectTo: 'faq', pathMatch: 'full' },
+  { path: 'termini', loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'terms' } },
+  { path: 'privacy', loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'privacy' } },
+  { path: 'cookie',  loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'cookies' } },
   // ─────────────────────────────────────────────────────────────────────────
   { path: 'app',          loadComponent: () => import('./components/home-app/home-app').then(m => m.HomeAppComponent) },
   { path: 'dashboard',    loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent) },
