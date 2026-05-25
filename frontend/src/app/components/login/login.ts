@@ -68,9 +68,57 @@ import type { RegisterPayload } from '../../services/auth.service';
           </form>
 
           <div class="mode-switch">
+            <button type="button" class="link-btn-soft" (click)="switchMode('forgot')">
+              Password dimenticata?
+            </button>
+          </div>
+          <div class="mode-switch">
             Primo accesso?
             <button type="button" class="link-btn" (click)="switchMode('register')">
               Registra la tua azienda
+            </button>
+          </div>
+        }
+
+        <!-- ── Form Password Dimenticata ──────────────────────────── -->
+        @if (mode === 'forgot') {
+          <form class="login-form" (ngSubmit)="submitForgot()">
+            <p class="form-intro">
+              Inserisci l'email del tuo account. Ti invieremo un link
+              per impostare una nuova password.
+            </p>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input matInput [(ngModel)]="forgotEmail" name="forgotEmail"
+                     type="email" autocomplete="email" [disabled]="loading">
+              <mat-icon matSuffix>email</mat-icon>
+            </mat-form-field>
+
+            @if (error) {
+              <div class="login-error">
+                <mat-icon>error_outline</mat-icon> {{ error }}
+              </div>
+            }
+            @if (success) {
+              <div class="login-success">
+                <mat-icon>check_circle_outline</mat-icon> {{ success }}
+              </div>
+            }
+
+            <button mat-flat-button type="submit" class="login-btn"
+                    [disabled]="loading || !forgotEmail">
+              @if (loading) {
+                <span class="btn-content"><span class="btn-spinner"></span><span>Invio in corso…</span></span>
+              } @else {
+                <span class="btn-content"><span>Invia link di reset</span><mat-icon>send</mat-icon></span>
+              }
+            </button>
+          </form>
+
+          <div class="mode-switch">
+            <button type="button" class="link-btn" (click)="switchMode('login')">
+              ← Torna al login
             </button>
           </div>
         }
@@ -441,6 +489,26 @@ import type { RegisterPayload } from '../../services/auth.service';
       &:hover { color: #7dd3fc; }
     }
 
+    .link-btn-soft {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s;
+      &:hover { color: #cbd5e1; text-decoration: underline; text-underline-offset: 2px; }
+    }
+
+    .form-intro {
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 0 0 8px;
+      line-height: 1.5;
+    }
+
     .login-success {
       display: flex;
       align-items: center;
@@ -469,7 +537,7 @@ import type { RegisterPayload } from '../../services/auth.service';
 export class LoginComponent {
   @Output() loggedIn = new EventEmitter<void>();
 
-  mode: 'login' | 'register' = 'login';
+  mode: 'login' | 'register' | 'forgot' = 'login';
 
   // Login
   username = '';
@@ -477,6 +545,9 @@ export class LoginComponent {
 
   // Registrazione
   reg: RegisterPayload = { ragioneSociale: '', piva: '', email: '', password: '', nome: '' };
+
+  // Forgot password
+  forgotEmail = '';
 
   error = '';
   success = '';
@@ -486,7 +557,7 @@ export class LoginComponent {
 
   constructor(private authSvc: AuthService) {}
 
-  switchMode(m: 'login' | 'register') {
+  switchMode(m: 'login' | 'register' | 'forgot') {
     this.mode = m;
     this.error = '';
     this.success = '';
@@ -507,6 +578,27 @@ export class LoginComponent {
           this.error = 'Troppi tentativi — riprova tra qualche minuto';
         } else {
           this.error = 'Username o password non corretti';
+        }
+      }
+    });
+  }
+
+  submitForgot() {
+    if (!this.forgotEmail) return;
+    this.loading = true;
+    this.error = '';
+    this.success = '';
+    this.authSvc.forgotPassword(this.forgotEmail).subscribe({
+      next: (r) => {
+        this.loading = false;
+        this.success = r?.message || 'Se l\'email è registrata, riceverai un\'email con le istruzioni.';
+      },
+      error: (err) => {
+        this.loading = false;
+        if (err.status === 429) {
+          this.error = 'Troppe richieste — riprova tra qualche minuto.';
+        } else {
+          this.error = err.error?.error || 'Errore durante la richiesta. Riprova più tardi.';
         }
       }
     });

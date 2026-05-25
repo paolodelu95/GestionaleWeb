@@ -8,6 +8,7 @@ export const routes: Routes = [
   { path: 'termini', loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'terms' } },
   { path: 'privacy', loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'privacy' } },
   { path: 'cookie',  loadComponent: () => import('./components/legal/legal').then(m => m.LegalDocComponent), data: { mode: 'cookies' } },
+  { path: 'reset-password', loadComponent: () => import('./components/reset-password/reset-password').then(m => m.ResetPasswordComponent) },
   // ─────────────────────────────────────────────────────────────────────────
   { path: 'app',          loadComponent: () => import('./components/home-app/home-app').then(m => m.HomeAppComponent) },
   { path: 'dashboard',    loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent) },

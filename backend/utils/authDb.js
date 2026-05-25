@@ -95,6 +95,17 @@ function getAuthDb() {
     CREATE INDEX IF NOT EXISTS idx_gruppi_tenant ON gruppi(tenant_slug);
     CREATE INDEX IF NOT EXISTS idx_user_gruppi_user ON user_gruppi(user_id);
     CREATE INDEX IF NOT EXISTS idx_user_gruppi_gruppo ON user_gruppi(gruppo_id);
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      token       TEXT PRIMARY KEY,
+      user_id     INTEGER NOT NULL,
+      expires_at  TEXT NOT NULL,
+      used        INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      ip          TEXT DEFAULT '',
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_prt_user ON password_reset_tokens(user_id);
+    CREATE INDEX IF NOT EXISTS idx_prt_expires ON password_reset_tokens(expires_at);
   `);
   // Migrazioni per campi commerciali sui tenant esistenti
   const tenantMigrations = [
@@ -397,12 +408,73 @@ function getGroupMatesIds(userId) {
   return [...ids];
 }
 
+// ── Password reset tokens ───────────────────────────────────────────────────
+
+function createPasswordResetToken({ userId, token, expiresAt, ip }) {
+  getAuthDb().prepare(
+    `INSERT INTO password_reset_tokens (token, user_id, expires_at, ip)
+     VALUES (?,?,?,?)`
+  ).run(token, userId, expiresAt, ip || '');
+}
+
+function getPasswordResetToken(token) {
+  const row = getAuthDb().prepare(
+    `SELECT token, user_id, expires_at, used, created_at, ip
+     FROM password_reset_tokens WHERE token=?`
+  ).get(token);
+  if (!row) return null;
+  return { ...row, used: row.used === 1 };
+}
+
+function markPasswordResetTokenUsed(token) {
+  getAuthDb().prepare(
+    `UPDATE password_reset_tokens SET used=1 WHERE token=?`
+  ).run(token);
+}
+
+function invalidateOtherResetTokens(userId, exceptToken) {
+  getAuthDb().prepare(
+    `UPDATE password_reset_tokens SET used=1
+     WHERE user_id=? AND token!=? AND used=0`
+  ).run(userId, exceptToken);
+}
+
+function countRecentResetRequests(userId, minutesWindow = 60) {
+  const sinceIso = new Date(Date.now() - minutesWindow * 60000).toISOString();
+  return getAuthDb().prepare(
+    `SELECT COUNT(*) AS n FROM password_reset_tokens
+     WHERE user_id=? AND created_at >= ?`
+  ).get(userId, sinceIso).n;
+}
+
+function purgeExpiredResetTokens() {
+  getAuthDb().prepare(
+    `DELETE FROM password_reset_tokens
+     WHERE expires_at < datetime('now', '-7 days')`
+  ).run();
+}
+
+function findUserByEmail(email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (!e) return null;
+  // username e email sono salvati con maiuscole/minuscole come inserite,
+  // ma per il reset cerco case-insensitive su entrambi i campi.
+  return getAuthDb().prepare(
+    `SELECT * FROM users
+     WHERE LOWER(username)=? OR LOWER(email)=?
+     LIMIT 1`
+  ).get(e, e) || null;
+}
+
 module.exports = {
   getAuthDb,
   dataDir, tenantsDir, authDbPath, tenantDbPath,
   listTenants, getTenant, createTenant, updateTenant, deleteTenant,
   getUserByUsername, getUserById, listUsers, createUser, updateUser, deleteUser, countUsers,
+  findUserByEmail,
   listModuliCatalogo, listTenantModuli, setTenantModulo, ensureTenantModuli, isModuloAttivo,
   listGruppi, getGruppo, createGruppo, updateGruppo, deleteGruppo,
   setGruppoMembri, getUserGruppi, getGroupMatesIds,
+  createPasswordResetToken, getPasswordResetToken, markPasswordResetTokenUsed,
+  invalidateOtherResetTokens, countRecentResetRequests, purgeExpiredResetTokens,
 };

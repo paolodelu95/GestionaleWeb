@@ -75,6 +75,26 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
   }
 
+  forgotPassword(email: string) {
+    return this.http.post<{ ok: boolean; message: string }>(
+      `${environment.apiUrl}/auth/forgot-password`,
+      { email },
+    );
+  }
+
+  checkResetToken(token: string) {
+    return this.http.get<{ valid: boolean; reason?: string }>(
+      `${environment.apiUrl}/auth/reset-password/${encodeURIComponent(token)}`,
+    );
+  }
+
+  resetPassword(token: string, password: string) {
+    return this.http.post<{ ok: boolean; message: string }>(
+      `${environment.apiUrl}/auth/reset-password`,
+      { token, password },
+    );
+  }
+
   getToken(): string | null { return localStorage.getItem(this.KEY); }
 
   getUser(): AuthUser | null {

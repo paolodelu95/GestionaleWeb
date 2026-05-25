@@ -11,14 +11,19 @@ const { runWithContext } = require('./utils/tenantContext');
 const {
   getAuthDb, dataDir, tenantsDir, tenantDbPath,
   listTenants, getTenant, createTenant,
-  getUserByUsername, countUsers, createUser,
-  ensureTenantModuli,
+  getUserByUsername, countUsers, createUser, updateUser,
+  ensureTenantModuli, findUserByEmail,
+  createPasswordResetToken, getPasswordResetToken,
+  markPasswordResetTokenUsed, invalidateOtherResetTokens,
+  countRecentResetRequests, purgeExpiredResetTokens,
 } = require('./utils/authDb');
 const { sign } = require('./utils/authToken');
 const { authMiddleware } = require('./middleware/auth');
 const { runBackup } = require('./utils/backup');
 const { inviaSOllecitiAutomatici } = require('./utils/solleciti');
 const { getNextNumero } = require('./utils/nextNumero');
+const crypto = require('crypto');
+const { sendPasswordResetEmail, appBaseUrl } = require('./utils/systemMailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -202,6 +207,108 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       email: user.email, ruolo: user.ruolo, tenant: user.tenant_slug,
     },
   });
+});
+
+// ── Forgot password (pubblico) ───────────────────────────────────────────────
+const RESET_TOKEN_TTL_MIN = 60;             // validità link reset
+const RESET_MAX_PER_HOUR  = 3;              // max richieste/ora per utente
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppe richieste di reset, riprova tra un\'ora.' }
+});
+
+app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
+  const email = String(req.body?.email || '').trim();
+  if (!email) return res.status(400).json({ error: 'Email obbligatoria' });
+
+  // Cleanup tokens scaduti (lazy)
+  try { purgeExpiredResetTokens(); } catch(_) {}
+
+  // Risposta SEMPRE 200 anche se l'utente non esiste, per non rivelare quali
+  // email sono registrate (enumeration prevention).
+  const genericOk = { ok: true, message: 'Se l\'email è registrata, riceverai un\'email con le istruzioni.' };
+
+  const user = findUserByEmail(email);
+  if (!user || !user.attivo) {
+    // Piccolo delay artificiale per uniformare il tempo di risposta
+    await new Promise(r => setTimeout(r, 250 + Math.random() * 250));
+    return res.json(genericOk);
+  }
+
+  // Rate limit per utente (max RESET_MAX_PER_HOUR richieste/ora)
+  if (countRecentResetRequests(user.id, 60) >= RESET_MAX_PER_HOUR) {
+    return res.json(genericOk);
+  }
+
+  // Verifica che il tenant sia attivo (no reset per account sospesi)
+  const tenant = getTenant(user.tenant_slug);
+  if (!tenant || !tenant.attivo) return res.json(genericOk);
+
+  // Genera token random (256 bit di entropia)
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MIN * 60000).toISOString();
+  const clientIp = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+
+  try {
+    createPasswordResetToken({ userId: user.id, token, expiresAt, ip: clientIp });
+    const resetUrl = `${appBaseUrl()}/reset-password?token=${token}`;
+    // Inviamo a entrambi: alla email registrata (email field) e all'username
+    // se è un'email differente. In quasi tutti i casi sono uguali.
+    const destinations = new Set();
+    if (user.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) destinations.add(user.email);
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.username)) destinations.add(user.username);
+    if (destinations.size === 0) return res.json(genericOk);
+
+    for (const to of destinations) {
+      try {
+        await sendPasswordResetEmail({
+          to, nome: user.nome, resetUrl,
+          expiresInMin: RESET_TOKEN_TTL_MIN,
+        });
+      } catch (mailErr) {
+        console.error('[forgot-password] invio email fallito a', to, ':', mailErr.message);
+      }
+    }
+  } catch (e) {
+    console.error('[forgot-password]', e.message);
+  }
+  res.json(genericOk);
+});
+
+// ── Verifica validità di un token (per il frontend) ─────────────────────────
+app.get('/api/auth/reset-password/:token', (req, res) => {
+  const t = getPasswordResetToken(req.params.token);
+  if (!t || t.used) return res.status(400).json({ valid: false, reason: 'Link non valido o già usato.' });
+  if (new Date(t.expires_at) < new Date()) {
+    return res.status(400).json({ valid: false, reason: 'Link scaduto.' });
+  }
+  res.json({ valid: true });
+});
+
+// ── Reset password (pubblico, richiede token valido) ─────────────────────────
+app.post('/api/auth/reset-password', forgotLimiter, async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!token || !password) return res.status(400).json({ error: 'Token e password obbligatori' });
+  if (String(password).length < 8) return res.status(400).json({ error: 'La password deve essere di almeno 8 caratteri.' });
+
+  const t = getPasswordResetToken(token);
+  if (!t || t.used) return res.status(400).json({ error: 'Link non valido o già usato.' });
+  if (new Date(t.expires_at) < new Date()) return res.status(400).json({ error: 'Link scaduto. Richiedi un nuovo reset.' });
+
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    updateUser(t.user_id, { password_hash: hash });
+    markPasswordResetTokenUsed(token);
+    invalidateOtherResetTokens(t.user_id, token);
+    res.json({ ok: true, message: 'Password aggiornata. Ora puoi accedere.' });
+  } catch (e) {
+    console.error('[reset-password]', e.message);
+    res.status(500).json({ error: 'Errore durante l\'aggiornamento password.' });
+  }
 });
 
 // ── Da qui in poi tutte le rotte richiedono autenticazione e contesto tenant ──
