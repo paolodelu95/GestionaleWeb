@@ -669,6 +669,9 @@ function initTenantSchema(db) {
         fornitore_id     INTEGER,
         fornitore_nome   TEXT DEFAULT '',
         note             TEXT DEFAULT '',
+        variante_id      INTEGER,
+        variante_taglia  TEXT DEFAULT '',
+        variante_colore  TEXT DEFAULT '',
         FOREIGN KEY (prodotto_id)  REFERENCES prodotti(id)  ON DELETE CASCADE,
         FOREIGN KEY (cliente_id)   REFERENCES clienti(id)   ON DELETE SET NULL,
         FOREIGN KEY (fornitore_id) REFERENCES fornitori(id) ON DELETE SET NULL
@@ -677,6 +680,13 @@ function initTenantSchema(db) {
       CREATE INDEX IF NOT EXISTS idx_mov_prodotto    ON movimenti_magazzino(prodotto_id);
       CREATE INDEX IF NOT EXISTS idx_mov_cliente     ON movimenti_magazzino(cliente_id);
     `);
+    // ALTER idempotenti per DB pre-esistenti (creati prima dell'aggiunta delle colonne).
+    const movMigrations = [
+      'ALTER TABLE movimenti_magazzino ADD COLUMN variante_id INTEGER',
+      'ALTER TABLE movimenti_magazzino ADD COLUMN variante_taglia TEXT DEFAULT ""',
+      'ALTER TABLE movimenti_magazzino ADD COLUMN variante_colore TEXT DEFAULT ""',
+    ];
+    for (const sql of movMigrations) { try { db.exec(sql); } catch(_) {} }
   } catch(_) {}
 
   try {
