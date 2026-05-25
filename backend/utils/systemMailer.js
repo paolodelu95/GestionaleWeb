@@ -24,11 +24,14 @@ function getTransporter() {
     throw new Error('SMTP di sistema non configurato (manca SMTP_HOST/USER/PASS nei secret).');
   }
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const debug = process.env.SMTP_DEBUG === '1' || process.env.SMTP_DEBUG === 'true';
   cachedTransporter = nodemailer.createTransport({
     host,
     port,
     secure: port === 465, // STARTTLS su 587, TLS implicito su 465
     auth: { user, pass },
+    logger: debug,
+    debug,
   });
   return cachedTransporter;
 }
