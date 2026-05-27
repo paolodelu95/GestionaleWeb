@@ -1,6 +1,8 @@
 import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
+import { ApiService } from '../../services/api.service';
+import { AcquistoMagazzinoDialogComponent } from './acquisto-magazzino-dialog';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -216,8 +218,7 @@ const RIGHE_STYLES = `
       <button mat-button mat-dialog-close>Annulla</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
-          <mat-icon>print</mat-icon> Stampa
-        </button>
+          <mat-icon>print</mat-icon> Esporta PDF </button>
       }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
     </mat-dialog-actions>`,
@@ -397,7 +398,13 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
+  constructor(
+    private ds: DataService,
+    private dialog: MatDialog,
+    private snack: MatSnackBar,
+    private printSvc: PrintService,
+    private api: ApiService,
+  ) {}
 
   ngOnInit() {
     try { const s = JSON.parse(localStorage.getItem('filtri-acquisti') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroFornitore = s.fornitore ?? null; } } catch {}
@@ -480,11 +487,42 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
+      const isCreate = !result.id;
       const op = result.id ? this.ds.updateAcquisto(result) : this.ds.createAcquisto(result);
       op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+        next: (r: any) => {
+          this.load();
+          this.snack.open('Salvato', '', { duration: 2000 });
+          // Solo per NUOVO acquisto: proponi di generare l'arrivo merce
+          if (isCreate && r?.id) {
+            this.generaArrivoMerce({ ...result, id: r.id });
+          }
+        },
         error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
       });
+    });
+  }
+
+  // Apre il dialog "Carica a magazzino?" che analizza le righe dell'acquisto:
+  //   - matched   → prodotto già a catalogo
+  //   - unmatched → propone di crearlo a catalogo + caricarlo
+  //   - noCode    → riga senza codice prodotto, sarà saltata
+  // Su conferma, genera arrivo merce + crea i prodotti scelti + scarica/carica magazzino.
+  generaArrivoMerce(a: Acquisto) {
+    if (!a.id) return;
+    const ref = this.dialog.open(AcquistoMagazzinoDialogComponent, {
+      data: { acquistoId: a.id, api: this.api },
+      maxWidth: '90vw',
+    });
+    ref.afterClosed().subscribe(result => {
+      if (!result?.generated) return;
+      const numNuovi = result.prodottiCreati?.length || 0;
+      const numRighe = result.righeTotali || 0;
+      const msg = numNuovi > 0
+        ? `Arrivo merce ${result.numero} creato (${numRighe} righe, ${numNuovi} prodotti nuovi)`
+        : `Arrivo merce ${result.numero} creato (${numRighe} righe)`;
+      this.snack.open(msg, 'OK', { duration: 4500, panelClass: 'snack-ok' });
+      this.load();
     });
   }
 

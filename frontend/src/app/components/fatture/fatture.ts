@@ -670,8 +670,7 @@ const RIGHE_STYLES = `
       <button mat-button mat-dialog-close>Annulla</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
-          <mat-icon>print</mat-icon> Stampa
-        </button>
+          <mat-icon>print</mat-icon> Esporta PDF </button>
       }
       <button mat-flat-button (click)="save()">Salva</button>
     </mat-dialog-actions>`,

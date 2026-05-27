@@ -288,6 +288,11 @@ const RIGHE_STYLES = `
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
+      @if (data?.id) {
+        <button mat-stroked-button type="button" (click)="esportaPdf()">
+          <mat-icon>print</mat-icon> Esporta PDF
+        </button>
+      }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
@@ -329,6 +334,7 @@ export class OrdineDialogComponent implements OnInit {
     private matDialog: MatDialog,
     private snack: MatSnackBar,
     public dialogRef: MatDialogRef<OrdineDialogComponent>,
+    private printSvc: PrintService,
     @Inject(MAT_DIALOG_DATA) public data: Ordine | null
   ) {
     this.isNew = !data?.id;
@@ -518,6 +524,12 @@ export class OrdineDialogComponent implements OnInit {
     const clienteId = cv && typeof cv !== 'string' ? (cv as Cliente).id ?? null : null;
     const fornitoreId = fv && typeof fv !== 'string' ? (fv as Fornitore).id ?? null : null;
     this.dialogRef.close({ ...this.data, ...this.form.value, clienteId, fornitoreId, righe: this.righe });
+  }
+
+  // Esporta il documento in PDF dal dialog (apre anteprima con bottone "Salva PDF").
+  // Visibile solo per ordini già salvati (data?.id presente).
+  esportaPdf() {
+    if (this.data?.id) this.printSvc.printOrdine(this.data.id);
   }
 }
 
