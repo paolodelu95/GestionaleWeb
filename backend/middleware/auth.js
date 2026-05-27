@@ -81,16 +81,23 @@ function isBillingPath(reqPath) {
 function trialEnforcement(req, res, next) {
   if (!req.user || !req.tenant) return next();
   if (req.user.ruolo === 'SUPERADMIN') return next();
-  // Le route di billing sono sempre accessibili (anche in read-only) per
-  // permettere il rinnovo / sottoscrizione iniziale.
+  // Route sempre accessibili anche in read-only:
+  //  - /billing/*   per rinnovare / sottoscrivere
+  //  - /auth/*      per gestire l'account (verifica email, reset password,
+  //                 smtp-test, ecc.) — sarebbe assurdo bloccarle
   if (req.path.startsWith('/billing/')) return next();
+  if (req.path.startsWith('/auth/')) return next();
 
   const { getTenant } = require('../utils/authDb');
   const tenant = getTenant(req.tenant);
   if (!tenant) return next();
 
   // ── Tenant Pro con subscription Stripe ────────────────────────────────
-  if (tenant.piano === 'pro') {
+  // Safety net: se piano='pro' ma il tenant non ha mai avuto uno Stripe
+  // Customer (stripeCustomerId vuoto), trattalo come trial. Questo evita
+  // che uno stato sporco (es. webhook handler chiamato male, test manuali)
+  // blocchi un utente che non ha mai sottoscritto davvero.
+  if (tenant.piano === 'pro' && tenant.stripeCustomerId) {
     if (ACTIVE_SUB_STATUSES.has(tenant.subscriptionStatus)) return next();
     // Sub non attiva (past_due/canceled/unpaid/null): read-only indefinito.
     // L'utente può leggere tutti i propri dati e portarli via via export,
