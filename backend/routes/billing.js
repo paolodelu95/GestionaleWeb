@@ -98,14 +98,13 @@ router.post('/checkout', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), async (req
     const tenant = getTenant(req.tenant);
     if (!tenant) return res.status(404).json({ error: 'Tenant non trovato' });
 
-    // Riutilizza il Customer esistente se già creato, altrimenti Stripe ne
-    // crea uno nuovo e lo associamo via webhook.
+    // Riutilizza il Customer esistente se già creato. In modalità
+    // subscription Stripe crea il customer da solo se non lo passiamo;
+    // gli forniamo solo l'email per pre-compilare la form.
+    // Nota: `customer_creation` NON è ammesso in mode='subscription'.
     const customerArgs = tenant.stripeCustomerId
       ? { customer: tenant.stripeCustomerId }
-      : {
-          customer_email: req.user.email || req.user.username,
-          customer_creation: 'always',
-        };
+      : { customer_email: req.user.email || req.user.username };
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
