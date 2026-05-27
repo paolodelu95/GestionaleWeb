@@ -5,7 +5,7 @@
 //   STRIPE_WEBHOOK_SECRET    = whsec_... (per validare la firma del webhook)
 //   STRIPE_PRICE_PRO_MONTHLY = price_xxx (Prodotto "Ordeva Pro" mensile)
 //   STRIPE_PRICE_PRO_YEARLY  = price_xxx (Prodotto "Ordeva Pro" annuale)
-//   APP_BASE_URL             = https://invoxa.fly.dev (per redirect post-checkout)
+//   APP_BASE_URL             = https://ordeva.it (per redirect post-checkout)
 //
 // Stati subscription gestiti:
 //   trialing      → permesso pieno (è una trial Stripe, raramente usata)
