@@ -83,7 +83,7 @@ function initTenantSchema(db) {
       cliente_id INTEGER,
       causale TEXT DEFAULT '',
       note TEXT DEFAULT '',
-      stato TEXT DEFAULT 'BOZZA',
+      stato TEXT DEFAULT 'EMESSO',
       FOREIGN KEY (cliente_id) REFERENCES clienti(id)
     );
 
@@ -130,7 +130,7 @@ function initTenantSchema(db) {
       cliente_id INTEGER,
       fattura_id INTEGER,
       note TEXT DEFAULT '',
-      stato TEXT DEFAULT 'BOZZA',
+      stato TEXT DEFAULT 'EMESSA',
       FOREIGN KEY (cliente_id) REFERENCES clienti(id),
       FOREIGN KEY (fattura_id) REFERENCES fatture(id)
     );
@@ -178,7 +178,7 @@ function initTenantSchema(db) {
       data_emissione TEXT NOT NULL,
       cliente_id INTEGER,
       validita INTEGER DEFAULT 30,
-      stato TEXT DEFAULT 'BOZZA',
+      stato TEXT DEFAULT 'INVIATO',
       note TEXT DEFAULT '',
       FOREIGN KEY (cliente_id) REFERENCES clienti(id)
     );
@@ -589,6 +589,11 @@ function initTenantSchema(db) {
       last_sync TEXT DEFAULT (datetime('now')),
       UNIQUE(config_id, tipo, remote_id)
     )`,
+    'ALTER TABLE ddt_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
+    'ALTER TABLE fatture_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
+    'ALTER TABLE note_credito_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
+    'ALTER TABLE preventivi_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
+    'ALTER TABLE ordini_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

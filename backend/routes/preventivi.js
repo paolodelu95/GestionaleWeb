@@ -23,9 +23,9 @@ router.post('/', (req, res) => {
   const p = req.body;
   const result = db.prepare(`INSERT INTO preventivi (numero, data_emissione, cliente_id, validita, stato, note)
     VALUES (?,?,?,?,?,?)`)
-    .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita || 30, p.stato || 'BOZZA', p.note);
+    .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita || 30, p.stato || 'INVIATO', p.note);
   if (p.righe?.length) saveRighe(result.lastInsertRowid, p.righe);
-  audit('preventivo', result.lastInsertRowid, 'CREATE', { numero: p.numero, clienteId: p.clienteId, stato: p.stato || 'BOZZA', numRighe: p.righe?.length || 0 });
+  audit('preventivo', result.lastInsertRowid, 'CREATE', { numero: p.numero, clienteId: p.clienteId, stato: p.stato || 'INVIATO', numRighe: p.righe?.length || 0 });
   res.json({ id: result.lastInsertRowid });
 });
 
@@ -49,10 +49,10 @@ router.delete('/:id', (req, res) => {
 
 function saveRighe(prevId, righe) {
   const stmt = db.prepare(`INSERT INTO preventivi_righe
-    (preventivo_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (preventivo_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
-    stmt.run(prevId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+    stmt.run(prevId, r.prodottoId || null, r.codiceProdotto || '', r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
              r.tipo || 'PRODOTTO');
@@ -62,6 +62,7 @@ function getRighe(prevId) {
   return db.prepare(`SELECT r.*, p.nome as prodotto_nome FROM preventivi_righe r
     LEFT JOIN prodotti p ON r.prodotto_id = p.id WHERE r.preventivo_id=?`).all(prevId)
     .map(r => ({ id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
+      codiceProdotto: r.codice_prodotto || '',
       descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
       prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
       varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
@@ -105,7 +106,7 @@ router.post('/:id/to-ddt', (req, res) => {
   const result = db.prepare(`
     INSERT INTO ddt (numero, data_emissione, cliente_id, causale, stato, preventivo_id)
     VALUES (?,?,?,?,?,?)`)
-    .run(numero, data, prev.cliente_id, `Da preventivo n. ${prev.numero}`, 'BOZZA', prev.id);
+    .run(numero, data, prev.cliente_id, `Da preventivo n. ${prev.numero}`, 'EMESSO', prev.id);
   const ddtId = result.lastInsertRowid;
   const stmt = db.prepare(`INSERT INTO ddt_righe
     (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)

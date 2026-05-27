@@ -516,15 +516,23 @@ export class PrintService {
   }
 
   private table(doc: jsPDF, y: number, righe: any[]): number {
-    const body = righe.map((r, i) => {
+    let rowNum = 0;
+    const body = righe.map(r => {
+      if (r.tipo === 'NOTA') {
+        return [{ content: r.descrizione || '', colSpan: 8, styles: { fontStyle: 'italic', textColor: GR } }];
+      }
+      rowNum++;
       const imp = (r.quantita || 0) * (r.prezzo || 0) * (1 - (r.sconto || 0) / 100);
-      return [i + 1, r.descrizione || '', r.quantita ?? '', r.unitaMisura || '',
+      const descText = r.codiceProdotto
+        ? `[${r.codiceProdotto}]  ${r.descrizione || ''}`
+        : (r.descrizione || '');
+      return [rowNum, descText, r.quantita ?? '', r.unitaMisura || '',
         r.prezzo ? this.fe(r.prezzo) : '—', r.sconto ? r.sconto + '%' : '—',
         r.iva + '%', imp ? this.fe(imp) : '—'];
     });
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Descrizione', 'Q.tà', 'UM', 'Prezzo', 'Sc.%', 'IVA', 'Importo']],
+      head: [['#', 'Codice / Descrizione', 'Q.tà', 'UM', 'Prezzo', 'Sc.%', 'IVA', 'Importo']],
       body,
       theme: 'striped',
       headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: 9 },

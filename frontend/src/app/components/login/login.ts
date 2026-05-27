@@ -364,7 +364,8 @@ import type { RegisterPayload } from '../../services/auth.service';
           --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.15);
           --mdc-outlined-text-field-hover-outline-color: rgba(255, 255, 255, 0.30);
           --mdc-outlined-text-field-focus-outline-color: #818cf8;
-          --mdc-outlined-text-field-label-text-color: #94a3b8;
+          --mdc-outlined-text-field-label-text-color: #e2e8f0;
+          --mdc-outlined-text-field-hover-label-text-color: #f1f5f9;
           --mdc-outlined-text-field-input-text-color: #f1f5f9;
           --mdc-outlined-text-field-focus-label-text-color: #a5b4fc;
           --mdc-outlined-text-field-caret-color: #818cf8;
@@ -374,6 +375,28 @@ import type { RegisterPayload } from '../../services/auth.service';
         .mat-mdc-input-element {
           color: #f1f5f9 !important;
           caret-color: #818cf8 !important;
+        }
+        .mat-mdc-input-element::placeholder {
+          color: #94a3b8 !important;
+          opacity: 1 !important;
+        }
+        /* Label in resting position (inside the field, acts as placeholder) */
+        .mdc-floating-label:not(.mdc-floating-label--float-above) {
+          color: #94a3b8 !important;
+        }
+        /* Floating label: sfondo solido per non compenetrare la cornice */
+        .mdc-floating-label--float-above {
+          background: #101e2d;
+          padding: 0 4px;
+          margin-left: -4px;
+          border-radius: 2px;
+          color: #e2e8f0;
+        }
+        .mdc-text-field--outlined:hover .mdc-floating-label--float-above {
+          color: #f1f5f9;
+        }
+        .mdc-text-field--outlined.mdc-text-field--focused .mdc-floating-label--float-above {
+          color: #a5b4fc;
         }
         input:-webkit-autofill,
         input:-webkit-autofill:hover,

@@ -216,6 +216,8 @@ const RIGHE_STYLES = `
   .riga-input.num { width: 72px; }
   .riga-input.sconto { width: 60px; }
   .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
+  .td-desc { min-width: 160px; }
+  .riga-codice { font-size:11px; color:#64748b; border-bottom:none !important; border-radius:4px 4px 0 0 !important; background:#f8fafc; margin-bottom:0; }
   .td-search { width: 36px; padding: 0 !important; }
   .td-history { width: 28px; padding: 0 !important; }
   .prezzo-cell { display: flex; align-items: center; gap: 2px; }
@@ -359,7 +361,7 @@ const RIGHE_STYLES = `
                 <thead>
                   <tr>
                     <th class="td-drag"></th>
-                    <th>Codice / Descrizione</th>
+                    <th class="td-desc">Codice / Descrizione</th>
                     <th class="td-search"></th>
                     <th>Qtà</th>
                     <th>UM</th>
@@ -388,7 +390,10 @@ const RIGHE_STYLES = `
                     } @else {
                     <tr cdkDrag cdkDragPreviewContainer="parent">
                       <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                      <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
+                      <td class="td-desc" style="padding:2px">
+                        <input class="riga-input riga-codice" [(ngModel)]="riga.codiceProdotto" placeholder="Codice">
+                        <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                      </td>
                       <td class="td-search">
                         <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                           <mat-icon>search</mat-icon>
@@ -663,6 +668,11 @@ const RIGHE_STYLES = `
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
+      @if (data?.id) {
+        <button mat-stroked-button type="button" (click)="printFromDialog()">
+          <mat-icon>print</mat-icon> Stampa
+        </button>
+      }
       <button mat-flat-button (click)="save()">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES + `
@@ -942,6 +952,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     private matDialog: MatDialog,
     private cdr: ChangeDetectorRef,
     private snack: MatSnackBar,
+    private printSvcDialog: PrintService,
     public dialogRef: MatDialogRef<FatturaDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Fattura | null
   ) {
@@ -1043,7 +1054,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         const p = pick.prodotto; const v = pick.variante;
         const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
         const { iva, codiceIva } = this.resolveIvaPerProdotto(p.iva ?? 22);
-        this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
+        this.righe[index].codiceProdotto = p.codice ?? '';
+        this.righe[index].descrizione = (p.descrizione || p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
         this.righe[index].iva = iva;
         this.righe[index].codiceIva = codiceIva;
@@ -1151,6 +1163,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     moveItemInArray(this.prezziRecentiTutti, event.previousIndex, event.currentIndex);
     moveItemInArray(this.tuttiCaricati, event.previousIndex, event.currentIndex);
   }
+
+  printFromDialog() { if (this.data?.id) this.printSvcDialog.printFattura(this.data.id); }
 
   save() {
     this.submitted = true;
@@ -1456,6 +1470,27 @@ export class FattureComponent implements OnInit, AfterViewInit {
         } as DocInfoData,
         width: '720px', maxWidth: '98vw', maxHeight: '92vh',
       });
+    });
+  }
+
+  duplicate(f: Fattura) {
+    forkJoin({ full: this.ds.getFatturaById(f.id!), num: this.ds.getNextNumero('fatture') }).subscribe({
+      next: ({ full, num }) => {
+        const { id, ...pre } = full as any;
+        pre.numero = String(num.numero);
+        pre.dataEmissione = new Date().toISOString().substring(0, 10);
+        pre.stato = 'EMESSA';
+        pre.ddtIds = [];
+        this.dialog.open(FatturaDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
+          .afterClosed().subscribe(result => {
+            if (!result) return;
+            this.ds.createFattura(result).subscribe({
+              next: () => { this.load(); this.snack.open('Fattura duplicata', '', { duration: 2000, panelClass: 'snack-ok' }); },
+              error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+            });
+          });
+      },
+      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
     });
   }
 

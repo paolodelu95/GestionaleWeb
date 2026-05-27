@@ -93,11 +93,6 @@
             <button mat-menu-item type="button" (click)="inviaEmail(p)">
               <mat-icon>mail</mat-icon> Invia per email
             </button>
-            @if (p.stato === 'BOZZA') {
-              <button mat-menu-item type="button" (click)="setStato(p, 'INVIATO')">
-                <mat-icon>send</mat-icon> Invia al cliente
-              </button>
-            }
             @if (p.stato === 'INVIATO') {
               <button mat-menu-item type="button" (click)="setStato(p, 'ACCETTATO')">
                 <mat-icon>thumb_up</mat-icon> Accetta
@@ -114,6 +109,9 @@
                 <mat-icon>assignment</mat-icon> Converti in Ordine
               </button>
             }
+            <button mat-menu-item type="button" (click)="duplicate(p)">
+              <mat-icon>content_copy</mat-icon> Duplica
+            </button>
             <button mat-menu-item type="button" (click)="open(p)">
               <mat-icon>edit</mat-icon> Modifica
             </button>

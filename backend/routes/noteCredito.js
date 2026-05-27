@@ -23,9 +23,9 @@ router.post('/', (req, res) => {
   const n = req.body;
   const result = db.prepare(`INSERT INTO note_credito (numero, data_emissione, cliente_id, fattura_id, note, stato)
     VALUES (?,?,?,?,?,?)`)
-    .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato || 'BOZZA');
+    .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato || 'EMESSA');
   if (n.righe?.length) saveRighe(result.lastInsertRowid, n.righe);
-  audit('nota_credito', result.lastInsertRowid, 'CREATE', { numero: n.numero, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato || 'BOZZA', numRighe: n.righe?.length || 0 });
+  audit('nota_credito', result.lastInsertRowid, 'CREATE', { numero: n.numero, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato || 'EMESSA', numRighe: n.righe?.length || 0 });
   res.json({ id: result.lastInsertRowid });
 });
 
@@ -49,10 +49,10 @@ router.delete('/:id', (req, res) => {
 
 function saveRighe(ncId, righe) {
   const stmt = db.prepare(`INSERT INTO note_credito_righe
-    (nota_credito_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (nota_credito_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
-    stmt.run(ncId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+    stmt.run(ncId, r.prodottoId || null, r.codiceProdotto || '', r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
              r.tipo || 'PRODOTTO');
@@ -62,6 +62,7 @@ function getRighe(ncId) {
   return db.prepare(`SELECT r.*, p.nome as prodotto_nome FROM note_credito_righe r
     LEFT JOIN prodotti p ON r.prodotto_id = p.id WHERE r.nota_credito_id=?`).all(ncId)
     .map(r => ({ id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
+      codiceProdotto: r.codice_prodotto || '',
       descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
       prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
       varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',

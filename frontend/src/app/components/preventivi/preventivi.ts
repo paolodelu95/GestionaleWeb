@@ -41,6 +41,8 @@ const RIGHE_STYLES = `
   .riga-nota td { background: #fefce8; }
   .riga-nota input { font-style: italic; color: #78716c; }
   .td-drag { width: 28px; padding: 0 !important; cursor: grab; color: #94a3b8; }
+  .td-desc { min-width: 160px; }
+  .riga-codice { font-size:11px; color:#64748b; border-bottom:none !important; border-radius:4px 4px 0 0 !important; background:#f8fafc; margin-bottom:0; }
   .cdk-drag-placeholder { opacity: 0.4; }
   .cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
 `;
@@ -136,7 +138,7 @@ const RIGHE_STYLES = `
           <thead>
             <tr>
               <th class="td-drag"></th>
-              <th>Codice / Descrizione</th>
+              <th class="td-desc">Codice / Descrizione</th>
               <th class="td-search"></th>
               <th>Qtà</th>
               <th>UM</th>
@@ -165,7 +167,10 @@ const RIGHE_STYLES = `
               } @else {
               <tr cdkDrag cdkDragPreviewContainer="parent">
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
+                <td class="td-desc" style="padding:2px">
+                  <input class="riga-input riga-codice" [(ngModel)]="riga.codiceProdotto" placeholder="Codice">
+                  <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                </td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                     <mat-icon>search</mat-icon>
@@ -255,6 +260,11 @@ const RIGHE_STYLES = `
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
+      @if (data?.id) {
+        <button mat-stroked-button type="button" (click)="printFromDialog()">
+          <mat-icon>print</mat-icon> Stampa
+        </button>
+      }
       <button mat-flat-button (click)="save()">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES + `
@@ -330,6 +340,7 @@ export class PreventivoDialogComponent implements OnInit {
     private ds: DataService,
     private matDialog: MatDialog,
     private snack: MatSnackBar,
+    private printSvcDialog: PrintService,
     public dialogRef: MatDialogRef<PreventivoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Preventivo | null
   ) {
@@ -399,7 +410,8 @@ export class PreventivoDialogComponent implements OnInit {
         if (!pick) return;
         const p = pick.prodotto; const v = pick.variante;
         const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
-        this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
+        this.righe[index].codiceProdotto = p.codice ?? '';
+        this.righe[index].descrizione = (p.descrizione || p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
@@ -463,6 +475,8 @@ export class PreventivoDialogComponent implements OnInit {
     moveItemInArray(this.prezziRecentiTutti, event.previousIndex, event.currentIndex);
     moveItemInArray(this.tuttiCaricati, event.previousIndex, event.currentIndex);
   }
+
+  printFromDialog() { if (this.data?.id) this.printSvcDialog.printPreventivo(this.data.id); }
 
   save() {
     this.submitted = true;
@@ -647,6 +661,26 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
         } as DocInfoData,
         width: '720px', maxWidth: '98vw', maxHeight: '92vh',
       });
+    });
+  }
+
+  duplicate(p: Preventivo) {
+    forkJoin({ full: this.ds.getPreventivoById(p.id!), num: this.ds.getNextNumero('preventivi') }).subscribe({
+      next: ({ full, num }) => {
+        const { id, ...pre } = full as any;
+        pre.numero = String(num.numero);
+        pre.dataEmissione = new Date().toISOString().substring(0, 10);
+        pre.stato = 'INVIATO';
+        this.dialog.open(PreventivoDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
+          .afterClosed().subscribe(result => {
+            if (!result) return;
+            this.ds.createPreventivo(result).subscribe({
+              next: () => { this.load(); this.snack.open('Preventivo duplicato', '', { duration: 2000, panelClass: 'snack-ok' }); },
+              error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+            });
+          });
+      },
+      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
     });
   }
 

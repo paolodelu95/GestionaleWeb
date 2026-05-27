@@ -42,6 +42,8 @@ const RIGHE_STYLES = `
   .pr-meta { color:#64748b; font-size:11px; }
   .riga-nota td { background: #fefce8; }
   .riga-nota input { font-style: italic; color: #78716c; }
+  .td-desc { min-width: 160px; }
+  .riga-codice { font-size:11px; color:#64748b; border-bottom:none !important; border-radius:4px 4px 0 0 !important; background:#f8fafc; margin-bottom:0; }
   .td-drag { width: 28px; padding: 0 !important; cursor: grab; color: #94a3b8; }
   .cdk-drag-placeholder { opacity: 0.4; }
   .cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
@@ -149,7 +151,7 @@ const RIGHE_STYLES = `
             <tr>
               <th class="td-drag"></th>
               @if (isFornitore) { <th style="width:110px">Vostro codice</th> }
-              <th>Codice / Descrizione</th>
+              <th class="td-desc">Codice / Descrizione</th>
               <th class="td-search"></th>
               @if (!isFornitore) { <th class="td-history"></th> }
               <th>Qtà</th>
@@ -183,7 +185,10 @@ const RIGHE_STYLES = `
                 @if (isFornitore) {
                   <td><input class="riga-input" style="width:100px" [(ngModel)]="riga.codiceFornitore" placeholder="Cod. fornitore"></td>
                 }
-                <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
+                <td class="td-desc" style="padding:2px">
+                  <input class="riga-input riga-codice" [(ngModel)]="riga.codiceProdotto" placeholder="Codice">
+                  <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                </td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                     <mat-icon>search</mat-icon>
@@ -399,7 +404,8 @@ export class OrdineDialogComponent implements OnInit {
         if (!pick) return;
         const p = pick.prodotto; const v = pick.variante;
         const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
-        this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
+        this.righe[index].codiceProdotto = p.codice ?? '';
+        this.righe[index].descrizione = (p.descrizione || p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';

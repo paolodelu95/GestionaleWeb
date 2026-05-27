@@ -57,10 +57,10 @@ router.delete('/:id', (req, res) => {
 
 function saveRighe(ordineId, righe) {
   const stmt = db.prepare(`INSERT INTO ordini_righe
-    (ordine_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo, codice_fornitore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (ordine_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo, codice_fornitore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
-    stmt.run(ordineId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+    stmt.run(ordineId, r.prodottoId || null, r.codiceProdotto || '', r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
              r.tipo || 'PRODOTTO', r.codiceFornitore || '');
@@ -70,6 +70,7 @@ function getRighe(ordineId) {
   return db.prepare(`SELECT r.*, p.nome as prodotto_nome FROM ordini_righe r
     LEFT JOIN prodotti p ON r.prodotto_id = p.id WHERE r.ordine_id=?`).all(ordineId)
     .map(r => ({ id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
+      codiceProdotto: r.codice_prodotto || '',
       descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
       prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
       varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
@@ -120,7 +121,7 @@ router.post('/:id/to-ddt', (req, res) => {
   const result = db.prepare(`
     INSERT INTO ddt (numero, data_emissione, cliente_id, causale, stato)
     VALUES (?,?,?,?,?)`)
-    .run(numero, data, ordine.cliente_id, `Da ordine n. ${ordine.numero}`, 'BOZZA');
+    .run(numero, data, ordine.cliente_id, `Da ordine n. ${ordine.numero}`, 'EMESSO');
   const ddtId = result.lastInsertRowid;
   const stmt = db.prepare(`INSERT INTO ddt_righe
     (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)

@@ -218,10 +218,10 @@ function getDdtIds(fatturaId) {
 
 function saveRighe(fatturaId, righe) {
   const stmt = db.prepare(`INSERT INTO fatture_righe
-    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (fattura_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
-    stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+    stmt.run(fatturaId, r.prodottoId || null, r.codiceProdotto || '', r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.codiceIva || '',
              r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
@@ -233,7 +233,7 @@ function getDdtRighe(ddtId) {
     FROM ddt_righe dr LEFT JOIN prodotti p ON dr.prodotto_id = p.id
     WHERE dr.ddt_id=?`).all(ddtId);
   return rows.map(r => ({
-    prodottoId: r.prodotto_id, descrizione: r.descrizione,
+    prodottoId: r.prodotto_id, codiceProdotto: r.codice_prodotto || '', descrizione: r.descrizione,
     quantita: r.quantita, unitaMisura: r.unita_misura,
     prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva, codiceIva: r.codice_iva || '',
     varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
@@ -247,6 +247,7 @@ function getRighe(fatturaId) {
     WHERE fr.fattura_id=?`).all(fatturaId);
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
+    codiceProdotto: r.codice_prodotto || '',
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
     prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva, codiceIva: r.codice_iva || '',
     varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',

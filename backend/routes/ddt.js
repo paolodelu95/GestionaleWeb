@@ -48,7 +48,7 @@ router.post('/', (req, res) => {
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(
       d.numero, d.dataEmissione, d.clienteId || null,
-      d.causaleTrasporto || '', d.note || '', d.stato || 'BOZZA',
+      d.causaleTrasporto || '', d.note || '', d.stato || 'EMESSO',
       d.dataOraInizioTrasporto || '', d.aspettoBeni || '',
       d.porto || 'Franco', d.numeroColli || 0, d.pesoLordo || 0,
       d.incaricatoTrasporto || 'Mittente', d.vettore || '',
@@ -66,7 +66,7 @@ router.post('/', (req, res) => {
     });
     checkRiordino(d.righe.map(r => r.prodottoId).filter(Boolean));
   }
-  audit('ddt', ddtId, 'CREATE', { numero: d.numero, clienteId: d.clienteId, stato: d.stato || 'BOZZA', numRighe: d.righe?.length || 0 });
+  audit('ddt', ddtId, 'CREATE', { numero: d.numero, clienteId: d.clienteId, stato: d.stato || 'EMESSO', numRighe: d.righe?.length || 0 });
   res.json({ id: ddtId });
 });
 
@@ -156,10 +156,10 @@ function aggiornaQuantita(righe, delta, ctx = {}) {
 
 function saveRighe(ddtId, righe) {
   const stmt = db.prepare(`INSERT INTO ddt_righe
-    (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (ddt_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
-    stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+    stmt.run(ddtId, r.prodottoId || null, r.codiceProdotto || '', r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.codiceIva || '', r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
              r.tipo || 'PRODOTTO');
@@ -171,6 +171,7 @@ function getRighe(ddtId) {
     WHERE dr.ddt_id=?`).all(ddtId);
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
+    codiceProdotto: r.codice_prodotto || '',
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
     prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva, codiceIva: r.codice_iva || '',
     varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',

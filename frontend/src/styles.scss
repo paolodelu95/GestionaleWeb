@@ -445,6 +445,8 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   &.scaduto   { background: var(--warning-soft); color: var(--warning-on); }
   &.ricevuta  { background: var(--info-soft);    color: var(--info-on); }
   &.ricevuto  { background: var(--success-soft); color: var(--success-on); }
+  &.attesa    { background: var(--warning-soft); color: var(--warning-on); }
+  &.confermato { background: var(--info-soft);   color: var(--info-on); }
 }
 
 // ── Dialogs ───────────────────────────────────────────────────────────────────

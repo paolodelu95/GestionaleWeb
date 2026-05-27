@@ -71,7 +71,7 @@
         <td mat-cell *matCellDef="let a" class="table-actions">
           <button mat-icon-button type="button" [matMenuTriggerFor]="arrMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #arrMenu="matMenu">
-            @if (a.stato === 'BOZZA') {
+            @if (a.stato === 'ATTESA') {
               <button mat-menu-item type="button" (click)="setStato(a, 'RICEVUTO')"><mat-icon>inventory</mat-icon> Conferma ricezione</button>
             }
             @if (a.stato === 'RICEVUTO') {

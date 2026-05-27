@@ -109,7 +109,7 @@ const STYLES = `
   .riga-input.cod { width: 110px; }
   .td-search { width: 36px; padding: 0 !important; }
   .badge-ricevuto { background:#dcfce7;color:#166534;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600; }
-  .badge-bozza   { background:#fef9c3;color:#854d0e;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600; }
+  .badge-attesa  { background:#fef9c3;color:#854d0e;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600; }
   .badge-annullato { background:#fee2e2;color:#991b1b;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600; }
   .warn-row { color: #9ca3af; font-style: italic; }
   .totale-riga { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
@@ -331,8 +331,8 @@ export class QuickProdottoDialogComponent {
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" (click)="save('BOZZA')" [disabled]="form.invalid">
-        Salva bozza
+      <button mat-flat-button color="primary" (click)="save('ATTESA')" [disabled]="form.invalid">
+        Salva in attesa
       </button>
       <button mat-flat-button (click)="save('RICEVUTO')" [disabled]="form.invalid">
         <mat-icon>inventory</mat-icon> Conferma ricezione
@@ -613,6 +613,6 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
   badgeClass(stato: string) {
     if (stato === 'RICEVUTO') return 'badge-ricevuto';
     if (stato === 'ANNULLATO') return 'badge-annullato';
-    return 'badge-bozza';
+    return 'badge-attesa';
   }
 }

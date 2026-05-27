@@ -21,6 +21,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
+
 import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
@@ -48,6 +49,8 @@ const RIGHE_STYLES = `
   .colli-calc-btn { margin-bottom:20px; flex-shrink:0; }
   .riga-nota td { background: #fefce8; }
   .riga-nota input { font-style: italic; color: #78716c; }
+  .td-desc { min-width: 160px; }
+  .riga-codice { font-size:11px; color:#64748b; border-bottom:none !important; border-radius:4px 4px 0 0 !important; background:#f8fafc; margin-bottom:0; }
   .td-drag { width: 28px; padding: 0 !important; cursor: grab; color: #94a3b8; }
   .cdk-drag-placeholder { opacity: 0.4; }
   .cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
@@ -146,7 +149,7 @@ const RIGHE_STYLES = `
                 <thead>
                   <tr>
                     <th class="td-drag"></th>
-                    <th>Codice / Descrizione</th>
+                    <th class="td-desc">Codice / Descrizione</th>
                     <th class="td-search"></th>
                     <th>Qtà</th>
                     <th>UM</th>
@@ -175,7 +178,10 @@ const RIGHE_STYLES = `
                     } @else {
                     <tr cdkDrag cdkDragPreviewContainer="parent">
                       <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                      <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
+                      <td class="td-desc" style="padding:2px">
+                        <input class="riga-input riga-codice" [(ngModel)]="riga.codiceProdotto" placeholder="Codice">
+                        <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                      </td>
                       <td class="td-search">
                         <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                           <mat-icon>search</mat-icon>
@@ -390,6 +396,11 @@ const RIGHE_STYLES = `
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
+      @if (data?.id) {
+        <button mat-stroked-button type="button" (click)="printFromDialog()">
+          <mat-icon>print</mat-icon> Stampa
+        </button>
+      }
       <button mat-flat-button type="button" (click)="save()">
         <mat-icon>save</mat-icon> Salva DDT
       </button>
@@ -476,6 +487,7 @@ export class DdtDialogComponent implements OnInit {
     private ds: DataService,
     private matDialog: MatDialog,
     private snack: MatSnackBar,
+    private printSvcDialog: PrintService,
     public dialogRef: MatDialogRef<DdtDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Ddt | null
   ) {
@@ -582,7 +594,8 @@ export class DdtDialogComponent implements OnInit {
         if (!pick) return;
         const p = pick.prodotto; const v = pick.variante;
         const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
-        this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
+        this.righe[index].codiceProdotto = p.codice ?? '';
+        this.righe[index].descrizione = (p.descrizione || p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
@@ -659,6 +672,8 @@ export class DdtDialogComponent implements OnInit {
     moveItemInArray(this.prezziRecentiTutti, event.previousIndex, event.currentIndex);
     moveItemInArray(this.tuttiCaricati, event.previousIndex, event.currentIndex);
   }
+
+  printFromDialog() { if (this.data?.id) this.printSvcDialog.printDdt(this.data.id); }
 
   save() {
     this.submitted = true;
@@ -902,6 +917,26 @@ export class DdtComponent implements OnInit, AfterViewInit {
         } as DocInfoData,
         width: '720px', maxWidth: '98vw', maxHeight: '92vh',
       });
+    });
+  }
+
+  duplicate(d: Ddt) {
+    forkJoin({ full: this.ds.getDdtById(d.id!), num: this.ds.getNextNumero('ddt') }).subscribe({
+      next: ({ full, num }) => {
+        const { id, ...pre } = full as any;
+        pre.numero = String(num.numero);
+        pre.dataEmissione = new Date().toISOString().substring(0, 10);
+        pre.stato = 'EMESSO';
+        this.dialog.open(DdtDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
+          .afterClosed().subscribe(result => {
+            if (!result) return;
+            this.ds.createDdt(result).subscribe({
+              next: () => { this.load(); this.snack.open('DDT duplicato', '', { duration: 2000, panelClass: 'snack-ok' }); },
+              error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+            });
+          });
+      },
+      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
     });
   }
 

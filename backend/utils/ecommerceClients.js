@@ -151,12 +151,12 @@ async function pullOrdini(config, sinceIso, db) {
         cliente = { id: r.lastInsertRowid };
       }
 
-      // Crea un ordine cliente (tipo CLIENTE) in BOZZA
+      // Crea un ordine cliente (tipo CLIENTE)
       const { getNextNumero } = require('./nextNumero');
       const numero = getNextNumero('ordini', 'ordini');
       const ord = db.prepare(`INSERT INTO ordini (numero, data_ordine, cliente_id, tipo, stato, note)
                               VALUES (?,?,?,?,?,?)`)
-        .run(numero, it.data || new Date().toISOString().slice(0, 10), cliente.id, 'CLIENTE', 'BOZZA',
+        .run(numero, it.data || new Date().toISOString().slice(0, 10), cliente.id, 'CLIENTE', 'CONFERMATO',
              `Importato da ${provider} (order #${it.remoteId})`);
       const ordineId = ord.lastInsertRowid;
       const stmt = db.prepare(`INSERT INTO ordini_righe

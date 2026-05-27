@@ -134,7 +134,7 @@ interface DocItem {
                     (change)="toggleTutti()">
                   </mat-checkbox>
                 </th>
-                <th>Descrizione</th>
+                <th>Codice / Descrizione</th>
                 <th style="text-align:right;white-space:nowrap">Qtà</th>
                 <th style="text-align:right">Prezzo</th>
                 <th style="text-align:right">Totale</th>
@@ -152,7 +152,12 @@ interface DocItem {
                       (click)="$event.stopPropagation()">
                     </mat-checkbox>
                   </td>
-                  <td style="padding:6px 4px">{{ r.descrizione }}</td>
+                  <td style="padding:6px 4px">
+                    @if (r.codiceProdotto) {
+                      <div style="font-size:11px;color:#64748b;margin-bottom:1px">{{ r.codiceProdotto }}</div>
+                    }
+                    {{ r.descrizione }}
+                  </td>
                   <td style="text-align:right;padding:6px 4px;white-space:nowrap">
                     {{ r.quantita }} {{ r.unitaMisura }}
                   </td>

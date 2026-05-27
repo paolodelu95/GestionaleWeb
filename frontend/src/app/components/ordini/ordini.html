@@ -101,11 +101,6 @@
             <button mat-menu-item type="button" (click)="inviaEmail(o)">
               <mat-icon>mail</mat-icon> Invia per email
             </button>
-            @if (o.stato === 'BOZZA') {
-              <button mat-menu-item type="button" (click)="setStato(o, 'CONFERMATO')">
-                <mat-icon>check_circle</mat-icon> Conferma ordine
-              </button>
-            }
             @if (o.stato === 'CONFERMATO' || o.stato === 'IN_LAVORAZIONE') {
               <button mat-menu-item type="button" (click)="setStato(o, 'EVASO')">
                 <mat-icon>local_shipping</mat-icon> Segna come Evaso

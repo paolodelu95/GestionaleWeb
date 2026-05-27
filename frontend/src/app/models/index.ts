@@ -163,6 +163,7 @@ export interface RigaDocumento {
   id?: number;
   prodottoId?: number | null;
   prodottoNome?: string;
+  codiceProdotto?: string;
   descrizione: string;
   quantita: number;
   unitaMisura?: string;
