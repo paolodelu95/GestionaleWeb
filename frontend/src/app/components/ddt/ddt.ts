@@ -295,7 +295,7 @@ const RIGHE_STYLES = `
         <mat-tab>
           <ng-template mat-tab-label>
             <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">local_shipping</mat-icon>
-            Dati Trasporto
+            Dati trasporto
             @if (!trasportoForm.get('dataOraInizioTrasporto')?.value) {
               <mat-icon style="font-size:16px;margin-left:6px;color:#f59e0b;vertical-align:middle">warning_amber</mat-icon>
             } @else {
@@ -422,7 +422,7 @@ const RIGHE_STYLES = `
       }
       <button mat-flat-button type="button" (click)="save()" [disabled]="locked"
               [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">
-        <mat-icon>save</mat-icon> Salva DDT
+        <mat-icon>save</mat-icon> Salva
       </button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]

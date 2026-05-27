@@ -123,7 +123,7 @@ export class SaldaMultiploDialogComponent {
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica Pagamento' : 'Nuovo Pagamento' }}</h2>
+    <h2 mat-dialog-title>{{ data?.id ? 'Modifica pagamento' : 'Nuovo pagamento' }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">

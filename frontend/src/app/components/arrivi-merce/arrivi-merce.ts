@@ -209,7 +209,7 @@ export class QuickProdottoDialogComponent {
             MatAutocompleteModule, MatIconModule, MatTooltipModule, MatChipsModule],
   template: `
     <h2 mat-dialog-title>
-      {{ data?.id ? 'Modifica Arrivo Merce' : 'Nuovo Arrivo Merce' }}
+      {{ data?.id ? 'Modifica arrivo merce' : 'Nuovo arrivo merce' }}
       @if (data?.acquistoId) {
         <span style="font-size:13px;color:#64748b;margin-left:8px">
           importato da fattura {{ data?.numeroDocumentoFornitore }}

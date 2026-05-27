@@ -123,16 +123,14 @@ export class VoceDialogComponent {
     <div class="page">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:center">
         <h1 class="page-title">Timesheet · Progetti</h1>
+        <button mat-flat-button (click)="nuovoProgetto()">
+          <mat-icon>add</mat-icon> Nuovo progetto
+        </button>
       </div>
 
       <mat-tab-group animationDuration="0">
         <mat-tab label="Progetti">
           <div class="card" style="margin-top:16px">
-            <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-              <button mat-flat-button (click)="nuovoProgetto()">
-                <mat-icon>add</mat-icon> Nuovo progetto
-              </button>
-            </div>
             <table mat-table [dataSource]="progetti" class="full-width">
               <ng-container matColumnDef="nome">
                 <th mat-header-cell *matHeaderCellDef>Nome</th>

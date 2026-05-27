@@ -113,6 +113,7 @@ export class CrmOppDialogComponent {
         </button>
       </div>
 
+      <div class="kanban-wrap">
       <div class="kanban-board">
         @for (s of stages; track s.id) {
           <div class="kanban-col">
@@ -159,14 +160,28 @@ export class CrmOppDialogComponent {
           </div>
         }
       </div>
+      </div>
     </div>
   `,
   styles: [`
     .page { padding: 24px; }
     .page-header { margin-bottom: 16px; }
     .page-title { font-size: 24px; font-weight: 700; margin: 0; }
-    .kanban-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 16px; align-items: flex-start; }
-    .kanban-col { flex: 0 0 290px; min-height: 200px; background: var(--bg-surface-2, #f1f5f9); border-radius: 10px; padding: 8px; }
+    /* Wrapper con fade gradient sul lato destro per far capire che si può scrollare */
+    .kanban-wrap { position: relative; }
+    .kanban-wrap::after {
+      content: '';
+      position: absolute; top: 0; right: 0; bottom: 16px; width: 36px;
+      background: linear-gradient(to right, transparent, var(--bg-page, #f6f7fb) 70%);
+      pointer-events: none;
+    }
+    .kanban-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 16px; padding-right: 24px; align-items: flex-start;
+      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+    }
+    .kanban-board::-webkit-scrollbar { height: 10px; }
+    .kanban-board::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
+    .kanban-board::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .kanban-col { flex: 0 0 260px; min-height: 200px; background: var(--bg-surface-2, #f1f5f9); border-radius: 10px; padding: 8px; }
     .kanban-col-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 10px; border-top: 3px solid #11769b; margin-bottom: 8px; }
     .kanban-col-title { font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--text-primary, #0f172a); }
     .kanban-col-meta { font-size: 11px; color: var(--text-tertiary, #64748b); }

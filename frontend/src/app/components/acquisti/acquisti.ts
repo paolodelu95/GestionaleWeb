@@ -101,7 +101,7 @@ const RIGHE_STYLES = `
             </mat-autocomplete>
           </mat-form-field>
           <mat-form-field style="flex:1">
-            <mat-label>Tipo Pagamento</mat-label>
+            <mat-label>Tipo pagamento</mat-label>
             <mat-select formControlName="tipoPagamentoId">
               <mat-option [value]="null">— nessuno —</mat-option>
               @for (t of tipiPagamento; track t.id) {
@@ -159,8 +159,8 @@ const RIGHE_STYLES = `
               <th>Qtà</th>
               <th>UM</th>
               <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
-              <th>IVA%</th>
               <th>Sconto%</th>
+              <th>IVA%</th>
               <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
               <th></th>
             </tr>
@@ -205,8 +205,8 @@ const RIGHE_STYLES = `
                 <td><input class="riga-input num" type="number" min="0" step="0.01"
                   [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                   (change)="setPrezzoFromInput(riga, $event)"></td>
-                <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
                 <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
+                <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
                 <td style="padding:4px 8px; white-space:nowrap">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </td>

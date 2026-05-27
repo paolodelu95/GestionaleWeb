@@ -13,7 +13,7 @@
         <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
       </div>
     }
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo Acquisto</button>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo acquisto</button>
     <button mat-stroked-button type="button" (click)="xmlInput.click()">
       <mat-icon>upload_file</mat-icon> Importa XML
     </button>
@@ -132,6 +132,5 @@
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
-    @if (!acquisti.length) { <p class="empty-msg">Nessun acquisto</p> }
   </div>
 </div>
