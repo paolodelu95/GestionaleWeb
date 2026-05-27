@@ -96,6 +96,11 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
   .split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
 
+// Su Fly siamo sempre dietro al proxy: 1 hop di X-Forwarded-For.
+// Configura express per fidarsi così req.ip mostra l'IP reale del client e
+// express-rate-limit smette di emettere ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 // ── Stripe webhook (DEVE ricevere body raw, prima di express.json()) ─────────
 const { stripeWebhookHandler } = require('./routes/payLink');
 app.post('/api/pay-link/webhook',
@@ -441,6 +446,37 @@ app.post('/api/auth/resend-verification', verifyLimiter, async (req, res) => {
   } catch (e) {
     console.error('[resend-verification]', e.message);
     res.status(500).json({ error: 'Errore durante l\'invio. Riprova più tardi.' });
+  }
+});
+
+// Diagnostico SMTP (solo SUPERADMIN): invia una mail di prova e ritorna
+// l'esito SMTP grezzo. Utile per capire perché la mail "non arriva".
+app.post('/api/auth/smtp-test', async (req, res) => {
+  if (req.user?.ruolo !== 'SUPERADMIN') return res.status(403).json({ error: 'Solo SUPERADMIN' });
+  const to = req.body?.to;
+  if (!to) return res.status(400).json({ error: 'Manca "to"' });
+  try {
+    const info = await require('./utils/systemMailer').sendSystemEmail({
+      to,
+      subject: 'Test SMTP Ordeva',
+      html: '<p>Se vedi questa mail, l\'SMTP di sistema funziona.</p>',
+    });
+    res.json({
+      ok: true,
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
+    });
+  } catch (e) {
+    res.status(500).json({
+      ok: false,
+      error: e.message,
+      code: e.code,
+      response: e.response,
+      responseCode: e.responseCode,
+      command: e.command,
+    });
   }
 });
 

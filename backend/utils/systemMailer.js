@@ -25,6 +25,7 @@ function getTransporter() {
   }
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const debug = process.env.SMTP_DEBUG === '1' || process.env.SMTP_DEBUG === 'true';
+  console.log(`[systemMailer] init: host=${host} port=${port} user=${user} secure=${port === 465} debug=${debug}`);
   cachedTransporter = nodemailer.createTransport({
     host,
     port,
@@ -32,6 +33,9 @@ function getTransporter() {
     auth: { user, pass },
     logger: debug,
     debug,
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
   return cachedTransporter;
 }
@@ -63,7 +67,14 @@ async function sendSystemEmail({ to, subject, html, text }) {
   };
   const replyTo = getReplyTo();
   if (replyTo) opts.replyTo = replyTo;
-  return transporter.sendMail(opts);
+  try {
+    const info = await transporter.sendMail(opts);
+    console.log(`[systemMailer] sendMail OK to=${to} subject="${subject}" messageId=${info.messageId} accepted=${JSON.stringify(info.accepted)} rejected=${JSON.stringify(info.rejected)} response="${(info.response || '').slice(0, 200)}"`);
+    return info;
+  } catch (err) {
+    console.error(`[systemMailer] sendMail FAILED to=${to} subject="${subject}":`, err && err.message, err && err.code, err && err.response, err && err.responseCode);
+    throw err;
+  }
 }
 
 // ── Templates ───────────────────────────────────────────────────────────────
