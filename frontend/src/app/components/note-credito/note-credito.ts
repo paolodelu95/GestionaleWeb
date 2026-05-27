@@ -700,14 +700,10 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'EMESSA';
         pre.fatturaId = null;
-        this.dialog.open(NotaCreditoDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
-          .afterClosed().subscribe(result => {
-            if (!result) return;
-            this.ds.createNotaCredito(result).subscribe({
-              next: () => { this.load(); this.snack.open('Nota di credito duplicata', '', { duration: 2000, panelClass: 'snack-ok' }); },
-              error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
-            });
-          });
+        this.ds.createNotaCredito(pre).subscribe({
+          next: () => { this.load(); this.snack.open(`Nota di credito duplicata (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+        });
       },
       error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
     });

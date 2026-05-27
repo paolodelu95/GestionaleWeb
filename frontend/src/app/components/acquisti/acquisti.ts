@@ -17,6 +17,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, NotaRapida } from '../../models';
@@ -36,6 +37,8 @@ const RIGHE_STYLES = `
   .riga-input.sconto { width: 60px; }
   .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
   .td-search { width: 36px; padding: 0 !important; }
+  .td-desc { min-width: 160px; }
+  .riga-codice { font-size:11px; color:#64748b; border-bottom:none !important; border-radius:4px 4px 0 0 !important; background:#f8fafc; margin-bottom:0; }
   .riga-nota td { background: #fefce8; }
   .riga-nota input { font-style: italic; color: #78716c; }
   .td-drag { width: 28px; padding: 0 !important; cursor: grab; color: #94a3b8; }
@@ -130,7 +133,7 @@ const RIGHE_STYLES = `
           <thead>
             <tr>
               <th class="td-drag"></th>
-              <th>Codice / Descrizione</th>
+              <th class="td-desc">Codice / Descrizione</th>
               <th class="td-search"></th>
               <th>Qtà</th>
               <th>UM</th>
@@ -158,7 +161,10 @@ const RIGHE_STYLES = `
               } @else {
               <tr cdkDrag cdkDragPreviewContainer="parent">
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Codice o descrizione"></td>
+                <td class="td-desc" style="padding:2px">
+                  <input class="riga-input riga-codice" [(ngModel)]="riga.codiceProdotto" placeholder="Codice">
+                  <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                </td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                     <mat-icon>search</mat-icon>
@@ -208,6 +214,11 @@ const RIGHE_STYLES = `
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
+      @if (data?.id) {
+        <button mat-stroked-button type="button" (click)="printFromDialog()">
+          <mat-icon>print</mat-icon> Stampa
+        </button>
+      }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
@@ -240,6 +251,7 @@ export class AcquistoDialogComponent implements OnInit {
     private fb: FormBuilder,
     private ds: DataService,
     private matDialog: MatDialog,
+    private printSvcDialog: PrintService,
     public dialogRef: MatDialogRef<AcquistoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Acquisto | null
   ) {
@@ -299,7 +311,8 @@ export class AcquistoDialogComponent implements OnInit {
         if (!pick) return;
         const p = pick.prodotto; const v = pick.variante;
         const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
-        this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
+        this.righe[index].codiceProdotto = p.codice ?? '';
+        this.righe[index].descrizione = (p.descrizione || p.nome) + varSuffix;
         this.righe[index].prezzo = p.prezzo ?? 0;
         this.righe[index].iva = p.iva ?? 22;
         this.righe[index].unitaMisura = p.unitaMisura ?? '';
@@ -310,6 +323,8 @@ export class AcquistoDialogComponent implements OnInit {
       });
   }
 
+  printFromDialog() { if (this.data?.id) this.printSvcDialog.printAcquisto(this.data.id); }
+
   roundIfPz(riga: RigaDocumento) {
     if (riga.unitaMisura === 'pz') riga.quantita = Math.max(1, Math.round(riga.quantita || 1));
     else riga.quantita = Math.max(0.001, riga.quantita || 0.001);
@@ -318,7 +333,7 @@ export class AcquistoDialogComponent implements OnInit {
     riga.sconto = Math.min(100, Math.max(0, riga.sconto ?? 0));
   }
 
-  addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }
+  addRiga() { this.righe.push({ tipo: 'PRODOTTO', codiceProdotto: '', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }
   addNota(testo: string) { this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 }); }
 
   apriCopiaRighe() {
@@ -576,6 +591,22 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
         } as DocInfoData,
         width: '720px', maxWidth: '98vw', maxHeight: '92vh',
       });
+    });
+  }
+
+  duplicate(a: Acquisto) {
+    forkJoin({ full: this.ds.getAcquistoById(a.id!), num: this.ds.getNextNumero('acquisti') }).subscribe({
+      next: ({ full, num }) => {
+        const { id, ...pre } = full as any;
+        pre.numero = String(num.numero);
+        pre.dataEmissione = new Date().toISOString().substring(0, 10);
+        pre.stato = 'RICEVUTA';
+        this.ds.createAcquisto(pre).subscribe({
+          next: () => { this.load(); this.snack.open(`Acquisto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+        });
+      },
+      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
     });
   }
 

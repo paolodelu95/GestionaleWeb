@@ -76,10 +76,10 @@ router.delete('/:id', (req, res) => {
 
 function saveRighe(acquistoId, righe) {
   const stmt = db.prepare(`INSERT INTO acquisti_righe
-    (acquisto_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (acquisto_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
-    stmt.run(acquistoId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+    stmt.run(acquistoId, r.prodottoId || null, r.codiceProdotto || '', r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
              r.tipo || 'PRODOTTO');
@@ -91,6 +91,7 @@ function getRighe(acquistoId) {
     WHERE ar.acquisto_id=?`).all(acquistoId);
   return rows.map(r => ({
     id: r.id, prodottoId: r.prodotto_id, prodottoNome: r.prodotto_nome,
+    codiceProdotto: r.codice_prodotto || '',
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
     prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
     varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',

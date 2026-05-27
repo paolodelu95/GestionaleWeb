@@ -449,6 +449,7 @@ function initTenantSchema(db) {
     'ALTER TABLE ordini_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
     'ALTER TABLE preventivi_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
     'ALTER TABLE acquisti_righe ADD COLUMN codice_iva TEXT DEFAULT ""',
+    'ALTER TABLE acquisti_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
     'ALTER TABLE fatture ADD COLUMN cig TEXT DEFAULT ""',
     'ALTER TABLE fatture ADD COLUMN cup TEXT DEFAULT ""',
     'ALTER TABLE aliquote_iva ADD COLUMN codice TEXT DEFAULT ""',

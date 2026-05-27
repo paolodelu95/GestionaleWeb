@@ -927,14 +927,10 @@ export class DdtComponent implements OnInit, AfterViewInit {
         pre.numero = String(num.numero);
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'EMESSO';
-        this.dialog.open(DdtDialogComponent, { data: pre, width: '90vw', maxWidth: '1400px', maxHeight: '95vh' })
-          .afterClosed().subscribe(result => {
-            if (!result) return;
-            this.ds.createDdt(result).subscribe({
-              next: () => { this.load(); this.snack.open('DDT duplicato', '', { duration: 2000, panelClass: 'snack-ok' }); },
-              error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
-            });
-          });
+        this.ds.createDdt(pre).subscribe({
+          next: () => { this.load(); this.snack.open(`DDT duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+        });
       },
       error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
     });
