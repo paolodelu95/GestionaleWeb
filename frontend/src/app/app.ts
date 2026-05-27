@@ -20,6 +20,7 @@ import { AuthService } from './services/auth.service';
 import { NotificationService, NotificationBadges } from './services/notifications.service';
 import { OfflineService } from './services/offline.service';
 import { ModuliService } from './services/moduli.service';
+import { DocLockService } from './services/doc-lock.service';
 import { LoginComponent } from './components/login/login';
 import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
 import { Azienda } from './models';
@@ -105,6 +106,7 @@ export class App implements OnInit {
     private snack: MatSnackBar,
     private offlineSvc: OfflineService,
     public moduli: ModuliService,
+    private docLockSvc: DocLockService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -141,7 +143,15 @@ export class App implements OnInit {
     }
 
     if (!this.loggedIn) return;
-    this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
+    this.ds.getAzienda().subscribe({
+      next: a => {
+        this.azienda = a;
+        // Inizializza il flag globale "blocca documenti salvati" dal valore
+        // persistito sull'azienda; default true se non impostato.
+        this.docLockSvc.setEnabled(a?.lockDocumentiDefault !== false);
+      },
+      error: () => {},
+    });
     this.moduli.load().subscribe();
     if (window.innerWidth < 768) this.collapsed = true;
 

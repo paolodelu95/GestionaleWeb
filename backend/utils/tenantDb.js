@@ -1030,6 +1030,9 @@ function initTenantSchema(db) {
 
   try { db.exec('ALTER TABLE azienda ADD COLUMN notifiche_config TEXT DEFAULT NULL'); } catch(_) {}
   try { db.exec("ALTER TABLE azienda ADD COLUMN email_corpo_documento TEXT DEFAULT NULL"); } catch(_) {}
+  // Quando attivo, i documenti già salvati si aprono in modalità "bloccato"
+  // (campi readonly + bottone lucchetto per sbloccare). Default: attivo.
+  try { db.exec('ALTER TABLE azienda ADD COLUMN lock_documenti_default INTEGER NOT NULL DEFAULT 1'); } catch(_) {}
   try {
     const row = db.prepare('SELECT email_corpo_documento FROM azienda WHERE id=1').get();
     if (row && (row.email_corpo_documento == null || row.email_corpo_documento === '')) {

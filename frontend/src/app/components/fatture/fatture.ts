@@ -31,6 +31,8 @@ import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
 import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { DocLockService } from '../../services/doc-lock.service';
 
 interface DdtItem { ddt: any; checked: boolean; }
 interface ClienteGroup { clienteId: number | null; clienteNome: string; items: DdtItem[]; tipoPagamentoId: number | null; }
@@ -234,7 +236,8 @@ const RIGHE_STYLES = `
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
-            MatButtonToggleModule, MatSnackBarModule, MatMenuModule, AllegatiComponent, DragDropModule,
+            MatButtonToggleModule, MatSnackBarModule, MatMenuModule, MatTooltipModule,
+            AllegatiComponent, DragDropModule,
             CopiaRigheDialogComponent],
   template: `
     <mat-dialog-content>
@@ -243,10 +246,27 @@ const RIGHE_STYLES = `
           <mat-icon>receipt</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">{{ data?.id ? ('Fattura n. ' + (data?.numero || '')) : 'Nuova fattura' }}</span>
+          <span class="dialog-hero-title">
+            {{ data?.id ? ('Fattura n. ' + (data?.numero || '')) : 'Nuova fattura' }}
+            @if (data?.id && locked) {
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+            }
+          </span>
           <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe, pagamento e allegati' : 'Seleziona il cliente e compila le righe' }}</span>
         </div>
+        @if (data?.id) {
+          <button mat-icon-button type="button"
+                  class="dialog-lock-btn"
+                  [class.is-locked]="locked"
+                  [class.is-unlocked]="!locked"
+                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  (click)="toggleLock()">
+            <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
+          </button>
+        }
       </div>
+
+      <div [class.doc-locked-content]="locked" (click)="onLockedClick($event)">
 
       <mat-tab-group>
         <mat-tab label="Documento">
@@ -665,6 +685,8 @@ const RIGHE_STYLES = `
       @if (data?.id) {
         <app-allegati [documentoTipo]="'fattura'" [documentoId]="data?.id ?? null"></app-allegati>
       }
+
+      </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
@@ -672,7 +694,8 @@ const RIGHE_STYLES = `
         <button mat-stroked-button type="button" (click)="printFromDialog()">
           <mat-icon>print</mat-icon> Esporta PDF </button>
       }
-      <button mat-flat-button (click)="save()">Salva</button>
+      <button mat-flat-button (click)="save()" [disabled]="locked"
+              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES + `
     .pagamento-info { background:#f8fafc; border-radius:8px; padding:16px; margin-top:8px; display:flex; flex-direction:column; gap:12px; }
@@ -710,9 +733,21 @@ const RIGHE_STYLES = `
 })
 export class FatturaDialogComponent implements OnInit, AfterViewInit {
   form: FormGroup;
+  locked = false;
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
+
+  toggleLock() { this.locked = !this.locked; }
+  onLockedClick(ev: MouseEvent) {
+    if (!this.locked) return;
+    const target = ev.target as HTMLElement;
+    // Lascia passare i click sul pulsante del lucchetto (vive nell'hero, fuori dal wrapper)
+    if (target.closest('.dialog-lock-btn')) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+  }
   suggerimenti: { id: number; nome: string; codice?: string; prezzo: number; iva: number; unitaMisura?: string; occorrenze: number }[] = [];
 
   loadSuggerimentiCliente(clienteId: number) {
@@ -952,10 +987,12 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     private cdr: ChangeDetectorRef,
     private snack: MatSnackBar,
     private printSvcDialog: PrintService,
+    private docLockSvc: DocLockService,
     public dialogRef: MatDialogRef<FatturaDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Fattura | null
   ) {
     this.isNew = !data?.id;
+    this.locked = !!data?.id && this.docLockSvc.enabled;
     this.selectedTipoPagamentoId = data?.tipoPagamentoId ?? null;
     this.form = this.fb.group({
       numero: [data?.numero ?? '', Validators.required],

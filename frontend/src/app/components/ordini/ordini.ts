@@ -24,6 +24,8 @@ import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { DocLockService } from '../../services/doc-lock.service';
 import { forkJoin } from 'rxjs';
 
 const RIGHE_STYLES = `
@@ -54,7 +56,7 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule,
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule,
             CopiaRigheDialogComponent],
   template: `
     <mat-dialog-content>
@@ -63,10 +65,27 @@ const RIGHE_STYLES = `
           <mat-icon>shopping_cart</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">{{ data?.id ? ('Ordine n. ' + (data?.numero || '')) : 'Nuovo ordine' }}</span>
+          <span class="dialog-hero-title">
+            {{ data?.id ? ('Ordine n. ' + (data?.numero || '')) : 'Nuovo ordine' }}
+            @if (data?.id && locked) {
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+            }
+          </span>
           <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe e intestatario' : 'Seleziona tipo e intestatario' }}</span>
         </div>
+        @if (data?.id) {
+          <button mat-icon-button type="button"
+                  class="dialog-lock-btn"
+                  [class.is-locked]="locked"
+                  [class.is-unlocked]="!locked"
+                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  (click)="toggleLock()">
+            <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
+          </button>
+        }
       </div>
+
+      <div [class.doc-locked-content]="locked" (click)="onLockedClick($event)">
 
       <form [formGroup]="form" class="dialog-form">
 
@@ -285,6 +304,7 @@ const RIGHE_STYLES = `
           <textarea matInput rows="2" formControlName="note"></textarea>
         </mat-form-field>
       </div>
+      </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
@@ -293,11 +313,22 @@ const RIGHE_STYLES = `
           <mat-icon>print</mat-icon> Esporta PDF
         </button>
       }
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.invalid || locked"
+              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
 export class OrdineDialogComponent implements OnInit {
+  locked = false;
+  toggleLock() { this.locked = !this.locked; }
+  onLockedClick(ev: MouseEvent) {
+    if (!this.locked) return;
+    const target = ev.target as HTMLElement;
+    if (target.closest('.dialog-lock-btn')) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+  }
   form: FormGroup;
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
@@ -335,9 +366,11 @@ export class OrdineDialogComponent implements OnInit {
     private snack: MatSnackBar,
     public dialogRef: MatDialogRef<OrdineDialogComponent>,
     private printSvc: PrintService,
+    private docLockSvc: DocLockService,
     @Inject(MAT_DIALOG_DATA) public data: Ordine | null
   ) {
     this.isNew = !data?.id;
+    this.locked = !!data?.id && this.docLockSvc.enabled;
     this.form = this.fb.group({
       numero: [data?.numero ?? '', Validators.required],
       dataOrdine: [data?.dataOrdine ?? new Date().toISOString().substring(0, 10), Validators.required],

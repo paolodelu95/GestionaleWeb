@@ -42,6 +42,12 @@ export interface Azienda {
   numeroPrefissi?: { [key: string]: string };
   templateConfig?: TemplateConfig;
   notificheConfig?: NotificheConfig;
+  /**
+   * Quando true, i documenti già salvati si aprono in modalità readonly
+   * (lucchetto chiuso). Per modificarli serve cliccare il lucchetto.
+   * Default: true.
+   */
+  lockDocumentiDefault?: boolean;
 }
 
 export interface Prodotto {

@@ -21,6 +21,7 @@ import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, Listino, ModuloDto } from '../../models';
 import { ModuliService } from '../../services/moduli.service';
+import { DocLockService } from '../../services/doc-lock.service';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 import { ListinoDialogComponent } from './listino-dialog';
 
@@ -434,6 +435,7 @@ export class ImpostazioniComponent implements OnInit {
     private dialog: MatDialog,
     private snack: MatSnackBar,
     private moduliSvc: ModuliService,
+    private docLockSvc: DocLockService,
   ) {
     this.form = this.fb.group({
       ragioneSociale: [''], pIva: ['', pIvaValidator], codFiscale: ['', codiceFiscaleValidator],
@@ -446,6 +448,7 @@ export class ImpostazioniComponent implements OnInit {
       sdiApiUrl: [''], sdiApiKey: [''],
       riordinoAutomatico: [false], multiUtenteAttivo: [false],
       numerazioneAnnuale: [true],
+      lockDocumentiDefault: [true],
       prefissoDdt: [''], prefissoFatture: [''], prefissoOrdini: [''],
       prefissoPreventivi: [''], prefissoNoteCredito: [''], prefissoAcquisti: [''],
       prefissoVenditeBanco: [''], prefissoArriviMerce: [''],
@@ -627,6 +630,7 @@ export class ImpostazioniComponent implements OnInit {
           prefissoVenditeBanco: v.prefissoVenditeBanco || '', prefissoArriviMerce: v.prefissoArriviMerce || '',
         };
         this.ds.invalidateEmailMode();
+        this.docLockSvc.setEnabled(v.lockDocumentiDefault !== false);
         this.snack.open('Dati salvati', '', { duration: 2000 });
       },
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
