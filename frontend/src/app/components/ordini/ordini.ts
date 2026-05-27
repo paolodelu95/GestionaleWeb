@@ -23,6 +23,7 @@ import { Ordine, Cliente, Fornitore, Prodotto, RigaDocumento, UnitaMisura, NotaR
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { EmailDialogComponent } from '../shared/email-dialog';
+import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { forkJoin } from 'rxjs';
 
 const RIGHE_STYLES = `
@@ -51,7 +52,8 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule,
+            CopiaRigheDialogComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -122,6 +124,9 @@ const RIGHE_STYLES = `
             }
             <button mat-stroked-button type="button" (click)="addRiga()">
               <mat-icon>add</mat-icon> Aggiungi riga
+            </button>
+            <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
+              <mat-icon>content_copy</mat-icon> Copia da...
             </button>
             <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
               <mat-icon>note_add</mat-icon> Aggiungi nota
@@ -458,6 +463,39 @@ export class OrdineDialogComponent implements OnInit {
   }
 
   addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); this.prezziRecenti.push([]); this.prezziRecentiTutti.push([]); this.tuttiCaricati.push(false); }
+
+  apriCopiaRighe() {
+    let data: CopiaRigheDialogData;
+    if (this.isFornitore) {
+      const fv = this.fornitoreCtrl.value;
+      data = {
+        fornitoreId: fv && typeof fv !== 'string' ? (fv as Fornitore).id ?? null : null,
+        fornitoreNome: fv && typeof fv !== 'string' ? (fv as Fornitore).ragioneSociale : null,
+      };
+    } else {
+      const cv = this.clienteCtrl.value;
+      data = {
+        clienteId: cv && typeof cv !== 'string' ? (cv as Cliente).id ?? null : null,
+        clienteNome: cv && typeof cv !== 'string' ? (cv as Cliente).ragioneSociale : null,
+      };
+    }
+    this.matDialog.open(CopiaRigheDialogComponent, { data }).afterClosed().subscribe((righe: RigaDocumento[]) => {
+      if (!righe?.length) return;
+      if (this.righe.length === 1) {
+        const r = this.righe[0];
+        if (!r.descrizione?.trim() && !r.prodottoId) {
+          this.righe.splice(0, 1);
+          this.prezziRecenti.splice(0, 1);
+          this.prezziRecentiTutti.splice(0, 1);
+          this.tuttiCaricati.splice(0, 1);
+        }
+      }
+      this.righe.push(...righe);
+      this.prezziRecenti.push(...new Array(righe.length).fill([]));
+      this.prezziRecentiTutti.push(...new Array(righe.length).fill([]));
+      this.tuttiCaricati.push(...new Array(righe.length).fill(false));
+    });
+  }
   addNota(testo: string) { this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 }); this.prezziRecenti.push([]); this.prezziRecentiTutti.push([]); this.tuttiCaricati.push(false); }
   removeRiga(i: number) { this.righe.splice(i, 1); this.prezziRecenti.splice(i, 1); this.prezziRecentiTutti.splice(i, 1); this.tuttiCaricati.splice(i, 1); }
   dropRiga(event: CdkDragDrop<any[]>) {

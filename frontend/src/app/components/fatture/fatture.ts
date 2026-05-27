@@ -30,6 +30,7 @@ import { AllegatiComponent } from '../shared/allegati/allegati';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
 import { EmailDialogComponent } from '../shared/email-dialog';
+import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 
 interface DdtItem { ddt: any; checked: boolean; }
 interface ClienteGroup { clienteId: number | null; clienteNome: string; items: DdtItem[]; tipoPagamentoId: number | null; }
@@ -231,7 +232,8 @@ const RIGHE_STYLES = `
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
-            MatButtonToggleModule, MatSnackBarModule, MatMenuModule, AllegatiComponent, DragDropModule],
+            MatButtonToggleModule, MatSnackBarModule, MatMenuModule, AllegatiComponent, DragDropModule,
+            CopiaRigheDialogComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -333,6 +335,9 @@ const RIGHE_STYLES = `
                   </mat-button-toggle-group>
                   <button mat-stroked-button type="button" (click)="addRiga()">
                     <mat-icon>add</mat-icon> Aggiungi riga
+                  </button>
+                  <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
+                    <mat-icon>content_copy</mat-icon> Copia da...
                   </button>
                   <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
                     <mat-icon>note_add</mat-icon> Aggiungi nota
@@ -905,6 +910,30 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 
   removeDdt(ddtId: number) {
     this.linkedDdts = this.linkedDdts.filter(d => d.id !== ddtId);
+  }
+
+  apriCopiaRighe() {
+    const cv = this.clienteCtrl.value;
+    const clienteId = cv && typeof cv !== 'string' ? (cv as Cliente).id ?? null : null;
+    const clienteNome = cv && typeof cv !== 'string' ? (cv as Cliente).ragioneSociale : null;
+    this.matDialog.open(CopiaRigheDialogComponent, {
+      data: { clienteId, clienteNome } as CopiaRigheDialogData
+    }).afterClosed().subscribe((righe: RigaDocumento[]) => {
+      if (!righe?.length) return;
+      if (this.righe.length === 1) {
+        const r = this.righe[0];
+        if (!r.descrizione?.trim() && !r.prodottoId) {
+          this.righe.splice(0, 1);
+          this.prezziRecenti.splice(0, 1);
+          this.prezziRecentiTutti.splice(0, 1);
+          this.tuttiCaricati.splice(0, 1);
+        }
+      }
+      this.righe.push(...righe);
+      this.prezziRecenti.push(...new Array(righe.length).fill([]));
+      this.prezziRecentiTutti.push(...new Array(righe.length).fill([]));
+      this.tuttiCaricati.push(...new Array(righe.length).fill(false));
+    });
   }
 
   constructor(

@@ -27,6 +27,7 @@ import { FatturaDialogComponent } from '../fatture/fatture';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
 import { EmailDialogComponent } from '../shared/email-dialog';
+import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -60,6 +61,7 @@ const RIGHE_STYLES = `
     MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
     MatAutocompleteModule, MatTableModule, MatIconModule,
     MatButtonToggleModule, MatMenuModule, MatTabsModule, DragDropModule,
+    CopiaRigheDialogComponent,
   ],
   template: `
     <mat-dialog-content>
@@ -120,6 +122,9 @@ const RIGHE_STYLES = `
                   </mat-button-toggle-group>
                   <button mat-stroked-button type="button" (click)="addRiga()">
                     <mat-icon>add</mat-icon> Aggiungi riga
+                  </button>
+                  <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
+                    <mat-icon>content_copy</mat-icon> Copia da...
                   </button>
                   <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
                     <mat-icon>note_add</mat-icon> Aggiungi nota
@@ -616,6 +621,30 @@ export class DdtDialogComponent implements OnInit {
     this.prezziRecenti.push([]);
     this.prezziRecentiTutti.push([]);
     this.tuttiCaricati.push(false);
+  }
+
+  apriCopiaRighe() {
+    const cv = this.clienteCtrl.value;
+    const clienteId = cv && typeof cv !== 'string' ? (cv as Cliente).id ?? null : null;
+    const clienteNome = cv && typeof cv !== 'string' ? (cv as Cliente).ragioneSociale : null;
+    this.matDialog.open(CopiaRigheDialogComponent, {
+      data: { clienteId, clienteNome } as CopiaRigheDialogData
+    }).afterClosed().subscribe((righe: RigaDocumento[]) => {
+      if (!righe?.length) return;
+      if (this.righe.length === 1) {
+        const r = this.righe[0];
+        if (!r.descrizione?.trim() && !r.prodottoId) {
+          this.righe.splice(0, 1);
+          this.prezziRecenti.splice(0, 1);
+          this.prezziRecentiTutti.splice(0, 1);
+          this.tuttiCaricati.splice(0, 1);
+        }
+      }
+      this.righe.push(...righe);
+      this.prezziRecenti.push(...new Array(righe.length).fill([]));
+      this.prezziRecentiTutti.push(...new Array(righe.length).fill([]));
+      this.tuttiCaricati.push(...new Array(righe.length).fill(false));
+    });
   }
   addNota(testo: string) {
     this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 });

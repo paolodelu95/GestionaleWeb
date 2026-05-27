@@ -23,6 +23,7 @@ import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisur
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { EmailDialogComponent } from '../shared/email-dialog';
+import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 
 const RIGHE_STYLES = `
   .righe-section { margin-top: 16px; }
@@ -47,7 +48,8 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, DragDropModule,
+            CopiaRigheDialogComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -104,6 +106,9 @@ const RIGHE_STYLES = `
             </mat-button-toggle-group>
             <button mat-stroked-button type="button" (click)="addRiga()">
               <mat-icon>add</mat-icon> Aggiungi riga
+            </button>
+            <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
+              <mat-icon>content_copy</mat-icon> Copia da...
             </button>
             <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
               <mat-icon>note_add</mat-icon> Aggiungi nota
@@ -315,6 +320,22 @@ export class AcquistoDialogComponent implements OnInit {
 
   addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); }
   addNota(testo: string) { this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 }); }
+
+  apriCopiaRighe() {
+    const fv = this.fornitoreCtrl.value;
+    const fornitoreId = fv && typeof fv !== 'string' ? (fv as Fornitore).id ?? null : null;
+    const fornitoreNome = fv && typeof fv !== 'string' ? (fv as Fornitore).ragioneSociale : null;
+    this.matDialog.open(CopiaRigheDialogComponent, {
+      data: { fornitoreId, fornitoreNome } as CopiaRigheDialogData
+    }).afterClosed().subscribe((righe: RigaDocumento[]) => {
+      if (!righe?.length) return;
+      if (this.righe.length === 1) {
+        const r = this.righe[0];
+        if (!r.descrizione?.trim() && !r.prodottoId) this.righe.splice(0, 1);
+      }
+      this.righe.push(...righe);
+    });
+  }
   removeRiga(i: number) { this.righe.splice(i, 1); }
   dropRiga(event: CdkDragDrop<any[]>) {
     moveItemInArray(this.righe, event.previousIndex, event.currentIndex);
