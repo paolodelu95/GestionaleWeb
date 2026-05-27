@@ -304,6 +304,56 @@ export class NotaRapidaDialogComponent {
   save() { if (this.testo.trim()) this.dialogRef.close({ ...this.data, testo: this.testo.trim(), ordine: this.ordine }); }
 }
 
+// ── Prefisso Conferma Dialog ─────────────────────────────────────────────────
+interface PrefissoCambiato { documento: string; da: string; a: string; }
+
+@Component({
+  selector: 'app-prefisso-conferma-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title style="display:flex;align-items:center;gap:8px">
+      <mat-icon style="color:#f59e0b">warning</mat-icon> Modifica prefisso numerazione
+    </h2>
+    <mat-dialog-content style="min-width:420px;max-width:560px">
+      <p style="margin:0 0 12px">
+        Hai modificato il prefisso per i seguenti documenti.
+        La numerazione <strong>ripartirà da 1</strong> con il nuovo prefisso:
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:12px">
+        <thead>
+          <tr style="background:#f1f5f9">
+            <th style="padding:6px 10px;text-align:left;font-weight:600">Documento</th>
+            <th style="padding:6px 10px;text-align:left;font-weight:600">Prefisso attuale</th>
+            <th style="padding:6px 10px;text-align:left;font-weight:600">Nuovo prefisso</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of data; track c.documento) {
+            <tr style="border-top:1px solid #e2e8f0">
+              <td style="padding:6px 10px">{{ c.documento }}</td>
+              <td style="padding:6px 10px;color:#64748b;font-family:monospace">{{ c.da || '(nessuno)' }}</td>
+              <td style="padding:6px 10px;color:#0f172a;font-family:monospace;font-weight:600">{{ c.a || '(nessuno)' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p style="margin:0;font-size:13px;color:#64748b">
+        Se in futuro ripristini il prefisso precedente, la numerazione riprenderà automaticamente dall'ultimo numero usato con quel prefisso.
+      </p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button [mat-dialog-close]="false">Annulla</button>
+      <button mat-flat-button color="primary" [mat-dialog-close]="true">Conferma</button>
+    </mat-dialog-actions>`
+})
+export class PrefissoConfermaDialogComponent {
+  constructor(
+    public dialogRef: MatDialogRef<PrefissoConfermaDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: PrefissoCambiato[]
+  ) {}
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 @Component({
   selector: 'app-impostazioni',
@@ -312,7 +362,8 @@ export class NotaRapidaDialogComponent {
             MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
             MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
-            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule],
+            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule,
+            PrefissoConfermaDialogComponent],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })
@@ -321,6 +372,18 @@ export class ImpostazioniComponent implements OnInit {
   filteredCities: CityResult[] = [];
   private cityMap = new Map<string, CityResult>();
   logoPreview: string = '';
+  private prefissiOriginali: Record<string, string> = {};
+
+  private readonly PREFISSI_MAP = [
+    { field: 'prefissoDdt',        documento: 'DDT' },
+    { field: 'prefissoFatture',    documento: 'Fatture' },
+    { field: 'prefissoOrdini',     documento: 'Ordini' },
+    { field: 'prefissoPreventivi', documento: 'Preventivi' },
+    { field: 'prefissoNoteCredito',documento: 'Note di credito' },
+    { field: 'prefissoAcquisti',   documento: 'Acquisti' },
+    { field: 'prefissoVenditeBanco',documento: 'Vendite al banco' },
+    { field: 'prefissoArriviMerce',documento: 'Arrivi merce' },
+  ];
 
   tipiPagamento: TipoPagamento[] = [];
   tpColumns = ['nome', 'conto', 'scadenza', 'immediato', 'attivo', 'azioni'];
@@ -395,12 +458,14 @@ export class ImpostazioniComponent implements OnInit {
         this.form.patchValue(a);
         this.logoPreview = a.logo || '';
         const p = a.numeroPrefissi || {};
-        this.form.patchValue({
+        const prefissiCaricati = {
           prefissoDdt: p['ddt'] || '', prefissoFatture: p['fatture'] || '',
           prefissoOrdini: p['ordini'] || '', prefissoPreventivi: p['preventivi'] || '',
           prefissoNoteCredito: p['note_credito'] || '', prefissoAcquisti: p['acquisti'] || '',
           prefissoVenditeBanco: p['vendite_banco'] || '', prefissoArriviMerce: p['arrivi_merce'] || '',
-        });
+        };
+        this.form.patchValue(prefissiCaricati);
+        this.prefissiOriginali = { ...prefissiCaricati };
         this.templateConfig = a.templateConfig
           ? { ...a.templateConfig, blocks: { ...a.templateConfig.blocks } }
           : { stile: 'classico' };
@@ -523,6 +588,30 @@ export class ImpostazioniComponent implements OnInit {
 
   save() {
     const v = this.form.value;
+    const cambiati: PrefissoCambiato[] = this.PREFISSI_MAP
+      .filter(({ field }) => (this.prefissiOriginali[field] ?? '') !== (v[field] || ''))
+      .map(({ field, documento }) => ({
+        documento,
+        da: this.prefissiOriginali[field] ?? '',
+        a: v[field] || '',
+      }));
+
+    if (cambiati.length > 0) {
+      const ref = this.dialog.open(PrefissoConfermaDialogComponent, { data: cambiati, width: '560px' });
+      ref.afterClosed().subscribe(confirmed => {
+        if (confirmed) {
+          this.doSave();
+        } else {
+          this.form.patchValue(this.prefissiOriginali, { emitEvent: false });
+        }
+      });
+    } else {
+      this.doSave();
+    }
+  }
+
+  private doSave() {
+    const v = this.form.value;
     const numeroPrefissi = {
       ddt: v.prefissoDdt || '', fatture: v.prefissoFatture || '',
       ordini: v.prefissoOrdini || '', preventivi: v.prefissoPreventivi || '',
@@ -530,7 +619,16 @@ export class ImpostazioniComponent implements OnInit {
       vendite_banco: v.prefissoVenditeBanco || '', arrivi_merce: v.prefissoArriviMerce || '',
     };
     this.ds.saveAzienda({ ...v, logo: this.logoPreview, numeroPrefissi, templateConfig: this.templateConfig, notificheConfig: this.notificheConfig } as Azienda).subscribe({
-      next: () => { this.ds.invalidateEmailMode(); this.snack.open('Dati salvati', '', { duration: 2000 }); },
+      next: () => {
+        this.prefissiOriginali = {
+          prefissoDdt: v.prefissoDdt || '', prefissoFatture: v.prefissoFatture || '',
+          prefissoOrdini: v.prefissoOrdini || '', prefissoPreventivi: v.prefissoPreventivi || '',
+          prefissoNoteCredito: v.prefissoNoteCredito || '', prefissoAcquisti: v.prefissoAcquisti || '',
+          prefissoVenditeBanco: v.prefissoVenditeBanco || '', prefissoArriviMerce: v.prefissoArriviMerce || '',
+        };
+        this.ds.invalidateEmailMode();
+        this.snack.open('Dati salvati', '', { duration: 2000 });
+      },
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });
   }
