@@ -45,4 +45,5 @@ export const routes: Routes = [
   { path: 'aiuto',  loadComponent: () => import('./components/aiuto/aiuto').then(m => m.AiutoComponent) },
   { path: 'super-admin', loadComponent: () => import('./components/super-admin/super-admin').then(m => m.SuperAdminComponent) },
   { path: 'trial-expired', loadComponent: () => import('./components/trial-expired/trial-expired').then(m => m.TrialExpiredComponent) },
+  { path: 'billing', loadComponent: () => import('./components/billing/billing').then(m => m.BillingComponent) },
 ];

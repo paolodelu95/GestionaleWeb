@@ -67,27 +67,53 @@ function isTrialWhitelistedGet(reqPath) {
   return false;
 }
 
+// Stati Stripe subscription che permettono accesso pieno.
+const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing']);
+
+// Whitelist endpoint sempre accessibili (anche in read-only) per permettere
+// il path di pagamento: status billing, creazione checkout, customer portal.
+const BILLING_PATHS = ['/billing/status', '/billing/checkout', '/billing/portal'];
+
+function isBillingPath(reqPath) {
+  return BILLING_PATHS.includes(reqPath);
+}
+
 function trialEnforcement(req, res, next) {
   if (!req.user || !req.tenant) return next();
   if (req.user.ruolo === 'SUPERADMIN') return next();
+  // Le route di billing sono sempre accessibili (anche in read-only) per
+  // permettere il rinnovo / sottoscrizione iniziale.
+  if (req.path.startsWith('/billing/')) return next();
 
   const { getTenant } = require('../utils/authDb');
   const tenant = getTenant(req.tenant);
   if (!tenant) return next();
 
-  // Tenant non-trial: passa
-  if (tenant.piano !== 'trial') return next();
+  // ── Tenant Pro con subscription Stripe ────────────────────────────────
+  if (tenant.piano === 'pro') {
+    if (ACTIVE_SUB_STATUSES.has(tenant.subscriptionStatus)) return next();
+    // Sub non attiva (past_due/canceled/unpaid/null): read-only indefinito.
+    // L'utente può leggere tutti i propri dati e portarli via via export,
+    // ma non può scrivere fino al rinnovo.
+    if (req.method === 'GET') return next();
+    return res.status(402).json({
+      error: 'Abbonamento non attivo',
+      code: 'SUBSCRIPTION_INACTIVE',
+      subscriptionStatus: tenant.subscriptionStatus,
+      currentPeriodEnd: tenant.currentPeriodEnd,
+      ragioneSociale: tenant.ragioneSociale || tenant.nome,
+      message: 'L\'abbonamento Pro non è attivo. Rinnova per riprendere la modifica dei dati.',
+    });
+  }
 
-  // Trial senza data: passa (sicurezza, no break)
+  // ── Tenant trial ──────────────────────────────────────────────────────
   if (!tenant.trialScadeIl) return next();
-
-  // Trial ancora valido: passa
   const now = new Date();
   const expiresAt = new Date(tenant.trialScadeIl + 'T23:59:59');
   if (expiresAt >= now) return next();
 
-  // Trial scaduto: permetti solo GET su whitelist
-  if (req.method === 'GET' && isTrialWhitelistedGet(req.path)) return next();
+  // Trial scaduto: read-only indefinito (allineato col comportamento Pro).
+  if (req.method === 'GET') return next();
 
   return res.status(402).json({
     error: 'Trial scaduto',

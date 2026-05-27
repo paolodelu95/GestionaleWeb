@@ -131,6 +131,15 @@ function getAuthDb() {
     "ALTER TABLE tenants ADD COLUMN piano TEXT NOT NULL DEFAULT 'trial'",
     "ALTER TABLE tenants ADD COLUMN stato TEXT NOT NULL DEFAULT 'attiva'",
     "ALTER TABLE tenants ADD COLUMN trial_scade_il TEXT DEFAULT NULL",
+    // Subscription Stripe
+    "ALTER TABLE tenants ADD COLUMN stripe_customer_id TEXT DEFAULT NULL",
+    "ALTER TABLE tenants ADD COLUMN stripe_subscription_id TEXT DEFAULT NULL",
+    // active | trialing | past_due | canceled | unpaid | incomplete | null
+    "ALTER TABLE tenants ADD COLUMN subscription_status TEXT DEFAULT NULL",
+    // ISO timestamp del termine del periodo corrente di fatturazione
+    "ALTER TABLE tenants ADD COLUMN current_period_end TEXT DEFAULT NULL",
+    // 'month' | 'year' | null
+    "ALTER TABLE tenants ADD COLUMN billing_interval TEXT DEFAULT NULL",
   ];
   for (const sql of tenantMigrations) { try { db.exec(sql); } catch(_) {} }
 
@@ -238,24 +247,64 @@ function _tenantRowToDto(t) {
     piano: t.piano ?? 'trial',
     stato: t.stato ?? 'attiva',
     trialScadeIl: t.trial_scade_il ?? null,
+    stripeCustomerId: t.stripe_customer_id ?? null,
+    stripeSubscriptionId: t.stripe_subscription_id ?? null,
+    subscriptionStatus: t.subscription_status ?? null,
+    currentPeriodEnd: t.current_period_end ?? null,
+    billingInterval: t.billing_interval ?? null,
   };
 }
+
+const TENANT_COLS = `
+  slug, nome, attivo, ragione_sociale, piva, piano, stato, trial_scade_il, created_at,
+  stripe_customer_id, stripe_subscription_id, subscription_status,
+  current_period_end, billing_interval
+`;
 
 function listTenants({ activeOnly = false } = {}) {
   const db = getAuthDb();
   const where = activeOnly ? 'WHERE attivo=1 AND stato=\'attiva\'' : '';
   return db.prepare(
-    `SELECT slug, nome, attivo, ragione_sociale, piva, piano, stato, trial_scade_il, created_at
-     FROM tenants ${where} ORDER BY slug`
+    `SELECT ${TENANT_COLS} FROM tenants ${where} ORDER BY slug`
   ).all().map(_tenantRowToDto);
 }
 
 function getTenant(slug) {
   const row = getAuthDb().prepare(
-    `SELECT slug, nome, attivo, ragione_sociale, piva, piano, stato, trial_scade_il, created_at
-     FROM tenants WHERE slug=?`
+    `SELECT ${TENANT_COLS} FROM tenants WHERE slug=?`
   ).get(slug);
   return row ? _tenantRowToDto(row) : null;
+}
+
+function getTenantByStripeCustomerId(customerId) {
+  const row = getAuthDb().prepare(
+    `SELECT ${TENANT_COLS} FROM tenants WHERE stripe_customer_id=?`
+  ).get(customerId);
+  return row ? _tenantRowToDto(row) : null;
+}
+
+function updateTenantBilling(slug, fields) {
+  // Aggiornamento "patch" dei soli campi billing forniti. Usato dal webhook
+  // Stripe per propagare lo stato della subscription verso il nostro DB.
+  const allowed = {
+    stripe_customer_id: fields.stripeCustomerId,
+    stripe_subscription_id: fields.stripeSubscriptionId,
+    subscription_status: fields.subscriptionStatus,
+    current_period_end: fields.currentPeriodEnd,
+    billing_interval: fields.billingInterval,
+    piano: fields.piano,
+  };
+  const sets = [];
+  const vals = [];
+  for (const [col, val] of Object.entries(allowed)) {
+    if (val === undefined) continue;
+    sets.push(`${col}=?`);
+    vals.push(val);
+  }
+  if (!sets.length) return getTenant(slug);
+  vals.push(slug);
+  getAuthDb().prepare(`UPDATE tenants SET ${sets.join(', ')} WHERE slug=?`).run(...vals);
+  return getTenant(slug);
 }
 
 function createTenant({ slug, nome, ragioneSociale, piva, piano, stato, trialScadeIl }) {
@@ -539,6 +588,7 @@ module.exports = {
   getAuthDb,
   dataDir, tenantsDir, authDbPath, tenantDbPath,
   listTenants, getTenant, createTenant, updateTenant, deleteTenant,
+  getTenantByStripeCustomerId, updateTenantBilling,
   getUserByUsername, getUserById, listUsers, createUser, updateUser, deleteUser, countUsers,
   findUserByEmail,
   listModuliCatalogo, listTenantModuli, setTenantModulo, ensureTenantModuli, isModuloAttivo,

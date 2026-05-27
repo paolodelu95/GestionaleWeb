@@ -22,15 +22,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       // Logout solo se è il nostro backend a dire che il token è invalido,
       // non se è un proxy 401 da servizi esterni (es. Mindee via /api/ocr)
       if (err.status === 401 && !req.url.includes('/ocr/')) auth.logout();
-      // 402 Payment Required → trial scaduto. Reindirizza a pagina dedicata.
-      if (err.status === 402 && err.error?.code === 'TRIAL_EXPIRED') {
-        if (router.url !== '/trial-expired') {
-          router.navigate(['/trial-expired'], {
-            state: {
-              trialScadeIl: err.error.trialScadeIl,
-              ragioneSociale: err.error.ragioneSociale,
-            },
-          });
+      // 402 Payment Required → trial scaduto o subscription non attiva.
+      // Reindirizza a /billing dove l'utente può sottoscrivere o riattivare.
+      if (err.status === 402 &&
+          (err.error?.code === 'TRIAL_EXPIRED' || err.error?.code === 'SUBSCRIPTION_INACTIVE')) {
+        if (router.url !== '/billing' && router.url !== '/trial-expired') {
+          router.navigate(['/billing']);
         }
       }
       return throwError(() => err);
