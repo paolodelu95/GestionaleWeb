@@ -184,6 +184,51 @@ import { BillingService, BillingStatus } from '../../services/billing.service';
       display: flex; gap: 8px; align-items: center; font-size: 13px;
     }
     .bill-notice mat-icon { color: #d97706; flex-shrink: 0; }
+
+    /* ── Dark mode override ──────────────────────────────────────────── */
+    :host-context(body.dark-mode) {
+      .bill-hero h1 { color: var(--text-primary, #e2e8f0); }
+      .bill-hero p  { color: #94a3b8; }
+      .state-sub    { color: #cbd5e1; }
+      .bill-state.is-active  {
+        background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.35);
+        color: #a7f3d0;
+      }
+      .bill-state.is-trial   {
+        background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35);
+        color: #fed7aa;
+      }
+      .bill-state.is-expired {
+        background: rgba(220,38,38,0.15); border-color: rgba(220,38,38,0.40);
+        color: #fecaca;
+      }
+      .bill-portal {
+        background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10);
+      }
+      .bill-portal h3 { color: #e2e8f0; }
+      .bill-portal p  { color: #94a3b8; }
+      .bill-plans h3  { color: #e2e8f0; }
+      .bill-plans > p { color: #94a3b8; }
+      .plan-card {
+        background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10);
+      }
+      .plan-recommended {
+        border-color: #15a4a2;
+        box-shadow: 0 6px 24px -8px rgba(21,164,162,0.4);
+      }
+      .plan-badge { background: rgba(17,118,155,0.25); color: #7dd3fc; }
+      .plan-recommended .plan-badge { background: #15a4a2; color: #0e2a38; }
+      .plan-price { color: #e2e8f0; }
+      .plan-price span { color: #94a3b8; }
+      .plan-features > div { color: #cbd5e1; }
+      .bill-notice {
+        background: rgba(245,158,11,0.10); border-color: rgba(252,211,77,0.30);
+        color: #fde68a;
+      }
+      .bill-error {
+        background: rgba(220,38,38,0.15); color: #fecaca;
+      }
+    }
   `]
 })
 export class BillingComponent implements OnInit {

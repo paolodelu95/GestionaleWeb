@@ -411,6 +411,8 @@ export class App implements OnInit {
     {
       label: 'Sistema', icon: 'settings',
       children: [
+        { label: 'Account',      icon: 'person',   route: '/account' },
+        { label: 'Abbonamento',  icon: 'credit_card', route: '/billing' },
         { label: 'Aiuto',        icon: 'menu_book', route: '/aiuto' },
         { label: 'Storico',      icon: 'history',  route: '/storico' },
         { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },

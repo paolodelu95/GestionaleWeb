@@ -802,6 +802,19 @@
     border-bottom-color: rgba(245, 158, 11, 0.30);
     mat-icon { color: #fbbf24; }
   }
+  &--verify {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.10) 100%);
+    color: #fde68a;
+    border-bottom-color: rgba(252, 211, 77, 0.30);
+    mat-icon { color: #fbbf24; }
+  }
+  &--trial {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.20) 0%, rgba(234, 88, 12, 0.10) 100%);
+    color: #fed7aa;
+    border-bottom-color: rgba(253, 186, 116, 0.30);
+    mat-icon { color: #fdba74; }
+    a { color: inherit; }
+  }
 }
 
 @keyframes slide-down {

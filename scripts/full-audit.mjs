@@ -18,6 +18,7 @@ const OUT_DIR = '/tmp/full-audit';
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile',  width: 390,  height: 844 },
+  { name: 'dark',    width: 1440, height: 900, theme: 'dark' },
 ];
 
 // ── Inventario delle pagine ────────────────────────────────────────────
@@ -134,9 +135,13 @@ async function api(token, method, path, body) {
       }
     });
 
-    // Inject token
+    // Inject token + theme
     await page.goto(BASE_URL);
-    await page.evaluate(t => localStorage.setItem('ordeva_token', t), token);
+    await page.evaluate(args => {
+      localStorage.setItem('ordeva_token', args.token);
+      if (args.theme === 'dark') localStorage.setItem('dark-mode', '1');
+      else localStorage.removeItem('dark-mode');
+    }, { token, theme: vp.theme });
 
     // ── Visit each page ────────────────────────────────────────────
     for (const p of PAGES) {

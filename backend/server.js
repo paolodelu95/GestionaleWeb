@@ -422,6 +422,77 @@ app.get('/api/me', (req, res) => {
   });
 });
 
+// ── PUT /api/me/password — cambio password dell'utente loggato ──────────────
+app.put('/api/me/password', async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Password attuale e nuova obbligatorie' });
+  }
+  if (String(newPassword).length < 8) {
+    return res.status(400).json({ error: 'La nuova password deve avere almeno 8 caratteri' });
+  }
+  const user = getUserByUsername(req.user.username);
+  if (!user) return res.status(404).json({ error: 'Utente non trovato' });
+  const ok = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Password attuale errata' });
+  const hash = await bcrypt.hash(newPassword, 10);
+  updateUser(user.id, { password_hash: hash });
+  res.json({ ok: true, message: 'Password aggiornata.' });
+});
+
+// ── PUT /api/me/email — cambio email (richiede password) ────────────────────
+// Cambia sia il campo "email" sia lo "username" (che è l'email di login).
+// Dopo il cambio, l'email_verified torna a 0 e parte una nuova verifica.
+app.put('/api/me/email', async (req, res) => {
+  const { newEmail, currentPassword } = req.body || {};
+  if (!newEmail || !currentPassword) {
+    return res.status(400).json({ error: 'Email e password obbligatorie' });
+  }
+  const email = String(newEmail).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Email non valida' });
+  }
+  const user = getUserByUsername(req.user.username);
+  if (!user) return res.status(404).json({ error: 'Utente non trovato' });
+  const ok = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Password errata' });
+  // Verifica che non sia già in uso
+  const existing = findUserByEmail(email);
+  if (existing && existing.id !== user.id) {
+    return res.status(409).json({ error: 'Email già usata da un altro account' });
+  }
+  // Aggiorna username + email; resetta email_verified
+  updateUser(user.id, { username: email, email: email });
+  try {
+    getAuthDb().prepare(`UPDATE users SET email_verified=0, email_verified_at=NULL WHERE id=?`).run(user.id);
+  } catch(_) {}
+  // Invia subito una mail di verifica alla nuova email (fire-and-forget)
+  try {
+    const vt = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_H * 3600000).toISOString();
+    const clientIp = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+    createEmailVerificationToken({ userId: user.id, token: vt, expiresAt, ip: clientIp });
+    const verifyUrl = `${appBaseUrl()}/verify-email?token=${vt}`;
+    sendEmailVerification({ to: email, nome: user.nome, verifyUrl, expiresInHours: VERIFY_TOKEN_TTL_H })
+      .catch(e => console.error('[me/email] invio verifica:', e.message));
+  } catch (e) {
+    console.error('[me/email] verify token:', e.message);
+  }
+  res.json({
+    ok: true,
+    message: 'Email aggiornata. Riceverai un\'email di conferma al nuovo indirizzo.',
+    email,
+  });
+});
+
+// ── PUT /api/me/profile — aggiorna nome utente (campo libero, non email) ────
+app.put('/api/me/profile', (req, res) => {
+  const { nome } = req.body || {};
+  if (typeof nome !== 'string') return res.status(400).json({ error: 'Nome obbligatorio' });
+  updateUser(req.user.id, { nome: nome.trim() });
+  res.json({ ok: true, message: 'Profilo aggiornato.' });
+});
+
 // ── Resend email verifica (utente loggato) ──────────────────────────────────
 app.post('/api/auth/resend-verification', verifyLimiter, async (req, res) => {
   const userId = req.user.id;
