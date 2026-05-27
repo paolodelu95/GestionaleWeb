@@ -19,36 +19,127 @@ router.get('/:id', (req, res) => {
   res.json(dto);
 });
 
+// Helper magazzino: una nota di credito tipicamente RIENTRA merce
+// (delta +1: la merce torna dal cliente al magazzino del fornitore).
+// L'eliminazione/storno della nota di credito SCARICA di nuovo (delta -1).
+function aggiornaQuantita(righe, delta, ctx = {}) {
+  const stmtQ = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
+  const stmtV = db.prepare('UPDATE prodotto_varianti SET quantita = quantita + ? WHERE id = ?');
+  const stmtM = db.prepare(`INSERT INTO movimenti_magazzino
+    (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,cliente_id,cliente_nome,note,variante_id,variante_taglia,variante_colore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const oggi = new Date().toISOString().split('T')[0];
+  for (const r of righe) {
+    if (!r.prodottoId) continue;
+    const qty = +r.quantita || 0;
+    if (!qty) continue;
+    stmtQ.run(delta * qty, r.prodottoId);
+    if (r.varianteId) stmtV.run(delta * qty, r.varianteId);
+    const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
+    stmtM.run(
+      ctx.data || oggi, r.prodottoId, prod?.nome || r.descrizione || '',
+      delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta * qty),
+      ctx.causale || '', ctx.documentoTipo || 'NOTA_CREDITO',
+      ctx.documentoId || null, ctx.documentoNumero || '',
+      ctx.clienteId || null, ctx.clienteNome || '',
+      ctx.note || '',
+      r.varianteId || null, r.varianteTaglia || '', r.varianteColore || ''
+    );
+  }
+}
+
 router.post('/', (req, res) => {
   const n = req.body;
   const dup = db.prepare('SELECT id FROM note_credito WHERE numero=?').get(n.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${n.numero} è già utilizzato da un altro documento` });
-  const result = db.prepare(`INSERT INTO note_credito (numero, data_emissione, cliente_id, fattura_id, note, stato)
-    VALUES (?,?,?,?,?,?)`)
-    .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato || 'EMESSA');
-  if (n.righe?.length) saveRighe(result.lastInsertRowid, n.righe);
-  audit('nota_credito', result.lastInsertRowid, 'CREATE', { numero: n.numero, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato || 'EMESSA', numRighe: n.righe?.length || 0 });
-  res.json({ id: result.lastInsertRowid });
+  try {
+    const id = db.transaction(() => {
+      const result = db.prepare(`INSERT INTO note_credito (numero, data_emissione, cliente_id, fattura_id, note, stato)
+        VALUES (?,?,?,?,?,?)`)
+        .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato || 'EMESSA');
+      const id = result.lastInsertRowid;
+      if (n.righe?.length) {
+        saveRighe(id, n.righe);
+        // Reso merce: la quantità torna nel magazzino
+        const cliente = n.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(n.clienteId) : null;
+        aggiornaQuantita(n.righe, +1, {
+          data: n.dataEmissione, causale: 'NOTA_CREDITO',
+          documentoTipo: 'NOTA_CREDITO', documentoId: id, documentoNumero: n.numero,
+          clienteId: n.clienteId || null, clienteNome: cliente?.ragione_sociale || '',
+        });
+      }
+      return id;
+    })();
+    audit('nota_credito', id, 'CREATE', { numero: n.numero, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato || 'EMESSA', numRighe: n.righe?.length || 0 });
+    res.json({ id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 router.put('/:id', (req, res) => {
   const n = req.body;
   const dup = db.prepare('SELECT id FROM note_credito WHERE numero=? AND id!=?').get(n.numero, req.params.id);
   if (dup) return res.status(409).json({ error: `Il numero ${n.numero} è già utilizzato da un altro documento` });
-  const before = db.prepare('SELECT numero, data_emissione, cliente_id, fattura_id, stato FROM note_credito WHERE id=?').get(req.params.id);
-  db.prepare(`UPDATE note_credito SET numero=?, data_emissione=?, cliente_id=?, fattura_id=?, note=?, stato=? WHERE id=?`)
-    .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato, req.params.id);
-  db.prepare('DELETE FROM note_credito_righe WHERE nota_credito_id=?').run(req.params.id);
-  if (n.righe?.length) saveRighe(req.params.id, n.righe);
-  audit('nota_credito', Number(req.params.id), 'UPDATE', { before, after: { numero: n.numero, dataEmissione: n.dataEmissione, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato, numRighe: n.righe?.length || 0 } });
-  res.json({ success: true });
+  try {
+    const before = db.transaction(() => {
+      const before = db.prepare('SELECT numero, data_emissione, cliente_id, fattura_id, stato FROM note_credito WHERE id=?').get(req.params.id);
+      // Storno righe vecchie dal magazzino (delta -1: la merce esce di nuovo)
+      const vecchieRighe = getRighe(req.params.id);
+      if (vecchieRighe.length) {
+        const oldNC = db.prepare('SELECT numero, cliente_id FROM note_credito WHERE id=?').get(req.params.id);
+        const oldCliente = oldNC?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(oldNC.cliente_id) : null;
+        aggiornaQuantita(vecchieRighe, -1, {
+          causale: 'STORNO', documentoTipo: 'NOTA_CREDITO',
+          documentoId: Number(req.params.id), documentoNumero: oldNC?.numero || '',
+          clienteId: oldNC?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || '',
+        });
+      }
+      db.prepare(`UPDATE note_credito SET numero=?, data_emissione=?, cliente_id=?, fattura_id=?, note=?, stato=? WHERE id=?`)
+        .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato, req.params.id);
+      db.prepare('DELETE FROM note_credito_righe WHERE nota_credito_id=?').run(req.params.id);
+      if (n.righe?.length) {
+        saveRighe(req.params.id, n.righe);
+        // Applica le nuove righe (delta +1)
+        const cliente = n.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(n.clienteId) : null;
+        aggiornaQuantita(n.righe, +1, {
+          data: n.dataEmissione, causale: 'NOTA_CREDITO',
+          documentoTipo: 'NOTA_CREDITO', documentoId: Number(req.params.id), documentoNumero: n.numero,
+          clienteId: n.clienteId || null, clienteNome: cliente?.ragione_sociale || '',
+        });
+      }
+      return before;
+    })();
+    audit('nota_credito', Number(req.params.id), 'UPDATE', { before, after: { numero: n.numero, dataEmissione: n.dataEmissione, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato, numRighe: n.righe?.length || 0 } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 router.delete('/:id', (req, res) => {
-  const snapshot = db.prepare('SELECT numero, cliente_id, fattura_id, stato, data_emissione FROM note_credito WHERE id=?').get(req.params.id);
-  db.prepare('DELETE FROM note_credito WHERE id=?').run(req.params.id);
-  audit('nota_credito', Number(req.params.id), 'DELETE', snapshot || {});
-  res.json({ success: true });
+  try {
+    const snapshot = db.transaction(() => {
+      const snapshot = db.prepare('SELECT numero, cliente_id, fattura_id, stato, data_emissione FROM note_credito WHERE id=?').get(req.params.id);
+      // Storno: la nota di credito scompare, la merce esce di nuovo dal magazzino
+      const righe = getRighe(req.params.id);
+      if (righe.length) {
+        const oldNC = db.prepare('SELECT numero, cliente_id FROM note_credito WHERE id=?').get(req.params.id);
+        const oldCliente = oldNC?.cliente_id ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(oldNC.cliente_id) : null;
+        aggiornaQuantita(righe, -1, {
+          causale: 'ELIMINAZIONE', documentoTipo: 'NOTA_CREDITO',
+          documentoId: Number(req.params.id), documentoNumero: oldNC?.numero || '',
+          clienteId: oldNC?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || '',
+        });
+      }
+      db.prepare('DELETE FROM note_credito WHERE id=?').run(req.params.id);
+      return snapshot;
+    })();
+    audit('nota_credito', Number(req.params.id), 'DELETE', snapshot || {});
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 function saveRighe(ncId, righe) {
