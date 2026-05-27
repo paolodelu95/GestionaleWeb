@@ -1,6 +1,19 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const db = require('../database');
+
+// Limita gli export pesanti (CSV/XLSX): generano file grandi e impegnano
+// CPU/IO. 20 export ogni 15 minuti per utente sono sufficienti per uso normale.
+const { ipKeyGenerator } = require('express-rate-limit');
+const exportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id ? `u:${req.user.id}` : ipKeyGenerator(req),
+  message: { error: 'Troppe richieste di export. Riprova tra qualche minuto.' },
+});
 
 // ── GET /vendite-mensili – ultimi 12 mesi ─────────────────────────────────────
 router.get('/vendite-mensili', (req, res) => {
@@ -283,7 +296,7 @@ router.get('/iva-trimestre', (req, res) => {
 // ── GET /lipe-xml – Export Comunicazione Liquidazione Periodica IVA (LIPE) ───
 // query: anno (es. 2026), trimestre (1-4)  OPPURE  anno + mese (1-12)
 // Schema AGE "IVP21" (versione vigente). Genera XML scaricabile da caricare su Fisconline.
-router.get('/lipe-xml', (req, res) => {
+router.get('/lipe-xml', exportLimiter, (req, res) => {
   const anno = parseInt(String(req.query.anno || new Date().getFullYear()), 10);
   const isMensile = !!req.query.mese;
   let monthStart, monthEnd, periodoTag;
@@ -370,7 +383,7 @@ router.get('/lipe-xml', (req, res) => {
 
 // ── GET /esterometro-csv – Esterometro (operazioni transfrontaliere) ────────
 // query: dataDa, dataA. Filtra fatture/acquisti collegati a controparti con estero=1.
-router.get('/esterometro-csv', (req, res) => {
+router.get('/esterometro-csv', exportLimiter, (req, res) => {
   const dataDa = String(req.query.dataDa || `${new Date().getFullYear()}-01-01`);
   const dataA  = String(req.query.dataA  || `${new Date().getFullYear()}-12-31`);
 
@@ -420,7 +433,7 @@ router.get('/esterometro-csv', (req, res) => {
 
 // ── GET /export-contabile – righe per il commercialista ──────────────────────
 // query: dataDa (YYYY-MM-DD), dataA (YYYY-MM-DD)
-router.get('/export-contabile', (req, res) => {
+router.get('/export-contabile', exportLimiter, (req, res) => {
   const dataDa = String(req.query.dataDa || `${new Date().getFullYear()}-01-01`);
   const dataA  = String(req.query.dataA  || `${new Date().getFullYear()}-12-31`);
 

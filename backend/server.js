@@ -102,6 +102,12 @@ app.post('/api/pay-link/webhook',
   express.raw({ type: 'application/json' }),
   stripeWebhookHandler);
 
+// Webhook billing (subscription Pro). Pubblico, validato via firma Stripe.
+const { handleStripeWebhook: billingWebhook } = require('./routes/billing');
+app.post('/api/billing/webhook',
+  express.raw({ type: 'application/json' }),
+  billingWebhook);
+
 // ── Feed ICS pubblico (signed via HMAC nel query, pre-auth) ──────────────────
 // Permette a Google Calendar / Outlook / Apple Calendar di sottoscriversi al
 // calendario del tenant senza Bearer token. La protezione è il token HMAC.
@@ -292,33 +298,42 @@ app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
   // gli stessi messaggio + status code rendono impossibile distinguere bot vs
   // utente reale via timing/contenuto.
   const genericOk = { ok: true, message: 'Se l\'email è registrata, riceverai un\'email con le istruzioni.' };
+
+  // Delay fisso applicato a TUTTI i path (honeypot, email assente, email
+  // non trovata, rate limit interno, tenant sospeso, email inviata): rende il
+  // tempo di risposta sostanzialmente costante e impedisce l'enumeration
+  // tramite misurazione del tempo. 350ms è una soglia ragionevole: maschera
+  // sia bcrypt (~70ms) sia query DB (<10ms) sia I/O verso SMTP (async, già
+  // fire-and-forget). 1ms di jitter random per evitare risposta a sub-ms.
+  const FIXED_DELAY_MS = 350;
+  const delayPromise = new Promise(r => setTimeout(r, FIXED_DELAY_MS + Math.random()));
+
   if (isBotHoneypot(req.body)) {
     console.log('[forgot-password] honeypot triggered ip=', req.ip);
+    await delayPromise;
     return res.json(genericOk);
   }
   const email = String(req.body?.email || '').trim();
-  if (!email) return res.status(400).json({ error: 'Email obbligatoria' });
+  if (!email) { await delayPromise; return res.status(400).json({ error: 'Email obbligatoria' }); }
 
   // Cleanup tokens scaduti (lazy)
   try { purgeExpiredResetTokens(); } catch(_) {}
 
-  // genericOk già definita sopra (uniformità con honeypot per
-  // prevenire enumeration via tempo di risposta / contenuto).
   const user = findUserByEmail(email);
   if (!user || !user.attivo) {
-    // Piccolo delay artificiale per uniformare il tempo di risposta
-    await new Promise(r => setTimeout(r, 250 + Math.random() * 250));
+    await delayPromise;
     return res.json(genericOk);
   }
 
   // Rate limit per utente (max RESET_MAX_PER_HOUR richieste/ora)
   if (countRecentResetRequests(user.id, 60) >= RESET_MAX_PER_HOUR) {
+    await delayPromise;
     return res.json(genericOk);
   }
 
   // Verifica che il tenant sia attivo (no reset per account sospesi)
   const tenant = getTenant(user.tenant_slug);
-  if (!tenant || !tenant.attivo) return res.json(genericOk);
+  if (!tenant || !tenant.attivo) { await delayPromise; return res.json(genericOk); }
 
   // Genera token random (256 bit di entropia)
   const token = crypto.randomBytes(32).toString('hex');
@@ -328,26 +343,25 @@ app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
   try {
     createPasswordResetToken({ userId: user.id, token, expiresAt, ip: clientIp });
     const resetUrl = `${appBaseUrl()}/reset-password?token=${token}`;
-    // Inviamo a entrambi: alla email registrata (email field) e all'username
-    // se è un'email differente. In quasi tutti i casi sono uguali.
     const destinations = new Set();
     if (user.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) destinations.add(user.email);
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.username)) destinations.add(user.username);
-    if (destinations.size === 0) return res.json(genericOk);
 
+    // Fire-and-forget: l'invio email può richiedere secondi e farebbe
+    // diventare misurabile il "happy path" rispetto agli errori. Lo
+    // schediamo in background e logghiamo eventuali errori.
     for (const to of destinations) {
-      try {
-        await sendPasswordResetEmail({
-          to, nome: user.nome, resetUrl,
-          expiresInMin: RESET_TOKEN_TTL_MIN,
-        });
-      } catch (mailErr) {
+      sendPasswordResetEmail({
+        to, nome: user.nome, resetUrl,
+        expiresInMin: RESET_TOKEN_TTL_MIN,
+      }).catch(mailErr => {
         console.error('[forgot-password] invio email fallito a', to, ':', mailErr.message);
-      }
+      });
     }
   } catch (e) {
     console.error('[forgot-password]', e.message);
   }
+  await delayPromise;
   res.json(genericOk);
 });
 
@@ -486,6 +500,7 @@ app.get('/api/next-number/:tipo', (req, res) => {
   res.json({ numero });
 });
 
+app.use('/api/billing',          require('./routes/billing').router);
 app.use('/api/azienda',          require('./routes/azienda'));
 app.use('/api/prodotti',         require('./routes/prodotti'));
 app.use('/api/clienti',          require('./routes/clienti'));

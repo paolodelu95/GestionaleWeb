@@ -12,9 +12,26 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 const db = require('../database');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Limita le richieste OCR per utente: ogni call costa quota Mindee (250/mese
+// gratis nel piano free). 10 OCR ogni 15 minuti per utente è abbondante per
+// uso normale e taglia gli abusi.
+const { ipKeyGenerator } = require('express-rate-limit');
+const ocrLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  // authMiddleware è già applicato in server.js prima di questa route, quindi
+  // req.user.id è sempre presente. Fallback su ipKeyGenerator per sicurezza
+  // (gestisce correttamente IPv6).
+  keyGenerator: (req) => req.user?.id ? `u:${req.user.id}` : ipKeyGenerator(req),
+  message: { error: 'Troppe richieste OCR. Riprova tra qualche minuto.' },
+});
 
 const MINDEE_ENQUEUE = 'https://api-v2.mindee.net/v2/inferences/enqueue';
 const MINDEE_GET     = 'https://api-v2.mindee.net/v2/inferences';
@@ -22,7 +39,7 @@ const MINDEE_GET     = 'https://api-v2.mindee.net/v2/inferences';
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // POST /api/ocr/fattura  (multipart/form-data, campo "file")
-router.post('/fattura', upload.single('file'), async (req, res) => {
+router.post('/fattura', ocrLimiter, upload.single('file'), async (req, res) => {
   const key = process.env.MINDEE_API_KEY;
   if (!key) return res.status(500).json({ error: 'MINDEE_API_KEY non configurata' });
   if (!req.file) return res.status(400).json({ error: 'File mancante (campo "file")' });

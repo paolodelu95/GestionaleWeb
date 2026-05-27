@@ -72,11 +72,59 @@ router.get('/scadenzario', (req, res) => {
   res.json(all);
 });
 
+// Calcola il totale e il rimanente di una fattura/acquisto, escludendo
+// opzionalmente un pagamento esistente (usato dalla PUT per non includere
+// se stesso nel calcolo del residuo).
+function calcolaRimanente({ fatturaId, acquistoId, excludePagamentoId }) {
+  if (fatturaId) {
+    const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0)), 0) as tot
+      FROM fatture_righe WHERE fattura_id=?`).get(fatturaId)?.tot || 0;
+    const pagato = db.prepare(`SELECT COALESCE(SUM(importo), 0) as tot FROM pagamenti
+      WHERE fattura_id=? AND (? IS NULL OR id != ?)`)
+      .get(fatturaId, excludePagamentoId || null, excludePagamentoId || null)?.tot || 0;
+    return { totale, rimanente: totale - pagato };
+  }
+  if (acquistoId) {
+    const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0)), 0) as tot
+      FROM acquisti_righe WHERE acquisto_id=?`).get(acquistoId)?.tot || 0;
+    const pagato = db.prepare(`SELECT COALESCE(SUM(importo), 0) as tot FROM pagamenti
+      WHERE acquisto_id=? AND (? IS NULL OR id != ?)`)
+      .get(acquistoId, excludePagamentoId || null, excludePagamentoId || null)?.tot || 0;
+    return { totale, rimanente: totale - pagato };
+  }
+  return null;
+}
+
+// Tolleranza di arrotondamento per evitare falsi positivi su 0.01 € residui
+// dovuti a calcoli con IVA. Permettiamo anche un importo leggermente superiore
+// al rimanente (utile per pagamenti con piccole commissioni/abbuoni).
+const ROUNDING_TOLERANCE = 0.05;
+
+function validatePagamento(p, { excludePagamentoId } = {}) {
+  if (!p.dataPagamento) return 'dataPagamento mancante';
+  const importo = Number(p.importo);
+  if (!Number.isFinite(importo)) return 'importo non valido';
+  if (importo <= 0) return 'importo deve essere positivo';
+  // Esattamente uno tra fatturaId / acquistoId
+  const hasFatt = !!p.fatturaId;
+  const hasAcq = !!p.acquistoId;
+  if (hasFatt === hasAcq) return 'specificare fatturaId o acquistoId (esattamente uno)';
+  const r = calcolaRimanente({ fatturaId: p.fatturaId, acquistoId: p.acquistoId, excludePagamentoId });
+  if (!r) return 'fattura/acquisto non trovato';
+  if (r.totale <= 0) return 'documento senza righe imponibili';
+  if (importo > r.rimanente + ROUNDING_TOLERANCE) {
+    return `importo ${importo.toFixed(2)} € supera il residuo (${r.rimanente.toFixed(2)} €)`;
+  }
+  return null;
+}
+
 router.post('/', (req, res) => {
   const p = req.body;
+  const err = validatePagamento(p);
+  if (err) return res.status(400).json({ error: err });
   const result = db.prepare(`INSERT INTO pagamenti (fattura_id, acquisto_id, data_pagamento, importo, metodo, note, tipo, tipo_pagamento_id, conto)
     VALUES (?,?,?,?,?,?,?,?,?)`)
-    .run(p.fatturaId || null, p.acquistoId || null, p.dataPagamento, p.importo,
+    .run(p.fatturaId || null, p.acquistoId || null, p.dataPagamento, Number(p.importo),
          p.metodo || 'Bonifico', p.note || '', p.tipo || 'ENTRATA',
          p.tipoPagamentoId || null, p.conto || 'BANCA');
   if (p.fatturaId) aggiornaStatoFattura(p.fatturaId);
@@ -86,8 +134,10 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const p = req.body;
+  const err = validatePagamento(p, { excludePagamentoId: Number(req.params.id) });
+  if (err) return res.status(400).json({ error: err });
   db.prepare(`UPDATE pagamenti SET fattura_id=?,acquisto_id=?,data_pagamento=?,importo=?,metodo=?,note=?,tipo=?,tipo_pagamento_id=?,conto=? WHERE id=?`)
-    .run(p.fatturaId || null, p.acquistoId || null, p.dataPagamento, p.importo,
+    .run(p.fatturaId || null, p.acquistoId || null, p.dataPagamento, Number(p.importo),
          p.metodo || 'Bonifico', p.note || '', p.tipo || 'ENTRATA',
          p.tipoPagamentoId || null, p.conto || 'BANCA', req.params.id);
   if (p.fatturaId) aggiornaStatoFattura(p.fatturaId);
