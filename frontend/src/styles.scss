@@ -1144,27 +1144,36 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   // Extra spazio in fondo: il FAB "Segnala problema" non copre mai paginator/contenuto
   .page { padding: 16px 12px calc(84px + env(safe-area-inset-bottom)); }
 
+  // Su mobile cambiamo il layout della page-header da flex a CSS grid:
+  // - Riga 1: titolo full-width
+  // - Riga 2: bottone primario Aggiungi (colonna 1, grow) + kebab Altre
+  //   azioni (colonna 2, fixed). Con grid è impossibile che il kebab
+  //   vada a capo da solo: occupa sempre la sua cella di 36px.
   .page-header {
-    flex-wrap: wrap;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-auto-rows: auto;
+    column-gap: 6px;
+    row-gap: 6px;
     margin-bottom: 14px;
-    .page-title { flex: 0 0 100%; font-size: 20px; margin-bottom: 4px; }
+    .page-title {
+      grid-column: 1 / -1;
+      font-size: 20px;
+      margin-bottom: 0;
+    }
     button[mat-flat-button], button[mat-stroked-button] {
       font-size: 13px;
       padding: 0 10px !important;
       height: 36px !important;
       min-width: 0 !important;
-      // Stringi spaziatura icona-testo
       .mat-mdc-button-touch-target + mat-icon,
       mat-icon { margin-right: 4px !important; font-size: 18px; width: 18px; height: 18px; }
     }
-    // Pulsante primario (Aggiungi/Nuovo) occupa lo spazio rimanente
-    // così il kebab "Altre azioni" resta inline a destra invece di
-    // andare a capo da solo.
-    button[mat-flat-button]:not(.header-overflow-item) { flex: 1 1 auto; }
-    .header-overflow-toggle { flex: 0 0 auto; }
-    // Stripped layout per icon-buttons standalone
     button.mat-mdc-icon-button { width: 36px; height: 36px; }
+    // I bottoni secondari overflow-item sono nascosti su mobile
+    .header-overflow-item { display: none !important; }
+    // Il kebab toggle prende la sua cella naturale
+    .header-overflow-toggle { display: inline-flex !important; justify-self: end; }
   }
   .page-title { font-size: 20px; }
 
