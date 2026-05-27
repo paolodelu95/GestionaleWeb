@@ -13,6 +13,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { DataService } from './services/data.service';
 import { AuthService } from './services/auth.service';
@@ -101,6 +102,7 @@ export class App implements OnInit {
     private elRef: ElementRef,
     private swUpdate: SwUpdate,
     private dialog: MatDialog,
+    private snack: MatSnackBar,
     private offlineSvc: OfflineService,
     public moduli: ModuliService,
   ) {
@@ -317,12 +319,17 @@ export class App implements OnInit {
         this.resendingVerification = false;
         this.showEmailVerifyBanner = false;
         sessionStorage.setItem('email-verify-dismissed', '1');
-        // Snackbar non disponibile qui senza injection; uso alert leggero
-        alert('Email di verifica inviata. Controlla la tua casella (anche spam).');
+        this.snack.open(
+          'Email di verifica inviata. Controlla la tua casella (anche spam).',
+          'OK', { duration: 5000 },
+        );
       },
       error: (err) => {
         this.resendingVerification = false;
-        alert(err.error?.error || 'Errore durante l\'invio. Riprova più tardi.');
+        this.snack.open(
+          err.error?.error || 'Errore durante l\'invio. Riprova più tardi.',
+          'OK', { duration: 5000 },
+        );
       },
     });
   }
