@@ -552,6 +552,7 @@ export class DdtDialogComponent implements OnInit {
         this.prezziRecenti = new Array(this.righe.length).fill([]);
         this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
         this.tuttiCaricati = new Array(this.righe.length).fill(false);
+        this.righe.forEach((r, i) => { if (r.prodottoId) this.loadPrezziRecenti(i); });
       });
     } else {
       this.righe = [{ descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 }];

@@ -1006,6 +1006,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         this.prezziRecenti = new Array(this.righe.length).fill([]);
         this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
         this.tuttiCaricati = new Array(this.righe.length).fill(false);
+        // Carica i prezzi recenti per le righe già esistenti, così il bottone
+        // "history" appare anche quando si riapre un documento salvato.
+        this.righe.forEach((r, i) => { if (r.prodottoId) this.loadPrezziRecenti(i); });
         if (f.ddtIds?.length) {
           f.ddtIds.forEach(ddtId => {
             this.ds.getDdtById(ddtId).subscribe(ddt => this.linkedDdts.push(ddt));
