@@ -102,6 +102,15 @@ router.put('/:id', (req, res) => {
 });
 
 // Suggerimenti: prodotti piu venduti a questo cliente negli ultimi 12 mesi
+// GET /api/clienti/:id — dettaglio singolo cliente (per app mobile / integrazioni)
+router.get('/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID non valido' });
+  const row = db.prepare('SELECT * FROM clienti WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: 'Cliente non trovato' });
+  res.json(toDto(row));
+});
+
 router.get('/:id/top-prodotti', (req, res) => {
   const limit = Math.min(Math.max(parseInt(String(req.query.limit || '5'), 10), 1), 20);
   const rows = db.prepare(`

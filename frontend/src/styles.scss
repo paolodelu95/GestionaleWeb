@@ -1158,6 +1158,11 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
       .mat-mdc-button-touch-target + mat-icon,
       mat-icon { margin-right: 4px !important; font-size: 18px; width: 18px; height: 18px; }
     }
+    // Pulsante primario (Aggiungi/Nuovo) occupa lo spazio rimanente
+    // così il kebab "Altre azioni" resta inline a destra invece di
+    // andare a capo da solo.
+    button[mat-flat-button]:not(.header-overflow-item) { flex: 1 1 auto; }
+    .header-overflow-toggle { flex: 0 0 auto; }
     // Stripped layout per icon-buttons standalone
     button.mat-mdc-icon-button { width: 36px; height: 36px; }
   }

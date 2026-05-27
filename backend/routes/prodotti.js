@@ -99,6 +99,15 @@ router.post('/import', (req, res) => {
   }
 });
 
+// GET /api/prodotti/:id — dettaglio singolo prodotto
+router.get('/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID non valido' });
+  const row = db.prepare('SELECT * FROM prodotti WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: 'Prodotto non trovato' });
+  res.json(toDto(row));
+});
+
 router.put('/:id', (req, res) => {
   const p = req.body;
   db.prepare(`UPDATE prodotti SET nome=?, categoria=?, descrizione=?, prezzo=?, prezzo_acquisto=?,

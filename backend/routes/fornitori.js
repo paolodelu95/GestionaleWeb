@@ -64,6 +64,15 @@ router.post('/import', (req, res) => {
   res.json({ created, updated, skipped });
 });
 
+// GET /api/fornitori/:id — dettaglio singolo fornitore
+router.get('/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID non valido' });
+  const row = db.prepare('SELECT * FROM fornitori WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: 'Fornitore non trovato' });
+  res.json(toDto(row));
+});
+
 router.put('/:id', (req, res) => {
   const f = req.body;
   db.prepare(`UPDATE fornitori SET ragione_sociale=?, email=?, telefono=?, cellulare=?, via=?, cap=?,
