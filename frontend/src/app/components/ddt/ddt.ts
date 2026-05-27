@@ -181,7 +181,7 @@ const RIGHE_STYLES = `
                   </tr>
                 </thead>
                 <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
-                  @for (riga of righe; track $index) {
+                  @for (riga of righe; track $index; let rowIdx = $index) {
                     @if (riga.tipo === 'NOTA') {
                       <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                         <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
@@ -227,8 +227,8 @@ const RIGHE_STYLES = `
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
                             <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>
-                            @for (pr of prezziRecenti[$index]; track $index) {
-                              <button mat-menu-item type="button" (click)="usaPrezzo($index, pr.prezzo, pr.sconto)">
+                            @for (pr of prezziRecenti[rowIdx]; track $index) {
+                              <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                                 <span style="font-size:12px;color:#64748b">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
                                 <b style="margin-left:8px;color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
                                 @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
@@ -248,8 +248,8 @@ const RIGHE_STYLES = `
                             @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
                               <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
                             }
-                            @for (pr of prezziRecentiTutti[$index] ?? []; track $index) {
-                              <button mat-menu-item type="button" (click)="usaPrezzo($index, pr.prezzo, pr.sconto)">
+                            @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
+                              <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                                 <div>
                                   <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
                                   <b style="color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
