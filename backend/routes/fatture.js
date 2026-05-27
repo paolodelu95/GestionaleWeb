@@ -102,6 +102,8 @@ const createFatturaTxBody = (f, ddtIds) => {
 
 router.post('/', (req, res) => {
   const f = req.body;
+  const dup = db.prepare('SELECT id FROM fatture WHERE numero=?').get(f.numero);
+  if (dup) return res.status(409).json({ error: `Il numero ${f.numero} è già utilizzato da un altro documento` });
   const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
   try {
     const id = db.transaction(createFatturaTxBody)(f, ddtIds);
@@ -144,6 +146,8 @@ const updateFatturaTxBody = (id, f, ddtIds) => {
 
 router.put('/:id', (req, res) => {
   const f = req.body;
+  const dup = db.prepare('SELECT id FROM fatture WHERE numero=? AND id!=?').get(f.numero, req.params.id);
+  if (dup) return res.status(409).json({ error: `Il numero ${f.numero} è già utilizzato da un altro documento` });
   const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
   try {
     db.transaction(updateFatturaTxBody)(req.params.id, f, ddtIds);

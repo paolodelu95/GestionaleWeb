@@ -28,6 +28,8 @@ router.get('/:id', (req, res) => {
 // ── POST / – crea arrivo merce e aggiorna magazzino ─────────────────────────
 router.post('/', (req, res) => {
   const d = req.body;
+  const dup = db.prepare('SELECT id FROM arrivi_merce WHERE numero=?').get(d.numero);
+  if (dup) return res.status(409).json({ error: `Il numero ${d.numero} è già utilizzato da un altro documento` });
   const tx = db.transaction(() => {
     const result = db.prepare(`
       INSERT INTO arrivi_merce (numero, data, fornitore_id, acquisto_id, numero_documento_fornitore, note, stato)
@@ -57,6 +59,8 @@ router.post('/', (req, res) => {
 // ── PUT /:id – aggiorna (storno + ricarico) ──────────────────────────────────
 router.put('/:id', (req, res) => {
   const d = req.body;
+  const dup = db.prepare('SELECT id FROM arrivi_merce WHERE numero=? AND id!=?').get(d.numero, req.params.id);
+  if (dup) return res.status(409).json({ error: `Il numero ${d.numero} è già utilizzato da un altro documento` });
   const tx = db.transaction(() => {
     const old = db.prepare('SELECT numero, fornitore_id, stato FROM arrivi_merce WHERE id=?').get(req.params.id);
     const vecchieRighe = getRighe(req.params.id);

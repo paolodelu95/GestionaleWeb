@@ -25,6 +25,8 @@ router.get('/:id/print', (req, res) => {
 
 router.post('/', (req, res) => {
   const v = req.body;
+  const dup = db.prepare('SELECT id FROM vendite_banco WHERE numero=?').get(v.numero);
+  if (dup) return res.status(409).json({ error: `Il numero ${v.numero} è già utilizzato da un altro documento` });
   const result = db.prepare(
     `INSERT INTO vendite_banco (numero, data, cliente_nome, metodo_pagamento, note, stato)
      VALUES (?,?,?,?,?,?)`

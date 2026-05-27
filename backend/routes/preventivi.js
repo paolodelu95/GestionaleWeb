@@ -21,6 +21,8 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
   const p = req.body;
+  const dup = db.prepare('SELECT id FROM preventivi WHERE numero=?').get(p.numero);
+  if (dup) return res.status(409).json({ error: `Il numero ${p.numero} è già utilizzato da un altro documento` });
   const result = db.prepare(`INSERT INTO preventivi (numero, data_emissione, cliente_id, validita, stato, note)
     VALUES (?,?,?,?,?,?)`)
     .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita || 30, p.stato || 'INVIATO', p.note);
@@ -31,6 +33,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const p = req.body;
+  const dup = db.prepare('SELECT id FROM preventivi WHERE numero=? AND id!=?').get(p.numero, req.params.id);
+  if (dup) return res.status(409).json({ error: `Il numero ${p.numero} è già utilizzato da un altro documento` });
   const before = db.prepare('SELECT numero, data_emissione, cliente_id, stato, validita, note FROM preventivi WHERE id=?').get(req.params.id);
   db.prepare(`UPDATE preventivi SET numero=?, data_emissione=?, cliente_id=?, validita=?, stato=?, note=? WHERE id=?`)
     .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita, p.stato, p.note, req.params.id);

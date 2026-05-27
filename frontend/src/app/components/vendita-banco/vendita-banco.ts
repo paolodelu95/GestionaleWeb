@@ -506,7 +506,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
           this.resetForm();
         }
       },
-      error: e => this.snack.open(e.message, '', { duration: 3000 }),
+      error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' }),
     });
   }
 

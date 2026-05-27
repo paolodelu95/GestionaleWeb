@@ -27,6 +27,8 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
   const a = req.body;
+  const dup = db.prepare('SELECT id FROM acquisti WHERE numero=?').get(a.numero);
+  if (dup) return res.status(409).json({ error: `Il numero ${a.numero} è già utilizzato da un altro documento` });
   const result = db.prepare(`INSERT INTO acquisti (numero,data_emissione,fornitore_id,tipo_pagamento_id,note,stato)
     VALUES (?,?,?,?,?,?)`)
     .run(a.numero, a.dataEmissione, a.fornitoreId || null, a.tipoPagamentoId || null, a.note || '', a.stato || 'RICEVUTA');
@@ -36,6 +38,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const a = req.body;
+  const dup = db.prepare('SELECT id FROM acquisti WHERE numero=? AND id!=?').get(a.numero, req.params.id);
+  if (dup) return res.status(409).json({ error: `Il numero ${a.numero} è già utilizzato da un altro documento` });
   db.prepare(`UPDATE acquisti SET numero=?,data_emissione=?,fornitore_id=?,tipo_pagamento_id=?,note=?,stato=? WHERE id=?`)
     .run(a.numero, a.dataEmissione, a.fornitoreId || null, a.tipoPagamentoId || null, a.note || '', a.stato, req.params.id);
   db.prepare('DELETE FROM acquisti_righe WHERE acquisto_id=?').run(req.params.id);

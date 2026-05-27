@@ -636,7 +636,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
       const op = result.id ? this.ds.updateOrdine(result) : this.ds.createOrdine(result);
       op.subscribe({
         next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
-        error: e => this.snack.open(e.message, '', { duration: 3000 })
+        error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
       });
     });
   }

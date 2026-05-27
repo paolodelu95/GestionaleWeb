@@ -29,6 +29,8 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
   const o = req.body;
+  const dup = db.prepare('SELECT id FROM ordini WHERE numero=?').get(o.numero);
+  if (dup) return res.status(409).json({ error: `Il numero ${o.numero} è già utilizzato da un altro documento` });
   const result = db.prepare(`INSERT INTO ordini (numero, data_ordine, cliente_id, fornitore_id, tipo, stato, note)
     VALUES (?,?,?,?,?,?,?)`)
     .run(o.numero, o.dataOrdine, o.clienteId || null, o.fornitoreId || null, o.tipo || 'CLIENTE', o.stato || 'APERTO', o.note);
@@ -39,6 +41,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const o = req.body;
+  const dup = db.prepare('SELECT id FROM ordini WHERE numero=? AND id!=?').get(o.numero, req.params.id);
+  if (dup) return res.status(409).json({ error: `Il numero ${o.numero} è già utilizzato da un altro documento` });
   const before = db.prepare('SELECT numero, data_ordine, cliente_id, fornitore_id, tipo, stato FROM ordini WHERE id=?').get(req.params.id);
   db.prepare(`UPDATE ordini SET numero=?, data_ordine=?, cliente_id=?, fornitore_id=?, tipo=?, stato=?, note=? WHERE id=?`)
     .run(o.numero, o.dataOrdine, o.clienteId || null, o.fornitoreId || null, o.tipo, o.stato, o.note, req.params.id);

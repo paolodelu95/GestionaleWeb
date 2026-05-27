@@ -41,6 +41,8 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
   const d = req.body;
+  const dup = db.prepare('SELECT id FROM ddt WHERE numero=?').get(d.numero);
+  if (dup) return res.status(409).json({ error: `Il numero ${d.numero} è già utilizzato da un altro documento` });
   const result = db.prepare(`
     INSERT INTO ddt (numero, data_emissione, cliente_id, causale, note, stato,
       data_ora_inizio_trasporto, aspetto_beni, porto, numero_colli, peso_lordo,
@@ -72,6 +74,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const d = req.body;
+  const dup = db.prepare('SELECT id FROM ddt WHERE numero=? AND id!=?').get(d.numero, req.params.id);
+  if (dup) return res.status(409).json({ error: `Il numero ${d.numero} è già utilizzato da un altro documento` });
   const old = db.prepare('SELECT numero, cliente_id FROM ddt WHERE id=?').get(req.params.id);
   const before = db.prepare('SELECT numero, data_emissione, cliente_id, stato FROM ddt WHERE id=?').get(req.params.id);
   const vecchieRighe = getRighe(req.params.id);
