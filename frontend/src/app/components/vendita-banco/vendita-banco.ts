@@ -104,6 +104,22 @@ interface MetodoPagamento {
     .resto-err { background: #fee2e2; color: #dc2626; }
     .resto-risultato mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
+    /* Pagamento misto */
+    .pm-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .pm-select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 600; outline: none; flex: 1; min-width: 0; }
+    .pm-select:focus { border-color: #0e6480; }
+    .pm-currency { font-weight: 700; color: #0e6480; font-size: 15px; padding: 0 2px; }
+    .pm-input { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 14px; outline: none; width: 110px; text-align: right; }
+    .pm-input:focus { border-color: #0e6480; }
+    .pm-summary { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; }
+    .pm-ok { background: #dcfce7; color: #15803d; }
+    .pm-err { background: #fee2e2; color: #dc2626; }
+    .pm-warn { background: #fef9c3; color: #a16207; }
+    .pm-summary mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    @media (max-width: 600px) {
+      .pm-input { width: 80px; }
+    }
+
     /* Sezione fattura */
     .fattura-toggle-row { display: flex; align-items: center; gap: 12px; margin: 20px 0 0; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; user-select: none; }
     .fattura-toggle-row mat-icon { font-size: 22px; width: 22px; height: 22px; color: #0e6480; }
@@ -215,6 +231,46 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
   get totale(): number { return this.imponibile + this.ivaTotal; }
 
+  // ── Pagamento misto ───────────────────────────────────────────────────────
+  pagamentoMisto = false;
+  pagamentiMisti: { metodo: string; importo: number | null }[] = [];
+
+  get totalePagamentiMisti(): number {
+    return this.pagamentiMisti.reduce((s, p) => s + (p.importo ?? 0), 0);
+  }
+  get rimanenteAllocare(): number {
+    return Math.round((this.totale - this.totalePagamentiMisti) * 100) / 100;
+  }
+  get pagamentiMistiValidi(): boolean {
+    return this.pagamentiMisti.length > 0 &&
+           this.pagamentiMisti.every(p => p.importo != null && p.importo > 0) &&
+           Math.abs(this.rimanenteAllocare) <= 0.01;
+  }
+
+  enablePagamentoMisto() {
+    this.pagamentoMisto = true;
+    this.pagamentiMisti = [{ metodo: this.vendita.metodoPagamento || 'CONTANTI', importo: null }];
+    this.clearImporto();
+  }
+
+  disablePagamentoMisto() {
+    this.pagamentoMisto = false;
+    this.pagamentiMisti = [];
+  }
+
+  addPagamentoMisto() {
+    const usati = new Set(this.pagamentiMisti.map(p => p.metodo));
+    const disponibile = this.metodiPagamento.find(m => !usati.has(m.valore));
+    if (!disponibile) return;
+    const rimanente = Math.max(0, this.rimanenteAllocare);
+    this.pagamentiMisti.push({ metodo: disponibile.valore, importo: rimanente > 0 ? rimanente : null });
+  }
+
+  removePagamentoMisto(i: number) {
+    this.pagamentiMisti.splice(i, 1);
+    if (this.pagamentiMisti.length === 0) this.disablePagamentoMisto();
+  }
+
   // ── Calcolatrice resto ────────────────────────────────────────────────────
   importoPagato: number | null = null;
   selectedBanconote: number[] = [];
@@ -277,7 +333,11 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
 
   // ── Metodo pagamento ──────────────────────────────────────────────────────
-  setMetodo(m: string) { this.vendita.metodoPagamento = m; this.clearImporto(); }
+  setMetodo(m: string) {
+    this.disablePagamentoMisto();
+    this.vendita.metodoPagamento = m;
+    this.clearImporto();
+  }
 
   // ── Fattura ───────────────────────────────────────────────────────────────
   toggleFattura() {
@@ -457,6 +517,18 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   salvaEStampa() {
     if (!this.righe.length) { this.snack.open('Aggiungi almeno un prodotto', '', { duration: 2000 }); return; }
 
+    if (this.pagamentoMisto) {
+      if (this.pagamentiMisti.some(p => !p.importo || p.importo <= 0)) {
+        this.snack.open('Inserisci l\'importo per tutti i metodi di pagamento', '', { duration: 2500 }); return;
+      }
+      if (this.rimanenteAllocare > 0.01) {
+        this.snack.open(`Importo non completo: mancano €${this.rimanenteAllocare.toFixed(2)}`, '', { duration: 2500 }); return;
+      }
+      if (this.rimanenteAllocare < -0.01) {
+        this.snack.open(`Importo in eccesso di €${(-this.rimanenteAllocare).toFixed(2)}`, '', { duration: 2500 }); return;
+      }
+    }
+
     if (this.vuoleFattura) {
       if (!this.clienteSelezionato && !this.mostraFormManuale) {
         this.snack.open('Cerca la P.IVA del cliente per generare la fattura', '', { duration: 2500 }); return;
@@ -482,6 +554,9 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
       ...this.vendita,
       clienteNome: this.vuoleFattura ? nomeCliente : '',
       righe: this.righe,
+      ...(this.pagamentoMisto ? {
+        pagamenti: this.pagamentiMisti.map(p => ({ metodo: p.metodo, importo: p.importo! }))
+      } : {}),
     };
 
     this.ds.createVenditaBanco(payload).subscribe({
@@ -517,6 +592,8 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     this.importoPagato = null;
     this.selectedBanconote = [];
     this.vuoleFattura = false;
+    this.pagamentoMisto = false;
+    this.pagamentiMisti = [];
     this.resetClienteFattura();
     this.vendita = { numero: '', data: this.today, metodoPagamento: 'CONTANTI' };
     this.loadNextNumber();

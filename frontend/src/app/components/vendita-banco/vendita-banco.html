@@ -27,16 +27,77 @@
             Metodo di pagamento
           </span>
         </div>
-        <div class="metodi-grid">
-          @for (m of metodiPagamento; track m.valore) {
-            <button type="button" class="metodo-btn"
-                    [class.selected]="vendita.metodoPagamento === m.valore"
-                    (click)="setMetodo(m.valore)">
-              <mat-icon>{{ m.icon }}</mat-icon>
-              {{ m.label }}
+
+        @if (!pagamentoMisto) {
+          <!-- Singolo metodo -->
+          <div class="metodi-grid">
+            @for (m of metodiPagamento; track m.valore) {
+              <button type="button" class="metodo-btn"
+                      [class.selected]="vendita.metodoPagamento === m.valore"
+                      (click)="setMetodo(m.valore)">
+                <mat-icon>{{ m.icon }}</mat-icon>
+                {{ m.label }}
+              </button>
+            }
+          </div>
+          <div style="text-align:right;margin-top:-4px;margin-bottom:8px">
+            <button mat-button type="button" style="font-size:12px;color:#0e6480" (click)="enablePagamentoMisto()">
+              <mat-icon style="font-size:16px;vertical-align:middle">call_split</mat-icon>
+              Pagamento misto
             </button>
-          }
-        </div>
+          </div>
+        } @else {
+          <!-- Pagamento misto -->
+          <div style="margin-bottom:8px">
+            @for (p of pagamentiMisti; track $index; let i = $index) {
+              <div class="pm-row">
+                <select class="pm-select" [(ngModel)]="p.metodo">
+                  @for (m of metodiPagamento; track m.valore) {
+                    <option [value]="m.valore">{{ m.label }}</option>
+                  }
+                </select>
+                <span class="pm-currency">€</span>
+                <input type="number" class="pm-input" min="0" step="0.01"
+                       [(ngModel)]="p.importo" placeholder="0,00">
+                @if (pagamentiMisti.length > 1) {
+                  <button mat-icon-button type="button" color="warn" (click)="removePagamentoMisto(i)" style="flex-shrink:0">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+            <button mat-stroked-button type="button" (click)="addPagamentoMisto()"
+                    [disabled]="pagamentiMisti.length >= metodiPagamento.length">
+              <mat-icon>add</mat-icon> Aggiungi metodo
+            </button>
+            @if (rimanenteAllocare > 0.01) {
+              <div class="pm-summary pm-warn">
+                <mat-icon>info</mat-icon>
+                Rimanente: {{ rimanenteAllocare | currency:'EUR':'symbol':'1.2-2':'it' }}
+              </div>
+            } @else if (rimanenteAllocare < -0.01) {
+              <div class="pm-summary pm-err">
+                <mat-icon>error</mat-icon>
+                Eccesso: {{ (-rimanenteAllocare) | currency:'EUR':'symbol':'1.2-2':'it' }}
+              </div>
+            } @else if (totalePagamentiMisti > 0) {
+              <div class="pm-summary pm-ok">
+                <mat-icon>check_circle</mat-icon>
+                Pagamenti completi
+              </div>
+            }
+          </div>
+
+          <div style="text-align:right;margin-bottom:8px">
+            <button mat-button type="button" style="font-size:12px;color:#64748b" (click)="disablePagamentoMisto()">
+              <mat-icon style="font-size:16px;vertical-align:middle">arrow_back</mat-icon>
+              Torna a pagamento singolo
+            </button>
+          </div>
+        }
 
         <!-- Righe prodotto -->
         <div class="righe-header">
@@ -160,8 +221,8 @@
           </div>
         }
 
-        <!-- Calcolatrice resto (solo contanti) -->
-        @if (righe.length && vendita.metodoPagamento === 'CONTANTI') {
+        <!-- Calcolatrice resto (solo contanti singolo) -->
+        @if (righe.length && vendita.metodoPagamento === 'CONTANTI' && !pagamentoMisto) {
           <div class="resto-box">
             <div class="resto-header">
               <mat-icon>payments</mat-icon>

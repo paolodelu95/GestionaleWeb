@@ -27,10 +27,17 @@ router.post('/', (req, res) => {
   const v = req.body;
   const dup = db.prepare('SELECT id FROM vendite_banco WHERE numero=?').get(v.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${v.numero} è già utilizzato da un altro documento` });
+
+  // Determina il valore di metodo_pagamento da salvare
+  const pagamentiMisti = Array.isArray(v.pagamenti) && v.pagamenti.length > 0 ? v.pagamenti : null;
+  const metodoToStore = pagamentiMisti
+    ? [...new Set(pagamentiMisti.map(p => p.metodo))].join('+')
+    : (v.metodoPagamento || 'CONTANTI');
+
   const result = db.prepare(
     `INSERT INTO vendite_banco (numero, data, cliente_nome, metodo_pagamento, note, stato)
      VALUES (?,?,?,?,?,?)`
-  ).run(v.numero, v.data, v.clienteNome || '', v.metodoPagamento || 'CONTANTI', v.note || '', 'EMESSA');
+  ).run(v.numero, v.data, v.clienteNome || '', metodoToStore, v.note || '', 'EMESSA');
   const vendita_id = result.lastInsertRowid;
 
   if (v.righe?.length) {
@@ -41,14 +48,26 @@ router.post('/', (req, res) => {
     });
   }
 
-  // Calcola totale e inserisce pagamento automatico
-  const totale = calcolaTotale(vendita_id);
-  const conto = ['CONTANTI'].includes(v.metodoPagamento) ? 'CASSA' : 'BANCA';
-  db.prepare(
-    `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
-     VALUES (?,?,?,?,?,?,?)`
-  ).run(v.data, totale, v.metodoPagamento, 'ENTRATA', conto, vendita_id,
-       `Vendita al banco N. ${v.numero}${v.clienteNome ? ' – ' + v.clienteNome : ''}`);
+  const noteBase = `Vendita al banco N. ${v.numero}${v.clienteNome ? ' – ' + v.clienteNome : ''}`;
+
+  if (pagamentiMisti) {
+    // Pagamento misto: inserisce un record per ogni metodo
+    for (const p of pagamentiMisti) {
+      const conto = p.metodo === 'CONTANTI' ? 'CASSA' : 'BANCA';
+      db.prepare(
+        `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
+         VALUES (?,?,?,?,?,?,?)`
+      ).run(v.data, p.importo, p.metodo, 'ENTRATA', conto, vendita_id, noteBase);
+    }
+  } else {
+    // Pagamento singolo
+    const totale = calcolaTotale(vendita_id);
+    const conto = v.metodoPagamento === 'CONTANTI' ? 'CASSA' : 'BANCA';
+    db.prepare(
+      `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
+       VALUES (?,?,?,?,?,?,?)`
+    ).run(v.data, totale, v.metodoPagamento || 'CONTANTI', 'ENTRATA', conto, vendita_id, noteBase);
+  }
 
   res.json({ id: vendita_id });
 });

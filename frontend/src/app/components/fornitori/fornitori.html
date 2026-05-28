@@ -4,7 +4,7 @@
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo fornitore</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
-    <input #importInput type="file" accept=".xlsx,.xls" class="hidden-input" (change)="importExcel($event)">
+    <input #importInput type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden-input" (change)="importExcel($event)">
     <span class="header-overflow-item"><app-column-picker storageKey="fornitori" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
 
     <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFornitori" title="Altre azioni">

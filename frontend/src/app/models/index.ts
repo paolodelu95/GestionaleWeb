@@ -382,6 +382,7 @@ export interface VenditaBanco {
   stato?: string;
   totale?: number;
   righe?: RigaDocumento[];
+  pagamenti?: { metodo: string; importo: number }[];
 }
 
 export interface MovimentoMagazzino {
