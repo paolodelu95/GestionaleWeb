@@ -717,6 +717,39 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
     .dialog-hero-title { font-size: 16px; }
   }
   .doc-totals-strip { padding: 12px 14px; gap: 14px; }
+
+  // Page header: su mobile gli elementi vanno a capo.
+  // Layout target:
+  //   riga 1: titolo (100%)
+  //   riga 2: bottoni mat-flat / mat-stroked (si dividono la riga)
+  //   riga 3: mat-button-toggle-group (100%)
+  // Uso `order` per separare i gruppi: i bottoni hanno order < toggle.
+  .page-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-title {
+    flex: 0 0 100%;
+    font-size: 20px;
+    order: 0;
+  }
+  .page-header > button[mat-flat-button],
+  .page-header > button[mat-stroked-button],
+  .page-header > a[mat-flat-button],
+  .page-header > a[mat-stroked-button] {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    order: 1;
+  }
+  .page-header > mat-button-toggle-group {
+    flex: 0 0 100%;
+    width: 100%;
+    overflow-x: auto;
+    order: 2;
+  }
+  .page-header > mat-button-toggle-group .mat-button-toggle {
+    flex-shrink: 0;
+  }
 }
 
 .mat-mdc-dialog-content {
@@ -1307,8 +1340,83 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   // regole che le nascondevano (rendevano illeggibili login, ricerche,
   // bottoni show/hide password, ecc.).
 
-  // Righe table
-  .righe-section { overflow-x: auto; }
+  // Righe table → card stack su mobile.
+  // Le righe dei documenti hanno 9-11 colonne (codice, q.tà, UM, prezzo,
+  // sconto, IVA, totale, ...). Su mobile la tabella diventa un grid:
+  //   td "codice/descrizione" full width
+  //   q.tà + UM affiancate
+  //   prezzo + sconto% + IVA% su tre
+  //   totale full width, allineato a destra
+  //   azioni (search/history/delete) raggruppate in fondo
+  .righe-section { overflow: visible; }
+  .righe-table {
+    display: block;
+    width: 100%;
+    border-collapse: separate;
+  }
+  .righe-table thead { display: none; }
+  .righe-table tbody { display: block; }
+  .righe-table tr {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px 8px;
+    background: var(--bg-surface-2, #f8fafc);
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .righe-table tr.riga-nota {
+    grid-template-columns: 1fr auto;
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+  .righe-table td {
+    display: flex;
+    align-items: center;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+  // Cella drag-handle: ridotta in angolo
+  .righe-table td.td-drag { grid-column: 1 / 2; justify-content: flex-start; }
+  // Cella descrizione: full width (riga 1)
+  .righe-table td.td-desc { grid-column: 2 / -1; }
+  // Search button: dopo descrizione
+  .righe-table td.td-search { grid-column: 1 / 2; justify-content: center; }
+  // History button: vicino prezzo
+  .righe-table td.td-history { grid-column: 6 / -1; justify-content: center; }
+  // q.tà
+  .righe-table td:nth-of-type(4) { grid-column: 2 / 4; }
+  // UM
+  .righe-table td:nth-of-type(5) { grid-column: 4 / 7; }
+  // Prezzo (input)
+  .righe-table td:nth-of-type(6) { grid-column: 1 / 4; }
+  // Sconto%
+  .righe-table td:nth-of-type(8) { grid-column: 4 / 5; }
+  // IVA
+  .righe-table td:nth-of-type(9) { grid-column: 5 / 7; }
+  // Totale
+  .righe-table td:nth-of-type(10) {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    font-weight: 700; font-size: 15px;
+    border-top: 1px dashed var(--border-subtle);
+    padding-top: 8px; margin-top: 2px;
+  }
+  // Ultima cella: delete button
+  .righe-table td:last-child { grid-column: 1 / -1; justify-content: flex-end; }
+  // Input dentro la cella: full width
+  .righe-table td > input,
+  .righe-table td > select,
+  .righe-table td > .riga-input { width: 100% !important; min-width: 0 !important; }
+  .righe-table td input.riga-input.num,
+  .righe-table td input.riga-input.sconto { width: 100% !important; }
+  // Codice + descrizione stack (sono dentro lo stesso <td class="td-desc">)
+  .righe-table td.td-desc { flex-direction: column; align-items: stretch; gap: 0; }
+  .righe-table td.td-desc .riga-input { display: block; }
+  // Header table → th nascosti, ma le riga-nota ha colspan=9 ↑ deve riempire
+  .righe-table tr.riga-nota td[colspan] { grid-column: 1 / -1; }
 
   // Doc totals strip: stack su mobile
   .doc-totals-strip {
@@ -1376,6 +1484,30 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .righe-section button[mat-stroked-button],
   .mat-mdc-dialog-content button[mat-stroked-button] .mdc-button__label {
     white-space: nowrap;
+  }
+
+  // Header sezione righe: label "Righe *" su una sua riga (full width),
+  // poi i bottoni di azione (Ivato/Netto toggle + Aggiungi riga + Copia +
+  // Aggiungi nota) si dispongono in grid 2 colonne per leggibilità.
+  .righe-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    > div:first-child {
+      flex: 0 0 100%;
+      min-width: 0;
+    }
+    > div:last-child {
+      flex: 0 0 100%;
+      flex-wrap: wrap;
+      width: 100%;
+      gap: 6px !important;
+      align-items: stretch !important;
+    }
+    > div:last-child > * {
+      flex: 1 1 calc(50% - 3px);
+      min-width: 0;
+    }
+    > div:last-child > mat-button-toggle-group { flex: 1 1 100%; }
   }
 
   // Full screen dialogs + override min-width inline (es. listino-dialog usa 680px)
