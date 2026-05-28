@@ -1739,6 +1739,15 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   td.mat-column-rimanente::before               { content: "Rimanente"; }
   td.mat-column-fatturatoAnno::before           { content: "Fatturato anno"; }
   td.mat-column-fattureInsolute::before         { content: "Insoluti"; }
+  td.mat-column-ore::before                     { content: "Ore"; }
+  td.mat-column-budget::before                  { content: "Budget"; }
+  td.mat-column-progetto::before                { content: "Progetto"; }
+  td.mat-column-progettoNome::before            { content: "Progetto"; }
+  td.mat-column-utente::before                  { content: "Utente"; }
+  td.mat-column-tariffaOraria::before           { content: "Tariffa €/ora"; }
+  td.mat-column-saldo::before                   { content: "Saldo"; }
+  td.mat-column-aliquota::before                { content: "Aliquota"; }
+  td.mat-column-imponibile::before              { content: "Imponibile"; }
 
   // Mat tabs scrollable su mobile (impedisce overflow)
   .mat-mdc-tab-header { border-bottom: 1px solid var(--border-subtle); }

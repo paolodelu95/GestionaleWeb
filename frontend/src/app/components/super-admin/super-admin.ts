@@ -225,21 +225,21 @@ export class SuperTenantEditDialogComponent {
               <tbody>
                 @for (t of filteredTenants; track t.slug) {
                   <tr [class.row-suspended]="!t.attivo">
-                    <td><code>{{ t.slug }}</code></td>
-                    <td>{{ t.ragioneSociale || t.nome }}</td>
-                    <td>{{ t.owner?.email || t.owner?.username || '—' }}</td>
-                    <td><span class="badge" [class]="'badge-piano-' + (t.piano || 'trial')">{{ t.piano || 'trial' }}</span></td>
-                    <td><span class="badge" [class]="'badge-stato-' + (t.stato || 'attiva')">{{ t.stato || 'attiva' }}</span></td>
-                    <td class="num">{{ t.utentiAttivi }} / {{ t.utenti }}</td>
-                    <td>
+                    <td data-label="Slug"><code>{{ t.slug }}</code></td>
+                    <td data-label="Ragione sociale">{{ t.ragioneSociale || t.nome }}</td>
+                    <td data-label="Owner">{{ t.owner?.email || t.owner?.username || '—' }}</td>
+                    <td data-label="Piano"><span class="badge" [class]="'badge-piano-' + (t.piano || 'trial')">{{ t.piano || 'trial' }}</span></td>
+                    <td data-label="Stato"><span class="badge" [class]="'badge-stato-' + (t.stato || 'attiva')">{{ t.stato || 'attiva' }}</span></td>
+                    <td class="num" data-label="Utenti">{{ t.utentiAttivi }} / {{ t.utenti }}</td>
+                    <td data-label="Trial">
                       @if (t.trialScadeIl) {
                         <span [class.text-warn]="isTrialExpiring(t.trialScadeIl)" [class.text-danger]="isTrialExpired(t.trialScadeIl)">
                           {{ t.trialScadeIl | date:'dd/MM/yyyy' }}
                         </span>
                       } @else { — }
                     </td>
-                    <td>{{ t.created_at | date:'dd/MM/yyyy' }}</td>
-                    <td>
+                    <td data-label="Creato">{{ t.created_at | date:'dd/MM/yyyy' }}</td>
+                    <td class="row-actions">
                       <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Azioni">
                         <mat-icon>more_vert</mat-icon>
                       </button>
@@ -295,18 +295,18 @@ export class SuperTenantEditDialogComponent {
               <tbody>
                 @for (u of recentUsers; track u.id) {
                   <tr>
-                    <td>{{ u.email || u.username }}</td>
-                    <td>{{ u.nome || '—' }}</td>
-                    <td><code>{{ u.tenant_slug }}</code></td>
-                    <td><span class="badge badge-ruolo">{{ u.ruolo }}</span></td>
-                    <td>
+                    <td data-label="Email / Username">{{ u.email || u.username }}</td>
+                    <td data-label="Nome">{{ u.nome || '—' }}</td>
+                    <td data-label="Tenant"><code>{{ u.tenant_slug }}</code></td>
+                    <td data-label="Ruolo"><span class="badge badge-ruolo">{{ u.ruolo }}</span></td>
+                    <td data-label="Verifica">
                       @if (u.emailVerified) {
                         <span class="check ok"><mat-icon>verified</mat-icon> Verificata</span>
                       } @else {
                         <span class="check warn"><mat-icon>schedule</mat-icon> In attesa</span>
                       }
                     </td>
-                    <td>{{ u.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td data-label="Registrato">{{ u.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
                   </tr>
                 }
               </tbody>
@@ -431,6 +431,42 @@ export class SuperTenantEditDialogComponent {
       .sa-page { padding: 16px 14px; }
       .sa-header { flex-direction: column; align-items: stretch; }
       .filters .search, .filters .select { width: 100%; }
+
+      /* Tabelle -> card impilate (niente scroll orizzontale) */
+      .table-wrap { overflow-x: visible; background: transparent; border: none; border-radius: 0; }
+      .data-table { font-size: 14px; }
+      .data-table thead { display: none; }
+      .data-table, .data-table tbody { display: block; width: 100%; }
+      .data-table tr {
+        display: block;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 6px 14px;
+        margin-bottom: 12px;
+      }
+      .data-table tbody tr:hover { background: var(--bg-surface); }
+      .data-table tbody td {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0 !important;
+        border-bottom: 1px solid var(--border-subtle);
+        text-align: right;
+      }
+      .data-table tbody tr td:last-child { border-bottom: none; }
+      .data-table tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.04em;
+        color: var(--text-tertiary);
+        text-align: left;
+      }
+      .data-table td.num { text-align: right; }
+      .data-table td.row-actions { justify-content: flex-end; padding-top: 4px !important; }
+      .data-table td.row-actions::before { content: none; }
+      .data-table td.empty { justify-content: center; text-align: center; }
+      .data-table td.empty::before { content: none; }
     }
   `]
 })
