@@ -162,7 +162,10 @@ import { ExcelService } from '../../services/excel.service';
     .iva-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); }
     .iva-table td.euro { text-align: right; font-variant-numeric: tabular-nums; }
     @media (max-width: 600px) {
-      div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+      div[style*="grid-template-columns:1fr 1fr"],
+      div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+      .iva-table { font-size: 12px; }
+      .iva-table th, .iva-table td { padding: 6px 8px; }
     }
   `]
 })

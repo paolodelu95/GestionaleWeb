@@ -160,6 +160,24 @@ interface MetodoPagamento {
       .resto-body { gap: 12px; }
       .actions-bar { flex-direction: column-reverse; align-items: stretch; }
       .actions-bar button { width: 100%; }
+
+      /* Righe come card impilate (niente scroll orizzontale) */
+      .righe-table-wrap { overflow-x: visible; }
+      .righe-table { min-width: 0; width: 100%; }
+      .righe-table thead { display: none; }
+      .righe-table, .righe-table tbody, .righe-table tr, .righe-table td { display: block; width: 100%; }
+      .righe-table tr { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; background: #fff; box-sizing: border-box; }
+      .righe-table td { border: none !important; padding: 6px 0 !important; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left !important; }
+      .righe-table td::before { content: attr(data-label); font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; flex: 0 0 auto; }
+      .righe-table td:empty, .righe-table td[colspan]::before { content: none; }
+      .righe-table td[colspan] { justify-content: center; text-align: center !important; }
+      .righe-table .riga-input { width: auto !important; flex: 1 1 auto; max-width: 62%; text-align: right; }
+      .righe-table .riga-desc { display: block; }
+      .righe-table .riga-desc::before { display: block; margin-bottom: 4px; }
+      .righe-table .riga-desc .riga-input { width: 100% !important; max-width: none; text-align: left; }
+      .righe-table .riga-importo { font-size: 15px; border-top: 1px dashed #e2e8f0 !important; margin-top: 4px; padding-top: 10px !important; }
+      .righe-table .riga-del { justify-content: flex-end; }
+      .righe-table .riga-del::before { content: none; }
     }
   `]
 })

@@ -77,6 +77,8 @@ async function auditViewport(browser, token, viewport) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     deviceScaleFactor: 2,
+    // Disabilita il service worker per evitare di servire bundle stale durante l'audit
+    serviceWorkers: 'block',
   });
   const page = await context.newPage();
 
