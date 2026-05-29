@@ -441,7 +441,7 @@ export class FornitoreDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            MatTooltipModule, MatMenuModule, ColumnPickerComponent, InfoDialogComponent],
+            MatTooltipModule, MatMenuModule, ColumnPickerComponent],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })

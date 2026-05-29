@@ -732,7 +732,7 @@ export class ClienteDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            MatTooltipModule, MatMenuModule, ColumnPickerComponent, InfoDialogComponent],
+            MatTooltipModule, MatMenuModule, ColumnPickerComponent],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })

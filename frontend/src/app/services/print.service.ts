@@ -34,7 +34,7 @@ export class PdfPreviewDialogComponent {
   safeUrl: SafeResourceUrl;
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { pdf: jsPDF; filename: string },
-    private sanitizer: DomSanitizer
+    sanitizer: DomSanitizer
   ) {
     this.safeUrl = sanitizer.bypassSecurityTrustResourceUrl(data.pdf.output('bloburl') as unknown as string);
   }

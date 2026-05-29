@@ -23,6 +23,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 
 import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
+import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -66,7 +67,6 @@ const RIGHE_STYLES = `
     MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
     MatAutocompleteModule, MatTableModule, MatIconModule,
     MatButtonToggleModule, MatMenuModule, MatTabsModule, MatTooltipModule, DragDropModule,
-    CopiaRigheDialogComponent,
   ],
   template: `
     <mat-dialog-content>
@@ -471,12 +471,11 @@ export class DdtDialogComponent implements OnInit {
   get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
   rigaTotale(riga: RigaDocumento) {
-    const net = riga.quantita * riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
-    return this.showNetto ? net : net * (1 + riga.iva / 100);
+    return docRigaTotale(riga, this.showNetto);
   }
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
-    riga.prezzo = Math.max(0, this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6));
+    riga.prezzo = prezzoNettoDaInput(v, riga.iva, this.showNetto);
   }
 
   loadPrezziRecenti(index: number) {
@@ -737,7 +736,7 @@ export class DdtDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, DocInfoDialogComponent, FattureInsoluteDialogComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule],
   templateUrl: './ddt.html',
   styleUrl: './ddt.scss'
 })

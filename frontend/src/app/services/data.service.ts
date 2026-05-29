@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, switchMap, shareReplay, map } from 'rxjs';
+import { Observable, switchMap, shareReplay, map } from 'rxjs';
 import { ModuloDto } from '../models';
 import { ApiService } from './api.service';
 import {
-  Azienda, NotificheConfig, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
+  Azienda, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,

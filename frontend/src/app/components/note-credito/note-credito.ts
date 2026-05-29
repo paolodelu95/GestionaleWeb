@@ -20,6 +20,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
+import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { EmailDialogComponent } from '../shared/email-dialog';
@@ -56,8 +57,7 @@ const RIGHE_STYLES = `
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule,
-            CopiaRigheDialogComponent],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -347,12 +347,11 @@ export class NotaCreditoDialogComponent implements OnInit {
   get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
   rigaTotale(riga: RigaDocumento) {
-    const net = riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
-    return this.showNetto ? riga.quantita * net : riga.quantita * net * (1 + riga.iva / 100);
+    return docRigaTotale(riga, this.showNetto);
   }
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
-    riga.prezzo = Math.max(0, this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6));
+    riga.prezzo = prezzoNettoDaInput(v, riga.iva, this.showNetto);
   }
 
   constructor(
@@ -554,8 +553,7 @@ export class NotaCreditoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule,
-            DocInfoDialogComponent],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule],
   templateUrl: './note-credito.html',
   styleUrl: './note-credito.scss'
 })

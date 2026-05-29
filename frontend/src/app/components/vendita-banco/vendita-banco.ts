@@ -42,7 +42,7 @@ interface MetodoPagamento {
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatTabsModule, MatSnackBarModule, MatAutocompleteModule,
-    MatProgressSpinnerModule, MatMenuModule, MatDialogModule, DocInfoDialogComponent,
+    MatProgressSpinnerModule, MatMenuModule, MatDialogModule,
   ],
   templateUrl: './vendita-banco.html',
   styles: [`

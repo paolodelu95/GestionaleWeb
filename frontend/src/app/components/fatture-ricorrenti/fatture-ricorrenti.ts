@@ -15,6 +15,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService } from '../../services/data.service';
 import { Cliente, TipoPagamento, UnitaMisura } from '../../models';
+import { docRigaTotale } from '../../utils/doc-calc';
 
 // ── Styles shared by dialog rig table ──────────────────────────────────────
 const RIGHE_STYLES = `
@@ -205,7 +206,7 @@ export class FatturaRicorrenteDialogComponent implements OnInit {
   get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
   get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
-  rigaTotale(r: any) { return r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * (1 + r.iva / 100); }
+  rigaTotale(r: any) { return docRigaTotale(r, false); }
 
   constructor(
     private fb: FormBuilder,

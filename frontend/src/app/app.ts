@@ -249,7 +249,6 @@ export class App implements OnInit {
     this.loadingNotif = true;
     this.ds.getScadenzarioFull().subscribe({
       next: items => {
-        const oggi = new Date().toISOString().slice(0, 10);
         this.notifItems = (items || [])
           .filter((i: any) => i.scaduto || (i.giorniMancanti !== null && i.giorniMancanti <= 7))
           .slice(0, 20);

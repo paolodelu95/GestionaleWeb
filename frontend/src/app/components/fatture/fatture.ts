@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -25,6 +25,7 @@ import { catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
+import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -237,8 +238,7 @@ const RIGHE_STYLES = `
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
             MatButtonToggleModule, MatSnackBarModule, MatMenuModule, MatTooltipModule,
-            AllegatiComponent, DragDropModule,
-            CopiaRigheDialogComponent],
+            AllegatiComponent, DragDropModule],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -834,8 +834,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
   rigaTotale(riga: RigaDocumento) {
-    const net = riga.quantita * riga.prezzo * (1 - (riga.sconto ?? 0) / 100);
-    return this.showNetto ? net : net * (1 + riga.iva / 100);
+    return docRigaTotale(riga, this.showNetto);
   }
   isRigaNota(riga: RigaDocumento) {
     return riga.tipo === 'NOTA';
@@ -910,7 +909,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
-    riga.prezzo = Math.max(0, this.showNetto ? v : +(v / (1 + riga.iva / 100)).toFixed(6));
+    riga.prezzo = prezzoNettoDaInput(v, riga.iva, this.showNetto);
   }
 
   addDdt() {
@@ -1227,8 +1226,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, DocInfoDialogComponent,
-            GeneraFattureDaDdtDialogComponent, FattureInsoluteDialogComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })

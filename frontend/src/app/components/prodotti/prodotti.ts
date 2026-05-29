@@ -17,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
-import { Prodotto, ProdottoVariante, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
+import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
@@ -420,7 +420,7 @@ export class ProdottoDialogComponent implements OnInit {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
-            ColumnPickerComponent, InfoDialogComponent],
+            ColumnPickerComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })

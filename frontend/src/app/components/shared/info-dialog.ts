@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,7 +26,7 @@ export interface InfoDialogData {
 @Component({
   selector: 'app-info-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, CurrencyPipe],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
   template: `
     <div mat-dialog-title style="display:flex;align-items:center;gap:10px;padding-bottom:4px">
       <mat-icon style="color:#3b82f6;font-size:22px;width:22px;height:22px;flex-shrink:0">info</mat-icon>

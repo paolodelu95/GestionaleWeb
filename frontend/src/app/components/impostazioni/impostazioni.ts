@@ -363,8 +363,7 @@ export class PrefissoConfermaDialogComponent {
             MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
             MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
-            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule,
-            PrefissoConfermaDialogComponent],
+            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })

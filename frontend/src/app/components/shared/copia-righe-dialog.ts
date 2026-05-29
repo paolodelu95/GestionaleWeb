@@ -10,6 +10,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DataService } from '../../services/data.service';
 import { RigaDocumento } from '../../models';
+import { docRigaTotale } from '../../utils/doc-calc';
 import { Observable } from 'rxjs';
 
 export interface CopiaRigheDialogData {
@@ -378,7 +379,7 @@ export class CopiaRigheDialogComponent implements OnInit {
   }
 
   rigaTotale(r: RigaDocumento): number {
-    return r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100);
+    return docRigaTotale(r, true);
   }
 
   fmtData(d: string): string {

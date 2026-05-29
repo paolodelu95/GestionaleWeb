@@ -1,7 +1,6 @@
 import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -170,7 +169,6 @@ export class SaldoMultiploDialogComponent implements OnInit {
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule, MatInputModule,
     MatTooltipModule, MatSnackBarModule, MatCheckboxModule, MatDialogModule,
-    SaldoMultiploDialogComponent,
   ],
   templateUrl: './scadenzario.html',
   styleUrl: './scadenzario.scss',
@@ -211,7 +209,6 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
   constructor(
     private ds: DataService,
     private dialog: MatDialog,
-    private router: Router,
     private snack: MatSnackBar
   ) {}
 
