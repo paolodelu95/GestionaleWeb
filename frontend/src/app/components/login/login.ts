@@ -225,14 +225,14 @@ import type { RegisterPayload } from '../../services/auth.service';
     .login-overlay {
       position: fixed; inset: 0;
       background: #0e2a38;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: flex-start; justify-content: center;
       z-index: 9999;
-      overflow: hidden;
-      padding: 20px;
+      overflow-y: auto; overflow-x: hidden;
+      padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
     }
 
     .login-bg {
-      position: absolute; inset: 0;
+      position: fixed; inset: 0;
       overflow: hidden;
       pointer-events: none;
     }

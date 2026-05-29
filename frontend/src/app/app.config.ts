@@ -4,6 +4,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MatPaginatorIntl } from '@angular/material/paginator';
 import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
+import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -23,6 +24,9 @@ export const appConfig: ApplicationConfig = {
     { provide: LOCALE_ID, useValue: 'it' },
     { provide: MAT_DATE_LOCALE, useValue: 'it-IT' },
     provideNativeDateAdapter(),
+    // Tetto del 95vw a TUTTI i dialog: evita overflow orizzontale su mobile/tablet
+    // anche per i dialog aperti con width fissa in px (senza toccarne le chiamate).
+    { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: { maxWidth: '95vw', autoFocus: 'dialog', restoreFocus: true } },
     { provide: MatPaginatorIntl, useFactory: italianPaginatorIntl },
     provideServiceWorker('ngsw-worker.js', {
             enabled: !isDevMode(),

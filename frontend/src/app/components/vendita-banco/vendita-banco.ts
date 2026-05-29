@@ -150,7 +150,7 @@ interface MetodoPagamento {
     .righe-table { min-width: 760px; }
 
     /* Mobile (< 600px): form-row a una colonna, metodi-grid e bottoni piu compatti */
-    @media (max-width: 600px) {
+    @media (max-width: 767.98px) {
       .form-row, .form-row-2 { grid-template-columns: 1fr !important; gap: 12px; }
       .metodi-grid { gap: 6px; }
       .metodo-btn { width: calc(50% - 6px); height: 68px; font-size: 11px; }

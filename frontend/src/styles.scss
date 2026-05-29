@@ -9,6 +9,11 @@ html {
   ));
 }
 
+// ── Rete di sicurezza globale: box-sizing universale + niente scroll orizzontale ─
+// Vale anche per le viste fuori dalla shell (login, pagine pubbliche, dialog).
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
 :root {
   // Surfaces
@@ -1231,10 +1236,10 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
 // ── Responsive helpers per tabelle wide ───────────────────────────────────────
 // Marca colonne con .hide-mobile / .hide-tablet sia sul <th> che sul <td>
 // dello stesso matColumnDef per nasconderle a partire dal breakpoint.
-@media (max-width: 900px) {
+@media (max-width: 1023.98px) {
   .hide-tablet { display: none !important; }
 }
-@media (max-width: 600px) {
+@media (max-width: 767.98px) {
   .hide-mobile { display: none !important; }
 }
 
@@ -1307,8 +1312,11 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   // Search field
   .search-field { max-width: 100%; }
 
-  // Form
-  .form-row { flex-direction: column; gap: 0; }
+  // Form: stack + figli a piena larghezza su TUTTA la fascia mobile (<=767.98)
+  .form-row {
+    flex-direction: column; gap: 0;
+    > * { width: 100% !important; max-width: 100% !important; flex: 1 1 auto !important; }
+  }
   .dialog-form { gap: 0; }
 
   // Form sections: rimuovi hint che ruba spazio
@@ -1758,8 +1766,8 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   // Card "max-width" inline (impostazioni usa style="max-width:560px"): full-width su mobile
   .tab-content .card[style*="max-width"] { max-width: 100% !important; }
 
-  // Snackbar: tieni dentro la viewport
-  .mat-mdc-snack-bar-container { margin: 12px !important; }
+  // Snackbar: dentro la viewport e sopra la safe-area iOS / il FAB "Segnala problema"
+  .mat-mdc-snack-bar-container { margin: 0 12px calc(12px + env(safe-area-inset-bottom)) !important; }
 }
 
 @media (max-width: 480px) {
@@ -1845,12 +1853,31 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .mat-mdc-dialog-surface { max-width: calc(100vw - 40px) !important; }
 }
 
+// Tablet 768–1023.98: banda prima scoperta. Cap surface + reset dei min-width
+// inline del contenuto + flex inline a wrap (in coppia col default maxWidth:95vw).
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .mat-mdc-dialog-surface { max-width: calc(100vw - 48px) !important; }
+  .mat-mdc-dialog-content,
+  .mat-mdc-dialog-content > *,
+  .mat-mdc-dialog-content [style*="min-width"] { min-width: 0 !important; max-width: 100% !important; }
+  .mat-mdc-dialog-content [style*="display:flex"] { flex-wrap: wrap; }
+}
+
 // Tabelle dentro card: scroll orizzontale invece di overflow
 .card > table,
 .card > .mat-mdc-table {
   display: block;
   overflow-x: auto;
   max-width: 100%;
+}
+
+// Fallback scroll per tabelle HTML native (non mat-table) su mobile, anche quando
+// non sono figlie dirette di .card (compliance, riconciliazione, admin, legal, ocr…).
+@media (max-width: 767.98px) {
+  .mat-mdc-dialog-content table:not(.mat-mdc-table),
+  .iva-table, .riconc-table, .adm-table, .data-table, .wip-table, .audit-table, .rep-table {
+    display: block; width: 100%; overflow-x: auto;
+  }
 }
 @media (max-width: 600px) {
   // mat-table dense su mobile
@@ -1930,4 +1957,14 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
     padding: 0 8px !important;
     mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
   }
+}
+
+// ── Touch target >=44px su mobile (accessibilità) ────────────────────────────
+// DEVE stare in fondo: vince per ordine di cascata sui blocchi <=480/<=360 che
+// comprimono a 36px. Mantiene icone/font compatti ma area di tocco adeguata.
+@media (max-width: 767.98px) {
+  button.mat-mdc-icon-button { width: 44px !important; height: 44px !important; padding: 8px !important; }
+  .mat-mdc-flat-button, .mat-mdc-stroked-button, .mat-mdc-raised-button, .mat-mdc-button,
+  a[mat-flat-button], a[mat-stroked-button], a[mat-button] { min-height: 44px !important; }
+  .mat-mdc-dialog-actions button.mat-mdc-button-base { min-height: 44px; }
 }

@@ -76,6 +76,13 @@ function autoMap(headers: string[], field: FieldDef): string {
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       max-width: 128px;
     }
+    /* Mobile: la griglia 170px/1fr/130px non collassa mai -> stack verticale */
+    @media (max-width: 600px) {
+      .grid-header { display: none; }
+      .grid-row { grid-template-columns: 1fr; gap: 2px; padding: 10px 0; }
+      .field-label { font-weight: 700; }
+      .preview-val { max-width: 100%; white-space: normal; word-break: break-word; }
+    }
     .warn { color: var(--mat-sys-error, #f44336); font-size: 12px; margin-top: 10px; display: flex; align-items: center; gap: 4px; }
   `],
   template: `
