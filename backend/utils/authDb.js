@@ -32,6 +32,8 @@ function getAuthDb() {
   const db = new Database(authDbPath());
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+  db.pragma('synchronous = NORMAL');
   db.exec(`
     CREATE TABLE IF NOT EXISTS tenants (
       slug             TEXT PRIMARY KEY,
@@ -117,11 +119,18 @@ function getAuthDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_evt_user ON email_verification_tokens(user_id);
     CREATE INDEX IF NOT EXISTS idx_evt_expires ON email_verification_tokens(expires_at);
+    CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+      id          TEXT PRIMARY KEY,
+      type        TEXT DEFAULT '',
+      received_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
   // Migrazioni per email_verified su users esistenti
   const userMigrations = [
     'ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE users ADD COLUMN email_verified_at TEXT DEFAULT NULL',
+    // Epoch per la revoca delle sessioni: incrementato al cambio password.
+    'ALTER TABLE users ADD COLUMN token_epoch INTEGER NOT NULL DEFAULT 0',
   ];
   for (const sql of userMigrations) { try { db.exec(sql); } catch(_) {} }
   // Migrazioni per campi commerciali sui tenant esistenti
@@ -146,6 +155,18 @@ function getAuthDb() {
   seedModuli(db);
   authDbInstance = db;
   return db;
+}
+
+// Checkpoint + chiusura di auth.db. Usato dallo shutdown graceful.
+function closeAuthDb() {
+  if (!authDbInstance) return;
+  try {
+    authDbInstance.pragma('wal_checkpoint(TRUNCATE)');
+    authDbInstance.close();
+  } catch (err) {
+    console.error('[shutdown] errore chiusura auth.db:', err.message);
+  }
+  authDbInstance = null;
 }
 
 // Catalogo moduli: core = sempre attivi (non disattivabili)
@@ -393,6 +414,23 @@ function deleteUser(id) {
   getAuthDb().prepare('DELETE FROM users WHERE id=?').run(id);
 }
 
+// Incrementa il "token epoch": invalida TUTTI i token già emessi per l'utente
+// (authMiddleware confronta payload.te con users.token_epoch). Chiamare SOLO ai
+// punti di cambio password (reset / change), non in updateUser generico.
+function bumpTokenEpoch(id) {
+  getAuthDb().prepare('UPDATE users SET token_epoch = token_epoch + 1 WHERE id=?').run(id);
+}
+
+// Idempotenza webhook Stripe: registra l'event.id e ritorna true SOLO la prima
+// volta (false se già processato). Stripe consegna gli eventi at-least-once.
+function markStripeEventProcessed(eventId, type) {
+  if (!eventId) return true;
+  const r = getAuthDb().prepare(
+    'INSERT OR IGNORE INTO stripe_webhook_events (id, type) VALUES (?, ?)'
+  ).run(String(eventId), type || '');
+  return r.changes === 1;
+}
+
 function countUsers() {
   return getAuthDb().prepare('SELECT COUNT(*) AS n FROM users').get().n;
 }
@@ -585,11 +623,11 @@ function findUserByEmail(email) {
 }
 
 module.exports = {
-  getAuthDb,
+  getAuthDb, closeAuthDb,
   dataDir, tenantsDir, authDbPath, tenantDbPath,
   listTenants, getTenant, createTenant, updateTenant, deleteTenant,
-  getTenantByStripeCustomerId, updateTenantBilling,
-  getUserByUsername, getUserById, listUsers, createUser, updateUser, deleteUser, countUsers,
+  getTenantByStripeCustomerId, updateTenantBilling, markStripeEventProcessed,
+  getUserByUsername, getUserById, listUsers, createUser, updateUser, deleteUser, countUsers, bumpTokenEpoch,
   findUserByEmail,
   listModuliCatalogo, listTenantModuli, setTenantModulo, ensureTenantModuli, isModuloAttivo,
   listGruppi, getGruppo, createGruppo, updateGruppo, deleteGruppo,

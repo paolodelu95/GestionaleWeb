@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { requireRole } = require('../middleware/auth');
+
+// La prima nota (cassa/banca) è dato contabile: la scrittura è riservata ai
+// ruoli amministrativi/contabili. La lettura resta a tutti i ruoli del tenant.
+const canWrite = requireRole('SUPERADMIN', 'OWNER', 'ADMIN', 'CONTABILE');
 
 function toDto(r) {
   return {
@@ -43,7 +48,7 @@ router.get('/', (req, res) => {
 });
 
 // POST / — create entry
-router.post('/', (req, res) => {
+router.post('/', canWrite, (req, res) => {
   const { data, tipo, causale, importo, conto, riferimentoTipo, riferimentoId, note } = req.body;
   if (!data || !tipo || !causale || importo == null) {
     return res.status(400).json({ error: 'Campi obbligatori: data, tipo, causale, importo' });
@@ -65,7 +70,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /:id — update entry
-router.put('/:id', (req, res) => {
+router.put('/:id', canWrite, (req, res) => {
   const { data, tipo, causale, importo, conto, riferimentoTipo, riferimentoId, note } = req.body;
   if (!data || !tipo || !causale || importo == null) {
     return res.status(400).json({ error: 'Campi obbligatori: data, tipo, causale, importo' });
@@ -88,7 +93,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /:id — delete entry
-router.delete('/:id', (req, res) => {
+router.delete('/:id', canWrite, (req, res) => {
   const info = db.prepare('DELETE FROM prima_nota WHERE id = ?').run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ error: 'Registrazione non trovata' });
   res.json({ success: true });

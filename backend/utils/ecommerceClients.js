@@ -30,7 +30,7 @@ function endpointBase(provider, baseUrl) {
 async function call(provider, baseUrl, key, secret, path, opts = {}) {
   const url = endpointBase(provider, baseUrl) + path;
   const headers = { 'Content-Type': 'application/json', ...authHeader(provider, key, secret) };
-  const r = await fetch(url, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const r = await fetch(url, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined, signal: AbortSignal.timeout(15000) });
   const text = await r.text();
   let data;
   try { data = text ? JSON.parse(text) : {}; } catch { data = { _raw: text }; }

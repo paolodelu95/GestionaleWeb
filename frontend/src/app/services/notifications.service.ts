@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, interval, Subscription } from 'rxjs';
 import { switchMap, startWith, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -19,11 +19,12 @@ export class NotificationService implements OnDestroy {
   constructor(private http: HttpClient) {}
 
   start() {
-    const token = localStorage.getItem('auth_token') || '';
-    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    // L'header Authorization è aggiunto dall'authInterceptor (con la chiave
+    // token corretta): qui non serve impostarlo a mano (prima usava una chiave
+    // errata 'auth_token').
     this.sub = interval(30000).pipe(
       startWith(0),
-      switchMap(() => this.http.get<NotificationBadges>('/api/notifications/badges', { headers }).pipe(
+      switchMap(() => this.http.get<NotificationBadges>('/api/notifications/badges').pipe(
         catchError(() => of({ scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0 }))
       ))
     ).subscribe(b => this.badges$.next(b));

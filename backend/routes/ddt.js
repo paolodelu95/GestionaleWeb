@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../database');
 const { checkRiordino } = require('../utils/riordino');
 const { audit } = require('../utils/audit');
+const { getNextNumero } = require('../utils/nextNumero');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -117,6 +118,11 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const ddt = db.prepare('SELECT stato, numero, cliente_id FROM ddt WHERE id=?').get(req.params.id);
+  // Compliance: un DDT emesso non è eliminabile (numero progressivo da preservare).
+  // Per stornarlo si annulla (PATCH stato → ANNULLATO) mantenendo il numero.
+  if (ddt && String(ddt.stato || '').toUpperCase() !== 'BOZZA') {
+    return res.status(409).json({ error: 'Un DDT emesso non può essere eliminato: annullalo (stato ANNULLATO) per stornare il magazzino mantenendo il numero.' });
+  }
   if (ddt?.stato !== 'ANNULLATO') {
     const righe = getRighe(req.params.id);
     if (righe.length) {
@@ -210,22 +216,30 @@ router.post('/:id/to-fattura', (req, res) => {
   if (!ddt) return res.status(404).json({ error: 'DDT non trovato' });
   const existing = db.prepare('SELECT id, numero FROM fatture WHERE ddt_id=?').get(req.params.id);
   if (existing) return res.status(409).json({ error: `DDT già collegato alla fattura n. ${existing.numero}` });
-  const righe = getRighe(ddt.id);
-  const count = db.prepare('SELECT COUNT(*) as n FROM fatture').get();
-  const numero = String(count.n + 1);
-  const data = new Date().toISOString().split('T')[0];
-  const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato)
-    VALUES (?,?,?,?,?,?)`)
-    .run(numero, data, ddt.cliente_id, ddt.id, `Da DDT n. ${ddt.numero}`, 'EMESSA');
-  const fatturaId = result.lastInsertRowid;
-  db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)').run(fatturaId, ddt.id);
-  const stmt = db.prepare(`INSERT INTO fatture_righe
-    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
-  for (const r of righe)
-    stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
-             r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
-  res.json({ id: fatturaId, numero });
+  try {
+    const out = db.transaction(() => {
+      const righe = getRighe(ddt.id);
+      // Numerazione coerente (prefisso/anno) tramite getNextNumero, non COUNT(*)+1
+      // che ignorava i prefissi e poteva collidere dopo le cancellazioni.
+      const numero = getNextNumero('fatture', 'fatture');
+      const data = new Date().toISOString().split('T')[0];
+      const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato)
+        VALUES (?,?,?,?,?,?)`)
+        .run(numero, data, ddt.cliente_id, ddt.id, `Da DDT n. ${ddt.numero}`, 'EMESSA');
+      const fatturaId = result.lastInsertRowid;
+      db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)').run(fatturaId, ddt.id);
+      const stmt = db.prepare(`INSERT INTO fatture_righe
+        (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+      for (const r of righe)
+        stmt.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+                 r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+      return { id: fatturaId, numero };
+    })();
+    res.json(out);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 router.patch('/:id/stato', (req, res) => {

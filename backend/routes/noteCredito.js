@@ -119,6 +119,12 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   try {
+    const nc = db.prepare('SELECT stato FROM note_credito WHERE id=?').get(req.params.id);
+    // Compliance fiscale: una nota di credito emessa non è eliminabile (numero
+    // progressivo da preservare). Eliminabile solo finché è in bozza.
+    if (nc && String(nc.stato || '').toUpperCase() !== 'BOZZA') {
+      return res.status(409).json({ error: 'Una nota di credito emessa non può essere eliminata.' });
+    }
     const snapshot = db.transaction(() => {
       const snapshot = db.prepare('SELECT numero, cliente_id, fattura_id, stato, data_emissione FROM note_credito WHERE id=?').get(req.params.id);
       // Storno: la nota di credito scompare, la merce esce di nuovo dal magazzino

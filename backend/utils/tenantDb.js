@@ -12,6 +12,10 @@ function openTenantDb(slug) {
   const db = new Database(file);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');     // attende il lock invece di SQLITE_BUSY immediato
+  db.pragma('synchronous = NORMAL');    // sicuro in WAL, meno fsync: meglio su 1 core condiviso
+  db.pragma('cache_size = -2000');      // ~2MB/connessione: limita l'RSS con molte connessioni su 256MB
+  db.pragma('mmap_size = 0');           // niente mmap: evita di gonfiare l'RSS sotto pressione di memoria
   initTenantSchema(db);
   cache.set(slug, db);
   return db;
@@ -19,6 +23,21 @@ function openTenantDb(slug) {
 
 function getCachedTenantDb(slug) {
   return cache.get(slug) || null;
+}
+
+// Checkpoint del WAL + chiusura di tutte le connessioni in cache. Usato dallo
+// shutdown graceful: senza checkpoint il -wal resta da applicare e i backup/
+// le copie del solo .db risulterebbero incompleti.
+function closeAll() {
+  for (const [slug, db] of cache) {
+    try {
+      db.pragma('wal_checkpoint(TRUNCATE)');
+      db.close();
+    } catch (err) {
+      console.error(`[shutdown] errore chiusura DB tenant ${slug}:`, err.message);
+    }
+  }
+  cache.clear();
 }
 
 function initTenantSchema(db) {
@@ -305,6 +324,7 @@ function initTenantSchema(db) {
     'ALTER TABLE prodotti ADD COLUMN barcode TEXT DEFAULT ""',
     'ALTER TABLE prodotti ADD COLUMN ha_varianti INTEGER DEFAULT 0',
     'ALTER TABLE pagamenti ADD COLUMN vendita_banco_id INTEGER',
+    'ALTER TABLE pagamenti ADD COLUMN stripe_ref TEXT',
     'ALTER TABLE vendite_banco_righe ADD COLUMN variante_id INTEGER',
     'ALTER TABLE vendite_banco_righe ADD COLUMN variante_taglia TEXT DEFAULT ""',
     'ALTER TABLE vendite_banco_righe ADD COLUMN variante_colore TEXT DEFAULT ""',
@@ -1050,6 +1070,37 @@ function initTenantSchema(db) {
     }
   }
 
+  // ── Indici di performance su FK/date (idempotenti) ──────────────────────────
+  // Senza, scadenzario/clienti/stats fanno full-scan + sottoquery correlate
+  // O(N×M) che bloccano l'unico CPU sotto carico. try/catch per-statement: una
+  // colonna assente non deve impedire l'apertura del DB.
+  const perfIndexes = [
+    'CREATE INDEX IF NOT EXISTS idx_fr_fattura       ON fatture_righe(fattura_id)',
+    'CREATE INDEX IF NOT EXISTS idx_dr_ddt           ON ddt_righe(ddt_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ncr_nota         ON note_credito_righe(nota_credito_id)',
+    'CREATE INDEX IF NOT EXISTS idx_or_ordine        ON ordini_righe(ordine_id)',
+    'CREATE INDEX IF NOT EXISTS idx_pr_preventivo    ON preventivi_righe(preventivo_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ar_acquisto      ON acquisti_righe(acquisto_id)',
+    'CREATE INDEX IF NOT EXISTS idx_vbr_vendita      ON vendite_banco_righe(vendita_id)',
+    'CREATE INDEX IF NOT EXISTS idx_pag_fattura      ON pagamenti(fattura_id)',
+    'CREATE INDEX IF NOT EXISTS idx_pag_acquisto     ON pagamenti(acquisto_id)',
+    'CREATE INDEX IF NOT EXISTS idx_pag_venditabanco ON pagamenti(vendita_banco_id)',
+    'CREATE INDEX IF NOT EXISTS idx_fatt_cliente     ON fatture(cliente_id)',
+    'CREATE INDEX IF NOT EXISTS idx_fatt_data        ON fatture(data_emissione)',
+    'CREATE INDEX IF NOT EXISTS idx_nc_cliente       ON note_credito(cliente_id)',
+    'CREATE INDEX IF NOT EXISTS idx_nc_fattura       ON note_credito(fattura_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ddt_cliente      ON ddt(cliente_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ord_cliente      ON ordini(cliente_id)',
+    'CREATE INDEX IF NOT EXISTS idx_prev_cliente     ON preventivi(cliente_id)',
+    'CREATE INDEX IF NOT EXISTS idx_acq_fornitore    ON acquisti(fornitore_id)',
+    'CREATE INDEX IF NOT EXISTS idx_fddt_fattura     ON fatture_ddt(fattura_id)',
+    'CREATE INDEX IF NOT EXISTS idx_fddt_ddt         ON fatture_ddt(ddt_id)',
+    'CREATE INDEX IF NOT EXISTS idx_arr_acquisto     ON arrivi_merce(acquisto_id)',
+    // Idempotenza pagamenti Stripe: un riferimento può comparire una sola volta.
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_pag_stripe_ref ON pagamenti(stripe_ref) WHERE stripe_ref IS NOT NULL',
+  ];
+  for (const sql of perfIndexes) { try { db.exec(sql); } catch (err) { console.warn('[migrate] indice non creato:', err.message); } }
+
   // Seed default CRM stages
   try {
     const cnt = db.prepare('SELECT COUNT(*) as n FROM crm_stage').get().n;
@@ -1082,4 +1133,4 @@ function initTenantSchema(db) {
   }
 }
 
-module.exports = { openTenantDb, getCachedTenantDb, initTenantSchema };
+module.exports = { openTenantDb, getCachedTenantDb, initTenantSchema, closeAll };

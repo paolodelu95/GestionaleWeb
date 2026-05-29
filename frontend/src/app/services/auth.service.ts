@@ -124,7 +124,9 @@ export class AuthService {
 
   getUser(): AuthUser | null {
     const raw = localStorage.getItem(this.USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try { return JSON.parse(raw); }
+    catch { localStorage.removeItem(this.USER_KEY); return null; }
   }
 
   getTenant(): string | null { return this.getUser()?.tenant ?? null; }

@@ -21,7 +21,7 @@ const express = require('express');
 const router = express.Router();
 const { requireRole } = require('../middleware/auth');
 const {
-  getTenant, updateTenantBilling, getTenantByStripeCustomerId,
+  getTenant, updateTenantBilling, getTenantByStripeCustomerId, markStripeEventProcessed,
 } = require('../utils/authDb');
 
 let _stripe = null;
@@ -158,21 +158,30 @@ router.post('/portal', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), async (req, 
 // ── Webhook handler (registrato in server.js con raw body) ───────────────
 // IMPORTANTE: deve ricevere il body GREZZO (Buffer) per validare la firma.
 async function handleStripeWebhook(req, res) {
-  const stripe = getStripe();
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
   if (secret) {
     try {
+      const stripe = getStripe();
       event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], secret);
     } catch (err) {
       console.error('[webhook] signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-  } else {
-    // Modalità dev: senza secret accettiamo il body come-is (NON usare in prod)
+  } else if (process.env.NODE_ENV === 'development') {
+    // SOLO in sviluppo esplicito: senza secret accettiamo il body come-is.
     try { event = JSON.parse(req.body.toString('utf8')); }
     catch (e) { return res.status(400).send('Invalid JSON'); }
-    console.warn('[webhook] STRIPE_WEBHOOK_SECRET non configurato — verifica firma DISABILITATA');
+    console.warn('[webhook] DEV: STRIPE_WEBHOOK_SECRET assente, verifica firma DISABILITATA');
+  } else {
+    // Produzione senza secret: fail-closed (vedi guard d'avvio in server.js).
+    console.error('[webhook] STRIPE_WEBHOOK_SECRET non configurato: webhook rifiutato');
+    return res.status(500).send('Webhook non configurato');
+  }
+
+  // Idempotenza: scarta gli eventi Stripe già processati (consegna at-least-once).
+  if (!markStripeEventProcessed(event.id, event.type)) {
+    return res.json({ received: true, duplicate: true });
   }
 
   try {

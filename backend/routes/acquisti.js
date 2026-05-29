@@ -29,22 +29,35 @@ router.post('/', (req, res) => {
   const a = req.body;
   const dup = db.prepare('SELECT id FROM acquisti WHERE numero=?').get(a.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${a.numero} è già utilizzato da un altro documento` });
-  const result = db.prepare(`INSERT INTO acquisti (numero,data_emissione,fornitore_id,tipo_pagamento_id,note,stato)
-    VALUES (?,?,?,?,?,?)`)
-    .run(a.numero, a.dataEmissione, a.fornitoreId || null, a.tipoPagamentoId || null, a.note || '', a.stato || 'RICEVUTA');
-  if (a.righe?.length) saveRighe(result.lastInsertRowid, a.righe);
-  res.json({ id: result.lastInsertRowid });
+  try {
+    const id = db.transaction(() => {
+      const result = db.prepare(`INSERT INTO acquisti (numero,data_emissione,fornitore_id,tipo_pagamento_id,note,stato)
+        VALUES (?,?,?,?,?,?)`)
+        .run(a.numero, a.dataEmissione, a.fornitoreId || null, a.tipoPagamentoId || null, a.note || '', a.stato || 'RICEVUTA');
+      if (a.righe?.length) saveRighe(result.lastInsertRowid, a.righe);
+      return result.lastInsertRowid;
+    })();
+    res.json({ id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 router.put('/:id', (req, res) => {
   const a = req.body;
   const dup = db.prepare('SELECT id FROM acquisti WHERE numero=? AND id!=?').get(a.numero, req.params.id);
   if (dup) return res.status(409).json({ error: `Il numero ${a.numero} è già utilizzato da un altro documento` });
-  db.prepare(`UPDATE acquisti SET numero=?,data_emissione=?,fornitore_id=?,tipo_pagamento_id=?,note=?,stato=? WHERE id=?`)
-    .run(a.numero, a.dataEmissione, a.fornitoreId || null, a.tipoPagamentoId || null, a.note || '', a.stato, req.params.id);
-  db.prepare('DELETE FROM acquisti_righe WHERE acquisto_id=?').run(req.params.id);
-  if (a.righe?.length) saveRighe(req.params.id, a.righe);
-  res.json({ success: true });
+  try {
+    db.transaction(() => {
+      db.prepare(`UPDATE acquisti SET numero=?,data_emissione=?,fornitore_id=?,tipo_pagamento_id=?,note=?,stato=? WHERE id=?`)
+        .run(a.numero, a.dataEmissione, a.fornitoreId || null, a.tipoPagamentoId || null, a.note || '', a.stato, req.params.id);
+      db.prepare('DELETE FROM acquisti_righe WHERE acquisto_id=?').run(req.params.id);
+      if (a.righe?.length) saveRighe(req.params.id, a.righe);
+    })();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 router.patch('/:id/stato', (req, res) => {

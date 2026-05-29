@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const db = require('../database');
+const { requireRole } = require('../middleware/auth');
 
 function getTransporter() {
   const cfg = db.prepare('SELECT * FROM azienda WHERE id=1').get();
@@ -76,8 +77,8 @@ router.patch('/:id/riapri', (req, res) => {
   res.json({ ok: true });
 });
 
-// DELETE /:id
-router.delete('/:id', (req, res) => {
+// DELETE /:id  (solo ruoli amministrativi)
+router.delete('/:id', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
   db.prepare('DELETE FROM bug_reports WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });

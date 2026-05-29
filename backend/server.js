@@ -11,7 +11,7 @@ const { runWithContext } = require('./utils/tenantContext');
 const {
   getAuthDb, dataDir, tenantsDir, tenantDbPath,
   listTenants, getTenant, createTenant,
-  getUserByUsername, getUserById, countUsers, createUser, updateUser,
+  getUserByUsername, getUserById, countUsers, createUser, updateUser, bumpTokenEpoch,
   ensureTenantModuli, findUserByEmail,
   createPasswordResetToken, getPasswordResetToken,
   markPasswordResetTokenUsed, invalidateOtherResetTokens,
@@ -37,6 +37,17 @@ const DIST = path.join(__dirname, 'public');
 
 if (!process.env.AUTH_SECRET) {
   console.error('FATAL: AUTH_SECRET è obbligatorio. Configura il file .env / i secrets su Fly.');
+  process.exit(1);
+}
+
+// In produzione, se Stripe è configurato i webhook DEVONO avere il secret di
+// firma: senza, un webhook forgiato potrebbe iniettare pagamenti/abbonamenti.
+// Fail-closed all'avvio per evitare misconfigurazioni silenziose.
+if (process.env.STRIPE_SECRET_KEY
+    && !process.env.STRIPE_WEBHOOK_SECRET
+    && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: STRIPE_SECRET_KEY è impostata ma STRIPE_WEBHOOK_SECRET manca. '
+    + 'Configura STRIPE_WEBHOOK_SECRET (whsec_...) o rimuovi STRIPE_SECRET_KEY.');
   process.exit(1);
 }
 
@@ -96,10 +107,25 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
   .split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
 
+// ── Header di sicurezza (equivalenti a helmet, senza dipendenza extra) ───────
+// Niente CSP qui: andrebbe testata in Report-Only per non rompere SPA/Stripe.
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  next();
+});
+
 // Su Fly siamo sempre dietro al proxy: 1 hop di X-Forwarded-For.
 // Configura express per fidarsi così req.ip mostra l'IP reale del client e
 // express-rate-limit smette di emettere ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
 app.set('trust proxy', 1);
+
+// Health check pubblico e DB-free: usato da Fly per liveness e da uptime monitor.
+// Registrato prima dell'auth e del catch-all SPA così risponde sempre veloce.
+app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // ── Stripe webhook (DEVE ricevere body raw, prima di express.json()) ─────────
 const { stripeWebhookHandler } = require('./routes/payLink');
@@ -206,7 +232,7 @@ app.post('/api/auth/register', registerLimiter, async (req, res) => {
     });
 
     const user = getUserByUsername(email);
-    const token = sign({ uid: user.id, username: user.username, ruolo: user.ruolo, tenant: slug });
+    const token = sign({ uid: user.id, username: user.username, ruolo: user.ruolo, tenant: slug, te: user.token_epoch ?? 0 });
 
     // Genera token di verifica email + invia (fire-and-forget: la registrazione
     // resta valida anche se l'invio email fallisce; l'utente potrà reinviare).
@@ -248,7 +274,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'Credenziali non valide' });
 
-  const token = sign({ uid: user.id, username: user.username, ruolo: user.ruolo, tenant: user.tenant_slug });
+  const token = sign({ uid: user.id, username: user.username, ruolo: user.ruolo, tenant: user.tenant_slug, te: user.token_epoch ?? 0 });
   res.json({
     token,
     user: {
@@ -393,6 +419,7 @@ app.post('/api/auth/reset-password', forgotLimiter, async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     updateUser(t.user_id, { password_hash: hash });
+    bumpTokenEpoch(t.user_id);   // invalida le sessioni esistenti dopo il reset
     markPasswordResetTokenUsed(token);
     invalidateOtherResetTokens(t.user_id, token);
     res.json({ ok: true, message: 'Password aggiornata. Ora puoi accedere.' });
@@ -403,7 +430,29 @@ app.post('/api/auth/reset-password', forgotLimiter, async (req, res) => {
 });
 
 // ── Da qui in poi tutte le rotte richiedono autenticazione e contesto tenant ──
+// ── Rate-limit per-utente sulle API autenticate ─────────────────────────────
+// Prima linea contro un singolo token che martella endpoint costosi: ogni query
+// better-sqlite3 è sincrona e blocca l'unico CPU. Store in-memory (si azzera al
+// cold-start): accettabile come prima linea su una macchina singola.
+const { ipKeyGenerator } = require('express-rate-limit');
+const perUserKey = (req) => req.user?.id ? `u:${req.user.id}` : ipKeyGenerator(req);
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 600,
+  standardHeaders: true, legacyHeaders: false,
+  keyGenerator: perUserKey,
+  message: { error: 'Troppe richieste. Rallenta e riprova tra poco.' },
+});
+// Limite più stretto per gli endpoint pesanti (aggregazioni, ricerca full-scan,
+// report, import/sync): poche richieste/min bastano per uso umano.
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 30,
+  standardHeaders: true, legacyHeaders: false,
+  keyGenerator: perUserKey,
+  message: { error: 'Troppe richieste su una funzione pesante. Riprova tra poco.' },
+});
+
 app.use('/api', authMiddleware);
+app.use('/api', apiLimiter);
 // Dopo l'auth, blocca le richieste WRITE se il trial del tenant è scaduto.
 // I SUPERADMIN e le GET su whitelist (vedi middleware/auth.js) passano sempre.
 app.use('/api', trialEnforcement);
@@ -437,6 +486,9 @@ app.put('/api/me/password', async (req, res) => {
   if (!ok) return res.status(401).json({ error: 'Password attuale errata' });
   const hash = await bcrypt.hash(newPassword, 10);
   updateUser(user.id, { password_hash: hash });
+  // NB: non incrementiamo token_epoch qui, per non disconnettere la sessione
+  // corrente dell'utente. La revoca delle sessioni avviene sul reset password
+  // (forgot-password), dove l'utente riautentica comunque.
   res.json({ ok: true, message: 'Password aggiornata.' });
 });
 
@@ -631,21 +683,21 @@ app.use('/api/listini',          require('./routes/listini'));
 app.use('/api/fattura-xml',      require('./routes/fatturaXml'));
 app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
 app.use('/api/email',            require('./routes/email'));
-app.use('/api/stats',            require('./routes/stats'));
+app.use('/api/stats',            heavyLimiter, require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
 app.use('/api/tenants',          require('./routes/tenants'));
 app.use('/api/admin',            require('./routes/admin'));
 app.use('/api/moduli',           require('./routes/moduli'));
-app.use('/api/reports',          require('./routes/reports'));
+app.use('/api/reports',          heavyLimiter, require('./routes/reports'));
 app.use('/api/ocr',              require('./routes/ocr'));
 app.use('/api/agenda',           require('./routes/agenda'));
 app.use('/api/gruppi',           require('./routes/gruppi'));
 app.use('/api/pay-link',         require('./routes/payLink'));
-app.use('/api/sdi-passive',      require('./routes/sdiPassive'));
+app.use('/api/sdi-passive',      heavyLimiter, require('./routes/sdiPassive'));
 app.use('/api/riconciliazione',  require('./routes/riconciliazione'));
 app.use('/api/crm',              require('./routes/crm'));
 app.use('/api/timesheet',        require('./routes/timesheet'));
-app.use('/api/ecommerce',        require('./routes/ecommerce'));
+app.use('/api/ecommerce',        heavyLimiter, require('./routes/ecommerce'));
 app.use('/api/piva',             require('./routes/piva'));
 app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/prima-nota',       require('./routes/primaNota'));
@@ -657,7 +709,7 @@ app.use('/api/bug-reports',       require('./routes/bugReports'));
 app.use('/api/audit',             require('./routes/audit'));
 
 // ── Ricerca globale ──────────────────────────────────────────────────────────
-app.get('/api/search', (req, res) => {
+app.get('/api/search', heavyLimiter, (req, res) => {
   const q = (req.query.q || '').trim();
   if (q.length < 2) return res.json({ clienti: [], fornitori: [], prodotti: [], fatture: [], ddt: [], ordini: [], preventivi: [] });
   const like = `%${q}%`;
@@ -696,17 +748,16 @@ function forEachActiveTenant(taskName, fn) {
   }
 }
 
-cron.schedule('0 2 * * *', () => {
+cron.schedule('0 2 * * *', async () => {
   console.log('[Cron] Avvio backup giornaliero');
+  // Sequenziale: un backup alla volta per non saturare CPU/IO sull'unico core.
   for (const t of listTenants({ activeOnly: true })) {
-    try { runBackup(t.slug); }
-    catch (err) { console.error(`[Cron:backup] tenant=${t.slug}:`, err.message); }
+    await runBackup(t.slug);   // runBackup non rilancia (gestisce gli errori internamente)
   }
 });
-setTimeout(() => {
+setTimeout(async () => {
   for (const t of listTenants({ activeOnly: true })) {
-    try { runBackup(t.slug); }
-    catch (err) { console.error(`[Boot:backup] tenant=${t.slug}:`, err.message); }
+    await runBackup(t.slug);
   }
 }, 5000);
 
@@ -746,10 +797,11 @@ app.use((err, req, res, next) => {
   if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || /UNIQUE constraint/.test(err.message || '')) {
     return res.status(400).json({ error: 'Valore duplicato' });
   }
-  // Default: log e 500. In produzione non rivelo lo stack ma il messaggio.
-  console.error('[error]', err.message);
-  if (process.env.NODE_ENV !== 'production') console.error(err.stack);
-  res.status(500).json({ error: err.message || 'Errore interno' });
+  // Default: log completo server-side; in produzione NON rivelo il messaggio al
+  // client (può contenere dettagli SQL/SMTP/interni), solo un testo generico.
+  console.error('[error]', err.stack || err.message);
+  const exposeDetail = process.env.NODE_ENV !== 'production';
+  res.status(err.status || 500).json({ error: exposeDetail ? (err.message || 'Errore interno') : 'Errore interno' });
 });
 
 if (fs.existsSync(DIST)) {
@@ -757,4 +809,43 @@ if (fs.existsSync(DIST)) {
   app.get(/(.*)/, (req, res) => res.sendFile(path.join(DIST, 'index.html')));
 }
 
-app.listen(PORT, () => console.log(`Server avviato su http://localhost:${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server avviato su http://localhost:${PORT}`));
+server.on('error', (err) => {
+  console.error('[server] errore listen:', err.message);
+  process.exit(1);
+});
+
+// ── Robustezza del processo ──────────────────────────────────────────────────
+// Un singolo processo serve TUTTI i tenant: un errore non gestito li abbatte
+// tutti. Gestiamo gli eventi a livello processo per evitare crash silenziosi.
+process.on('unhandledRejection', (reason) => {
+  // Log-and-continue: una promise rifiutata non gestita non deve terminare il
+  // processo (comportamento di default di Node a partire dalla v15).
+  console.error('[unhandledRejection]', reason instanceof Error ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+  // Stato potenzialmente corrotto (specie con better-sqlite3): log + checkpoint
+  // best-effort + uscita. Fly riavvia il processo (NON keep-alive).
+  console.error('[uncaughtException]', err.stack || err.message);
+  try { require('./utils/tenantDb').closeAll(); } catch (_) {}
+  try { require('./utils/authDb').closeAuthDb(); } catch (_) {}
+  process.exit(1);
+});
+
+// ── Graceful shutdown (SIGTERM da Fly su deploy/auto-stop, SIGINT in locale) ──
+let shuttingDown = false;
+function gracefulShutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[shutdown] ricevuto ${signal}, chiusura in corso...`);
+  server.close(() => {
+    try { require('./utils/tenantDb').closeAll(); } catch (e) { console.error('[shutdown]', e.message); }
+    try { require('./utils/authDb').closeAuthDb(); } catch (e) { console.error('[shutdown]', e.message); }
+    console.log('[shutdown] connessioni chiuse, esco.');
+    process.exit(0);
+  });
+  // Hard-exit se le richieste in volo non si chiudono in tempo.
+  setTimeout(() => { console.error('[shutdown] timeout, uscita forzata'); process.exit(1); }, 10000).unref();
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

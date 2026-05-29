@@ -15,7 +15,26 @@ const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const db = require('../database');
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+// fileSize ridotto a 5MB: con memoryStorage ogni upload resta in RAM + copia
+// Blob per i ~30s di poll. Su 256MB più upload da 10MB causavano OOM.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+// Semaforo globale in-process: limita le analisi OCR simultanee per evitare un
+// OOM-kill (che abbatterebbe TUTTI i tenant). Le richieste eccedenti → 429.
+// Il gate è PRIMA di multer così le richieste rifiutate non bufferizzano il file.
+const OCR_MAX_CONCURRENT = parseInt(process.env.OCR_MAX_CONCURRENT || '2');
+let ocrInFlight = 0;
+function ocrGate(req, res, next) {
+  if (ocrInFlight >= OCR_MAX_CONCURRENT) {
+    return res.status(429).json({ error: 'Troppe analisi OCR in corso. Riprova tra qualche secondo.' });
+  }
+  ocrInFlight++;
+  let released = false;
+  const release = () => { if (!released) { released = true; ocrInFlight = Math.max(0, ocrInFlight - 1); } };
+  res.on('finish', release);
+  res.on('close', release);
+  next();
+}
 
 // Limita le richieste OCR per utente: ogni call costa quota Mindee (250/mese
 // gratis nel piano free). 10 OCR ogni 15 minuti per utente è abbondante per
@@ -39,7 +58,7 @@ const MINDEE_GET     = 'https://api-v2.mindee.net/v2/inferences';
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // POST /api/ocr/fattura  (multipart/form-data, campo "file")
-router.post('/fattura', ocrLimiter, upload.single('file'), async (req, res) => {
+router.post('/fattura', ocrLimiter, ocrGate, upload.single('file'), async (req, res) => {
   const key = process.env.MINDEE_API_KEY;
   if (!key) return res.status(500).json({ error: 'MINDEE_API_KEY non configurata' });
   if (!req.file) return res.status(400).json({ error: 'File mancante (campo "file")' });
@@ -54,6 +73,7 @@ router.post('/fattura', ocrLimiter, upload.single('file'), async (req, res) => {
       method: 'POST',
       headers: { 'Authorization': key },
       body: form,
+      signal: AbortSignal.timeout(20000),
     });
     if (!enqueueResp.ok) {
       const t = await enqueueResp.text();
@@ -72,6 +92,7 @@ router.post('/fattura', ocrLimiter, upload.single('file'), async (req, res) => {
       await sleep(2000);
       const pollResp = await fetch(`${MINDEE_GET}/${inferenceId}`, {
         headers: { 'Authorization': key },
+        signal: AbortSignal.timeout(10000),
       });
       if (!pollResp.ok) continue;
       const pollData = await pollResp.json();
@@ -109,7 +130,11 @@ router.post('/fattura', ocrLimiter, upload.single('file'), async (req, res) => {
       mindeeRequestId: inferenceId,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      return res.status(504).json({ error: 'Timeout nella comunicazione con il servizio OCR' });
+    }
+    console.error('[ocr/fattura]', err.message);
+    res.status(500).json({ error: 'Errore durante l\'analisi OCR' });
   }
 });
 

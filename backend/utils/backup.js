@@ -2,10 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const { tenantDbPath, dataDir } = require('./authDb');
 
-const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '..', 'backups');
-const MAX_BACKUPS = parseInt(process.env.MAX_BACKUPS || '30');
+// I backup vanno sul volume persistente (dataDir → /data), NON nel filesystem
+// effimero del container, altrimenti spariscono ad ogni restart/deploy/auto-stop.
+const BACKUP_DIR = process.env.BACKUP_DIR || path.join(dataDir(), 'backups');
+const MAX_BACKUPS = parseInt(process.env.MAX_BACKUPS || '14');
 
-function runBackup(tenantSlug = 'default') {
+async function runBackup(tenantSlug = 'default') {
   try {
     const src = tenantDbPath(tenantSlug);
     if (!fs.existsSync(src)) return;
@@ -14,7 +16,14 @@ function runBackup(tenantSlug = 'default') {
 
     const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const dest = path.join(tenantBackupDir, `gestionale-${ts}.db`);
-    fs.copyFileSync(src, dest);
+
+    // db.backup() è WAL-aware e produce una copia consistente, a differenza di
+    // fs.copyFileSync che ignora il file -wal (copie incomplete/corrotte).
+    // Esegue la copia a step cedendo all'event loop: niente blocco prolungato.
+    const { openTenantDb } = require('./tenantDb');
+    const db = openTenantDb(tenantSlug);
+    await db.backup(dest);
+
     console.log(`[Backup] ${tenantSlug}: ${dest}`);
     pruneBackups(tenantBackupDir);
   } catch (err) {

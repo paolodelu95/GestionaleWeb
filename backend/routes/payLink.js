@@ -84,17 +84,31 @@ function stripeWebhookHandler(req, res) {
   const sig = req.headers['stripe-signature'];
   const whsec = process.env.STRIPE_WEBHOOK_SECRET;
 
-  try {
-    if (whsec && sig) {
+  if (whsec) {
+    if (!sig) return res.status(400).send('Webhook error: firma mancante');
+    try {
       const stripe = getStripe();
       event = stripe.webhooks.constructEvent(req.body, sig, whsec);
-    } else {
-      // Senza webhook secret: parsa il JSON best-effort (sviluppo)
-      event = JSON.parse(req.body.toString('utf8'));
+    } catch (err) {
+      console.warn('[Stripe webhook] firma non valida:', err.message);
+      return res.status(400).send(`Webhook error: ${err.message}`);
     }
-  } catch (err) {
-    console.warn('[Stripe webhook] firma non valida:', err.message);
-    return res.status(400).send(`Webhook error: ${err.message}`);
+  } else if (process.env.NODE_ENV === 'development') {
+    // SOLO in sviluppo esplicito: accetta il JSON non firmato per i test locali.
+    console.warn('[Stripe webhook] DEV: STRIPE_WEBHOOK_SECRET assente, firma NON verificata');
+    try { event = JSON.parse(req.body.toString('utf8')); }
+    catch (err) { return res.status(400).send(`Webhook error: ${err.message}`); }
+  } else {
+    // Produzione senza secret: fail-closed. Il guard d'avvio in server.js
+    // impedisce questo stato quando STRIPE_SECRET_KEY è presente.
+    console.error('[Stripe webhook] STRIPE_WEBHOOK_SECRET non configurato: webhook rifiutato');
+    return res.status(500).send('Webhook non configurato');
+  }
+
+  // Idempotenza: Stripe consegna at-least-once. Scarta gli eventi già processati.
+  const { markStripeEventProcessed } = require('../utils/authDb');
+  if (!markStripeEventProcessed(event.id, event.type)) {
+    return res.json({ received: true, duplicate: true });
   }
 
   if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
@@ -105,13 +119,27 @@ function stripeWebhookHandler(req, res) {
     const amount = (obj.amount_total || obj.amount || 0) / 100;
     if (fatturaId && tenant && amount > 0) {
       try {
+        // Difesa in profondità: non aprire/creare un DB per un tenant inesistente
+        // anche se la firma è valida (evita side-effect su slug arbitrari).
+        const { getTenant } = require('../utils/authDb');
+        if (!getTenant(tenant)) {
+          console.warn('[Stripe webhook] tenant inesistente, ignoro:', tenant);
+          return res.json({ received: true });
+        }
         const { openTenantDb } = require('../utils/tenantDb');
         const tdb = openTenantDb(tenant);
+        // Idempotenza a livello pagamento: lo stesso incasso può arrivare via due
+        // eventi diversi (checkout.session.completed + payment_intent.succeeded).
+        // Dedup sul payment_intent (o id oggetto) per non registrarlo due volte.
+        const paymentRef = obj.payment_intent || obj.id || null;
+        if (paymentRef && tdb.prepare('SELECT id FROM pagamenti WHERE stripe_ref=?').get(paymentRef)) {
+          return res.json({ received: true, duplicate: true });
+        }
         tdb.prepare(`INSERT INTO pagamenti
-          (fattura_id, data_pagamento, importo, metodo, note, tipo, conto)
-          VALUES (?,?,?,?,?,?,?)`).run(
+          (fattura_id, data_pagamento, importo, metodo, note, tipo, conto, stripe_ref)
+          VALUES (?,?,?,?,?,?,?,?)`).run(
           fatturaId, new Date().toISOString().slice(0, 10), amount,
-          'Stripe', `Webhook ${event.type} · ${obj.id || ''}`, 'ENTRATA', 'BANCA');
+          'Stripe', `Webhook ${event.type} · ${obj.id || ''}`, 'ENTRATA', 'BANCA', paymentRef);
         const r = tdb.prepare(`SELECT
           (SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100)*(1+iva/100)),0) FROM fatture_righe WHERE fattura_id=?) -
           (SELECT COALESCE(SUM(importo),0) FROM pagamenti WHERE fattura_id=?) AS res`).get(fatturaId, fatturaId);

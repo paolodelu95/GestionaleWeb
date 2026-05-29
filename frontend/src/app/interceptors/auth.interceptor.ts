@@ -21,7 +21,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (err.status === 0) offlineSvc.setOffline(true);
       // Logout solo se è il nostro backend a dire che il token è invalido,
       // non se è un proxy 401 da servizi esterni (es. Mindee via /api/ocr)
-      if (err.status === 401 && !req.url.includes('/ocr/')) auth.logout();
+      // Sessione scaduta/revocata sul nostro backend: logout + reset pulito allo
+      // stato di login. Solo se c'era davvero un token (evita loop al bootstrap),
+      // escludendo i 401 esterni (/ocr/) e i login falliti (/auth/).
+      if (err.status === 401 && token && !req.url.includes('/ocr/') && !req.url.includes('/auth/')) {
+        auth.logout();
+        if (typeof window !== 'undefined') window.location.assign('/');
+      }
       // 402 Payment Required → trial scaduto o subscription non attiva.
       // Reindirizza a /billing dove l'utente può sottoscrivere o riattivare.
       if (err.status === 402 &&

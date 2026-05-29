@@ -28,10 +28,15 @@ function pick(o, ...keys) { for (const k of keys) if (o && o[k] != null) return 
 
 // POST /api/sdi-passive/import-xml — body: XML come stringa (text/xml o
 // application/xml) oppure JSON { xml: "<...>" } per chiamate dal frontend.
-router.post('/import-xml', express.text({ type: ['text/xml','application/xml','text/plain'], limit: '4mb' }), (req, res) => {
+router.post('/import-xml', express.text({ type: ['text/xml','application/xml','text/plain'], limit: '2mb' }), (req, res) => {
   try {
     const xml = typeof req.body === 'string' ? req.body : String(req.body?.xml || '');
     if (!xml.trim()) return res.status(400).json({ error: 'XML mancante' });
+    // Cap esplicito: il path JSON {xml} dal frontend passa per express.json('10mb')
+    // globale, bypassando il limit di express.text. Parsare XML grandi su 256MB → OOM.
+    if (Buffer.byteLength(xml, 'utf8') > 2_000_000) {
+      return res.status(413).json({ error: 'XML troppo grande (max ~2MB)' });
+    }
     const tree = parser.parse(xml);
     const root = pick(tree, 'FatturaElettronica');
     if (!root) return res.status(400).json({ error: 'Non sembra un XML FatturaPA' });
@@ -69,26 +74,32 @@ router.post('/import-xml', express.text({ type: ['text/xml','application/xml','t
     const existing = db.prepare('SELECT id FROM acquisti WHERE numero=? AND fornitore_id=?').get(numero, fornitore.id);
     if (existing) return res.status(409).json({ error: `Acquisto già presente (id=${existing.id})`, acquistoId: existing.id });
 
-    const result = db.prepare(`INSERT INTO acquisti
-      (numero, data_emissione, fornitore_id, note, stato)
-      VALUES (?,?,?,?,?)`).run(numero, data, fornitore.id, 'Importato da XML FatturaPA passiva', 'RICEVUTA');
-    const acquistoId = result.lastInsertRowid;
-
     // Righe
     const linee = asArray(body.DatiBeniServizi?.DettaglioLinee);
-    const stmt = db.prepare(`INSERT INTO acquisti_righe
-      (acquisto_id, descrizione, quantita, prezzo, iva, unita_misura)
-      VALUES (?,?,?,?,?,?)`);
-    let imp = 0;
-    for (const l of linee) {
-      const q = parseFloat(l.Quantita ?? 1) || 1;
-      const pu = parseFloat(l.PrezzoUnitario ?? 0) || 0;
-      const aliq = parseFloat(l.AliquotaIVA ?? 0) || 0;
-      stmt.run(acquistoId, String(l.Descrizione || ''), q, pu, aliq, String(l.UnitaMisura || ''));
-      imp += q * pu;
-    }
+    if (linee.length > 5000) return res.status(413).json({ error: 'Troppe righe nel documento' });
 
-    res.json({ id: acquistoId, numero, fornitoreId: fornitore.id, ragSoc, righe: linee.length, imponibile: +imp.toFixed(2) });
+    // Atomico: testata + righe in un'unica transazione (un solo commit; nessuno
+    // stato parziale se una riga è malformata).
+    const out = db.transaction(() => {
+      const result = db.prepare(`INSERT INTO acquisti
+        (numero, data_emissione, fornitore_id, note, stato)
+        VALUES (?,?,?,?,?)`).run(numero, data, fornitore.id, 'Importato da XML FatturaPA passiva', 'RICEVUTA');
+      const acquistoId = result.lastInsertRowid;
+      const stmt = db.prepare(`INSERT INTO acquisti_righe
+        (acquisto_id, descrizione, quantita, prezzo, iva, unita_misura)
+        VALUES (?,?,?,?,?,?)`);
+      let imp = 0;
+      for (const l of linee) {
+        const q = parseFloat(l.Quantita ?? 1) || 1;
+        const pu = parseFloat(l.PrezzoUnitario ?? 0) || 0;
+        const aliq = parseFloat(l.AliquotaIVA ?? 0) || 0;
+        stmt.run(acquistoId, String(l.Descrizione || ''), q, pu, aliq, String(l.UnitaMisura || ''));
+        imp += q * pu;
+      }
+      return { acquistoId, imp };
+    })();
+
+    res.json({ id: out.acquistoId, numero, fornitoreId: fornitore.id, ragSoc, righe: linee.length, imponibile: +out.imp.toFixed(2) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -149,6 +160,7 @@ async function pollAruba({ fromDate, toDate }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=password&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+    signal: AbortSignal.timeout(15000),
   });
   if (!tokenRes.ok) {
     const t = await tokenRes.text();
@@ -166,6 +178,7 @@ async function pollAruba({ fromDate, toDate }) {
   });
   const listRes = await fetch(`${base}/services/invoice/in/list?${q}`, {
     headers: { 'Authorization': `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(15000),
   });
   if (!listRes.ok) {
     const t = await listRes.text();
@@ -194,6 +207,7 @@ router.post('/poll/aruba', async (req, res) => {
         // Scarica XML
         const xmlRes = await fetch(`${base}/services/invoice/in/${remoteId}/file`, {
           headers: { 'Authorization': `Bearer ${accessToken}` },
+          signal: AbortSignal.timeout(15000),
         });
         if (!xmlRes.ok) { errori.push({ remoteId, errore: `download ${xmlRes.status}` }); continue; }
         const xml = await xmlRes.text();

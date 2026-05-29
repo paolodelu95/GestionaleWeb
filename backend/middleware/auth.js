@@ -17,6 +17,13 @@ function authMiddleware(req, res, next) {
   const tenant = getTenant(user.tenant_slug);
   if (!tenant || !tenant.attivo) return res.status(403).json({ error: 'Tenant non attivo' });
 
+  // Revoca sessioni: se la password è stata cambiata/resettata dopo l'emissione
+  // del token, token_epoch diverge → il token non è più valido. Il `|| 0` mantiene
+  // validi i token emessi prima dell'introduzione del campo.
+  if ((payload.te || 0) !== (user.token_epoch || 0)) {
+    return res.status(401).json({ error: 'Sessione non più valida, effettua di nuovo l\'accesso' });
+  }
+
   req.user = {
     id: user.id, username: user.username, nome: user.nome,
     email: user.email, ruolo: user.ruolo, tenant: user.tenant_slug,

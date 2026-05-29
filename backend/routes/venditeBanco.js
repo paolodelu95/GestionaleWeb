@@ -34,42 +34,51 @@ router.post('/', (req, res) => {
     ? [...new Set(pagamentiMisti.map(p => p.metodo))].join('+')
     : (v.metodoPagamento || 'CONTANTI');
 
-  const result = db.prepare(
-    `INSERT INTO vendite_banco (numero, data, cliente_nome, metodo_pagamento, note, stato)
-     VALUES (?,?,?,?,?,?)`
-  ).run(v.numero, v.data, v.clienteNome || '', metodoToStore, v.note || '', 'EMESSA');
-  const vendita_id = result.lastInsertRowid;
-
-  if (v.righe?.length) {
-    saveRighe(vendita_id, v.righe);
-    aggiornaQuantita(v.righe, -1, {
-      data: v.data, causale: 'VENDITA_BANCO', documentoTipo: 'VENDITA_BANCO',
-      documentoId: vendita_id, documentoNumero: v.numero, clienteNome: v.clienteNome || ''
-    });
-  }
-
   const noteBase = `Vendita al banco N. ${v.numero}${v.clienteNome ? ' – ' + v.clienteNome : ''}`;
 
-  if (pagamentiMisti) {
-    // Pagamento misto: inserisce un record per ogni metodo
-    for (const p of pagamentiMisti) {
-      const conto = p.metodo === 'CONTANTI' ? 'CASSA' : 'BANCA';
-      db.prepare(
-        `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
-         VALUES (?,?,?,?,?,?,?)`
-      ).run(v.data, p.importo, p.metodo, 'ENTRATA', conto, vendita_id, noteBase);
-    }
-  } else {
-    // Pagamento singolo
-    const totale = calcolaTotale(vendita_id);
-    const conto = v.metodoPagamento === 'CONTANTI' ? 'CASSA' : 'BANCA';
-    db.prepare(
-      `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
-       VALUES (?,?,?,?,?,?,?)`
-    ).run(v.data, totale, v.metodoPagamento || 'CONTANTI', 'ENTRATA', conto, vendita_id, noteBase);
-  }
+  // Atomico: testata + righe + scarico magazzino + pagamenti in un'unica
+  // transazione. Senza, un errore a metà lasciava il magazzino scaricato senza
+  // incasso registrato (cassa/banca falsate).
+  try {
+    const vendita_id = db.transaction(() => {
+      const result = db.prepare(
+        `INSERT INTO vendite_banco (numero, data, cliente_nome, metodo_pagamento, note, stato)
+         VALUES (?,?,?,?,?,?)`
+      ).run(v.numero, v.data, v.clienteNome || '', metodoToStore, v.note || '', 'EMESSA');
+      const vendita_id = result.lastInsertRowid;
 
-  res.json({ id: vendita_id });
+      if (v.righe?.length) {
+        saveRighe(vendita_id, v.righe);
+        aggiornaQuantita(v.righe, -1, {
+          data: v.data, causale: 'VENDITA_BANCO', documentoTipo: 'VENDITA_BANCO',
+          documentoId: vendita_id, documentoNumero: v.numero, clienteNome: v.clienteNome || ''
+        });
+      }
+
+      if (pagamentiMisti) {
+        // Pagamento misto: inserisce un record per ogni metodo
+        for (const p of pagamentiMisti) {
+          const conto = p.metodo === 'CONTANTI' ? 'CASSA' : 'BANCA';
+          db.prepare(
+            `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
+             VALUES (?,?,?,?,?,?,?)`
+          ).run(v.data, p.importo, p.metodo, 'ENTRATA', conto, vendita_id, noteBase);
+        }
+      } else {
+        // Pagamento singolo
+        const totale = calcolaTotale(vendita_id);
+        const conto = v.metodoPagamento === 'CONTANTI' ? 'CASSA' : 'BANCA';
+        db.prepare(
+          `INSERT INTO pagamenti (data_pagamento, importo, metodo, tipo, conto, vendita_banco_id, note)
+           VALUES (?,?,?,?,?,?,?)`
+        ).run(v.data, totale, v.metodoPagamento || 'CONTANTI', 'ENTRATA', conto, vendita_id, noteBase);
+      }
+      return vendita_id;
+    })();
+    res.json({ id: vendita_id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 router.post('/:id/genera-fattura', (req, res) => {
@@ -77,45 +86,56 @@ router.post('/:id/genera-fattura', (req, res) => {
   const vendita = db.prepare('SELECT * FROM vendite_banco WHERE id=?').get(req.params.id);
   if (!vendita) return res.status(404).json({ error: 'Vendita non trovata' });
 
-  const righe = getRighe(req.params.id);
-
   const { getNextNumero } = require('../utils/nextNumero');
-  const numero = getNextNumero('fatture', 'fatture');
 
-  // Crea fattura subito come PAGATA (il pagamento è già in pagamenti tramite vendita al banco)
-  const result = db.prepare(`
-    INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
-    VALUES (?,?,?,?,?,?,?)
-  `).run(numero, vendita.data, clienteId || null, null, vendita.note || '', 'PAGATA', null);
-  const fatturaId = result.lastInsertRowid;
+  try {
+    const out = db.transaction(() => {
+      const righe = getRighe(req.params.id);
+      const numero = getNextNumero('fatture', 'fatture');
+      // Crea fattura subito come PAGATA (il pagamento è già in pagamenti tramite vendita al banco)
+      const result = db.prepare(`
+        INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
+        VALUES (?,?,?,?,?,?,?)
+      `).run(numero, vendita.data, clienteId || null, null, vendita.note || '', 'PAGATA', null);
+      const fatturaId = result.lastInsertRowid;
 
-  // Copia righe nella fattura (NO movimenti magazzino: già registrati dalla vendita al banco)
-  const stmtRiga = db.prepare(`
-    INSERT INTO fatture_righe
-    (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)
-  `);
-  for (const r of righe) {
-    stmtRiga.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
-                 r.sconto ?? 0, r.iva, r.unitaMisura || '',
-                 r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+      // Copia righe nella fattura (NO movimenti magazzino: già registrati dalla vendita al banco)
+      const stmtRiga = db.prepare(`
+        INSERT INTO fatture_righe
+        (fattura_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+      `);
+      for (const r of righe) {
+        stmtRiga.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+                     r.sconto ?? 0, r.iva, r.unitaMisura || '',
+                     r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+      }
+      return { id: fatturaId, numero };
+    })();
+    res.json(out);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
-
-  res.json({ id: fatturaId, numero });
 });
 
 router.delete('/:id', (req, res) => {
-  const vendita = db.prepare(`SELECT numero, cliente_nome FROM vendite_banco WHERE id=?`).get(req.params.id);
-  const righe = getRighe(req.params.id);
-  if (righe.length) {
-    aggiornaQuantita(righe, +1, {
-      causale: 'ELIMINAZIONE', documentoTipo: 'VENDITA_BANCO', documentoId: req.params.id,
-      documentoNumero: vendita?.numero || '', clienteNome: vendita?.cliente_nome || ''
-    });
+  try {
+    db.transaction(() => {
+      const vendita = db.prepare(`SELECT numero, cliente_nome FROM vendite_banco WHERE id=?`).get(req.params.id);
+      const righe = getRighe(req.params.id);
+      if (righe.length) {
+        aggiornaQuantita(righe, +1, {
+          causale: 'ELIMINAZIONE', documentoTipo: 'VENDITA_BANCO', documentoId: req.params.id,
+          documentoNumero: vendita?.numero || '', clienteNome: vendita?.cliente_nome || ''
+        });
+      }
+      db.prepare('DELETE FROM pagamenti WHERE vendita_banco_id=?').run(req.params.id);
+      db.prepare(`DELETE FROM vendite_banco WHERE id=?`).run(req.params.id);
+    })();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
-  db.prepare('DELETE FROM pagamenti WHERE vendita_banco_id=?').run(req.params.id);
-  db.prepare(`DELETE FROM vendite_banco WHERE id=?`).run(req.params.id);
-  res.json({ success: true });
 });
 
 function saveRighe(vendita_id, righe) {

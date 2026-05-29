@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timer } from 'rxjs';
+import { timeout, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -10,7 +11,15 @@ export class ApiService {
   constructor(private http: HttpClient) {}
 
   get<T>(path: string): Observable<T> {
-    return this.http.get<T>(`${this.base}/${path}`);
+    return this.http.get<T>(`${this.base}/${path}`).pipe(
+      timeout(30000),
+      // Riprova SOLO su errori di rete/timeout (GET idempotente), non su 4xx/5xx.
+      retry({ count: 2, delay: (err, n) => {
+        const transient = err?.status === 0 || err?.name === 'TimeoutError';
+        if (!transient) throw err;
+        return timer(500 * Math.pow(2, n));
+      } }),
+    );
   }
   post<T>(path: string, body: any): Observable<T> {
     return this.http.post<T>(`${this.base}/${path}`, body);

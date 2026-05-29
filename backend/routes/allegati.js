@@ -5,9 +5,16 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { requireRole } = require('../middleware/auth');
+const { dataDir } = require('../utils/authDb');
 
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+// Gli allegati vanno sul volume persistente (/data), segregati per tenant. In
+// backend/uploads (filesystem effimero del container) sparivano ad ogni deploy.
+const uploadBase = path.join(dataDir(), 'uploads');
+function tenantUploadDir(tenant) {
+  const dir = path.join(uploadBase, tenant || 'default');
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 const ALLOWED_MIME = new Set([
   'application/pdf',
@@ -23,7 +30,7 @@ const ALLOWED_MIME = new Set([
 const ALLOWED_EXT = new Set(['.pdf','.jpg','.jpeg','.png','.gif','.webp','.txt','.csv','.xls','.xlsx','.doc','.docx','.xml','.zip']);
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
+  destination: (req, file, cb) => cb(null, tenantUploadDir(req.tenant)),
   filename: (req, file, cb) => {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1E6);
     const ext = path.extname(file.originalname).toLowerCase();
@@ -79,10 +86,10 @@ router.post('/', (req, res, next) => {
 
 // Validates that the percorso column points to a file actually inside uploadDir.
 // Prevents path traversal if a malicious value sneaks into the DB.
-function safeFilePath(percorso) {
+function safeFilePath(tenant, percorso) {
   if (!percorso || typeof percorso !== 'string') return null;
-  const candidate = path.resolve(uploadDir, percorso);
-  const base = path.resolve(uploadDir);
+  const base = path.resolve(tenantUploadDir(tenant));
+  const candidate = path.resolve(base, percorso);
   if (!candidate.startsWith(base + path.sep) && candidate !== base) return null;
   return candidate;
 }
@@ -91,7 +98,7 @@ function safeFilePath(percorso) {
 router.delete('/:id', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
   const row = db.prepare('SELECT percorso FROM allegati WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Allegato non trovato' });
-  const filePath = safeFilePath(row.percorso);
+  const filePath = safeFilePath(req.tenant, row.percorso);
   try {
     if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
   } catch (_) { /* ignora errore filesystem, prosegui con DELETE record */ }
@@ -103,7 +110,7 @@ router.delete('/:id', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) =>
 router.get('/:id/download', (req, res) => {
   const row = db.prepare('SELECT * FROM allegati WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Non trovato' });
-  const filePath = safeFilePath(row.percorso);
+  const filePath = safeFilePath(req.tenant, row.percorso);
   if (!filePath || !fs.existsSync(filePath)) return res.status(404).json({ error: 'File non trovato sul disco' });
   res.download(filePath, row.nome_file);
 });

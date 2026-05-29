@@ -11,6 +11,7 @@ primary_region = 'fra'
 [env]
   DB_PATH = '/data/gestionale.db'
   PORT = '3000'
+  NODE_ENV = 'production'
 
 [[mounts]]
   source = 'sqlite_data'

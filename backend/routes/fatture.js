@@ -159,6 +159,15 @@ router.put('/:id', (req, res) => {
 
 const deleteFatturaTxBody = (id) => {
   const snapshot = db.prepare('SELECT numero, data_emissione, cliente_id, stato, note FROM fatture WHERE id=?').get(id);
+  if (!snapshot) return;
+  // Compliance fiscale: una fattura emessa non è eliminabile (il suo numero deve
+  // restare occupato → niente riusi né buchi nella numerazione). Per stornarla si
+  // emette una nota di credito. Eliminabile solo finché è in bozza.
+  if (String(snapshot.stato || '').toUpperCase() !== 'BOZZA') {
+    const e = new Error('Una fattura emessa non può essere eliminata: emetti una nota di credito per stornarla.');
+    e.status = 409;
+    throw e;
+  }
   const ddtIds = getDdtIds(id);
   if (!ddtIds.length) {
     const righe = getRighe(id);
@@ -182,7 +191,7 @@ router.delete('/:id', (req, res) => {
     db.transaction(deleteFatturaTxBody)(Number(req.params.id));
     res.json({ success: true });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 

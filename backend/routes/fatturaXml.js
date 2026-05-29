@@ -34,6 +34,7 @@ router.post('/:id/invia-sdi', async (req, res) => {
         'X-Filename': filename,
       },
       body: xml,
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!response.ok) {
