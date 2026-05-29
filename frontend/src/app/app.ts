@@ -22,6 +22,7 @@ import { OfflineService } from './services/offline.service';
 import { ModuliService } from './services/moduli.service';
 import { DocLockService } from './services/doc-lock.service';
 import { LoginComponent } from './components/login/login';
+import { CookieConsentComponent } from './components/shared/cookie-consent';
 import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
 import { Azienda } from './models';
 import { SwUpdate } from '@angular/service-worker';
@@ -45,7 +46,7 @@ interface NavItem {
     MatToolbarModule, MatListModule,
     MatIconModule, MatExpansionModule, MatButtonModule, MatTooltipModule,
     MatBadgeModule, MatInputModule, MatFormFieldModule, FormsModule,
-    LoginComponent,
+    LoginComponent, CookieConsentComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'
@@ -358,6 +359,7 @@ export class App implements OnInit {
         { label: 'Ordini cliente',   icon: 'shopping_cart',   route: '/ordini' },
         { label: 'DDT',              icon: 'receipt_long',    route: '/ddt' },
         { label: 'Fatture',          icon: 'receipt',         route: '/fatture' },
+        { label: 'Fatture elettroniche (SDI)', icon: 'fact_check', route: '/fatture-elettroniche' },
         { label: 'Note di Credito',  icon: 'note_alt',        route: '/note-credito' },
         { label: 'Ricorrenti',       icon: 'autorenew',       route: '/fatture-ricorrenti' },
         { label: 'Vendita al banco', icon: 'point_of_sale',   route: '/vendita-banco' },

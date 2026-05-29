@@ -187,6 +187,21 @@ export class DataService {
   updateAcquisto(a: Acquisto): Observable<any> { return this.api.put(`acquisti/${a.id}`, a); }
   deleteAcquisto(id: number): Observable<any> { return this.api.delete(`acquisti/${id}`); }
   setAcquistoStato(id: number, stato: string): Observable<any> { return this.api.patch(`acquisti/${id}/stato`, { stato }); }
+  getAnalisiMagazzino(acquistoId: number): Observable<any> { return this.api.get(`acquisti/${acquistoId}/analisi-magazzino`); }
+  generaArrivoMerce(acquistoId: number, body: any): Observable<any> { return this.api.post(`acquisti/${acquistoId}/genera-arrivo-merce`, body); }
+
+  // SDI — fatture passive (ricezione dal Sistema di Interscambio)
+  getSdiRicevute(): Observable<any[]> { return this.api.get('sdi-passive/ricevute'); }
+  getSdiProviders(): Observable<any[]> { return this.api.get('sdi-passive/providers'); }
+  sdiImportXml(xml: string): Observable<any> { return this.api.post('sdi-passive/import-xml', { xml }); }
+  sdiPoll(provider: string, fromDate?: string, toDate?: string): Observable<any> {
+    return this.api.post(`sdi-passive/poll/${provider}`, { fromDate, toDate });
+  }
+
+  // SDI — stato fatture attive inviate
+  updateStatoSdi(id: number, body: { statoSdi: string; dataInvioSdi?: string; idTrasmissioneSdi?: string }): Observable<any> {
+    return this.api.patch(`fatture/${id}/stato-sdi`, body);
+  }
 
   // Vendite al banco
   getVenditeBanco(): Observable<VenditaBanco[]> { return this.api.get('vendite-banco'); }

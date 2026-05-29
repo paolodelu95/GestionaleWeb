@@ -281,7 +281,9 @@ function toDto(r) {
     id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
     ddtId: r.ddt_id, note: r.note, stato: r.stato, totale, imponibile,
-    tipoPagamentoId: r.tipo_pagamento_id
+    tipoPagamentoId: r.tipo_pagamento_id,
+    statoSdi: r.stato_sdi || '', dataInvioSdi: r.data_invio_sdi || '',
+    idTrasmissioneSdi: r.id_trasmissione_sdi || ''
   };
 }
 
@@ -325,6 +327,33 @@ router.patch('/:id/stato', (req, res) => {
   });
   const before = tx();
   audit('fattura', Number(req.params.id), 'UPDATE', { before, after: { stato } });
+  res.json({ success: true });
+});
+
+// PATCH /:id/stato-sdi — aggiorna manualmente lo stato della notifica SDI.
+// Utile per registrare l'esito ricevuto dall'intermediario (RC consegnata,
+// NS scartata, NE accettata/rifiutata, MC mancata consegna, ecc.) quando non
+// è attivo il polling automatico da provider.
+const STATI_SDI_VALIDI = new Set([
+  '', 'NON_INVIATA', 'INVIATA', 'CONSEGNATA', 'MANCATA_CONSEGNA',
+  'SCARTATA', 'ACCETTATA', 'RIFIUTATA', 'DECORRENZA_TERMINI', 'NON_RECAPITABILE',
+]);
+router.patch('/:id/stato-sdi', (req, res) => {
+  const { statoSdi, dataInvioSdi, idTrasmissioneSdi } = req.body || {};
+  const nuovo = String(statoSdi || '').toUpperCase();
+  if (!STATI_SDI_VALIDI.has(nuovo)) {
+    return res.status(400).json({ error: `Stato SDI non valido: ${statoSdi}` });
+  }
+  const f = db.prepare('SELECT stato_sdi, data_invio_sdi, id_trasmissione_sdi FROM fatture WHERE id=?').get(req.params.id);
+  if (!f) return res.status(404).json({ error: 'Fattura non trovata' });
+  const before = { statoSdi: f.stato_sdi || '', dataInvioSdi: f.data_invio_sdi || '', idTrasmissioneSdi: f.id_trasmissione_sdi || '' };
+  // Se viene impostato uno stato "inviato" e manca la data invio, la valorizza a oggi.
+  const dataInvio = dataInvioSdi != null ? dataInvioSdi
+    : (nuovo && nuovo !== 'NON_INVIATA' && !f.data_invio_sdi ? new Date().toISOString().slice(0, 10) : f.data_invio_sdi || '');
+  const idTrasm = idTrasmissioneSdi != null ? idTrasmissioneSdi : (f.id_trasmissione_sdi || '');
+  db.prepare('UPDATE fatture SET stato_sdi=?, data_invio_sdi=?, id_trasmissione_sdi=? WHERE id=?')
+    .run(nuovo === 'NON_INVIATA' ? '' : nuovo, dataInvio, idTrasm, req.params.id);
+  audit('fattura', Number(req.params.id), 'UPDATE', { before, after: { statoSdi: nuovo, dataInvioSdi: dataInvio, idTrasmissioneSdi: idTrasm } });
   res.json({ success: true });
 });
 

@@ -18,6 +18,7 @@ export const routes: Routes = [
   { path: 'fornitori',    loadComponent: () => import('./components/fornitori/fornitori').then(m => m.FornitoriComponent) },
   { path: 'ddt',          loadComponent: () => import('./components/ddt/ddt').then(m => m.DdtComponent) },
   { path: 'fatture',      loadComponent: () => import('./components/fatture/fatture').then(m => m.FattureComponent) },
+  { path: 'fatture-elettroniche', loadComponent: () => import('./components/fatture-elettroniche/fatture-elettroniche').then(m => m.FattureElettronicheComponent) },
   { path: 'note-credito', loadComponent: () => import('./components/note-credito/note-credito').then(m => m.NoteCreditoComponent) },
   { path: 'ordini',       loadComponent: () => import('./components/ordini/ordini').then(m => m.OrdiniComponent) },
   { path: 'preventivi',   loadComponent: () => import('./components/preventivi/preventivi').then(m => m.PreventiviComponent) },

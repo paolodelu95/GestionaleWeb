@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AcquistoMagazzinoDialogComponent } from './acquisto-magazzino-dialog';
+import { AcquistoRegistraDialogComponent } from './acquisto-registra-dialog';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -554,6 +555,24 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
         ? `Arrivo merce ${result.numero} creato (${numRighe} righe, ${numNuovi} prodotti nuovi)`
         : `Arrivo merce ${result.numero} creato (${numRighe} righe)`;
       this.snack.open(msg, 'OK', { duration: 4500, panelClass: 'snack-ok' });
+      this.load();
+    });
+  }
+
+  // "Registra": in un colpo solo registra il pagamento e carica i prodotti a
+  // magazzino (come l'import di un XML). Pensato per le fatture passive ricevute.
+  registra(a: Acquisto) {
+    if (!a.id) return;
+    const ref = this.dialog.open(AcquistoRegistraDialogComponent, {
+      data: { acquistoId: a.id, api: this.api, fornitoreNome: a.fornitoreNome },
+      maxWidth: '92vw',
+    });
+    ref.afterClosed().subscribe(result => {
+      if (!result?.registered) return;
+      const parts: string[] = [];
+      if (result.arrivo) parts.push(`arrivo merce ${result.arrivo.numero}`);
+      if (result.pagamento) parts.push(`pagamento € ${result.pagamento.importo.toFixed(2)}`);
+      this.snack.open(`Registrato: ${parts.join(' + ') || 'nessuna operazione'}`, 'OK', { duration: 4500, panelClass: 'snack-ok' });
       this.load();
     });
   }

@@ -26,10 +26,11 @@ const parser = new XMLParser({
 function asArray(v) { return v == null ? [] : Array.isArray(v) ? v : [v]; }
 function pick(o, ...keys) { for (const k of keys) if (o && o[k] != null) return o[k]; return undefined; }
 
-// POST /api/sdi-passive/import-xml — body: XML come stringa, content-type text/xml o application/xml
+// POST /api/sdi-passive/import-xml — body: XML come stringa (text/xml o
+// application/xml) oppure JSON { xml: "<...>" } per chiamate dal frontend.
 router.post('/import-xml', express.text({ type: ['text/xml','application/xml','text/plain'], limit: '4mb' }), (req, res) => {
   try {
-    const xml = String(req.body || '');
+    const xml = typeof req.body === 'string' ? req.body : String(req.body?.xml || '');
     if (!xml.trim()) return res.status(400).json({ error: 'XML mancante' });
     const tree = parser.parse(xml);
     const root = pick(tree, 'FatturaElettronica');
@@ -91,6 +92,36 @@ router.post('/import-xml', express.text({ type: ['text/xml','application/xml','t
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/sdi-passive/ricevute — elenco delle fatture passive scaricate/importate
+// dal Sistema di Interscambio (acquisti con marcatore di import), con lo stato di
+// registrazione: caricato a magazzino? pagato?
+router.get('/ricevute', (req, res) => {
+  const rows = db.prepare(`
+    SELECT a.id, a.numero, a.data_emissione, a.stato, a.note, a.fornitore_id,
+           f.ragione_sociale AS fornitore_nome,
+           (SELECT COUNT(*) FROM acquisti_righe r WHERE r.acquisto_id = a.id) AS num_righe,
+           (SELECT COALESCE(SUM(r.quantita * r.prezzo * (1 - COALESCE(r.sconto,0)/100.0) * (1 + COALESCE(r.iva,0)/100.0)), 0)
+              FROM acquisti_righe r WHERE r.acquisto_id = a.id) AS totale,
+           (SELECT COALESCE(SUM(p.importo), 0) FROM pagamenti p WHERE p.acquisto_id = a.id) AS pagato,
+           (SELECT COUNT(*) FROM arrivi_merce am WHERE am.acquisto_id = a.id) AS num_arrivi
+    FROM acquisti a
+    LEFT JOIN fornitori f ON a.fornitore_id = f.id
+    WHERE a.note LIKE '%FatturaPA passiva%' OR a.note LIKE '%Importato da XML%'
+    ORDER BY a.data_emissione DESC, a.id DESC`).all();
+
+  res.json(rows.map(r => {
+    const totale = +(r.totale || 0).toFixed(2);
+    const pagato = +(r.pagato || 0).toFixed(2);
+    return {
+      id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
+      fornitoreId: r.fornitore_id, fornitoreNome: r.fornitore_nome || '—',
+      stato: r.stato, numRighe: r.num_righe, totale, importoPagato: pagato,
+      pagato: totale > 0 && pagato >= totale - 0.05,
+      caricatoMagazzino: r.num_arrivi > 0,
+    };
+  }));
 });
 
 // GET /api/sdi-passive/providers — lista provider supportati (scaffold)
