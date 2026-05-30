@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -17,6 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { ArrivoMerce, Acquisto, Fornitore, Prodotto, RigaArrivoMerce, UnitaMisura } from '../../models';
+import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 
 // ── Dialog selezione fattura acquisto ────────────────────────────────────────
@@ -271,9 +272,11 @@ export class QuickProdottoDialogComponent {
             @for (riga of righe; track $index) {
               <tr [class.warn-row]="!riga.prodottoId">
                 <td>
-                  <input class="riga-input" [(ngModel)]="riga.descrizione"
-                         placeholder="Descrizione / nome prodotto"
-                         [title]="riga.prodottoId ? ('ID: ' + riga.prodottoId) : 'Prodotto non collegato'">
+                  <input class="riga-input" #rigaCodice [(ngModel)]="riga.descrizione"
+                         placeholder="Codice / nome prodotto"
+                         [title]="riga.prodottoId ? ('ID: ' + riga.prodottoId) : 'Prodotto non collegato'"
+                         (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)"
+                         (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)">
                 </td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
@@ -339,7 +342,7 @@ export class QuickProdottoDialogComponent {
     </mat-dialog-actions>`,
   styles: [STYLES]
 })
-export class ArrivoMerceDialogComponent implements OnInit {
+export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
   form: FormGroup;
   fornitori: Fornitore[] = [];
   filteredFornitori: Fornitore[] = [];
@@ -406,22 +409,69 @@ export class ArrivoMerceDialogComponent implements OnInit {
     if (this.filteredFornitori.length > 0) this.fornitoreCtrl.setValue(this.filteredFornitori[0]);
   }
 
-  searchProdotto(index: number) {
-    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: this.prodotti })
+  @ViewChildren('rigaCodice') private codiceInputs!: QueryList<ElementRef<HTMLInputElement>>;
+
+  ngAfterViewInit() {
+    setTimeout(() => this.codiceInputs?.first?.nativeElement.focus(), 0);
+  }
+
+  searchProdotto(index: number, lista?: Prodotto[]) {
+    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: lista ?? this.prodotti })
       .afterClosed().subscribe((pick: ProdottoPick) => {
         if (!pick) return;
-        const p = pick.prodotto; const v = pick.variante;
-        const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
-        this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
-        this.righe[index].prodottoId = p.id ?? null;
-        this.righe[index].prodottoNome = p.nome;
-        this.righe[index].codiceFornitore = p.codiceFornitore ?? '';
-        this.righe[index].unitaMisura = p.unitaMisura ?? 'pz';
-        this.righe[index].prezzoAcquisto = 0;
-        this.righe[index].varianteId = v?.id ?? null;
-        this.righe[index].varianteTaglia = v?.taglia ?? '';
-        this.righe[index].varianteColore = v?.colore ?? '';
+        this.applyProdottoToRiga(index, pick.prodotto, pick.variante);
       });
+  }
+
+  /** Riempie la riga arrivo coi dati del prodotto (selettore o inserimento via codice). */
+  private applyProdottoToRiga(index: number, p: Prodotto, v?: ProdottoPick['variante']) {
+    const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
+    this.righe[index].descrizione = (p.codice ?? p.nome) + varSuffix;
+    this.righe[index].prodottoId = p.id ?? null;
+    this.righe[index].prodottoNome = p.nome;
+    this.righe[index].codiceFornitore = p.codiceFornitore ?? '';
+    this.righe[index].unitaMisura = p.unitaMisura ?? 'pz';
+    this.righe[index].prezzoAcquisto = 0;
+    this.righe[index].varianteId = v?.id ?? null;
+    this.righe[index].varianteTaglia = v?.taglia ?? '';
+    this.righe[index].varianteColore = v?.colore ?? '';
+  }
+
+  /** Inserimento rapido da tastiera: codice/nome (anche parziale) + Invio. */
+  risolviCodiceRiga(index: number, event: Event) {
+    event.preventDefault();
+    const input = event.target as HTMLInputElement;
+    const q = (this.righe[index]?.descrizione ?? '').toString().trim();
+    if (!q) { this.searchProdotto(index); return; }
+    const { exact, matches } = findProdottoByCodice(this.prodotti, q);
+    if (exact) { this.applyProdottoToRiga(index, exact); this.focusNextCodice(input); }
+    else if (matches.length === 1) { this.applyProdottoToRiga(index, matches[0]); this.focusNextCodice(input); }
+    else if (matches.length > 1) { this.searchProdotto(index, matches); }
+    // nessun match: lascio il testo digitato (collegabile col selettore o quick-create)
+  }
+
+  /** ↑/↓ tra i codici delle righe (gli input single-line non usano le frecce verticali). */
+  focusSiblingCodice(event: Event, delta: number) {
+    event.preventDefault();
+    const inputs = this.codiceInputs?.toArray() ?? [];
+    const i = inputs.findIndex(r => r.nativeElement === (event.target as HTMLInputElement));
+    const target = inputs[i + delta];
+    if (target) { target.nativeElement.focus(); target.nativeElement.select(); }
+  }
+
+  private focusNextCodice(current: HTMLInputElement) {
+    const inputs = this.codiceInputs?.toArray() ?? [];
+    const i = inputs.findIndex(r => r.nativeElement === current);
+    const next = i >= 0 ? inputs[i + 1] : undefined;
+    if (next) { setTimeout(() => { next.nativeElement.focus(); next.nativeElement.select(); }, 0); }
+    else {
+      this.addRiga();
+      setTimeout(() => {
+        const arr = this.codiceInputs.toArray();
+        const el = arr[arr.length - 1]?.nativeElement;
+        if (el) { el.focus(); el.select(); }
+      }, 0);
+    }
   }
 
   quickCreateProdotto(index: number) {
