@@ -199,7 +199,7 @@ const RIGHE_STYLES = `
                     <tr cdkDrag cdkDragPreviewContainer="parent">
                       <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                       <td class="td-desc" style="padding:2px">
-                        <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)">
+                        <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)">
                         <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
                       </td>
                       <td class="td-search">
@@ -667,6 +667,15 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
   }
 
   /** Sposta il focus al codice della riga successiva; se non esiste, ne crea una nuova. */
+  /** ↑/↓ per spostarsi tra i codici delle righe (gli input single-line non usano le frecce verticali). */
+  focusSiblingCodice(event: Event, delta: number) {
+    event.preventDefault();
+    const inputs = this.codiceInputs?.toArray() ?? [];
+    const i = inputs.findIndex(r => r.nativeElement === (event.target as HTMLInputElement));
+    const target = inputs[i + delta];
+    if (target) { target.nativeElement.focus(); target.nativeElement.select(); }
+  }
+
   private focusNextCodice(current: HTMLInputElement) {
     const inputs = this.codiceInputs?.toArray() ?? [];
     const i = inputs.findIndex(r => r.nativeElement === current);
