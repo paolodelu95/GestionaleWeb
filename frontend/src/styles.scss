@@ -1285,6 +1285,14 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
     // Il kebab toggle prende la sua cella naturale
     .header-overflow-toggle { display: inline-flex !important; justify-self: end; }
   }
+  // Toggle-group filtro dentro la page-header: riga intera + toggle a larghezza
+  // uguale che riempiono lo spazio disponibile (niente slider stretto/scroll).
+  .page-header mat-button-toggle-group {
+    grid-column: 1 / -1;
+    width: 100%;
+    display: flex;
+  }
+  .page-header mat-button-toggle-group .mat-button-toggle { flex: 1 1 0; }
   .page-title { font-size: 20px; }
 
   // KPI: 2 colonne su mobile, override anche per kpi-3col/kpi-5col (specificita maggiore)
@@ -1293,7 +1301,9 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .kpi-grid.kpi-5col { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .kpi-card {
     padding: 14px 14px 12px;
-    .kpi-value { font-size: 19px; padding-right: 32px; overflow-wrap: anywhere; }
+    // nowrap + tabular: l'importo resta su una riga (il € non va a capo) e le
+    // cifre lunghe (centinaia di migliaia / milioni) non si spezzano a metà.
+    .kpi-value { font-size: 17px; padding-right: 32px; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
     .kpi-label { font-size: 11px; padding-right: 32px; }
     .kpi-icon { top: 12px; right: 12px; width: 30px; height: 30px;
       mat-icon { font-size: 16px; width: 16px; height: 16px; } }
