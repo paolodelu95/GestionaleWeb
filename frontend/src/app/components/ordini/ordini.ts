@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -474,6 +474,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
 
   /** Inserimento rapido da tastiera: codice (anche parziale) + Invio. */
   risolviCodiceRiga(index: number, event: Event) {
+    if ((event as KeyboardEvent).ctrlKey || (event as KeyboardEvent).metaKey) return;   // Ctrl/Cmd+Invio = salva
     event.preventDefault();
     const input = event.target as HTMLInputElement;
     const q = (this.righe[index]?.codiceProdotto ?? '').toString().trim();
@@ -486,6 +487,12 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
   }
 
   /** Sposta il focus al codice della riga successiva; se non esiste, ne crea una nuova. */
+  // Scorciatoia: Ctrl/Cmd+Invio salva il documento da qualunque campo.
+  @HostListener('keydown', ['$event'])
+  onDialogKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); }
+  }
+
   /** ↑/↓ per spostarsi tra i codici delle righe (gli input single-line non usano le frecce verticali). */
   focusSiblingCodice(event: Event, delta: number) {
     event.preventDefault();
