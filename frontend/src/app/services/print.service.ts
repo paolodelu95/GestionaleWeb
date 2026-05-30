@@ -497,51 +497,62 @@ export class PrintService {
     return this.partiesClassico(doc, y, left, right);
   }
 
-  private logoX(w: number): number {
-    const a = this.resolved.logo.align;
-    if (a === 'center') return (PW - w) / 2;
-    if (a === 'right') return PW - this.ML - w;
-    return this.ML;
+  /**
+   * Posizioni di header in base all'allineamento del logo, così che nulla si
+   * sovrapponga: il blocco titolo va sul lato OPPOSTO al logo (mirror sinistra/destra);
+   * 'center' impila il logo su una riga propria e mette il contenuto sotto (stacked).
+   * Con logo a sinistra (default) i valori riproducono il layout storico.
+   */
+  private hdrAnchors(logo: any, gap: number): {
+    logoX: number; textX: number; textAlign: 'left' | 'right';
+    titleX: number; titleAlign: 'left' | 'right'; stacked: boolean;
+  } {
+    const align = logo ? this.resolved.logo.align : 'left';
+    const lw = logo ? logo.w : 0;
+    if (align === 'right' && logo) {
+      return { logoX: PW - this.ML - lw, textX: PW - this.ML - lw - gap, textAlign: 'right', titleX: this.ML, titleAlign: 'left', stacked: false };
+    }
+    if (align === 'center' && logo) {
+      return { logoX: (PW - lw) / 2, textX: this.ML, textAlign: 'left', titleX: PW - this.ML, titleAlign: 'right', stacked: true };
+    }
+    return { logoX: this.ML, textX: this.ML + (lw ? lw + gap : 0), textAlign: 'left', titleX: PW - this.ML, titleAlign: 'right', stacked: false };
   }
 
   // ── Classico header / parties ──────────────────────────────────────────────
 
   private hdrClassico(doc: jsPDF, az: Azienda, type: string, subtitle: string, numero: string, data: string, logo: any): number {
     const C = this.resolved.colors;
-    const y = this.ML;
-    let lx = this.ML;
+    const topY = this.ML;
+    const a = this.hdrAnchors(logo, 4);
 
     if (logo) {
-      try {
-        const x = this.logoX(logo.w);
-        doc.addImage(logo.src, logo.fmt, x, y, logo.w, logo.h);
-        if (this.resolved.logo.align === 'left') lx = this.ML + logo.w + 4;
-      } catch (_) {}
+      try { doc.addImage(logo.src, logo.fmt, a.logoX, topY, logo.w, logo.h); } catch (_) {}
     }
+    const baseY = (a.stacked && logo) ? topY + logo.h + 3 : topY;
 
     this.F(doc, 13, 'bold'); doc.setTextColor(...C.text);
-    doc.text(az.ragioneSociale || '', lx, y + 7);
+    doc.text(az.ragioneSociale || '', a.textX, baseY + 7, { align: a.textAlign });
 
     const infoLines = this.azInfoLines(az, true);
     this.F(doc, 8, 'normal'); doc.setTextColor(...C.muted);
-    let iy = y + 12;
-    for (const line of infoLines) { doc.text(line, lx, iy); iy += 4; }
+    let iy = baseY + 12;
+    for (const line of infoLines) { doc.text(line, a.textX, iy, { align: a.textAlign }); iy += 4; }
 
     const ac = this.ac();
     this.F(doc, 22, 'bold'); doc.setTextColor(...ac);
-    doc.text(type, PW - this.ML, y + 8, { align: 'right' });
+    doc.text(type, a.titleX, baseY + 8, { align: a.titleAlign });
 
     if (subtitle) {
       this.F(doc, 9, 'normal'); doc.setTextColor(...C.muted);
-      doc.text(subtitle, PW - this.ML, y + 14, { align: 'right' });
+      doc.text(subtitle, a.titleX, baseY + 14, { align: a.titleAlign });
     }
 
     const metaY = subtitle ? 20 : 15;
     this.F(doc, 10, 'normal'); doc.setTextColor(...C.text);
-    doc.text(`N. ${numero}`, PW - this.ML, y + metaY, { align: 'right' });
-    doc.text(`Del ${this.fd(data)}`, PW - this.ML, y + metaY + 5, { align: 'right' });
+    doc.text(`N. ${numero}`, a.titleX, baseY + metaY, { align: a.titleAlign });
+    doc.text(`Del ${this.fd(data)}`, a.titleX, baseY + metaY + 5, { align: a.titleAlign });
 
-    const yy = Math.max(iy, y + 28) + 2;
+    const yy = Math.max(iy, baseY + 28) + 2;
     doc.setDrawColor(...ac); doc.setLineWidth(0.7);
     doc.line(this.ML, yy, PW - this.ML, yy);
     return yy + 6;
@@ -580,35 +591,34 @@ export class PrintService {
     doc.setFillColor(...ac);
     doc.rect(0, 0, PW, bandH, 'F');
 
-    let lx = this.ML;
+    const a = this.hdrAnchors(logo, 5);
     if (logo) {
       try {
         const logoY = (bandH - logo.h) / 2;
-        doc.addImage(logo.src, logo.fmt, this.logoX(logo.w), logoY, logo.w, logo.h);
-        if (this.resolved.logo.align === 'left') lx = this.ML + logo.w + 5;
+        doc.addImage(logo.src, logo.fmt, a.logoX, logoY, logo.w, logo.h);
       } catch (_) {}
     }
 
     this.F(doc, 12, 'bold'); doc.setTextColor(255, 255, 255);
-    doc.text(az.ragioneSociale || '', lx, 13);
+    doc.text(az.ragioneSociale || '', a.textX, 13, { align: a.textAlign });
 
     const infoLines = this.azInfoLines(az);
     this.F(doc, 7.5, 'normal'); doc.setTextColor(215, 220, 255);
     let iy = 19;
-    for (const line of infoLines.slice(0, 2)) { doc.text(line, lx, iy); iy += 4.2; }
+    for (const line of infoLines.slice(0, 2)) { doc.text(line, a.textX, iy, { align: a.textAlign }); iy += 4.2; }
 
     this.F(doc, 20, 'bold'); doc.setTextColor(255, 255, 255);
-    doc.text(type, PW - this.ML, 13, { align: 'right' });
+    doc.text(type, a.titleX, 13, { align: a.titleAlign });
 
     if (subtitle) {
       this.F(doc, 8, 'normal'); doc.setTextColor(215, 220, 255);
-      doc.text(subtitle, PW - this.ML, 19, { align: 'right' });
+      doc.text(subtitle, a.titleX, 19, { align: a.titleAlign });
     }
 
     const metaBase = subtitle ? 24 : 20;
     this.F(doc, 9, 'normal'); doc.setTextColor(255, 255, 255);
-    doc.text(`N. ${numero}`, PW - this.ML, metaBase, { align: 'right' });
-    doc.text(`Del ${this.fd(data)}`, PW - this.ML, metaBase + 5, { align: 'right' });
+    doc.text(`N. ${numero}`, a.titleX, metaBase, { align: a.titleAlign });
+    doc.text(`Del ${this.fd(data)}`, a.titleX, metaBase + 5, { align: a.titleAlign });
     return bandH + 6;
   }
 
@@ -640,38 +650,36 @@ export class PrintService {
 
   private hdrMinimal(doc: jsPDF, az: Azienda, type: string, subtitle: string, numero: string, data: string, logo: any): number {
     const C = this.resolved.colors;
-    const y = this.ML;
-    let lx = this.ML;
+    const topY = this.ML;
+    const a = this.hdrAnchors(logo, 5);
 
     if (logo) {
-      try {
-        doc.addImage(logo.src, logo.fmt, this.logoX(logo.w), y, logo.w, logo.h);
-        if (this.resolved.logo.align === 'left') lx = this.ML + logo.w + 5;
-      } catch (_) {}
+      try { doc.addImage(logo.src, logo.fmt, a.logoX, topY, logo.w, logo.h); } catch (_) {}
     }
+    const baseY = (a.stacked && logo) ? topY + logo.h + 3 : topY;
 
     this.F(doc, 10, 'bold'); doc.setTextColor(...C.text);
-    doc.text(az.ragioneSociale || '', lx, y + 6);
+    doc.text(az.ragioneSociale || '', a.textX, baseY + 6, { align: a.textAlign });
 
     const infoLines = this.azInfoLines(az);
     this.F(doc, 7.5, 'normal'); doc.setTextColor(...C.muted);
-    let iy = y + 11;
-    for (const line of infoLines) { doc.text(line, lx, iy); iy += 4; }
+    let iy = baseY + 11;
+    for (const line of infoLines) { doc.text(line, a.textX, iy, { align: a.textAlign }); iy += 4; }
 
-    // Large watermark-style doc type (right side)
+    // Large watermark-style doc type (lato opposto al logo)
     this.F(doc, 30, 'bold'); doc.setTextColor(...WM);
-    doc.text(type, PW - this.ML, y + 17, { align: 'right' });
+    doc.text(type, a.titleX, baseY + 17, { align: a.titleAlign });
 
     if (subtitle) {
       this.F(doc, 8.5, 'normal'); doc.setTextColor(...C.muted);
-      doc.text(subtitle, PW - this.ML, y + 23, { align: 'right' });
+      doc.text(subtitle, a.titleX, baseY + 23, { align: a.titleAlign });
     }
     const metaY = subtitle ? 28 : 23;
     this.F(doc, 9, 'normal'); doc.setTextColor(...C.text);
-    doc.text(`N. ${numero}`, PW - this.ML, y + metaY, { align: 'right' });
-    doc.text(`Del ${this.fd(data)}`, PW - this.ML, y + metaY + 5, { align: 'right' });
+    doc.text(`N. ${numero}`, a.titleX, baseY + metaY, { align: a.titleAlign });
+    doc.text(`Del ${this.fd(data)}`, a.titleX, baseY + metaY + 5, { align: a.titleAlign });
 
-    const yy = Math.max(iy, y + 30) + 2;
+    const yy = Math.max(iy, baseY + 30) + 2;
     doc.setDrawColor(...MIN_DIV); doc.setLineWidth(0.25);
     doc.line(this.ML, yy, PW - this.ML, yy);
     return yy + 5;
