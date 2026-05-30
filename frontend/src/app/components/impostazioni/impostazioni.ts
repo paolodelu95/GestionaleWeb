@@ -16,6 +16,15 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { PrintService } from '../../services/print.service';
+import { TEMPLATE_PRESETS, TemplatePreset } from '../../services/template-presets';
+import { SectionKey, ColumnKey } from '../../models';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
@@ -363,7 +372,8 @@ export class PrefissoConfermaDialogComponent {
             MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
             MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
-            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule],
+            MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule,
+            MatExpansionModule, MatButtonToggleModule, MatSliderModule, MatTooltipModule, DragDropModule],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })
@@ -435,6 +445,8 @@ export class ImpostazioniComponent implements OnInit {
     private snack: MatSnackBar,
     private moduliSvc: ModuliService,
     private docLockSvc: DocLockService,
+    private printSvc: PrintService,
+    private sanitizer: DomSanitizer,
   ) {
     this.form = this.fb.group({
       ragioneSociale: [''], pIva: ['', pIvaValidator], codFiscale: ['', codiceFiscaleValidator],
@@ -472,6 +484,7 @@ export class ImpostazioniComponent implements OnInit {
           ? { ...a.templateConfig, blocks: { ...a.templateConfig.blocks } }
           : { stile: 'classico' };
         if (!this.templateConfig.blocks) this.templateConfig.blocks = {};
+        this.initGraficaEditor();
         this.notificheConfig = a.notificheConfig
           ? { ...a.notificheConfig }
           : { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
@@ -650,27 +663,202 @@ export class ImpostazioniComponent implements OnInit {
     });
   }
 
-  // ── Template grafica ────────────────────────────────────────────────────────
-  setTemplateStile(stile: 'classico' | 'moderno' | 'minimal') {
-    this.templateConfig = { ...this.templateConfig, stile };
+  // ── Editor grafica documenti ──────────────────────────────────────────────
+  readonly presets = TEMPLATE_PRESETS;
+  readonly fontOptions: { value: 'helvetica' | 'times' | 'courier'; label: string }[] = [
+    { value: 'helvetica', label: 'Helvetica (lineare)' },
+    { value: 'times', label: 'Times (con grazie)' },
+    { value: 'courier', label: 'Courier (monospazio)' },
+  ];
+  readonly colorFields: { key: string; label: string; def: string }[] = [
+    { key: 'accent', label: 'Principale', def: '#0e6480' },
+    { key: 'text', label: 'Testo', def: '#1a1a2e' },
+    { key: 'muted', label: 'Testo secondario', def: '#64748b' },
+    { key: 'rowAlt', label: 'Righe alternate', def: '#f8fafc' },
+    { key: 'lightBg', label: 'Sfondi tenui', def: '#f0f2f8' },
+  ];
+  readonly footerFields: { key: string; label: string }[] = [
+    { key: 'showRagioneSociale', label: 'Ragione sociale' },
+    { key: 'showPiva', label: 'P.IVA' },
+    { key: 'showCodFiscale', label: 'Cod. fiscale' },
+    { key: 'showPec', label: 'PEC' },
+    { key: 'showSdi', label: 'Codice SDI' },
+    { key: 'showPageNumber', label: 'Numero pagina' },
+  ];
+  readonly sectionLabels: Record<string, string> = {
+    parti: 'Mittente / Destinatario', tabella: 'Tabella prodotti',
+    totali: 'Totali e IVA', pagamento: 'Pagamento', note: 'Note',
+  };
+  readonly columnLabels: Record<string, string> = {
+    num: 'N. riga', codiceDescrizione: 'Codice / Descrizione', quantita: 'Quantità',
+    um: 'Unità di misura', prezzo: 'Prezzo', sconto: 'Sconto %', iva: 'IVA', importo: 'Importo',
+  };
+  readonly forcedColumns: string[] = ['num', 'codiceDescrizione', 'importo'];
+
+  sectionsOrderList: SectionKey[] = ['parti', 'tabella', 'totali', 'pagamento', 'note'];
+  columnsList: { key: ColumnKey; visible: boolean }[] = [];
+
+  previewSafeUrl?: SafeResourceUrl;
+  previewLoading = false;
+  private previewBlobUrl?: string;
+  private previewTimer?: any;
+
+  private initGraficaEditor() {
+    const tc = this.templateConfig;
+    const baseSections: SectionKey[] = ['parti', 'tabella', 'totali', 'pagamento', 'note'];
+    if (tc.sectionsOrder && tc.sectionsOrder.length) {
+      const known = tc.sectionsOrder.filter(k => baseSections.includes(k));
+      this.sectionsOrderList = [...known, ...baseSections.filter(k => !known.includes(k))];
+    } else {
+      this.sectionsOrderList = [...baseSections];
+    }
+    const allCols: ColumnKey[] = ['num', 'codiceDescrizione', 'quantita', 'um', 'prezzo', 'sconto', 'iva', 'importo'];
+    if (tc.columns && tc.columns.length) {
+      const present = tc.columns.map(c => c.key);
+      this.columnsList = [
+        ...tc.columns.filter(c => allCols.includes(c.key)).map(c => ({ key: c.key, visible: c.visible !== false })),
+        ...allCols.filter(k => !present.includes(k)).map(k => ({ key: k, visible: true })),
+      ];
+    } else {
+      this.columnsList = allCols.map(k => ({ key: k, visible: true }));
+    }
+    this.schedulePreview();
   }
 
+  private touch() {
+    this.templateConfig = { ...this.templateConfig };
+    this.schedulePreview();
+  }
+
+  private schedulePreview() {
+    clearTimeout(this.previewTimer);
+    this.previewTimer = setTimeout(() => this.refreshPreview(), 250);
+  }
+
+  refreshPreview() {
+    this.previewLoading = true;
+    const az = { ...this.form.value, logo: this.logoPreview };
+    this.printSvc.buildSampleBlobUrl(this.templateConfig, az as any).then(url => {
+      if (this.previewBlobUrl) { try { URL.revokeObjectURL(this.previewBlobUrl); } catch (_) {} }
+      this.previewBlobUrl = url;
+      this.previewSafeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+      this.previewLoading = false;
+    }).catch(() => { this.previewLoading = false; });
+  }
+
+  // Preset
+  applyPreset(p: TemplatePreset) {
+    this.templateConfig = JSON.parse(JSON.stringify(p.config));
+    if (!this.templateConfig.blocks) this.templateConfig.blocks = {};
+    this.initGraficaEditor();
+  }
+  isPresetActive(p: TemplatePreset): boolean {
+    return this.templateConfig.stile === p.config.stile &&
+      JSON.stringify(this.templateConfig.colors || null) === JSON.stringify(p.config.colors || null) &&
+      (this.templateConfig.typography?.fontFamily || 'helvetica') === (p.config.typography?.fontFamily || 'helvetica');
+  }
+
+  // Stile / blocchi (compat con handler esistenti)
+  setTemplateStile(stile: 'classico' | 'moderno' | 'minimal') {
+    this.templateConfig = { ...this.templateConfig, stile };
+    this.schedulePreview();
+  }
   isBlockVisible(key: string): boolean {
     return this.templateConfig.blocks?.[key] !== false;
   }
-
   toggleBlock(key: string, checked: boolean) {
     if (!this.templateConfig.blocks) this.templateConfig.blocks = {};
     this.templateConfig.blocks[key] = checked;
+    this.touch();
   }
 
-  onAccentColorChange(event: Event) {
-    const val = (event.target as HTMLInputElement).value;
-    this.templateConfig = { ...this.templateConfig, accentColor: val };
+  // Colori
+  colorValue(key: string): string {
+    const c = (this.templateConfig.colors as any)?.[key];
+    if (c) return c;
+    if (key === 'accent' && this.templateConfig.accentColor) return this.templateConfig.accentColor;
+    return this.colorFields.find(f => f.key === key)?.def || '#000000';
+  }
+  onColorChange(key: string, event: Event) { this.setColor(key, (event.target as HTMLInputElement).value); }
+  setColor(key: string, val: string) {
+    this.templateConfig.colors = { ...(this.templateConfig.colors || {}), [key]: val };
+    if (key === 'accent') this.templateConfig.accentColor = val; // mantieni il campo legacy allineato
+    this.touch();
+  }
+  resetColor(key: string) {
+    const colors: any = { ...(this.templateConfig.colors || {}) };
+    delete colors[key];
+    this.templateConfig.colors = colors;
+    if (key === 'accent') this.templateConfig.accentColor = undefined;
+    this.touch();
+  }
+  onAccentColorChange(event: Event) { this.setColor('accent', (event.target as HTMLInputElement).value); }
+  resetAccentColor() { this.resetColor('accent'); }
+
+  // Tipografia
+  get fontFamily(): string { return this.templateConfig.typography?.fontFamily || 'helvetica'; }
+  setFontFamily(v: 'helvetica' | 'times' | 'courier') {
+    this.templateConfig.typography = { ...(this.templateConfig.typography || {}), fontFamily: v };
+    this.touch();
+  }
+  get fontScale(): number { return this.templateConfig.typography?.fontScale ?? 1; }
+  setFontScale(v: number | null) {
+    this.templateConfig.typography = { ...(this.templateConfig.typography || {}), fontScale: v ?? 1 };
+    this.touch();
+  }
+  get uppercaseTitles(): boolean { return this.templateConfig.typography?.uppercaseSectionTitles !== false; }
+  setUppercaseTitles(v: boolean) {
+    this.templateConfig.typography = { ...(this.templateConfig.typography || {}), uppercaseSectionTitles: v };
+    this.touch();
   }
 
-  resetAccentColor() {
-    this.templateConfig = { ...this.templateConfig, accentColor: undefined };
+  // Logo
+  get logoShow(): boolean { return this.templateConfig.logo?.show !== false; }
+  setLogoShow(v: boolean) { this.templateConfig.logo = { ...(this.templateConfig.logo || {}), show: v }; this.touch(); }
+  get logoAlign(): string { return this.templateConfig.logo?.align || 'left'; }
+  setLogoAlign(v: 'left' | 'center' | 'right') { this.templateConfig.logo = { ...(this.templateConfig.logo || {}), align: v }; this.touch(); }
+  get logoSize(): string { return this.templateConfig.logo?.size || 'M'; }
+  setLogoSize(v: 'S' | 'M' | 'L') { this.templateConfig.logo = { ...(this.templateConfig.logo || {}), size: v }; this.touch(); }
+
+  // Margini
+  get marginLeft(): number { return this.templateConfig.margins?.left ?? 14; }
+  setMarginLeft(v: number | null) { this.templateConfig.margins = { ...(this.templateConfig.margins || {}), left: v ?? 14 }; this.touch(); }
+  get marginRight(): number { return this.templateConfig.margins?.right ?? 14; }
+  setMarginRight(v: number | null) { this.templateConfig.margins = { ...(this.templateConfig.margins || {}), right: v ?? 14 }; this.touch(); }
+
+  // Footer
+  footerVal(key: string): boolean { return (this.templateConfig.footer as any)?.[key] !== false; }
+  setFooter(key: string, val: boolean) { this.templateConfig.footer = { ...(this.templateConfig.footer || {}), [key]: val }; this.touch(); }
+  get footerCustomText(): string { return this.templateConfig.footer?.customText || ''; }
+  setFooterCustomText(v: string) { this.templateConfig.footer = { ...(this.templateConfig.footer || {}), customText: v }; this.touch(); }
+
+  // Pagamento / visibilità
+  get showIban(): boolean { return this.templateConfig.visibility?.showIban !== false; }
+  setShowIban(v: boolean) { this.templateConfig.visibility = { ...(this.templateConfig.visibility || {}), showIban: v }; this.touch(); }
+
+  // Riordino sezioni
+  dropSection(e: CdkDragDrop<SectionKey[]>) {
+    moveItemInArray(this.sectionsOrderList, e.previousIndex, e.currentIndex);
+    this.templateConfig.sectionsOrder = [...this.sectionsOrderList];
+    this.touch();
+  }
+
+  // Colonne tabella
+  dropColumn(e: CdkDragDrop<any[]>) {
+    moveItemInArray(this.columnsList, e.previousIndex, e.currentIndex);
+    this.syncColumns();
+  }
+  isColumnForced(key: string): boolean { return this.forcedColumns.includes(key); }
+  toggleColumn(key: ColumnKey, visible: boolean) {
+    const c = this.columnsList.find(x => x.key === key);
+    if (c) c.visible = visible;
+    this.syncColumns();
+  }
+  private syncColumns() {
+    this.templateConfig.columns = this.columnsList.map(c => ({
+      key: c.key, visible: this.forcedColumns.includes(c.key) ? true : c.visible,
+    }));
+    this.touch();
   }
 
   testSmtp() {

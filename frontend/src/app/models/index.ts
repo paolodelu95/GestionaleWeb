@@ -1,7 +1,105 @@
-export interface TemplateConfig {
-  stile: 'classico' | 'moderno' | 'minimal';
-  accentColor?: string;
+// ── Grafica documenti (stampa/PDF) ───────────────────────────────────────────
+// Modello ADDITIVO e retrocompatibile: ogni campo nuovo è opzionale e, se assente,
+// produce un output IDENTICO a oggi. Persistito come JSON in azienda.template_config
+// (nessuna modifica backend/DB). I valori di fallback sono le costanti attuali di
+// print.service.ts.
+export type DocStile = 'classico' | 'moderno' | 'minimal';
+
+// Tipi documento (1:1 coi metodi pubblici di PrintService; ordine cliente/fornitore separati)
+export type DocType =
+  | 'fattura' | 'ddt' | 'notaCredito'
+  | 'ordineCliente' | 'ordineFornitore'
+  | 'preventivo' | 'documentoCommerciale' | 'acquisto';
+
+// Sezioni riordinabili del corpo (header sempre primo e footer sempre ultimo: fuori dall'ordine)
+export type SectionKey =
+  | 'parti' | 'trasporto' | 'tabella' | 'totali'
+  | 'pagamento' | 'riferimenti' | 'note' | 'firme';
+
+// Colonne tabella righe (set standard a 8 colonne)
+export type ColumnKey =
+  | 'num' | 'codiceDescrizione' | 'quantita' | 'um'
+  | 'prezzo' | 'sconto' | 'iva' | 'importo';
+
+export type HexColor = string; // validato /^#[0-9a-fA-F]{6}$/
+
+export interface ColorConfig {
+  accent?: HexColor;        // intestazioni, tabella, barre
+  text?: HexColor;          // testo principale
+  muted?: HexColor;         // testo secondario/etichette
+  lightBg?: HexColor;       // sfondi tenui (box parti, head riepilogo IVA)
+  rowAlt?: HexColor;        // righe alternate tabella
+  headText?: HexColor;      // testo intestazione tabella
+  totalBarText?: HexColor;  // testo barra totale
+  divider?: HexColor;       // linee divisorie
+  noteFill?: HexColor;      // sfondo box note
+  noteBorder?: HexColor;    // bordo box note
+}
+
+export interface TypographyConfig {
+  fontFamily?: 'helvetica' | 'times' | 'courier'; // solo font built-in jsPDF
+  fontScale?: number;                              // 0.85–1.20, moltiplicatore dimensioni
+  uppercaseSectionTitles?: boolean;                // titoli sezione in MAIUSCOLO
+}
+
+export interface LogoConfig {
+  show?: boolean;                       // mostra il logo (se presente in azienda)
+  align?: 'left' | 'center' | 'right';  // allineamento orizzontale
+  size?: 'S' | 'M' | 'L';               // S=30x12, M=44x18 (attuale), L=60x24 mm
+}
+
+export interface FooterConfig {
+  show?: boolean;
+  showRagioneSociale?: boolean;
+  showPiva?: boolean;
+  showCodFiscale?: boolean;
+  showPec?: boolean;
+  showSdi?: boolean;
+  showPageNumber?: boolean;
+  customText?: string;
+}
+
+export interface VisibilityConfig {
+  showIban?: boolean;        // mostra IBAN nel blocco pagamento
+  showRiferimenti?: boolean; // mostra il blocco riferimenti
+}
+
+export interface TableColumnConfig {
+  key: ColumnKey;
+  visible?: boolean;            // num/codiceDescrizione/importo sono sempre forzate visibili
+  width?: number | 'auto';      // mm
+  align?: 'left' | 'center' | 'right';
+  label?: string;               // override intestazione
+}
+
+export interface MarginsConfig {
+  left?: number; right?: number; // mm (esposti in UI)
+  top?: number; bottom?: number; // predisposti, non esposti in v1
+}
+
+// Riusabile come override per-tipo-documento (merge shallow dei sotto-oggetti)
+export interface DocTemplateOverride {
+  stile?: DocStile;
+  colors?: ColorConfig;
+  typography?: TypographyConfig;
+  logo?: LogoConfig;
+  footer?: FooterConfig;
+  visibility?: VisibilityConfig;
   blocks?: { [key: string]: boolean };
+  columns?: TableColumnConfig[];
+  sectionsOrder?: SectionKey[];
+  tableTheme?: 'striped' | 'grid' | 'plain';
+  margins?: MarginsConfig;
+}
+
+// Root salvato in azienda.template_config (JSON).
+export interface TemplateConfig extends DocTemplateOverride {
+  schemaVersion?: number;
+  stile: DocStile;            // RESTA OBBLIGATORIO (retrocompat: default {stile:'classico'})
+  accentColor?: string;       // LEGACY: se colors.accent assente, usato come fallback. Mai rimuovere.
+  format?: 'a4';
+  orientation?: 'p';
+  perDoc?: { [k in DocType]?: DocTemplateOverride };
 }
 
 export interface NotificheConfig {

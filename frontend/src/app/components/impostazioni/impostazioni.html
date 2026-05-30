@@ -702,121 +702,155 @@
     <!-- ── Grafica documenti ───────────────────────────────────────────────── -->
     <mat-tab label="Grafica documenti">
       <div class="tab-content">
-        <div class="card" style="max-width:780px">
-          <h3 class="section-title">Stile grafico</h3>
-          <p style="color:#64748b;font-size:13px;margin-bottom:20px">
-            Scegli l'aspetto di fatture, DDT, preventivi e tutti gli altri documenti PDF generati.
-          </p>
-
-          <div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap">
-
-            <!-- Classico -->
-            <div class="template-card" [class.template-card--active]="templateConfig.stile === 'classico'" (click)="setTemplateStile('classico')">
-              <div class="tmpl-preview">
-                <div style="height:9px;background:#0e6480;border-radius:2px 2px 0 0"></div>
-                <div style="padding:5px 6px">
-                  <div style="display:flex;gap:4px;margin-bottom:4px">
-                    <div style="flex:1;height:14px;background:#f1f5f9;border-radius:2px"></div>
-                    <div style="flex:1;height:14px;background:#f1f5f9;border-radius:2px"></div>
-                  </div>
-                  <div style="height:5px;background:#0e6480;border-radius:1px;margin-bottom:3px"></div>
-                  <div style="height:3px;background:#e2e8f0;margin-bottom:1px;border-radius:1px"></div>
-                  <div style="height:3px;background:#f8fafc;margin-bottom:1px;border-radius:1px"></div>
-                  <div style="height:3px;background:#e2e8f0;margin-bottom:3px;border-radius:1px"></div>
-                  <div style="height:5px;background:#0e6480;border-radius:1px;margin-left:auto;width:40%"></div>
-                </div>
-              </div>
-              <div class="tmpl-label">Classico</div>
-              <div class="tmpl-desc">Intestazione con divider colorato, riquadri per le parti, tabella con intestazione colorata</div>
+        <div class="grafica-editor">
+          <!-- ── Pannello controlli ─────────────────────────────────────────── -->
+          <div class="grafica-controls">
+            <h3 class="section-title">Template</h3>
+            <p class="grafica-hint">Scegli un template di partenza, poi personalizza ogni dettaglio: le modifiche si vedono subito nell'anteprima a destra.</p>
+            <div class="preset-grid">
+              @for (p of presets; track p.id) {
+                <button type="button" class="preset-card" [class.preset-card--active]="isPresetActive(p)" (click)="applyPreset(p)" [matTooltip]="p.descr">
+                  <span class="preset-name">{{ p.label }}</span>
+                  <span class="preset-descr">{{ p.descr }}</span>
+                </button>
+              }
             </div>
 
-            <!-- Moderno -->
-            <div class="template-card" [class.template-card--active]="templateConfig.stile === 'moderno'" (click)="setTemplateStile('moderno')">
-              <div class="tmpl-preview">
-                <div style="height:16px;background:#0e6480;border-radius:2px 2px 0 0;display:flex;align-items:center;padding:0 5px">
-                  <div style="width:28px;height:4px;background:rgba(255,255,255,0.7);border-radius:1px"></div>
-                  <div style="margin-left:auto;width:18px;height:4px;background:rgba(255,255,255,0.9);border-radius:1px"></div>
-                </div>
-                <div style="padding:5px 6px">
-                  <div style="display:flex;gap:4px;margin-bottom:4px">
-                    <div style="flex:1;border-top:2px solid #0e6480;height:12px;padding-top:2px">
-                      <div style="height:3px;background:#1a1a2e;border-radius:1px;width:70%"></div>
-                    </div>
-                    <div style="flex:1;border-top:2px solid #0e6480;height:12px;padding-top:2px">
-                      <div style="height:3px;background:#1a1a2e;border-radius:1px;width:60%"></div>
-                    </div>
+            <mat-accordion multi class="grafica-accordion">
+              <!-- Colori -->
+              <mat-expansion-panel>
+                <mat-expansion-panel-header><mat-panel-title>Colori</mat-panel-title></mat-expansion-panel-header>
+                @for (cf of colorFields; track cf.key) {
+                  <div class="ctrl-row">
+                    <input type="color" class="color-input" [value]="colorValue(cf.key)" (input)="onColorChange(cf.key, $event)">
+                    <span class="ctrl-label">{{ cf.label }}</span>
+                    <button mat-icon-button type="button" matTooltip="Ripristina" (click)="resetColor(cf.key)"><mat-icon>restart_alt</mat-icon></button>
                   </div>
-                  <div style="height:5px;background:#0e6480;border-radius:1px;margin-bottom:3px"></div>
-                  <div style="height:3px;background:#e2e8f0;margin-bottom:1px;border-radius:1px"></div>
-                  <div style="height:3px;background:#f8fafc;margin-bottom:3px;border-radius:1px"></div>
-                  <div style="height:5px;background:#0e6480;border-radius:1px;margin-left:auto;width:40%"></div>
-                </div>
-              </div>
-              <div class="tmpl-label">Moderno</div>
-              <div class="tmpl-desc">Banda colorata in alto, colonne senza box, design pulito e professionale</div>
-            </div>
+                }
+              </mat-expansion-panel>
 
-            <!-- Minimal -->
-            <div class="template-card" [class.template-card--active]="templateConfig.stile === 'minimal'" (click)="setTemplateStile('minimal')">
-              <div class="tmpl-preview">
-                <div style="padding:5px 6px">
-                  <div style="display:flex;align-items:flex-start;margin-bottom:4px">
-                    <div style="flex:1">
-                      <div style="height:3px;background:#1a1a2e;border-radius:1px;width:55%;margin-bottom:2px"></div>
-                      <div style="height:2px;background:#94a3b8;border-radius:1px;width:40%"></div>
-                    </div>
-                    <div style="height:9px;background:#dde1ea;border-radius:1px;width:32%"></div>
-                  </div>
-                  <div style="height:0.5px;background:#c8cdd7;margin-bottom:4px"></div>
-                  <div style="display:flex;gap:4px;margin-bottom:4px">
-                    <div style="flex:1">
-                      <div style="height:2px;background:#94a3b8;width:40%;margin-bottom:1px;border-radius:1px"></div>
-                      <div style="height:3px;background:#1a1a2e;width:65%;border-radius:1px"></div>
-                    </div>
-                    <div style="flex:1">
-                      <div style="height:2px;background:#94a3b8;width:40%;margin-bottom:1px;border-radius:1px"></div>
-                      <div style="height:3px;background:#1a1a2e;width:65%;border-radius:1px"></div>
-                    </div>
-                  </div>
-                  <div style="height:5px;background:#f1f5f9;border-radius:1px;margin-bottom:3px"></div>
-                  <div style="height:3px;background:#e2e8f0;margin-bottom:1px;border-radius:1px"></div>
-                  <div style="height:5px;background:#334155;border-radius:1px;margin-left:auto;width:40%"></div>
+              <!-- Testo & font -->
+              <mat-expansion-panel>
+                <mat-expansion-panel-header><mat-panel-title>Testo &amp; font</mat-panel-title></mat-expansion-panel-header>
+                <mat-form-field appearance="outline" class="full-ctrl">
+                  <mat-label>Font</mat-label>
+                  <mat-select [value]="fontFamily" (selectionChange)="setFontFamily($event.value)">
+                    @for (f of fontOptions; track f.value) { <mat-option [value]="f.value">{{ f.label }}</mat-option> }
+                  </mat-select>
+                </mat-form-field>
+                <div class="ctrl-row">
+                  <span class="ctrl-label">Dimensione testo</span>
+                  <mat-slider min="0.85" max="1.2" step="0.01" discrete>
+                    <input matSliderThumb [value]="fontScale" (valueChange)="setFontScale($event)">
+                  </mat-slider>
+                  <span class="ctrl-val">{{ (fontScale * 100) | number:'1.0-0' }}%</span>
                 </div>
-              </div>
-              <div class="tmpl-label">Minimal</div>
-              <div class="tmpl-desc">Senza sfondi colorati, solo testo, linea sottile — massima leggibilità</div>
-            </div>
+                <mat-checkbox [checked]="uppercaseTitles" (change)="setUppercaseTitles($event.checked)">Titoli sezione in MAIUSCOLO</mat-checkbox>
+              </mat-expansion-panel>
 
+              <!-- Logo -->
+              <mat-expansion-panel>
+                <mat-expansion-panel-header><mat-panel-title>Logo</mat-panel-title></mat-expansion-panel-header>
+                <mat-checkbox [checked]="logoShow" (change)="setLogoShow($event.checked)">Mostra il logo aziendale</mat-checkbox>
+                <div class="ctrl-row">
+                  <span class="ctrl-label">Posizione</span>
+                  <mat-button-toggle-group [value]="logoAlign" (change)="setLogoAlign($event.value)">
+                    <mat-button-toggle value="left">Sinistra</mat-button-toggle>
+                    <mat-button-toggle value="center">Centro</mat-button-toggle>
+                    <mat-button-toggle value="right">Destra</mat-button-toggle>
+                  </mat-button-toggle-group>
+                </div>
+                <div class="ctrl-row">
+                  <span class="ctrl-label">Dimensione</span>
+                  <mat-button-toggle-group [value]="logoSize" (change)="setLogoSize($event.value)">
+                    <mat-button-toggle value="S">Piccolo</mat-button-toggle>
+                    <mat-button-toggle value="M">Medio</mat-button-toggle>
+                    <mat-button-toggle value="L">Grande</mat-button-toggle>
+                  </mat-button-toggle-group>
+                </div>
+                <p class="grafica-hint">Il logo si carica dalla scheda <b>Azienda</b>.</p>
+              </mat-expansion-panel>
+
+              <!-- Sezioni -->
+              <mat-expansion-panel>
+                <mat-expansion-panel-header><mat-panel-title>Sezioni</mat-panel-title></mat-expansion-panel-header>
+                <p class="grafica-hint">Trascina per riordinare, spunta per mostrare/nascondere.</p>
+                <div class="reorder-list" cdkDropList (cdkDropListDropped)="dropSection($event)">
+                  @for (s of sectionsOrderList; track s) {
+                    <div class="reorder-item" cdkDrag>
+                      <mat-icon cdkDragHandle class="drag-handle">drag_indicator</mat-icon>
+                      <mat-checkbox [checked]="isBlockVisible(s)" (change)="toggleBlock(s, $event.checked)">{{ sectionLabels[s] }}</mat-checkbox>
+                    </div>
+                  }
+                </div>
+                <div class="ctrl-grid">
+                  @for (block of templateBlocks; track block.key) {
+                    @if (block.key === 'trasporto' || block.key === 'firme' || block.key === 'footer') {
+                      <mat-checkbox [checked]="isBlockVisible(block.key)" (change)="toggleBlock(block.key, $event.checked)">{{ block.label }}</mat-checkbox>
+                    }
+                  }
+                </div>
+              </mat-expansion-panel>
+
+              <!-- Colonne tabella -->
+              <mat-expansion-panel>
+                <mat-expansion-panel-header><mat-panel-title>Colonne tabella</mat-panel-title></mat-expansion-panel-header>
+                <p class="grafica-hint">Trascina per riordinare, spunta per mostrare. # / Descrizione / Importo sono sempre presenti.</p>
+                <div class="reorder-list" cdkDropList (cdkDropListDropped)="dropColumn($event)">
+                  @for (c of columnsList; track c.key) {
+                    <div class="reorder-item" cdkDrag>
+                      <mat-icon cdkDragHandle class="drag-handle">drag_indicator</mat-icon>
+                      <mat-checkbox [checked]="c.visible" [disabled]="isColumnForced(c.key)" (change)="toggleColumn(c.key, $event.checked)">{{ columnLabels[c.key] }}</mat-checkbox>
+                    </div>
+                  }
+                </div>
+              </mat-expansion-panel>
+
+              <!-- Margini & footer -->
+              <mat-expansion-panel>
+                <mat-expansion-panel-header><mat-panel-title>Margini &amp; piè di pagina</mat-panel-title></mat-expansion-panel-header>
+                <div class="ctrl-row">
+                  <span class="ctrl-label">Margine sinistro</span>
+                  <mat-slider min="6" max="25" step="1" discrete><input matSliderThumb [value]="marginLeft" (valueChange)="setMarginLeft($event)"></mat-slider>
+                  <span class="ctrl-val">{{ marginLeft }} mm</span>
+                </div>
+                <div class="ctrl-row">
+                  <span class="ctrl-label">Margine destro</span>
+                  <mat-slider min="6" max="25" step="1" discrete><input matSliderThumb [value]="marginRight" (valueChange)="setMarginRight($event)"></mat-slider>
+                  <span class="ctrl-val">{{ marginRight }} mm</span>
+                </div>
+                <mat-checkbox [checked]="showIban" (change)="setShowIban($event.checked)">Mostra IBAN nel pagamento</mat-checkbox>
+                <h4 class="grafica-subtitle">Piè di pagina</h4>
+                <div class="ctrl-grid">
+                  @for (ff of footerFields; track ff.key) {
+                    <mat-checkbox [checked]="footerVal(ff.key)" (change)="setFooter(ff.key, $event.checked)">{{ ff.label }}</mat-checkbox>
+                  }
+                </div>
+                <mat-form-field appearance="outline" class="full-ctrl">
+                  <mat-label>Testo aggiuntivo piè di pagina</mat-label>
+                  <input matInput [value]="footerCustomText" (input)="setFooterCustomText($any($event.target).value)">
+                </mat-form-field>
+              </mat-expansion-panel>
+            </mat-accordion>
+
+            <div class="grafica-save">
+              <button mat-flat-button type="button" (click)="save()">
+                <mat-icon>save</mat-icon> Salva grafica
+              </button>
+            </div>
           </div>
 
-          <h3 class="section-title">Colore principale</h3>
-          <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
-            <input type="color"
-                   [value]="templateConfig.accentColor || '#0e6480'"
-                   (input)="onAccentColorChange($event)"
-                   style="width:48px;height:36px;cursor:pointer;border:1px solid #e2e8f0;border-radius:6px;padding:2px;background:#fff">
-            <span style="color:#64748b;font-size:13px">Usato per intestazioni, tabelle e barre colorate nei PDF</span>
-            <button mat-stroked-button type="button" (click)="resetAccentColor()" style="font-size:12px">
-              Ripristina predefinito
-            </button>
-          </div>
-
-          <h3 class="section-title">Blocchi visibili</h3>
-          <p style="color:#64748b;font-size:13px;margin-bottom:12px">
-            Scegli quali sezioni includere nei documenti PDF generati.
-          </p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:24px">
-            @for (block of templateBlocks; track block.key) {
-              <mat-checkbox [checked]="isBlockVisible(block.key)" (change)="toggleBlock(block.key, $event.checked)">
-                {{ block.label }}
-              </mat-checkbox>
+          <!-- ── Anteprima live ─────────────────────────────────────────────── -->
+          <div class="grafica-preview">
+            <div class="preview-head">
+              <span><mat-icon>visibility</mat-icon> Anteprima (fattura di esempio)</span>
+              @if (previewLoading) { <mat-spinner diameter="18"></mat-spinner> }
+            </div>
+            @if (previewSafeUrl) {
+              <iframe [src]="previewSafeUrl" class="preview-frame" title="Anteprima documento"></iframe>
+            } @else {
+              <div class="preview-empty"><mat-spinner diameter="28"></mat-spinner><p>Generazione anteprima…</p></div>
             }
-          </div>
-
-          <div style="display:flex;justify-content:flex-end">
-            <button mat-flat-button type="button" (click)="save()">
-              <mat-icon>save</mat-icon> Salva grafica
-            </button>
           </div>
         </div>
       </div>
