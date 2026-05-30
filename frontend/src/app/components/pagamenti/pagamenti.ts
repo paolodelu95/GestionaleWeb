@@ -29,7 +29,7 @@ interface SaldaData { entry: ScadenzarioEntry; tipiPagamento: TipoPagamento[]; }
   template: `
     <h2 mat-dialog-title>Salda {{ data.entry.numero }}</h2>
     <mat-dialog-content>
-      <form [formGroup]="form" class="dialog-form">
+      <form [formGroup]="form" class="dialog-form" (keydown.enter)="save()">
         <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Importo *</mat-label>
           <input matInput type="number" step="0.01" formControlName="importo">
@@ -82,7 +82,7 @@ interface SaldaMultiploData { entries: ScadenzarioEntry[]; tipiPagamento: TipoPa
       <p style="margin:0 0 16px;color:var(--text-secondary)">
         Totale: <b style="color:var(--text-primary)">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
       </p>
-      <form [formGroup]="form" class="dialog-form">
+      <form [formGroup]="form" class="dialog-form" (keydown.enter)="save()">
         <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Data saldo *</mat-label>
           <input matInput type="date" formControlName="dataPagamento">
