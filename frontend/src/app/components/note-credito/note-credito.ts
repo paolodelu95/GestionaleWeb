@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -20,6 +20,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
+import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -194,7 +195,7 @@ const RIGHE_STYLES = `
               <tr cdkDrag cdkDragPreviewContainer="parent">
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                 <td class="td-desc" style="padding:2px">
-                  <input class="riga-input riga-codice" [(ngModel)]="riga.codiceProdotto" placeholder="Codice">
+                  <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)">
                   <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
                 </td>
                 <td class="td-search">
@@ -302,7 +303,7 @@ const RIGHE_STYLES = `
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
-export class NotaCreditoDialogComponent implements OnInit {
+export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
   locked = false;
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -449,24 +450,63 @@ export class NotaCreditoDialogComponent implements OnInit {
     });
   }
 
-  searchProdotto(index: number) {
-    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: this.prodotti })
+  @ViewChildren('rigaCodice') private codiceInputs!: QueryList<ElementRef<HTMLInputElement>>;
+
+  ngAfterViewInit() {
+    setTimeout(() => this.codiceInputs?.first?.nativeElement.focus(), 0);
+  }
+
+  searchProdotto(index: number, lista?: Prodotto[]) {
+    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: lista ?? this.prodotti })
       .afterClosed().subscribe((pick: ProdottoPick) => {
         if (!pick) return;
-        const p = pick.prodotto; const v = pick.variante;
-        const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
-        this.righe[index].codiceProdotto = p.codice ?? '';
-        this.righe[index].descrizione = (p.descrizione || p.nome) + varSuffix;
-        this.righe[index].prezzo = p.prezzo ?? 0;
-        this.righe[index].iva = p.iva ?? 22;
-        this.righe[index].unitaMisura = p.unitaMisura ?? '';
-        this.righe[index].prodottoId = p.id ?? null;
-        this.righe[index].varianteId = v?.id ?? null;
-        this.righe[index].varianteTaglia = v?.taglia ?? '';
-        this.righe[index].varianteColore = v?.colore ?? '';
-        this.applyListino(index);
-        this.loadPrezziRecenti(index);
+        this.applyProdottoToRiga(index, pick.prodotto, pick.variante);
       });
+  }
+
+  /** Riempie la riga coi dati del prodotto (riusato da selettore e inserimento via codice). */
+  private applyProdottoToRiga(index: number, p: Prodotto, v?: ProdottoPick['variante']) {
+    const varSuffix = v ? ` (${[v.taglia, v.colore].filter(Boolean).join(' / ')})` : '';
+    this.righe[index].codiceProdotto = p.codice ?? '';
+    this.righe[index].descrizione = (p.descrizione || p.nome) + varSuffix;
+    this.righe[index].prezzo = p.prezzo ?? 0;
+    this.righe[index].iva = p.iva ?? 22;
+    this.righe[index].unitaMisura = p.unitaMisura ?? '';
+    this.righe[index].prodottoId = p.id ?? null;
+    this.righe[index].varianteId = v?.id ?? null;
+    this.righe[index].varianteTaglia = v?.taglia ?? '';
+    this.righe[index].varianteColore = v?.colore ?? '';
+    this.applyListino(index);
+    this.loadPrezziRecenti(index);
+  }
+
+  /** Inserimento rapido da tastiera: codice (anche parziale) + Invio. */
+  risolviCodiceRiga(index: number, event: Event) {
+    event.preventDefault();
+    const input = event.target as HTMLInputElement;
+    const q = (this.righe[index]?.codiceProdotto ?? '').toString().trim();
+    if (!q) { this.searchProdotto(index); return; }
+    const { exact, matches } = findProdottoByCodice(this.prodotti, q);
+    if (exact) { this.applyProdottoToRiga(index, exact); this.focusNextCodice(input); }
+    else if (matches.length === 1) { this.applyProdottoToRiga(index, matches[0]); this.focusNextCodice(input); }
+    else if (matches.length > 1) { this.searchProdotto(index, matches); }
+    else { this.snack.open(`Nessun prodotto per "${q}"`, '', { duration: 2200 }); }
+  }
+
+  /** Sposta il focus al codice della riga successiva; se non esiste, ne crea una nuova. */
+  private focusNextCodice(current: HTMLInputElement) {
+    const inputs = this.codiceInputs?.toArray() ?? [];
+    const i = inputs.findIndex(r => r.nativeElement === current);
+    const next = i >= 0 ? inputs[i + 1] : undefined;
+    if (next) { setTimeout(() => { next.nativeElement.focus(); next.nativeElement.select(); }, 0); }
+    else {
+      this.addRiga();
+      setTimeout(() => {
+        const arr = this.codiceInputs.toArray();
+        const el = arr[arr.length - 1]?.nativeElement;
+        if (el) { el.focus(); el.select(); }
+      }, 0);
+    }
   }
 
   roundIfPz(riga: RigaDocumento) {
