@@ -188,7 +188,7 @@ const RIGHE_STYLES = `
               <tr cdkDrag cdkDragPreviewContainer="parent">
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                 <td class="td-desc" style="padding:2px">
-                  <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)">
+                  <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
                   <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
                 </td>
                 <td class="td-search">
@@ -485,6 +485,18 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
   @HostListener('keydown', ['$event'])
   onDialogKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); }
+  }
+
+  /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */
+  onCodiceBackspace(index: number, event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.value !== '' || this.righe.length <= 1) return;
+    event.preventDefault();
+    this.removeRiga(index);
+    setTimeout(() => {
+      const arr = this.codiceInputs?.toArray() ?? [];
+      arr[Math.max(0, index - 1)]?.nativeElement.focus();
+    }, 0);
   }
 
   /** ↑/↓ per spostarsi tra i codici delle righe (gli input single-line non usano le frecce verticali). */

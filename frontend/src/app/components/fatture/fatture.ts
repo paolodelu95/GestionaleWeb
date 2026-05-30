@@ -414,7 +414,7 @@ const RIGHE_STYLES = `
                       <td class="td-desc" style="padding:2px">
                         <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice"
                           (keydown.enter)="risolviCodiceRiga(rowIdx, $event)" (keydown.f2)="searchProdotto(rowIdx)"
-                          (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)">
+                          (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace(rowIdx, $event)">
                         <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
                       </td>
                       <td class="td-search">
@@ -1149,6 +1149,18 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   }
 
   /** Sposta il focus al codice della riga successiva; se non esiste, ne crea una nuova. */
+  /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */
+  onCodiceBackspace(index: number, event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.value !== '' || this.righe.length <= 1) return;
+    event.preventDefault();
+    this.removeRiga(index);
+    setTimeout(() => {
+      const arr = this.codiceInputs?.toArray() ?? [];
+      arr[Math.max(0, index - 1)]?.nativeElement.focus();
+    }, 0);
+  }
+
   /** ↑/↓ per spostarsi tra i codici delle righe (gli input single-line non usano le frecce verticali). */
   focusSiblingCodice(event: Event, delta: number) {
     event.preventDefault();

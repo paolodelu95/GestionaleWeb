@@ -276,7 +276,7 @@ export class QuickProdottoDialogComponent {
                          placeholder="Codice / nome prodotto"
                          [title]="riga.prodottoId ? ('ID: ' + riga.prodottoId) : 'Prodotto non collegato'"
                          (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)"
-                         (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)">
+                         (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
                 </td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
@@ -448,6 +448,18 @@ export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
     else if (matches.length === 1) { this.applyProdottoToRiga(index, matches[0]); this.focusNextCodice(input); }
     else if (matches.length > 1) { this.searchProdotto(index, matches); }
     // nessun match: lascio il testo digitato (collegabile col selettore o quick-create)
+  }
+
+  /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */
+  onCodiceBackspace(index: number, event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.value !== '' || this.righe.length <= 1) return;
+    event.preventDefault();
+    this.removeRiga(index);
+    setTimeout(() => {
+      const arr = this.codiceInputs?.toArray() ?? [];
+      arr[Math.max(0, index - 1)]?.nativeElement.focus();
+    }, 0);
   }
 
   /** ↑/↓ tra i codici delle righe (gli input single-line non usano le frecce verticali). */
