@@ -70,6 +70,10 @@ export class App implements OnInit {
   darkMode = false;
   searchQuery = '';
   searchResults: { label: string; tipo: string; route: string; id: number }[] = [];
+  /** Comandi di navigazione/azione filtrati (palette ⌘K). */
+  commandResults: { label: string; icon: string; route: string }[] = [];
+  /** Indice evidenziato nella palette (navigazione con ↑/↓). */
+  highlightedIndex = 0;
   showSearch = false;
   showNotif = false;
   notifItems: any[] = [];
@@ -272,8 +276,49 @@ export class App implements OnInit {
   closeOnMobile() { if (window.innerWidth < 768) this.collapsed = true; }
 
   onSearchInput(q: string) {
-    if (q.length < 2) { this.showSearch = false; this.searchResults = []; }
+    this.highlightedIndex = 0;
+    const query = (q || '').trim().toLowerCase();
+    // Comandi (sezioni navigabili + azioni rapide): match istantaneo dal 1° carattere.
+    this.commandResults = query.length >= 1
+      ? this.allCommands.filter(c => c.label.toLowerCase().includes(query)).slice(0, 8)
+      : [];
+    if (q.length < 2) this.searchResults = [];
+    this.showSearch = this.commandResults.length > 0 || q.length >= 2 || !q;
     this.searchSubject.next(q);
+  }
+
+  /** Sezioni navigabili (filtrate per ruolo/moduli) + azioni rapide → comandi della palette. */
+  private get allCommands(): { label: string; icon: string; route: string }[] {
+    const sezioni = this.visibleFlatNavItems
+      .filter(i => !!i.route)
+      .map(i => ({ label: i.label, icon: i.icon, route: i.route! }));
+    return [...this.quickActions, ...sezioni];
+  }
+
+  /** Lista unificata (comandi + risultati dati) per la navigazione da tastiera. */
+  get paletteItems(): { kind: 'cmd' | 'data'; label: string; icon?: string; tipo?: string; route: string }[] {
+    return [
+      ...this.commandResults.map(c => ({ kind: 'cmd' as const, label: c.label, icon: c.icon, route: c.route })),
+      ...this.searchResults.map(r => ({ kind: 'data' as const, label: r.label, tipo: r.tipo, route: r.route })),
+    ];
+  }
+
+  paletteMove(delta: number) {
+    const n = this.paletteItems.length;
+    if (n) this.highlightedIndex = (this.highlightedIndex + delta + n) % n;
+  }
+
+  paletteEnter() {
+    const it = this.paletteItems[this.highlightedIndex];
+    if (it) this.executePalette(it);
+  }
+
+  executePalette(it: { route: string }) {
+    this.showSearch = false;
+    this.searchQuery = '';
+    this.searchResults = [];
+    this.commandResults = [];
+    this.router.navigate([it.route]);
   }
 
   navigateToResult(r: { route: string }) {

@@ -515,7 +515,8 @@
     cursor: pointer;
     border-radius: var(--radius-sm);
     transition: background var(--transition-fast);
-    &:hover { background: var(--bg-surface-2); }
+    &:hover, &.highlighted { background: var(--bg-surface-2); }
+    &.highlighted { box-shadow: inset 2px 0 0 var(--primary); }
   }
 
   .search-result-tipo {
