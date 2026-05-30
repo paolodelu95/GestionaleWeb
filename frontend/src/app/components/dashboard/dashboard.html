@@ -71,12 +71,36 @@
 
           <!-- ── Widget: Alerts ─────────────────────────────────────────── -->
           @if (w.id === 'alerts') {
-            @if (fattureSCadute > 0 || ddtDaFatturare.length > 0 || prodottiSottoSoglia.length > 0) {
+            @if (nScadute > 0 || nDaIncassare > 0 || nDaPagare > 0 || nDaInviareSdi > 0 || nSdiNonLette > 0 || ddtDaFatturare.length > 0 || prodottiSottoSoglia.length > 0) {
               <div class="alert-strip">
-                @if (fattureSCadute > 0) {
+                @if (nScadute > 0) {
                   <a class="alert-chip alert-red" [routerLink]="['/fatture']">
                     <mat-icon>warning</mat-icon>
-                    {{ fattureSCadute }} {{ fattureSCadute === 1 ? 'fattura scaduta' : 'fatture scadute' }}
+                    {{ nScadute }} {{ nScadute === 1 ? 'fattura scaduta' : 'fatture scadute' }}
+                  </a>
+                }
+                @if (nDaIncassare > 0) {
+                  <a class="alert-chip alert-green" [routerLink]="['/scadenzario']">
+                    <mat-icon>request_quote</mat-icon>
+                    {{ nDaIncassare }} {{ nDaIncassare === 1 ? 'fattura da incassare' : 'fatture da incassare' }}
+                  </a>
+                }
+                @if (nDaPagare > 0) {
+                  <a class="alert-chip alert-orange" [routerLink]="['/scadenzario']">
+                    <mat-icon>payments</mat-icon>
+                    {{ nDaPagare }} {{ nDaPagare === 1 ? 'fattura da pagare' : 'fatture da pagare' }}
+                  </a>
+                }
+                @if (nDaInviareSdi > 0) {
+                  <a class="alert-chip alert-violet" [routerLink]="['/fatture']">
+                    <mat-icon>unpublished</mat-icon>
+                    {{ nDaInviareSdi }} {{ nDaInviareSdi === 1 ? 'fattura da inviare allo SDI' : 'fatture da inviare allo SDI' }}
+                  </a>
+                }
+                @if (nSdiNonLette > 0) {
+                  <a class="alert-chip alert-blue" [routerLink]="['/sdi-passive']">
+                    <mat-icon>mark_email_unread</mat-icon>
+                    {{ nSdiNonLette }} {{ nSdiNonLette === 1 ? 'fattura passiva non letta' : 'fatture passive non lette' }}
                   </a>
                 }
                 @if (ddtDaFatturare.length > 0) {

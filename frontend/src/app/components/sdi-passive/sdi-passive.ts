@@ -15,6 +15,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DataService } from '../../services/data.service';
 import { ApiService } from '../../services/api.service';
 import { AcquistoRegistraDialogComponent } from '../acquisti/acquisto-registra-dialog';
+import { markSdiSeen } from '../../utils/sdi-letture';
 
 interface Ricevuta {
   id: number;
@@ -207,7 +208,13 @@ export class SdiPassiveComponent implements OnInit {
   load() {
     this.loading = true;
     this.ds.getSdiRicevute().subscribe({
-      next: r => { this.ricevute = r || []; this.loading = false; },
+      next: r => {
+        this.ricevute = r || [];
+        this.loading = false;
+        // Visitando questa pagina le fatture passive correnti diventano "lette":
+        // azzera la pillola "non lette" in dashboard finché non ne arrivano di nuove.
+        markSdiSeen(this.ricevute.map(x => x.id));
+      },
       error: () => { this.ricevute = []; this.loading = false; },
     });
   }

@@ -17,6 +17,7 @@ import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
 import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento,
          StatsVenditeMensili, StatsTopProdotto, StatsCashflow, StatsKpiAnno } from '../../models';
+import { getSdiSeenIds } from '../../utils/sdi-letture';
 
 Chart.register(...registerables);
 
@@ -28,8 +29,8 @@ export interface DashboardWidget {
 }
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
+  { id: 'alerts',          label: 'Avvisi e pillole',        icon: 'warning',       visible: true },
   { id: 'agenda-todo-row', label: 'Agenda + Todo',            icon: 'event_note',    visible: true },
-  { id: 'alerts',          label: 'Avvisi',                  icon: 'warning',       visible: true },
   { id: 'kpi-magazzino',   label: 'KPI magazzino e clienti', icon: 'analytics',     visible: true },
   { id: 'kpi-anno',        label: 'KPI anno + cashflow',     icon: 'monitoring',    visible: true },
   { id: 'cashflow-forecast', label: 'Previsione cashflow 60gg', icon: 'show_chart', visible: true },
@@ -42,7 +43,7 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: 'table-pagare',    label: 'Fatture da pagare',       icon: 'payments',      visible: true },
 ];
 
-const LS_KEY = 'dashboard-widgets-v2'; // bumped: nuovo layout con agenda+todo in cima
+const LS_KEY = 'dashboard-widgets-v3'; // bumped: pillole avvisi (incassare/pagare/SDI) sopra agenda+todo
 
 @Component({
   selector: 'app-dashboard',
@@ -93,6 +94,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   ddtDaFatturare: Ddt[] = [];
   fattureDaIncassare: Fattura[] = [];
   fattureDaPagare: Acquisto[] = [];
+
+  // ── Conteggi pillole avvisi (totali, non troncati alle prime 10 righe) ──────
+  nDaIncassare = 0;     // fatture emesse da incassare
+  nDaPagare = 0;        // acquisti da pagare
+  nScadute = 0;         // fatture emesse scadute
+  nDaInviareSdi = 0;    // fatture emesse non ancora inviate allo SDI
+  nSdiNonLette = 0;     // fatture passive ricevute non ancora viste
   cashflow306090: {
     saldoOggi: number;
     bucket30: { in: number; out: number; saldo: number };
@@ -146,6 +154,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       cf306090: safe(this.ds.getCashflow306090(), this.cashflow306090),
       agenda: safe(this.ds.getAgendaImminenti(7), this.agendaImminenti),
       todoList: safe(this.ds.getTodoList(), []),
+      sdiRicevute: safe(this.ds.getSdiRicevute(), []),
     }).subscribe({
       next: (r: any) => {
         this.prodottiCount = r.count;
@@ -165,12 +174,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.ddtDaFatturare = (r.ddt || [])
           .filter((d: Ddt) => !d.fatturaId && d.stato !== 'ANNULLATO')
           .slice(0, 10);
-        this.fattureDaIncassare = (r.fatture || [])
-          .filter((f: Fattura) => f.stato === 'EMESSA')
-          .slice(0, 10);
-        this.fattureDaPagare = (r.acquisti || [])
-          .filter((a: Acquisto) => a.stato !== 'PAGATA' && a.stato !== 'ANNULLATA')
-          .slice(0, 10);
+        const emesse = (r.fatture || []).filter((f: Fattura) => f.stato === 'EMESSA');
+        this.fattureDaIncassare = emesse.slice(0, 10);
+        const daPagare = (r.acquisti || [])
+          .filter((a: Acquisto) => a.stato !== 'PAGATA' && a.stato !== 'ANNULLATA');
+        this.fattureDaPagare = daPagare.slice(0, 10);
+        // Conteggi pillole (sul totale, non sulle prime 10)
+        this.nDaIncassare = emesse.length;
+        this.nDaPagare = daPagare.length;
+        this.nScadute = emesse.filter((f: Fattura) => this.isScaduta(f)).length;
+        this.nDaInviareSdi = (r.fatture || []).filter((f: Fattura) => this.isDaInviareSdi(f)).length;
+        const seen = getSdiSeenIds();
+        this.nSdiNonLette = (r.sdiRicevute || []).filter((x: any) => !seen.has(Number(x.id))).length;
         this.dataReady = true;
         this.tryRenderCharts();
       },
@@ -361,6 +376,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get fattureSCadute(): number {
     return this.fattureDaIncassare.filter(f => this.isScaduta(f)).length;
+  }
+
+  /** Fattura emessa/pagata ma non ancora trasmessa allo SDI (statoSdi vuoto o NON_INVIATA). */
+  isDaInviareSdi(f: Fattura): boolean {
+    if (f.stato !== 'EMESSA' && f.stato !== 'PAGATA') return false;
+    const sdi = (f.statoSdi || '').toUpperCase();
+    return sdi === '' || sdi === 'NON_INVIATA';
   }
 
   get visibleCount(): number {
