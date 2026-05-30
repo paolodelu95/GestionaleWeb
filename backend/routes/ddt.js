@@ -118,11 +118,6 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const ddt = db.prepare('SELECT stato, numero, cliente_id FROM ddt WHERE id=?').get(req.params.id);
-  // Compliance: un DDT emesso non è eliminabile (numero progressivo da preservare).
-  // Per stornarlo si annulla (PATCH stato → ANNULLATO) mantenendo il numero.
-  if (ddt && String(ddt.stato || '').toUpperCase() !== 'BOZZA') {
-    return res.status(409).json({ error: 'Un DDT emesso non può essere eliminato: annullalo (stato ANNULLATO) per stornare il magazzino mantenendo il numero.' });
-  }
   if (ddt?.stato !== 'ANNULLATO') {
     const righe = getRighe(req.params.id);
     if (righe.length) {

@@ -126,7 +126,7 @@ router.get('/cashflow-forecast', (req, res) => {
     FROM fatture f
     JOIN fatture_righe fr ON fr.fattura_id=f.id
     LEFT JOIN tipi_pagamento tp ON tp.id=f.tipo_pagamento_id
-    WHERE f.stato NOT IN ('PAGATA','ANNULLATA')
+    WHERE f.stato NOT IN ('PAGATA','ANNULLATA','STORNATA')
     GROUP BY f.id HAVING rimanente > 0
   `).all();
 
@@ -183,7 +183,7 @@ router.get('/cashflow-3060-90', (req, res) => {
     FROM fatture f
     JOIN fatture_righe fr ON fr.fattura_id=f.id
     LEFT JOIN tipi_pagamento tp ON tp.id=f.tipo_pagamento_id
-    WHERE f.stato NOT IN ('PAGATA','ANNULLATA')
+    WHERE f.stato NOT IN ('PAGATA','ANNULLATA','STORNATA')
     GROUP BY f.id HAVING rimanente > 0
   `).all();
 

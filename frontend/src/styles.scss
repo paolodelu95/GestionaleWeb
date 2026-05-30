@@ -442,6 +442,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   &.emesso, &.emessa { background: var(--info-soft); color: var(--info-on); }
   &.pagata   { background: var(--success-soft); color: var(--success-on); }
   &.annullato, &.annullata { background: var(--danger-soft);  color: var(--danger-on); }
+  &.stornata { background: var(--warning-soft); color: var(--warning-on); }
   &.aperto   { background: var(--warning-soft); color: var(--warning-on); }
   &.evaso    { background: var(--success-soft); color: var(--success-on); }
   &.inviato  { background: var(--purple-soft);  color: var(--purple-on); }

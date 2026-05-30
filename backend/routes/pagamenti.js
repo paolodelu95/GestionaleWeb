@@ -154,6 +154,11 @@ router.delete('/:id', (req, res) => {
 });
 
 function aggiornaStatoFattura(fatturaId) {
+  // Una fattura collegata a una nota di credito resta STORNATA, a prescindere dai pagamenti.
+  if (db.prepare('SELECT COUNT(*) AS n FROM note_credito WHERE fattura_id=?').get(fatturaId).n > 0) {
+    db.prepare("UPDATE fatture SET stato='STORNATA' WHERE id=?").run(fatturaId);
+    return;
+  }
   const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0)), 0) as tot
     FROM fatture_righe WHERE fattura_id=?`).get(fatturaId)?.tot || 0;
   const pagato = db.prepare(`SELECT COALESCE(SUM(importo), 0) as tot FROM pagamenti WHERE fattura_id=?`).get(fatturaId)?.tot || 0;

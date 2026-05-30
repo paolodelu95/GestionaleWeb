@@ -68,6 +68,8 @@ router.post('/', (req, res) => {
           clienteId: n.clienteId || null, clienteNome: cliente?.ragione_sociale || '',
         });
       }
+      // La fattura collegata passa a STORNATA.
+      if (n.fatturaId) db.prepare("UPDATE fatture SET stato='STORNATA' WHERE id=?").run(n.fatturaId);
       return id;
     })();
     audit('nota_credito', id, 'CREATE', { numero: n.numero, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato || 'EMESSA', numRighe: n.righe?.length || 0 });
@@ -108,6 +110,10 @@ router.put('/:id', (req, res) => {
           clienteId: n.clienteId || null, clienteNome: cliente?.ragione_sociale || '',
         });
       }
+      // Aggiorna lo stato delle fatture coinvolte: la vecchia esce da STORNATA se
+      // non ha più note collegate, la nuova passa a STORNATA.
+      if (before?.fattura_id && before.fattura_id !== (n.fatturaId || null)) ricalcolaStatoFattura(before.fattura_id);
+      if (n.fatturaId) db.prepare("UPDATE fatture SET stato='STORNATA' WHERE id=?").run(n.fatturaId);
       return before;
     })();
     audit('nota_credito', Number(req.params.id), 'UPDATE', { before, after: { numero: n.numero, dataEmissione: n.dataEmissione, clienteId: n.clienteId, fatturaId: n.fatturaId, stato: n.stato, numRighe: n.righe?.length || 0 } });
@@ -119,12 +125,6 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   try {
-    const nc = db.prepare('SELECT stato FROM note_credito WHERE id=?').get(req.params.id);
-    // Compliance fiscale: una nota di credito emessa non è eliminabile (numero
-    // progressivo da preservare). Eliminabile solo finché è in bozza.
-    if (nc && String(nc.stato || '').toUpperCase() !== 'BOZZA') {
-      return res.status(409).json({ error: 'Una nota di credito emessa non può essere eliminata.' });
-    }
     const snapshot = db.transaction(() => {
       const snapshot = db.prepare('SELECT numero, cliente_id, fattura_id, stato, data_emissione FROM note_credito WHERE id=?').get(req.params.id);
       // Storno: la nota di credito scompare, la merce esce di nuovo dal magazzino
@@ -139,6 +139,9 @@ router.delete('/:id', (req, res) => {
         });
       }
       db.prepare('DELETE FROM note_credito WHERE id=?').run(req.params.id);
+      // Se era collegata a una fattura, ricalcola lo stato (esce da STORNATA se
+      // non restano altre note di credito collegate).
+      if (snapshot?.fattura_id) ricalcolaStatoFattura(snapshot.fattura_id);
       return snapshot;
     })();
     audit('nota_credito', Number(req.params.id), 'DELETE', snapshot || {});
@@ -168,6 +171,18 @@ function getRighe(ncId) {
       prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva,
       varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
       tipo: r.tipo || 'PRODOTTO' }));
+}
+
+/** Ricalcola lo stato della fattura collegata dopo la rimozione/spostamento di una NC. */
+function ricalcolaStatoFattura(fatturaId) {
+  if (!fatturaId) return;
+  // Se restano altre note di credito collegate, la fattura resta STORNATA.
+  const altre = db.prepare('SELECT COUNT(*) AS n FROM note_credito WHERE fattura_id=?').get(fatturaId).n;
+  if (altre > 0) { db.prepare("UPDATE fatture SET stato='STORNATA' WHERE id=?").run(fatturaId); return; }
+  const totale = db.prepare(`SELECT COALESCE(SUM(quantita*prezzo*(1-COALESCE(sconto,0)/100.0)*(1+COALESCE(iva,0)/100.0)),0) AS t FROM fatture_righe WHERE fattura_id=?`).get(fatturaId)?.t || 0;
+  const pagato = db.prepare('SELECT COALESCE(SUM(importo),0) AS t FROM pagamenti WHERE fattura_id=?').get(fatturaId)?.t || 0;
+  const stato = pagato >= totale && totale > 0 ? 'PAGATA' : 'EMESSA';
+  db.prepare('UPDATE fatture SET stato=? WHERE id=?').run(stato, fatturaId);
 }
 
 function toDto(r) {

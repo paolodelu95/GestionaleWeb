@@ -15,7 +15,7 @@ router.get('/', (req, res) => {
       (SELECT COUNT(*) FROM fatture f
          LEFT JOIN tipi_pagamento tp ON tp.id = f.tipo_pagamento_id
          WHERE f.cliente_id = c.id
-           AND f.stato NOT IN ('PAGATA','ANNULLATA')
+           AND f.stato NOT IN ('PAGATA','ANNULLATA','STORNATA')
            AND date(f.data_emissione, '+' || COALESCE(tp.giorni_scadenza,30) || ' days') < date('now')) AS fatture_insolute
     FROM clienti c
     ORDER BY c.ragione_sociale
@@ -193,7 +193,7 @@ router.get('/:id/fatture-insolute', (req, res) => {
           FROM fatture_righe fr WHERE fr.fattura_id = f.id
         ), 0) AS totale
       FROM fatture f
-      WHERE f.cliente_id = ? AND f.stato NOT IN ('PAGATA', 'ANNULLATA')
+      WHERE f.cliente_id = ? AND f.stato NOT IN ('PAGATA', 'ANNULLATA', 'STORNATA')
       ORDER BY f.data_emissione DESC
     `).all(req.params.id);
     res.json(rows.map(r => ({

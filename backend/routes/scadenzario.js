@@ -20,7 +20,7 @@ router.get('/', (req, res) => {
       FROM fatture f
       LEFT JOIN clienti c ON f.cliente_id = c.id
       LEFT JOIN tipi_pagamento tp ON f.tipo_pagamento_id = tp.id
-      WHERE f.stato NOT IN ('PAGATA','ANNULLATA')
+      WHERE f.stato NOT IN ('PAGATA','ANNULLATA','STORNATA')
     `).all();
 
     // Acquisti da pagare (ricevuti, non pagati, non annullati)
