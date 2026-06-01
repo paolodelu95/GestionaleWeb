@@ -478,7 +478,6 @@ export class TodoDialogComponent {
                 <span><span class="dot" style="background:#3b82f6"></span> Appuntamenti</span>
                 <span><span class="dot" style="background:#16a34a"></span> Incassi</span>
                 <span><span class="dot" style="background:#dc2626"></span> Pagamenti</span>
-                <span><span class="dot" style="background:#0891b2"></span> CRM</span>
                 <span><span class="dot" style="background:#f59e0b"></span> Ricorrenti</span>
               </div>
             </div>

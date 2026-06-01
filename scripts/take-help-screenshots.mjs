@@ -207,32 +207,6 @@ async function seedDemoData(token) {
     console.log('  ⚠ Errore agenda:', e.message.slice(0, 100));
   }
 
-  // ── CRM stage + opportunità (granulare) ─────────────────────────────
-  try {
-    let stagesNow = await api('GET', '/crm/stages', null, token);
-    const sLead = stagesNow.find(s => /lead/i.test(s.nome));
-    const sQua  = stagesNow.find(s => /qualif/i.test(s.nome));
-    // Backend potrebbe usare nomi diversi (es. "Proposta"); cerco col best-match
-    const sOff  = stagesNow.find(s => /offerta|proposta/i.test(s.nome));
-    const sWon  = stagesNow.find(s => /vinto/i.test(s.nome) || s.vinto);
-    const opp = await api('GET', '/crm/opportunita', null, token);
-    if (sLead && !opp.find(o => /Bianchi/i.test(o.titolo))) {
-      await api('POST', '/crm/opportunita', { titolo: 'Bianchi & Co.', clienteId: c1.id, stageId: sLead.id, valore: 4500, probabilita: 30 }, token);
-    }
-    if (sQua && !opp.find(o => /ACME/i.test(o.titolo))) {
-      await api('POST', '/crm/opportunita', { titolo: 'ACME SpA',      clienteId: c2.id, stageId: sQua.id,  valore: 15000, probabilita: 60 }, token);
-    }
-    if (sOff && !opp.find(o => /Rossi SRL/i.test(o.titolo))) {
-      await api('POST', '/crm/opportunita', { titolo: 'Rossi SRL',     clienteId: c1.id, stageId: sOff.id,  valore: 6200, probabilita: 75 }, token);
-    }
-    if (sWon && !opp.find(o => /Tech4U/i.test(o.titolo))) {
-      await api('POST', '/crm/opportunita', { titolo: 'Tech4U SAS',                       stageId: sWon.id,  valore: 9500, probabilita: 100 }, token);
-    }
-    console.log('  ✓ Pipeline CRM presente');
-  } catch (e) {
-    console.log('  ⚠ Errore CRM:', e.message.slice(0, 100));
-  }
-
   console.log('→ Seed completato.');
 }
 
@@ -278,9 +252,7 @@ async function takeScreenshots(token) {
   await shoot(page, '/fatture', 'fatture.png');
   // 5. Agenda
   await shoot(page, '/agenda', 'agenda.png', { delay: 1800 });
-  // 6. CRM
-  await shoot(page, '/crm', 'crm.png');
-  // 7. Scadenzario
+  // 6. Scadenzario
   await shoot(page, '/scadenzario', 'scadenzario.png');
 
   await browser.close();

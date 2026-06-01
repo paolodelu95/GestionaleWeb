@@ -169,6 +169,10 @@ function closeAuthDb() {
   authDbInstance = null;
 }
 
+// Moduli nascosti dalla UI (impostazioni, home, ecc.) ma mantenuti nel catalogo/DB.
+// Per riattivarli in futuro è sufficiente svuotare questo set.
+const MODULI_NASCOSTI = new Set(['crm', 'timesheet']);
+
 // Catalogo moduli: core = sempre attivi (non disattivabili)
 const MODULI_CATALOGO = [
   // CORE — sempre attivi
@@ -183,6 +187,8 @@ const MODULI_CATALOGO = [
   { slug: 'vendita_banco',      nome: 'Vendita al banco',        descrizione: 'Cassa veloce per negozi',         categoria: 'Vendite', icona: 'point_of_sale', core: 0, default_attivo: 0, ordine: 11 },
   { slug: 'riconciliazione',    nome: 'Riconciliazione bancaria', descrizione: 'Import OFX/CSV + match scadenze', categoria: 'Contabilità', icona: 'account_balance', core: 0, default_attivo: 1, ordine: 20 },
   { slug: 'compliance',         nome: 'Compliance fiscale',       descrizione: 'LIPE, esterometro, export commercialista', categoria: 'Contabilità', icona: 'verified', core: 0, default_attivo: 1, ordine: 21 },
+  // NASCOSTI (vedi MODULI_NASCOSTI): troppo complessi per il target attuale.
+  // Lasciati nel catalogo per non perdere i dati; filtrati dalle liste UI. Riattivabili in futuro.
   { slug: 'crm',                nome: 'CRM',                      descrizione: 'Pipeline opportunità + attività', categoria: 'Operativo', icona: 'group_work', core: 0, default_attivo: 0, ordine: 30 },
   { slug: 'timesheet',          nome: 'Timesheet',                descrizione: 'Progetti e ore lavorate',         categoria: 'Operativo', icona: 'schedule', core: 0, default_attivo: 0, ordine: 31 },
   { slug: 'ecommerce',          nome: 'E-commerce',               descrizione: 'Sync WooCommerce / Shopify',      categoria: 'Operativo', icona: 'shopping_basket', core: 0, default_attivo: 0, ordine: 32 },
@@ -218,6 +224,7 @@ function ensureTenantModuli(tenantSlug) {
 
 function listModuliCatalogo() {
   return getAuthDb().prepare('SELECT * FROM moduli ORDER BY ordine, nome').all()
+    .filter(m => !MODULI_NASCOSTI.has(m.slug))
     .map(m => ({ ...m, core: m.core === 1, defaultAttivo: m.default_attivo === 1 }));
 }
 
@@ -229,6 +236,7 @@ function listTenantModuli(tenantSlug) {
     FROM moduli m
     LEFT JOIN tenant_moduli tm ON tm.modulo_slug=m.slug AND tm.tenant_slug=?
     ORDER BY m.ordine, m.nome`).all(tenantSlug)
+    .filter(r => !MODULI_NASCOSTI.has(r.slug))
     .map(r => ({
       slug: r.slug, nome: r.nome, descrizione: r.descrizione,
       categoria: r.categoria, icona: r.icona,

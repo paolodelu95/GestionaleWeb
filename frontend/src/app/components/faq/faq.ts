@@ -40,7 +40,7 @@ import { MatButtonModule } from '@angular/material/button';
       <section class="hero">
         <h1>Il gestionale che <em>fa quadrare</em> i conti.</h1>
         <p class="hero-sub">
-          Fatture elettroniche SDI, magazzino, contabilità, agenda, CRM.
+          Fatture elettroniche SDI, magazzino, contabilità, agenda.
           Tutto in un'unica app, accessibile da browser o telefono.
           Pensato per PMI italiane.
         </p>
@@ -60,7 +60,7 @@ import { MatButtonModule } from '@angular/material/button';
           <p class="section-lead">
             Un gestionale ERP cloud-native per piccole e medie imprese italiane,
             studi professionali e artigiani. Sostituisce 4-5 software diversi
-            (gestionale, fatturazione, contabilità, magazzino, CRM) con
+            (gestionale, fatturazione, contabilità, magazzino) con
             un'unica piattaforma integrata.
           </p>
           <div class="card-grid card-grid-3">
@@ -122,11 +122,6 @@ import { MatButtonModule } from '@angular/material/button';
               <div class="feature-icon" style="background:linear-gradient(135deg,#4f46e5,#4338ca)"><mat-icon>event_note</mat-icon></div>
               <h3>Agenda condivisa</h3>
               <p>Appuntamenti, todo, scadenze su un'unica vista calendario. Sync ICS con Google Calendar, Outlook, Apple Calendar.</p>
-            </div>
-            <div class="feature">
-              <div class="feature-icon" style="background:linear-gradient(135deg,#9333ea,#7e22ce)"><mat-icon>group_work</mat-icon></div>
-              <h3>CRM commerciale</h3>
-              <p>Pipeline opportunità in stile Kanban, attività di follow-up, lead tracking. Tutto collegato a clienti e preventivi.</p>
             </div>
             <div class="feature">
               <div class="feature-icon" style="background:linear-gradient(135deg,#dc2626,#b91c1c)"><mat-icon>point_of_sale</mat-icon></div>

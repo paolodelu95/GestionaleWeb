@@ -488,7 +488,6 @@ export class AiutoComponent {
     { file: 'prodotti.png',    titolo: 'Prodotti',    descrizione: 'catalogo con prezzo, giacenza, soglia minima, filtri stato' },
     { file: 'fatture.png',     titolo: 'Fatture',     descrizione: 'elenco fatture emesse con stato e importi' },
     { file: 'agenda.png',      titolo: 'Agenda',      descrizione: 'calendario mensile, lista appuntamenti, sync ICS' },
-    { file: 'crm.png',         titolo: 'CRM',         descrizione: 'pipeline Kanban opportunità per stage' },
     { file: 'scadenzario.png', titolo: 'Scadenzario', descrizione: 'scadenze attive e passive con stato semaforico' },
   ];
 
@@ -642,18 +641,6 @@ export class AiutoComponent {
       ],
     },
     {
-      id: 'crm',
-      titolo: 'CRM e pipeline commerciale',
-      icona: 'group_work',
-      colore: 'linear-gradient(135deg,#9333ea,#7e22ce)',
-      intro: 'Trattative commerciali in stile Kanban',
-      passi: [
-        { titolo: 'Configurare gli stage', descrizione: 'In "CRM" → "Gestione stage" definisci le fasi (es. "Lead", "Qualificato", "Offerta", "Negoziazione", "Vinto", "Perso"). Personalizza colori e ordine.' },
-        { titolo: 'Creare un\'opportunità', descrizione: 'Drag&drop tra colonne. Per ogni opportunità: cliente, valore stimato, probabilità %, data prevista chiusura, note, attività di follow-up.' },
-        { titolo: 'Convertire in preventivo', descrizione: 'Dall\'opportunità "Vinto", click "Crea preventivo" → trasforma direttamente in offerta da inviare al cliente.' },
-      ],
-    },
-    {
       id: 'vendita-banco',
       titolo: 'Vendita al banco (cassa veloce)',
       icona: 'point_of_sale',
@@ -673,7 +660,7 @@ export class AiutoComponent {
       intro: 'Invitare il team con permessi differenziati',
       passi: [
         { titolo: 'Creare un utente nuovo', descrizione: 'Solo Owner e Admin possono. "Utenti" → "Nuovo". Username (email), password temporanea, ruolo, nome.' },
-        { titolo: 'Ruoli disponibili', descrizione: 'OWNER (full access), ADMIN (full access escluse modifiche fatturazione/piano), COMMERCIALE (clienti, vendite, CRM), CONTABILE (fatture, pagamenti, contabilità), MAGAZZINIERE (prodotti, magazzino, DDT), OPERATORE (solo lettura più aree base).' },
+        { titolo: 'Ruoli disponibili', descrizione: 'OWNER (full access), ADMIN (full access escluse modifiche fatturazione/piano), COMMERCIALE (clienti, vendite), CONTABILE (fatture, pagamenti, contabilità), MAGAZZINIERE (prodotti, magazzino, DDT), OPERATORE (solo lettura più aree base).' },
         { titolo: 'Gruppi per agenda condivisa', descrizione: 'In Impostazioni → Gruppi crea team (es. "Commerciali", "Amministrazione"). Gli appuntamenti condivisi sono visibili solo ai membri dello stesso gruppo.' },
       ],
     },
@@ -701,7 +688,7 @@ export class AiutoComponent {
     { domanda: 'Le fatture XML sono valide per l\'Agenzia delle Entrate?', risposta: 'Sì, sono generate secondo le specifiche tecniche ufficiali (Fatturazione Elettronica B2B/B2C v1.7+). L\'invio al SDI passa attraverso il tuo provider intermediario configurato in Impostazioni.' },
     { domanda: 'Posso disdire l\'abbonamento in qualsiasi momento?', risposta: 'Sì, senza penali. Da "Impostazioni → Account" un click. Il servizio resta attivo fino alla fine del periodo già pagato, poi viene sospeso. Hai 30 giorni per riattivare o esportare prima della cancellazione definitiva.' },
     { domanda: 'Come funziona la prova gratuita di 14 giorni?', risposta: 'Tutte le funzioni sono attive durante la prova. Niente carta richiesta. Al 14° giorno o sottoscrivi un piano oppure l\'accesso viene sospeso (e i dati conservati 30 giorni per eventuale riattivazione).' },
-    { domanda: 'Quanto tempo ci vuole per imparare ad usarlo?', risposta: 'Per emettere la prima fattura: 10-15 minuti se hai già dati cliente. Per padroneggiare tutti i moduli (magazzino, CRM, agenda, ecc.): circa una settimana di uso quotidiano. Questa guida ti accompagna step-by-step.' },
+    { domanda: 'Quanto tempo ci vuole per imparare ad usarlo?', risposta: 'Per emettere la prima fattura: 10-15 minuti se hai già dati cliente. Per padroneggiare tutti i moduli (magazzino, agenda, ecc.): circa una settimana di uso quotidiano. Questa guida ti accompagna step-by-step.' },
   ];
 
   filter() {

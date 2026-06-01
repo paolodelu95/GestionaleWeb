@@ -66,7 +66,7 @@ import { MatIconModule } from '@angular/material/icon';
 
             <section>
               <h2>2. Oggetto e descrizione del Servizio</h2>
-              <p>Il Fornitore mette a disposizione del Cliente una piattaforma cloud per la gestione aziendale comprendente, a titolo non esaustivo: anagrafiche, fatturazione elettronica conforme SDI, magazzino, contabilità, agenda, CRM, vendita al banco, riconciliazione bancaria, OCR fatture passive.</p>
+              <p>Il Fornitore mette a disposizione del Cliente una piattaforma cloud per la gestione aziendale comprendente, a titolo non esaustivo: anagrafiche, fatturazione elettronica conforme SDI, magazzino, contabilità, agenda, vendita al banco, riconciliazione bancaria, OCR fatture passive.</p>
               <p>Il Servizio è offerto in modalità "as a service": il Cliente non installa né mantiene software in proprio, ma accede via browser o app mobile (PWA).</p>
             </section>
 

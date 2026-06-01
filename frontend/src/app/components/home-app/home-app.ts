@@ -151,8 +151,7 @@ export class HomeAppComponent {
 
     // ── Operativo ── purple / violet / red scuri ──────────────────────────
     { label: 'Agenda',           description: 'Appuntamenti, todo, calendario', icon: 'event_note', route: '/agenda',     color: 'linear-gradient(135deg,#4f46e5,#4338ca)', category: 'Operativo' },
-    { label: 'CRM',              description: 'Pipeline opportunità',    icon: 'group_work',     route: '/crm',           color: 'linear-gradient(135deg,#9333ea,#7e22ce)', category: 'Operativo' },
-    { label: 'Timesheet',        description: 'Progetti e ore lavorate', icon: 'schedule',       route: '/timesheet',     color: 'linear-gradient(135deg,#7c3aed,#6d28d9)', category: 'Operativo' },
+    // Nascosti (CRM, Timesheet): troppo complessi per il target attuale. Riattivare in futuro.
     { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', color: 'linear-gradient(135deg,#dc2626,#b91c1c)', category: 'Operativo' },
 
     // ── Sistema ── slate / zinc (utility, neutri) ─────────────────────────

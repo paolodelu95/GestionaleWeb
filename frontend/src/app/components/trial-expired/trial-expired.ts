@@ -39,7 +39,7 @@ import { AuthService } from '../../services/auth.service';
         </p>
         <p class="te-msg">
           Sottoscrivi un piano per continuare a usare tutte le funzioni:
-          fatturazione SDI, magazzino, agenda, CRM e tutto il resto restano
+          fatturazione SDI, magazzino, agenda e tutto il resto restano
           esattamente come li hai lasciati. I tuoi dati sono al sicuro e
           intoccati.
         </p>
