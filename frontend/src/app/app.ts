@@ -444,8 +444,9 @@ export class App implements OnInit {
       ]
     },
     { label: 'Agenda',    icon: 'event_note',     route: '/agenda' },
-    { label: 'CRM',       icon: 'group_work',     route: '/crm' },
-    { label: 'Timesheet', icon: 'schedule',       route: '/timesheet' },
+    // Nascosti: CRM e Timesheet troppo complessi per il target attuale. Riattivare in futuro.
+    // { label: 'CRM',       icon: 'group_work',     route: '/crm' },
+    // { label: 'Timesheet', icon: 'schedule',       route: '/timesheet' },
     { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },
     {
       label: 'Report', icon: 'bar_chart',
