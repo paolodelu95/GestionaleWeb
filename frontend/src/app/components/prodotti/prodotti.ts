@@ -1,6 +1,7 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { FieldHelpComponent } from '../shared/field-help';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -82,7 +83,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule,
-            MatIconModule, MatCheckboxModule, MatButtonToggleModule],
+            MatIconModule, MatCheckboxModule, MatButtonToggleModule, FieldHelpComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -159,6 +160,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
                   <mat-option [value]="a.valore">{{ a.nome }} – {{ a.valore }}%</mat-option>
                 }
               </mat-select>
+              <app-field-help matSuffix term="aliquotaIva" />
             </mat-form-field>
             <mat-form-field>
               <mat-label>Unità misura</mat-label>
