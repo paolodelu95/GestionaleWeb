@@ -1,4 +1,5 @@
 import { inject, Component, OnInit, Inject } from '@angular/core';
+import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { CommonModule } from '@angular/common';
@@ -20,20 +21,6 @@ import { Cliente, TipoPagamento, UnitaMisura } from '../../models';
 import { docRigaTotale } from '../../utils/doc-calc';
 
 // ── Styles shared by dialog rig table ──────────────────────────────────────
-const RIGHE_STYLES = `
-  .righe-section { margin-top: 16px; }
-  .righe-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .righe-table { width: 100%; border-collapse: collapse; }
-  .righe-table th { background: #f8fafc; padding: 8px; font-size: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-  .righe-table td { padding: 4px 2px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-  .riga-input { border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-  .riga-input.num { width: 72px; }
-  .riga-input.sconto { width: 60px; }
-  .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
-  .righe-error { display: flex; align-items: center; gap: 4px; color: #dc2626; font-size: 12px; font-weight: 500; }
-  .righe-error mat-icon { font-size: 15px; width: 15px; height: 15px; }
-`;
-
 // ── Dialog ─────────────────────────────────────────────────────────────────
 @Component({
   selector: 'app-fattura-ricorrente-dialog',
