@@ -1,5 +1,6 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -170,6 +171,7 @@ export class SaldoMultiploDialogComponent implements OnInit {
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule, MatInputModule,
     MatTooltipModule, MatSnackBarModule, MatCheckboxModule, MatDialogModule,
+    EmptyStateComponent,
   ],
   templateUrl: './scadenzario.html',
   styleUrl: './scadenzario.scss',

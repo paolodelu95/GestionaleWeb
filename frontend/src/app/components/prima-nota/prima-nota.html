@@ -126,7 +126,8 @@
     </table>
 
     @if (!dataSource.data.length) {
-      <p class="empty-msg">Nessuna registrazione trovata</p>
+      <app-empty-state compact icon="menu_book" title="Nessuna registrazione"
+        message="Le registrazioni di cassa e banca compariranno qui." />
     }
 
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>

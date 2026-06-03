@@ -1,5 +1,6 @@
 import { inject, Component, OnInit, Inject } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -218,7 +219,7 @@ export class PagamentoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatButtonToggleModule,
-            FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule, MatMenuModule],
+            FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule, MatMenuModule, EmptyStateComponent],
   templateUrl: './pagamenti.html',
   styleUrl: './pagamenti.scss'
 })

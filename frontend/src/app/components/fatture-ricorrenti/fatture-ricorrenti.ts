@@ -1,5 +1,6 @@
 import { inject, Component, OnInit, Inject } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -255,7 +256,7 @@ export class FatturaRicorrenteDialogComponent implements OnInit {
     MatTableModule, MatButtonModule, MatIconModule,
     MatDialogModule, MatSnackBarModule, MatSelectModule,
     MatChipsModule, MatTooltipModule, MatSlideToggleModule, MatMenuModule
-  ],
+  , EmptyStateComponent],
   templateUrl: './fatture-ricorrenti.html',
   styleUrl: './fatture-ricorrenti.scss'
 })

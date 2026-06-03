@@ -146,7 +146,7 @@
             (click)="selection.toggle(row)" style="cursor:pointer">
         </tr>
       </table>
-      @if (!scadenzario.length) { <p class="empty-msg">Nessuna scadenza aperta</p> }
+      @if (!scadenzario.length) { <app-empty-state compact icon="task_alt" title="Nessuna scadenza aperta" message="Tutto saldato: non ci sono importi in sospeso." /> }
     </div>
 
   } @else {
@@ -261,7 +261,7 @@
         <tr mat-header-row *matHeaderRowDef="pagamentiCols"></tr>
         <tr mat-row *matRowDef="let row; columns: pagamentiCols;"></tr>
       </table>
-      @if (!pagamenti.length) { <p class="empty-msg">Nessun pagamento</p> }
+      @if (!pagamenti.length) { <app-empty-state compact icon="payments" title="Nessun pagamento registrato" message="Qui compaiono incassi e pagamenti man mano che li registri." /> }
     </div>
 
     @if (filtro === 'TUTTI') {
@@ -334,7 +334,7 @@
               [style.background]="isScaduta(row) ? '#fff5f5' : null">
           </tr>
         </table>
-        @if (!scadenzario.length) { <p class="empty-msg">Nessuna scadenza aperta</p> }
+        @if (!scadenzario.length) { <app-empty-state compact icon="task_alt" title="Nessuna scadenza aperta" message="Tutto saldato: non ci sono importi in sospeso." /> }
       </div>
     }
 

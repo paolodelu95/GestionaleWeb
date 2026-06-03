@@ -72,17 +72,20 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">
-          Nessuna fattura ricorrente configurata
+        <td class="mat-cell" [colSpan]="displayedColumns.length">
+          @if (ricorrenti.length > 0) {
+            <app-empty-state compact icon="search_off" title="Nessun risultato"
+              message="Nessuna ricorrente con i filtri selezionati." />
+          } @else {
+            <app-empty-state icon="autorenew" title="Ancora nessuna fattura ricorrente"
+              message="Imposta una fattura che si genera da sola a intervalli regolari (canoni, abbonamenti…).">
+              <button mat-flat-button color="primary" type="button" (click)="open()">
+                <mat-icon>add</mat-icon> Nuova ricorrente
+              </button>
+            </app-empty-state>
+          }
         </td>
       </tr>
     </table>
-
-    @if (!filtered.length && ricorrenti.length > 0) {
-      <p class="empty-msg">Nessun risultato con i filtri selezionati</p>
-    }
-    @if (!ricorrenti.length) {
-      <p class="empty-msg">Nessuna fattura ricorrente. Creane una con il pulsante in alto.</p>
-    }
   </div>
 </div>
