@@ -14,11 +14,19 @@
       </div>
     }
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo acquisto</button>
-    <button mat-stroked-button type="button" (click)="xmlInput.click()">
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="xmlInput.click()">
       <mat-icon>upload_file</mat-icon> Importa XML
     </button>
     <input #xmlInput type="file" accept=".xml,text/xml,application/xml" class="hidden-input" (change)="importaXml($event)">
-    <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuAcq" title="Altre azioni">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #overflowMenuAcq="matMenu">
+      <button mat-menu-item type="button" (click)="xmlInput.click()"><mat-icon>upload_file</mat-icon> Importa XML</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+    </mat-menu>
   </div>
 
   <div class="filter-bar">
