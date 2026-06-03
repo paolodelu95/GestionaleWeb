@@ -6,7 +6,7 @@ import {
   Azienda, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
-  CategoriaProdotto, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
+  CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
@@ -135,6 +135,12 @@ export class DataService {
   createTipoPagamento(t: TipoPagamento): Observable<any> { return this.api.post('tipi-pagamento', t); }
   updateTipoPagamento(t: TipoPagamento): Observable<any> { return this.api.put(`tipi-pagamento/${t.id}`, t); }
   deleteTipoPagamento(id: number): Observable<any> { return this.api.delete(`tipi-pagamento/${id}`); }
+
+  // Causali pagamento
+  getCausali(): Observable<CausalePagamento[]> { return this.api.get('causali'); }
+  createCausale(c: CausalePagamento): Observable<any> { return this.api.post('causali', c); }
+  updateCausale(c: CausalePagamento): Observable<any> { return this.api.put(`causali/${c.id}`, c); }
+  deleteCausale(id: number): Observable<any> { return this.api.delete(`causali/${id}`); }
 
   // Categorie Prodotto
   getCategorieProdotto(): Observable<CategoriaProdotto[]> { return this.api.get('categorie-prodotto'); }

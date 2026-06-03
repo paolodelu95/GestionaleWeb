@@ -466,8 +466,16 @@ export interface Pagamento {
   note?: string;
   tipo?: string;
   conto?: string;
+  causale?: string;
   tipoPagamentoId?: number | null;
   tipoPagamentoNome?: string;
+}
+
+export interface CausalePagamento {
+  id?: number;
+  nome: string;
+  ordine?: number;
+  attivo?: boolean;
 }
 
 export interface VenditaBanco {

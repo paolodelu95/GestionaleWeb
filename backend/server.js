@@ -675,6 +675,7 @@ app.use('/api/movimenti-magazzino', require('./routes/movimentiMagazzino'));
 app.use('/api/vendite-banco',      require('./routes/venditeBanco'));
 app.use('/api/prodotto-varianti',  require('./routes/prodottoVarianti'));
 app.use('/api/tipi-pagamento',   require('./routes/tipiPagamento'));
+app.use('/api/causali',          require('./routes/causali'));
 app.use('/api/categorie-prodotto', require('./routes/categorieProdotto'));
 app.use('/api/unita-misura',     require('./routes/unitaMisura'));
 app.use('/api/aliquote-iva',     require('./routes/aliquoteIva'));

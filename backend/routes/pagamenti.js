@@ -105,28 +105,42 @@ function validatePagamento(p, { excludePagamentoId } = {}) {
   const importo = Number(p.importo);
   if (!Number.isFinite(importo)) return 'importo non valido';
   if (importo <= 0) return 'importo deve essere positivo';
-  // Esattamente uno tra fatturaId / acquistoId
+  // Al massimo uno tra fatturaId / acquistoId. Se il pagamento è collegato a un
+  // documento, verifica il residuo. Un pagamento "libero" (spesa/entrata generica,
+  // es. affitto, stipendi, bollette) è ammesso senza alcun documento collegato.
   const hasFatt = !!p.fatturaId;
   const hasAcq = !!p.acquistoId;
-  if (hasFatt === hasAcq) return 'specificare fatturaId o acquistoId (esattamente uno)';
-  const r = calcolaRimanente({ fatturaId: p.fatturaId, acquistoId: p.acquistoId, excludePagamentoId });
-  if (!r) return 'fattura/acquisto non trovato';
-  if (r.totale <= 0) return 'documento senza righe imponibili';
-  if (importo > r.rimanente + ROUNDING_TOLERANCE) {
-    return `importo ${importo.toFixed(2)} € supera il residuo (${r.rimanente.toFixed(2)} €)`;
+  if (hasFatt && hasAcq) return 'specificare al massimo uno tra fattura e acquisto';
+  if (hasFatt || hasAcq) {
+    const r = calcolaRimanente({ fatturaId: p.fatturaId, acquistoId: p.acquistoId, excludePagamentoId });
+    if (!r) return 'fattura/acquisto non trovato';
+    if (r.totale <= 0) return 'documento senza righe imponibili';
+    if (importo > r.rimanente + ROUNDING_TOLERANCE) {
+      return `importo ${importo.toFixed(2)} € supera il residuo (${r.rimanente.toFixed(2)} €)`;
+    }
   }
   return null;
+}
+
+// Il conto (BANCA/CASSA) viene derivato dal tipo di pagamento scelto: l'utente
+// imposta solo il tipo, il conto lo decide il sistema. Fallback al valore passato o BANCA.
+function contoDaTipo(tipoPagamentoId, fallback) {
+  if (tipoPagamentoId) {
+    const tp = db.prepare('SELECT conto FROM tipi_pagamento WHERE id=?').get(tipoPagamentoId);
+    if (tp?.conto) return tp.conto;
+  }
+  return fallback || 'BANCA';
 }
 
 router.post('/', (req, res) => {
   const p = req.body;
   const err = validatePagamento(p);
   if (err) return res.status(400).json({ error: err });
-  const result = db.prepare(`INSERT INTO pagamenti (fattura_id, acquisto_id, data_pagamento, importo, metodo, note, tipo, tipo_pagamento_id, conto)
-    VALUES (?,?,?,?,?,?,?,?,?)`)
+  const result = db.prepare(`INSERT INTO pagamenti (fattura_id, acquisto_id, data_pagamento, importo, metodo, note, tipo, tipo_pagamento_id, conto, causale)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`)
     .run(p.fatturaId || null, p.acquistoId || null, p.dataPagamento, Number(p.importo),
          p.metodo || 'Bonifico', p.note || '', p.tipo || 'ENTRATA',
-         p.tipoPagamentoId || null, p.conto || 'BANCA');
+         p.tipoPagamentoId || null, contoDaTipo(p.tipoPagamentoId, p.conto), p.causale || '');
   if (p.fatturaId) aggiornaStatoFattura(p.fatturaId);
   if (p.acquistoId) aggiornaStatoAcquisto(p.acquistoId);
   res.json({ id: result.lastInsertRowid });
@@ -136,10 +150,10 @@ router.put('/:id', (req, res) => {
   const p = req.body;
   const err = validatePagamento(p, { excludePagamentoId: Number(req.params.id) });
   if (err) return res.status(400).json({ error: err });
-  db.prepare(`UPDATE pagamenti SET fattura_id=?,acquisto_id=?,data_pagamento=?,importo=?,metodo=?,note=?,tipo=?,tipo_pagamento_id=?,conto=? WHERE id=?`)
+  db.prepare(`UPDATE pagamenti SET fattura_id=?,acquisto_id=?,data_pagamento=?,importo=?,metodo=?,note=?,tipo=?,tipo_pagamento_id=?,conto=?,causale=? WHERE id=?`)
     .run(p.fatturaId || null, p.acquistoId || null, p.dataPagamento, Number(p.importo),
          p.metodo || 'Bonifico', p.note || '', p.tipo || 'ENTRATA',
-         p.tipoPagamentoId || null, p.conto || 'BANCA', req.params.id);
+         p.tipoPagamentoId || null, contoDaTipo(p.tipoPagamentoId, p.conto), p.causale || '', req.params.id);
   if (p.fatturaId) aggiornaStatoFattura(p.fatturaId);
   if (p.acquistoId) aggiornaStatoAcquisto(p.acquistoId);
   res.json({ success: true });
@@ -194,6 +208,7 @@ function toDto(r) {
     fornitoreNome: r.fornitore_nome,
     dataPagamento: r.data_pagamento, importo: r.importo, metodo: r.metodo,
     note: r.note, tipo: r.tipo || 'ENTRATA', conto: r.conto || 'BANCA',
+    causale: r.causale || '',
     tipoPagamentoId: r.tipo_pagamento_id, tipoPagamentoNome: r.tipo_pagamento_nome
   };
 }

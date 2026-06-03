@@ -18,7 +18,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { SelectionModel } from '@angular/cdk/collections';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
-import { Pagamento, Fattura, TipoPagamento, ScadenzarioEntry } from '../../models';
+import { Pagamento, Fattura, TipoPagamento, ScadenzarioEntry, CausalePagamento } from '../../models';
 
 // ── Salda singolo ─────────────────────────────────────────────────────────────
 interface SaldaData { entry: ScadenzarioEntry; tipiPagamento: TipoPagamento[]; }
@@ -148,24 +148,6 @@ export class SaldaMultiploDialogComponent {
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Conto</mat-label>
-            <mat-select formControlName="conto">
-              <mat-option value="BANCA">Banca</mat-option>
-              <mat-option value="CASSA">Cassa</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="form-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Fattura collegata</mat-label>
-            <mat-select formControlName="fatturaId">
-              <mat-option [value]="null">— nessuna —</mat-option>
-              @for (f of fatture; track f.id) {
-                <mat-option [value]="f.id">{{ f.numero }} — {{ f.clienteNome }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
             <mat-label>Metodo di pagamento</mat-label>
             <mat-select formControlName="tipoPagamentoId">
               <mat-option [value]="null">— nessuno —</mat-option>
@@ -173,8 +155,28 @@ export class SaldaMultiploDialogComponent {
                 <mat-option [value]="t.id">{{ t.nome }}</mat-option>
               }
             </mat-select>
+            <mat-hint>Il conto (banca/cassa) viene impostato in automatico.</mat-hint>
           </mat-form-field>
         </div>
+        <mat-form-field appearance="outline" style="width:100%">
+          <mat-label>Causale</mat-label>
+          <mat-select formControlName="causale">
+            <mat-option [value]="''">— nessuna —</mat-option>
+            @for (c of causali; track c.id) {
+              <mat-option [value]="c.nome">{{ c.nome }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>Gestisci l'elenco in Impostazioni → Causali pagamento.</mat-hint>
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="width:100%">
+          <mat-label>Fattura collegata (facoltativa)</mat-label>
+          <mat-select formControlName="fatturaId">
+            <mat-option [value]="null">— nessuna —</mat-option>
+            @for (f of fatture; track f.id) {
+              <mat-option [value]="f.id">{{ f.numero }} — {{ f.clienteNome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
         <mat-form-field appearance="outline" style="width:100%">
           <mat-label>Note</mat-label>
           <textarea matInput rows="2" formControlName="note"></textarea>
@@ -190,6 +192,7 @@ export class PagamentoDialogComponent implements OnInit {
   form: FormGroup;
   fatture: Fattura[] = [];
   tipiPagamento: TipoPagamento[] = [];
+  causali: CausalePagamento[] = [];
 
   constructor(private fb: FormBuilder, private ds: DataService,
               public dialogRef: MatDialogRef<PagamentoDialogComponent>,
@@ -199,7 +202,7 @@ export class PagamentoDialogComponent implements OnInit {
       importo:         [data?.importo ?? '', [Validators.required, Validators.min(0.01)]],
       fatturaId:       [data?.fatturaId ?? null],
       tipo:            [data?.tipo ?? 'ENTRATA'],
-      conto:           [data?.conto ?? 'BANCA'],
+      causale:         [data?.causale ?? ''],
       tipoPagamentoId: [data?.tipoPagamentoId ?? null],
       note:            [data?.note ?? ''],
     });
@@ -208,6 +211,7 @@ export class PagamentoDialogComponent implements OnInit {
   ngOnInit() {
     this.ds.getFatture().subscribe(f => this.fatture = f.filter(x => x.stato !== 'ANNULLATA'));
     this.ds.getTipiPagamento().subscribe(t => this.tipiPagamento = t.filter(x => x.attivo));
+    this.ds.getCausali().subscribe(c => this.causali = c.filter(x => x.attivo !== false));
   }
 
   save() { if (this.form.valid) this.dialogRef.close({ ...this.data, ...this.form.value }); }

@@ -403,6 +403,13 @@ function initTenantSchema(db) {
       testo TEXT NOT NULL,
       ordine INTEGER DEFAULT 0
     )`,
+    'ALTER TABLE pagamenti ADD COLUMN causale TEXT DEFAULT ""',
+    `CREATE TABLE IF NOT EXISTS causali_pagamento (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL UNIQUE,
+      ordine INTEGER DEFAULT 0,
+      attivo INTEGER DEFAULT 1
+    )`,
     'ALTER TABLE clienti ADD COLUMN cellulare TEXT DEFAULT ""',
     'ALTER TABLE fornitori ADD COLUMN cellulare TEXT DEFAULT ""',
     'ALTER TABLE prodotti ADD COLUMN prezzo_acquisto REAL DEFAULT NULL',
@@ -908,6 +915,20 @@ function initTenantSchema(db) {
     def('Rim. diretta 120gg. DFFM', 'BANCA', 120, true);
     def('SDD B2B', 'BANCA', 30, false);
     def('SDD Core', 'BANCA', 30, false);
+  } catch(_) {}
+
+  // Causali pagamento di default (per la prima nota / pagamenti liberi).
+  // Idempotente: aggiunge solo quelle mancanti, non duplica.
+  try {
+    const insCau = db.prepare(`INSERT INTO causali_pagamento (nome, ordine)
+      SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM causali_pagamento WHERE nome=?)`);
+    [
+      'Acquisto Prodotti', 'Acquisto valori bollati', 'Addebiti POS', 'Affitto negozio',
+      'Assicurazione Negozio', 'Bolletta Luce', 'Bolletta telefono', 'Bollino Registratore di Cassa',
+      'CIG ... CUP ...', 'Contributi dipendente', 'Pagamento inps', 'Pagamento iva', 'Scontrini',
+      'Spese commercialista', 'Spese furgoncino', 'Spese postali', 'Spese programma Danea',
+      'Spese pubblicitarie', 'Spese Varie', 'Stipendi', 'Tassa camera commercio', 'Versamento',
+    ].forEach((nome, i) => insCau.run(nome, i + 1, nome));
   } catch(_) {}
 
   try {
