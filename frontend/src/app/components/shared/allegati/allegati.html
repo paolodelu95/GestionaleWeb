@@ -20,7 +20,7 @@
   </div>
 
   @if (allegati.length === 0 && !uploading) {
-    <p class="empty-msg">Nessun allegato</p>
+    <app-empty-state compact icon="attach_file" title="Nessun allegato" />
   }
 
   @if (allegati.length > 0) {

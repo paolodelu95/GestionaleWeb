@@ -206,7 +206,7 @@
                 @if (forecast.items.length) {
                   <canvas #forecastCanvas></canvas>
                 } @else {
-                  <p class="empty-msg">Nessuna scadenza nei prossimi 60 giorni</p>
+                  <app-empty-state compact icon="event_available" title="Nessuna scadenza" message="Niente in arrivo nei prossimi 60 giorni." />
                 }
               </div>
             </div>
@@ -409,7 +409,7 @@
                 }
               </div>
               @if (!prodottiSottoSoglia.length) {
-                <p class="empty-msg">Nessun prodotto sotto soglia</p>
+                <app-empty-state compact icon="inventory_2" title="Scorte a posto" message="Nessun prodotto sotto la soglia minima." />
               }
             </div>
           }
@@ -465,7 +465,7 @@
                   </div>
                 }
               </div>
-              @if (!ddtDaFatturare.length) { <p class="empty-msg">Nessun DDT da fatturare</p> }
+              @if (!ddtDaFatturare.length) { <app-empty-state compact icon="receipt_long" title="Nessun DDT da fatturare" /> }
             </div>
           }
 
@@ -522,7 +522,7 @@
                   </a>
                 }
               </div>
-              @if (!fattureDaIncassare.length) { <p class="empty-msg">Nessuna fattura da incassare</p> }
+              @if (!fattureDaIncassare.length) { <app-empty-state compact icon="task_alt" title="Tutto incassato" /> }
             </div>
           }
 
@@ -566,7 +566,7 @@
                   </a>
                 }
               </div>
-              @if (!fattureDaPagare.length) { <p class="empty-msg">Nessuna fattura da pagare</p> }
+              @if (!fattureDaPagare.length) { <app-empty-state compact icon="task_alt" title="Tutto pagato" /> }
             </div>
           }
 

@@ -402,7 +402,7 @@
             <tr mat-header-row *matHeaderRowDef="utenteColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: utenteColumns;"></tr>
           </table>
-          @if (!utenti.length) { <p class="empty-msg">Nessun utente configurato</p> }
+          @if (!utenti.length) { <app-empty-state compact icon="group" title="Nessun utente" /> }
         </div>
       </div>
     </mat-tab>
@@ -461,7 +461,7 @@
             <tr mat-header-row *matHeaderRowDef="tpColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: tpColumns;"></tr>
           </table>
-          @if (!tipiPagamento.length) { <p class="empty-msg">Nessun tipo di pagamento</p> }
+          @if (!tipiPagamento.length) { <app-empty-state compact icon="payments" title="Nessun tipo di pagamento" /> }
         </div>
       </div>
     </mat-tab>
@@ -494,7 +494,7 @@
             <tr mat-header-row *matHeaderRowDef="catColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: catColumns;"></tr>
           </table>
-          @if (!categorie.length) { <p class="empty-msg">Nessuna categoria</p> }
+          @if (!categorie.length) { <app-empty-state compact icon="category" title="Nessuna categoria" /> }
         </div>
       </div>
     </mat-tab>
@@ -570,7 +570,7 @@
             <tr mat-row *matRowDef="let row; columns: listiniColumns;"></tr>
           </table>
           @if (!listini.length) {
-            <p class="empty-msg">Nessun listino. Creane uno per assegnare prezzi personalizzati ai clienti.</p>
+            <app-empty-state compact icon="sell" title="Nessun listino" message="Creane uno per assegnare prezzi personalizzati ai clienti." />
           }
         </div>
       </div>
@@ -610,7 +610,7 @@
             <tr mat-header-row *matHeaderRowDef="umColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: umColumns;"></tr>
           </table>
-          @if (!unitaMisura.length) { <p class="empty-msg">Nessuna unità di misura</p> }
+          @if (!unitaMisura.length) { <app-empty-state compact icon="straighten" title="Nessuna unità di misura" /> }
         </div>
       </div>
     </mat-tab>
@@ -654,7 +654,7 @@
             <tr mat-header-row *matHeaderRowDef="ivaColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: ivaColumns;"></tr>
           </table>
-          @if (!aliquoteIva.length) { <p class="empty-msg">Nessuna aliquota IVA</p> }
+          @if (!aliquoteIva.length) { <app-empty-state compact icon="percent" title="Nessuna aliquota IVA" /> }
         </div>
       </div>
     </mat-tab>
@@ -694,7 +694,7 @@
             <tr mat-header-row *matHeaderRowDef="notaRapidaColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: notaRapidaColumns;"></tr>
           </table>
-          @if (!noteRapide.length) { <p class="empty-msg">Nessuna nota rapida. Aggiungine una per velocizzare la compilazione dei documenti.</p> }
+          @if (!noteRapide.length) { <app-empty-state compact icon="sticky_note_2" title="Nessuna nota rapida" message="Aggiungine una per velocizzare la compilazione dei documenti." /> }
         </div>
       </div>
     </mat-tab>

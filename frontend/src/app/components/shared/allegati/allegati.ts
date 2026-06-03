@@ -1,4 +1,5 @@
 import { inject, Component, Input, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { EmptyStateComponent } from '../empty-state';
 import { ConfirmService } from '../confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -18,6 +19,7 @@ import { environment } from '../../../../environments/environment';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    EmptyStateComponent,
   ],
   templateUrl: './allegati.html',
   styleUrl: './allegati.scss',

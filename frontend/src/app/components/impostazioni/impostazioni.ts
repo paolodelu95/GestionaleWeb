@@ -1,4 +1,5 @@
 import { inject, Component, OnInit, Inject } from '@angular/core';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -374,7 +375,8 @@ export class PrefissoConfermaDialogComponent {
             MatTableModule, MatTabsModule, MatDialogModule, MatSnackBarModule,
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
             MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule,
-            MatExpansionModule, MatButtonToggleModule, MatSliderModule, MatTooltipModule, DragDropModule],
+            MatExpansionModule, MatButtonToggleModule, MatSliderModule, MatTooltipModule, DragDropModule,
+            EmptyStateComponent],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })

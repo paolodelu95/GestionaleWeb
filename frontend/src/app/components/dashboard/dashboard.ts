@@ -1,4 +1,5 @@
 import { inject, Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -53,6 +54,7 @@ const LS_KEY = 'dashboard-widgets-v3'; // bumped: pillole avvisi (incassare/paga
     CommonModule, RouterLink, FormsModule,
     MatCardModule, MatTableModule, MatIconModule, MatButtonModule, MatMenuModule,
     MatTooltipModule, MatCheckboxModule, MatSnackBarModule, DragDropModule,
+    EmptyStateComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'

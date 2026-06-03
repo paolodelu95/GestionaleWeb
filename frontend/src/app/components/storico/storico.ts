@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
@@ -19,7 +20,7 @@ interface AuditEntry {
 @Component({
   selector: 'app-storico',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSelectModule, MatIconModule, MatButtonModule, MatTableModule],
+  imports: [CommonModule, FormsModule, MatSelectModule, MatIconModule, MatButtonModule, MatTableModule, EmptyStateComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -42,7 +43,7 @@ interface AuditEntry {
 
       <div class="card">
         @if (!filtered.length) {
-          <p class="empty-msg">Nessuna modifica registrata.</p>
+          <app-empty-state compact icon="history" title="Nessuna modifica registrata" />
         } @else {
           <table class="audit-table">
             <thead>
