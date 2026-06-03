@@ -8,11 +8,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth.service';
 import type { RegisterPayload } from '../../services/auth.service';
+import { FieldHelpComponent } from '../shared/field-help';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, RouterLink, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, FieldHelpComponent],
   template: `
     <div class="login-overlay">
       <div class="login-bg">
@@ -147,6 +148,7 @@ import type { RegisterPayload } from '../../services/auth.service';
               <mat-label>Partita IVA</mat-label>
               <input matInput [(ngModel)]="reg.piva" name="piva"
                      autocomplete="off" [disabled]="loading">
+              <app-field-help matSuffix text="11 cifre. Puoi lasciarla vuota ora e aggiungerla dopo dalle Impostazioni." />
             </mat-form-field>
 
             <mat-form-field appearance="outline">
