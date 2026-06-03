@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -477,6 +478,7 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit {
   styleUrl: './acquisti.scss'
 })
 export class AcquistiComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allAcquisti: Acquisto[] = [];
   private fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Acquisto>([]);
@@ -767,8 +769,8 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(a: Acquisto) {
-    if (!confirm(`Eliminare acquisto ${a.numero}?`)) return;
+  async delete(a: Acquisto) {
+    if (!await this.confirm.delete(`Eliminare acquisto ${a.numero}?`)) return;
     this.ds.deleteAcquisto(a.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
   }
 }

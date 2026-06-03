@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -203,6 +204,7 @@ export class CrmOppDialogComponent {
   `],
 })
 export class CrmComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   stages: Stage[] = [];
   opps: Opportunita[] = [];
   clienti: Cliente[] = [];
@@ -265,8 +267,8 @@ export class CrmComponent implements OnInit {
       });
   }
 
-  elimina(o: Opportunita) {
-    if (!confirm(`Eliminare l'opportunità "${o.titolo}"?`)) return;
+  async elimina(o: Opportunita) {
+    if (!await this.confirm.delete(`Eliminare l'opportunità "${o.titolo}"?`)) return;
     this.api.delete(`crm/opportunita/${o.id}`).subscribe(() => {
       this.opps = this.opps.filter(x => x.id !== o.id);
       this.snack.open('Opportunità eliminata', 'OK', { duration: 2000 });

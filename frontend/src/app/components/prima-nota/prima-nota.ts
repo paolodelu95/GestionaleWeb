@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -119,6 +120,7 @@ export class PrimaNotaDialogComponent {
   styleUrl: './prima-nota.scss',
 })
 export class PrimaNotaComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   @ViewChild(MatSort)      sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -207,8 +209,8 @@ export class PrimaNotaComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(entry: any) {
-    if (!confirm(`Eliminare la registrazione "${entry.causale}" di €${entry.importo}?`)) return;
+  async delete(entry: any) {
+    if (!await this.confirm.delete(`Eliminare la registrazione "${entry.causale}" di €${entry.importo}?`)) return;
     this.ds.deletePrimaNotaEntry(entry.id).subscribe({
       next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: err => this.snack.open(err.message, '', { duration: 3000 }),

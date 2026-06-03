@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { inject, Component, Input, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { ConfirmService } from '../confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,6 +23,7 @@ import { environment } from '../../../../environments/environment';
   styleUrl: './allegati.scss',
 })
 export class AllegatiComponent implements OnInit, OnChanges {
+  private confirm = inject(ConfirmService);
   @Input() documentoTipo!: string;
   @Input() documentoId!: number | null;
 
@@ -90,8 +92,8 @@ export class AllegatiComponent implements OnInit, OnChanges {
     window.open(`${environment.apiUrl}/allegati/${allegato.id}/download`, '_blank');
   }
 
-  delete(allegato: any): void {
-    if (!confirm(`Eliminare "${allegato.nomeFile}"?`)) return;
+  async delete(allegato: any): Promise<void> {
+    if (!await this.confirm.delete(`Eliminare "${allegato.nomeFile}"?`)) return;
     this.ds.deleteAllegato(allegato.id).subscribe({
       next: () => {
         this.load();

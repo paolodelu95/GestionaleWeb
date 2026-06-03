@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -222,6 +223,7 @@ export class PagamentoDialogComponent implements OnInit {
   styleUrl: './pagamenti.scss'
 })
 export class PagamentiComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   private allPagamenti: Pagamento[] = [];
   private allScadenzario: ScadenzarioEntry[] = [];
   tipiPagamento: TipoPagamento[] = [];
@@ -366,9 +368,9 @@ export class PagamentiComponent implements OnInit {
     });
   }
 
-  delete(p: Pagamento) {
+  async delete(p: Pagamento) {
     const doc = p.fatturaNumero ? `fattura ${p.fatturaNumero}` : p.acquistoNumero ? `acquisto ${p.acquistoNumero}` : 'documento';
-    if (!confirm(`Eliminare il pagamento di €${p.importo}?\nIl ${doc} tornerà in "Da saldare".`)) return;
+    if (!await this.confirm.delete(`Eliminare il pagamento di €${p.importo}?\nIl ${doc} tornerà in "Da saldare".`)) return;
     this.ds.deletePagamento(p.id!).subscribe(() => { this.load(); this.snack.open('Saldo annullato', '', { duration: 2000 }); });
   }
 

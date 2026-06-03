@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -57,6 +58,7 @@ const LS_KEY = 'dashboard-widgets-v3'; // bumped: pillole avvisi (incassare/paga
   styleUrl: './dashboard.scss'
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+  private confirm = inject(ConfirmService);
   @ViewChild('chartVendite') chartVenditeRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('chartTop')     chartTopRef!: ElementRef<HTMLCanvasElement>;
 
@@ -254,8 +256,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.tryRenderCharts();
   }
 
-  resetWidgets() {
-    if (!confirm('Ripristinare la dashboard di default?')) return;
+  async resetWidgets() {
+    if (!await this.confirm.ask('Ripristinare la dashboard di default?')) return;
     this.widgets = [...DEFAULT_WIDGETS];
     this.saveWidgets();
     this.tryRenderCharts();

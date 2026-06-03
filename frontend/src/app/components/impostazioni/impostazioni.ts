@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -378,6 +379,7 @@ export class PrefissoConfermaDialogComponent {
   styleUrl: './impostazioni.scss'
 })
 export class ImpostazioniComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   form: FormGroup;
   filteredCities: CityResult[] = [];
   private cityMap = new Map<string, CityResult>();
@@ -572,8 +574,8 @@ export class ImpostazioniComponent implements OnInit {
     });
   }
 
-  deleteListino(l: Listino) {
-    if (!confirm(`Eliminare il listino "${l.nome}"?\n\nI clienti assegnati torneranno a usare i prezzi base.`)) return;
+  async deleteListino(l: Listino) {
+    if (!await this.confirm.delete(`Eliminare il listino "${l.nome}"?\n\nI clienti assegnati torneranno a usare i prezzi base.`)) return;
     this.ds.deleteListino(l.id!).subscribe({
       next: () => { this.loadListini(); this.snack.open('Listino eliminato', '', { duration: 2000 }); },
       error: () => this.snack.open('Errore eliminazione', '', { duration: 3000 }),
@@ -885,8 +887,8 @@ export class ImpostazioniComponent implements OnInit {
       });
   }
 
-  deleteTipoPagamento(t: TipoPagamento) {
-    if (!confirm(`Eliminare "${t.nome}"?`)) return;
+  async deleteTipoPagamento(t: TipoPagamento) {
+    if (!await this.confirm.delete(`Eliminare "${t.nome}"?`)) return;
     this.ds.deleteTipoPagamento(t.id!).subscribe({
       next: () => { this.loadTipiPagamento(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
@@ -912,8 +914,8 @@ export class ImpostazioniComponent implements OnInit {
       });
   }
 
-  deleteCategoria(c: CategoriaProdotto) {
-    if (!confirm(`Eliminare la categoria "${c.nome}"?`)) return;
+  async deleteCategoria(c: CategoriaProdotto) {
+    if (!await this.confirm.delete(`Eliminare la categoria "${c.nome}"?`)) return;
     this.ds.deleteCategoriaProdotto(c.id!).subscribe({
       next: () => { this.loadCategorie(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
@@ -933,8 +935,8 @@ export class ImpostazioniComponent implements OnInit {
       });
   }
 
-  deleteUnitaMisura(u: UnitaMisura) {
-    if (!confirm(`Eliminare "${u.nome}"?`)) return;
+  async deleteUnitaMisura(u: UnitaMisura) {
+    if (!await this.confirm.delete(`Eliminare "${u.nome}"?`)) return;
     this.ds.deleteUnitaMisura(u.id!).subscribe({
       next: () => { this.loadUnitaMisura(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
@@ -954,8 +956,8 @@ export class ImpostazioniComponent implements OnInit {
       });
   }
 
-  deleteAliquotaIva(a: AliquotaIva) {
-    if (!confirm(`Eliminare l'aliquota "${a.nome}"?`)) return;
+  async deleteAliquotaIva(a: AliquotaIva) {
+    if (!await this.confirm.delete(`Eliminare l'aliquota "${a.nome}"?`)) return;
     this.ds.deleteAliquotaIva(a.id!).subscribe({
       next: () => { this.loadAliquoteIva(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
@@ -977,8 +979,8 @@ export class ImpostazioniComponent implements OnInit {
       });
   }
 
-  deleteUtente(u: Utente) {
-    if (!confirm(`Eliminare l'utente "${u.username}"?`)) return;
+  async deleteUtente(u: Utente) {
+    if (!await this.confirm.delete(`Eliminare l'utente "${u.username}"?`)) return;
     this.ds.deleteUtente(u.id!).subscribe({
       next: () => { this.loadUtenti(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
@@ -1008,8 +1010,8 @@ export class ImpostazioniComponent implements OnInit {
       });
   }
 
-  deleteNotaRapida(n: NotaRapida) {
-    if (!confirm(`Eliminare la nota rapida "${n.testo}"?`)) return;
+  async deleteNotaRapida(n: NotaRapida) {
+    if (!await this.confirm.delete(`Eliminare la nota rapida "${n.testo}"?`)) return;
     this.ds.deleteNotaRapida(n.id!).subscribe({
       next: () => { this.loadNoteRapide(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
@@ -1033,8 +1035,8 @@ export class ImpostazioniComponent implements OnInit {
     });
   }
 
-  deleteBug(r: any) {
-    if (!confirm(`Eliminare la segnalazione "${r.titolo}"?`)) return;
+  async deleteBug(r: any) {
+    if (!await this.confirm.delete(`Eliminare la segnalazione "${r.titolo}"?`)) return;
     this.ds.deleteBugReport(r.id).subscribe({
       next: () => { this.loadBugReports(); this.snack.open('Eliminata', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })

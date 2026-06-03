@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -471,6 +472,7 @@ export class SuperTenantEditDialogComponent {
   `]
 })
 export class SuperAdminComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   isSuperAdmin = false;
   loading = false;
   stats: Stats | null = null;
@@ -543,9 +545,9 @@ export class SuperAdminComponent implements OnInit {
     });
   }
 
-  toggleSuspend(t: AdminTenant, riattiva: boolean) {
+  async toggleSuspend(t: AdminTenant, riattiva: boolean) {
     const azione = riattiva ? 'riattivare' : 'sospendere';
-    if (!confirm(`Sei sicuro di voler ${azione} il tenant "${t.ragioneSociale || t.slug}"?`)) return;
+    if (!await this.confirm.ask(`Sei sicuro di voler ${azione} il tenant "${t.ragioneSociale || t.slug}"?`)) return;
     this.api.put(`tenants/${t.slug}`, { attivo: riattiva, stato: riattiva ? 'attiva' : 'sospesa' }).subscribe({
       next: () => {
         this.snack.open(`Tenant ${riattiva ? 'riattivato' : 'sospeso'}`, '', { duration: 2500 });

@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -596,6 +597,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
   styleUrl: './preventivi.scss'
 })
 export class PreventiviComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allPreventivi: Preventivo[] = [];
   dataSource = new MatTableDataSource<Preventivo>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
@@ -723,16 +725,16 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     });
   }
 
-  convertiInDdt(p: Preventivo) {
-    if (!confirm(`Convertire il preventivo ${p.numero} in DDT? Il preventivo verrà marcato come CONFERMATO.`)) return;
+  async convertiInDdt(p: Preventivo) {
+    if (!await this.confirm.ask(`Convertire il preventivo ${p.numero} in DDT? Il preventivo verrà marcato come CONFERMATO.`)) return;
     this.ds.preventivoToDdt(p.id!).subscribe({
       next: r => { this.load(); this.snack.open(`DDT n. ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
     });
   }
 
-  convertiInOrdine(p: Preventivo) {
-    if (!confirm(`Convertire il preventivo ${p.numero} in ordine cliente? Il preventivo verrà marcato come CONFERMATO.`)) return;
+  async convertiInOrdine(p: Preventivo) {
+    if (!await this.confirm.ask(`Convertire il preventivo ${p.numero} in ordine cliente? Il preventivo verrà marcato come CONFERMATO.`)) return;
     this.ds.preventivoToOrdine(p.id!).subscribe({
       next: r => { this.load(); this.snack.open(`Ordine n. ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
@@ -779,8 +781,8 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(p: Preventivo) {
-    if (!confirm(`Eliminare Preventivo ${p.numero}?`)) return;
+  async delete(p: Preventivo) {
+    if (!await this.confirm.delete(`Eliminare Preventivo ${p.numero}?`)) return;
     this.ds.getPreventivoById(p.id!).subscribe(full => {
       this.ds.deletePreventivo(p.id!).subscribe(() => {
         this.load();

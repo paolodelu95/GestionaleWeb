@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -643,6 +644,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
   styleUrl: './ordini.scss'
 })
 export class OrdiniComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allOrdini: Ordine[] = [];
   dataSource = new MatTableDataSource<Ordine>([]);
   displayedColumns = ['select', 'numero', 'dataOrdine', 'tipo', 'controparte', 'totale', 'stato', 'azioni'];
@@ -781,8 +783,8 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     });
   }
 
-  convertiInDdt(o: Ordine) {
-    if (!confirm(`Convertire l'ordine ${o.numero} in DDT?`)) return;
+  async convertiInDdt(o: Ordine) {
+    if (!await this.confirm.ask(`Convertire l'ordine ${o.numero} in DDT?`)) return;
     this.ds.ordineToDD(o.id!).subscribe({
       next: r => { this.load(); this.snack.open(`DDT ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.message || 'Errore conversione', '', { duration: 3000 }),
@@ -814,8 +816,8 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(o: Ordine) {
-    if (!confirm(`Eliminare Ordine ${o.numero}?`)) return;
+  async delete(o: Ordine) {
+    if (!await this.confirm.delete(`Eliminare Ordine ${o.numero}?`)) return;
     this.ds.getOrdineById(o.id!).subscribe(full => {
       this.ds.deleteOrdine(o.id!).subscribe(() => {
         this.load();

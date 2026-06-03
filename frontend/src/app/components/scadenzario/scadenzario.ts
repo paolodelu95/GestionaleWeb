@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -174,6 +175,7 @@ export class SaldoMultiploDialogComponent implements OnInit {
   styleUrl: './scadenzario.scss',
 })
 export class ScadenzarioComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allItems: ScadenzarioItem[] = [];
   dataSource = new MatTableDataSource<ScadenzarioItem>();
   displayedColumns = ['select', 'direzione', 'numero', 'dataScadenza', 'controparte', 'totale', 'stato', 'giorni', 'azioni'];
@@ -249,10 +251,10 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
   onMeseChange() { this.load(); }
   setVista(v: 'tutti' | 'in-scadenza' | 'scaduti') { this.filtroVista = v; this.applyVista(); }
 
-  segnaPagato(item: ScadenzarioItem) {
+  async segnaPagato(item: ScadenzarioItem) {
     const label = item.tipo === 'fattura' ? 'fattura' : 'acquisto';
     const importoFmt = item.totale.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-    if (!confirm(`Segnare come pagato/a la ${label} N. ${item.numero} per ${importoFmt}?`)) return;
+    if (!await this.confirm.ask(`Segnare come pagato/a la ${label} N. ${item.numero} per ${importoFmt}?`)) return;
     const today = new Date().toISOString().substring(0, 10);
     this.ds.createPagamento({
       dataPagamento: today,

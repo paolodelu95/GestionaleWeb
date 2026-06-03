@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -385,6 +386,7 @@ export class MembriDialogComponent {
   `],
 })
 export class AdminComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   isSuper = false;
   isAdmin = false;  // ADMIN o SUPERADMIN — può gestire gruppi/utenti
   tenants: any[] = [];
@@ -440,8 +442,8 @@ export class AdminComponent implements OnInit {
       });
   }
 
-  eliminaGruppo(g: Gruppo) {
-    if (!confirm(`Eliminare il gruppo "${g.nome}"?`)) return;
+  async eliminaGruppo(g: Gruppo) {
+    if (!await this.confirm.delete(`Eliminare il gruppo "${g.nome}"?`)) return;
     this.ds.deleteGruppo(g.id).subscribe(() => this.loadGruppi());
   }
 
@@ -491,8 +493,8 @@ export class AdminComponent implements OnInit {
         this.api.put(`tenants/${upd.slug}`, { nome: upd.nome, attivo: upd.attivo }).subscribe(() => this.loadAll());
       });
   }
-  eliminaTenant(t: any) {
-    if (!confirm(`Eliminare il cliente "${t.slug}"? Il file dati NON viene cancellato.`)) return;
+  async eliminaTenant(t: any) {
+    if (!await this.confirm.delete(`Eliminare il cliente "${t.slug}"? Il file dati NON viene cancellato.`)) return;
     this.api.delete(`tenants/${t.slug}`).subscribe({
       next: () => { this.loadAll(); this.snack.open('Cliente rimosso', '', { duration: 2000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 }),
@@ -520,8 +522,8 @@ export class AdminComponent implements OnInit {
         this.api.put(`utenti/${u.id}`, payload).subscribe(() => this.loadAll());
       });
   }
-  eliminaUtente(u: User) {
-    if (!confirm(`Eliminare l'utente "${u.username}"?`)) return;
+  async eliminaUtente(u: User) {
+    if (!await this.confirm.delete(`Eliminare l'utente "${u.username}"?`)) return;
     this.api.delete(`utenti/${u.id}`).subscribe(() => this.loadAll());
   }
 }

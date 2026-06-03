@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -259,6 +260,7 @@ export class FatturaRicorrenteDialogComponent implements OnInit {
   styleUrl: './fatture-ricorrenti.scss'
 })
 export class FattureRicorrentiComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   ricorrenti: any[] = [];
   filtroAttiva: 'all' | 'attiva' | 'non-attiva' = 'all';
   today = new Date().toISOString().substring(0, 10);
@@ -320,8 +322,8 @@ export class FattureRicorrentiComponent implements OnInit {
     });
   }
 
-  delete(r: any) {
-    if (!confirm(`Eliminare la ricorrente "${r.descrizione}"?`)) return;
+  async delete(r: any) {
+    if (!await this.confirm.delete(`Eliminare la ricorrente "${r.descrizione}"?`)) return;
     this.ds.deleteFatturaRicorrente(r.id).subscribe({
       next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })

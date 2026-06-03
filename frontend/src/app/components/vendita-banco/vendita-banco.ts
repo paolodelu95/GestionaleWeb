@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -182,6 +183,7 @@ interface MetodoPagamento {
   `]
 })
 export class VenditaBancoComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
 
   today = new Date().toISOString().substring(0, 10);
   vendita: VenditaBanco = { numero: '', data: this.today, metodoPagamento: 'CONTANTI' };
@@ -638,8 +640,8 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
     });
   }
 
-  elimina(v: VenditaBanco) {
-    if (!confirm(`Eliminare la vendita ${v.numero}?`)) return;
+  async elimina(v: VenditaBanco) {
+    if (!await this.confirm.delete(`Eliminare la vendita ${v.numero}?`)) return;
     this.ds.deleteVenditaBanco(v.id!).subscribe(() => {
       this.loadStorico();
       this.snack.open('Eliminata', '', { duration: 2000 });

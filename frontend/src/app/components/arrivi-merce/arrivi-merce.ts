@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -536,6 +537,7 @@ export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
   templateUrl: './arrivi-merce.html',
 })
 export class ArriviMerceComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allArrivi: ArrivoMerce[] = [];
   dataSource = new MatTableDataSource<ArrivoMerce>([]);
   displayedColumns = ['numero', 'data', 'fornitoreNome', 'numeroDocumentoFornitore', 'totale', 'stato', 'azioni'];
@@ -656,8 +658,8 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(a: ArrivoMerce) {
-    if (!confirm(`Eliminare arrivo ${a.numero}? Le quantità a magazzino verranno stornate.`)) return;
+  async delete(a: ArrivoMerce) {
+    if (!await this.confirm.delete(`Eliminare arrivo ${a.numero}? Le quantità a magazzino verranno stornate.`)) return;
     this.ds.deleteArrivoMerce(a.id!).subscribe({
       next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: (e: any) => this.snack.open(e.message, '', { duration: 3000 })

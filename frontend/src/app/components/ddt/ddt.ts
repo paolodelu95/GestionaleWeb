@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -810,6 +811,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
   styleUrl: './ddt.scss'
 })
 export class DdtComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allDdt: Ddt[] = [];
   dataSource = new MatTableDataSource<Ddt>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'fattura', 'azioni'];
@@ -1038,8 +1040,8 @@ export class DdtComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(d: Ddt) {
-    if (!confirm(`Eliminare DDT ${d.numero}?`)) return;
+  async delete(d: Ddt) {
+    if (!await this.confirm.delete(`Eliminare DDT ${d.numero}?`)) return;
     this.ds.getDdtById(d.id!).subscribe(full => {
       this.ds.deleteDdt(d.id!).subscribe(() => {
         this.load();

@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators,
          AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
@@ -446,6 +447,7 @@ export class FornitoreDialogComponent implements OnInit {
   styleUrl: './fornitori.scss'
 })
 export class FornitoriComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Fornitore>([]);
   displayedColumns: string[] = ['ragioneSociale', 'pIva', 'telefono', 'indirizzo', 'azioni'];
@@ -605,8 +607,8 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(f: Fornitore) {
-    if (!confirm(`Eliminare ${f.ragioneSociale}?`)) return;
+  async delete(f: Fornitore) {
+    if (!await this.confirm.delete(`Eliminare ${f.ragioneSociale}?`)) return;
     this.ds.deleteFornitore(f.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
   }
 }

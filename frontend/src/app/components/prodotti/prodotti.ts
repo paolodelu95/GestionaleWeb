@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -425,6 +426,7 @@ export class ProdottoDialogComponent implements OnInit {
   styleUrl: './prodotti.scss'
 })
 export class ProdottiComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allProdotti: Prodotto[] = [];
   dataSource = new MatTableDataSource<Prodotto>([]);
   displayedColumns: string[] = ['nome', 'categoria', 'prezzo', 'margine', 'quantita', 'sogliaMinima'];
@@ -650,8 +652,8 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(p: Prodotto) {
-    if (!confirm(`Eliminare ${p.nome}?`)) return;
+  async delete(p: Prodotto) {
+    if (!await this.confirm.delete(`Eliminare ${p.nome}?`)) return;
     this.ds.deleteProdotto(p.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
   }
 }

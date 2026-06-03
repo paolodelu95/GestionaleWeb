@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -246,6 +247,7 @@ export class VoceDialogComponent {
   `],
 })
 export class TimesheetComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   progetti: Progetto[] = [];
   voci: Voce[] = [];
   clienti: Cliente[] = [];
@@ -283,12 +285,12 @@ export class TimesheetComponent implements OnInit {
         this.api.put(`timesheet/progetti/${p.id}`, saved).subscribe(() => { this.loadProgetti(); this.snack.open('Aggiornato', 'OK', { duration: 2000 }); });
       });
   }
-  eliminaProgetto(p: Progetto) {
-    if (!confirm(`Eliminare il progetto "${p.nome}"? Verranno cancellate anche le voci timesheet.`)) return;
+  async eliminaProgetto(p: Progetto) {
+    if (!await this.confirm.delete(`Eliminare il progetto "${p.nome}"? Verranno cancellate anche le voci timesheet.`)) return;
     this.api.delete(`timesheet/progetti/${p.id}`).subscribe(() => { this.loadProgetti(); this.loadVoci(); });
   }
 
-  generaFattura(p: Progetto) {
+  async generaFattura(p: Progetto) {
     const oreDaFatt = p.oreTotali - p.oreFatturate;
     if (oreDaFatt <= 0) {
       this.snack.open('Nessuna ora da fatturare per questo progetto', 'OK', { duration: 3000 });
@@ -299,7 +301,7 @@ export class TimesheetComponent implements OnInit {
       return;
     }
     const importo = (oreDaFatt * p.tariffaOraria).toFixed(2);
-    if (!confirm(`Generare fattura per "${p.nome}"?\n${oreDaFatt} h × € ${p.tariffaOraria.toFixed(2)}/h = € ${importo} (+ IVA)`)) return;
+    if (!await this.confirm.ask(`Generare fattura per "${p.nome}"?\n${oreDaFatt} h × € ${p.tariffaOraria.toFixed(2)}/h = € ${importo} (+ IVA)`)) return;
     this.api.post<{ fatturaId: number; numero: string; oreTotali: number; importo: number }>(
       `timesheet/progetti/${p.id}/fattura`, {}
     ).subscribe({
@@ -327,8 +329,8 @@ export class TimesheetComponent implements OnInit {
         this.api.put(`timesheet/voci/${v.id}`, saved).subscribe(() => { this.loadVoci(); this.loadProgetti(); });
       });
   }
-  eliminaVoce(v: Voce) {
-    if (!confirm('Eliminare questa voce?')) return;
+  async eliminaVoce(v: Voce) {
+    if (!await this.confirm.delete('Eliminare questa voce?')) return;
     this.api.delete(`timesheet/voci/${v.id}`).subscribe(() => { this.loadVoci(); this.loadProgetti(); });
   }
 }

@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -1311,6 +1312,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   styleUrl: './fatture.scss'
 })
 export class FattureComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allFatture: Fattura[] = [];
   dataSource = new MatTableDataSource<Fattura>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
@@ -1541,7 +1543,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   inviaSdi(f: Fattura) {
     this.ds.validateFatturaXml(f.id!).subscribe({
-      next: v => {
+      next: async v => {
         if (!v.ok) {
           const msg = 'Impossibile inviare:\n\n' + v.errors.map(e => '• ' + e).join('\n') +
                       (v.warnings.length ? '\n\nAvvisi:\n' + v.warnings.map(w => '• ' + w).join('\n') : '');
@@ -1551,7 +1553,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
         const prefix = v.warnings.length
           ? `Avvisi:\n${v.warnings.map(w => '• ' + w).join('\n')}\n\n`
           : '';
-        if (!confirm(`${prefix}Inviare la fattura n. ${f.numero} all'SDI?`)) return;
+        if (!await this.confirm.ask(`${prefix}Inviare la fattura n. ${f.numero} all'SDI?`)) return;
         this.ds.inviaFatturaSdi(f.id!).subscribe({
           next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000, panelClass: 'snack-ok' }); },
           error: e => this.snack.open('Errore SDI: ' + (e.error?.error || e.message), '', { duration: 5000, panelClass: 'snack-error' })
@@ -1607,8 +1609,8 @@ export class FattureComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(f: Fattura) {
-    if (!confirm(`Eliminare Fattura ${f.numero}?`)) return;
+  async delete(f: Fattura) {
+    if (!await this.confirm.delete(`Eliminare Fattura ${f.numero}?`)) return;
     this.ds.getFatturaById(f.id!).subscribe(full => {
       this.ds.deleteFattura(f.id!).subscribe(() => {
         this.load();

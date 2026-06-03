@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -626,6 +627,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
   styleUrl: './note-credito.scss'
 })
 export class NoteCreditoComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   private allNoteCredito: NotaCredito[] = [];
   dataSource = new MatTableDataSource<NotaCredito>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
@@ -807,8 +809,8 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(n: NotaCredito) {
-    if (!confirm(`Eliminare Nota di Credito ${n.numero}?`)) return;
+  async delete(n: NotaCredito) {
+    if (!await this.confirm.delete(`Eliminare Nota di Credito ${n.numero}?`)) return;
     this.ds.getNotaCreditoById(n.id!).subscribe(full => {
       this.ds.deleteNotaCredito(n.id!).subscribe(() => {
         this.load();

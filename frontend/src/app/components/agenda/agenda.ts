@@ -1,4 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -774,6 +775,7 @@ export class TodoDialogComponent {
   `],
 })
 export class AgendaComponent implements OnInit {
+  private confirm = inject(ConfirmService);
   tabIndex = 0;
   giorniSettimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -954,8 +956,8 @@ export class AgendaComponent implements OnInit {
     this.api.put(`agenda/appuntamenti/${a.id}`, { stato }).subscribe(() => this.refreshAll());
   }
 
-  eliminaAppuntamento(a: any) {
-    if (!confirm(`Eliminare "${a.titolo}"?`)) return;
+  async eliminaAppuntamento(a: any) {
+    if (!await this.confirm.delete(`Eliminare "${a.titolo}"?`)) return;
     this.api.delete(`agenda/appuntamenti/${a.id}`).subscribe(() => this.refreshAll());
   }
 
@@ -1014,8 +1016,8 @@ export class AgendaComponent implements OnInit {
       this.api.put(`agenda/todo/${t.id}`, saved).subscribe(() => this.refreshAll());
     });
   }
-  eliminaTodo(t: Todo) {
-    if (!confirm(`Eliminare "${t.titolo}"?`)) return;
+  async eliminaTodo(t: Todo) {
+    if (!await this.confirm.delete(`Eliminare "${t.titolo}"?`)) return;
     this.api.delete(`agenda/todo/${t.id}`).subscribe(() => this.refreshAll());
   }
 

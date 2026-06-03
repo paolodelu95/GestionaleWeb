@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators,
          AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
@@ -737,6 +738,7 @@ export class ClienteDialogComponent implements OnInit {
   styleUrl: './clienti.scss'
 })
 export class ClientiComponent implements OnInit, AfterViewInit {
+  private confirm = inject(ConfirmService);
   print() {
     const rows = this.dataSource.data;
     const body = rows.map(c=>`<tr><td>${c.ragioneSociale}</td><td>${c.email||'—'}</td><td>${c.telefono||'—'}</td><td>${this.indirizzo(c)||'—'}</td><td>${c.codiceFiscale||'—'}</td></tr>`).join('');
@@ -958,8 +960,8 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     });
   }
 
-  delete(c: Cliente) {
-    if (!confirm(`Eliminare ${c.ragioneSociale}?`)) return;
+  async delete(c: Cliente) {
+    if (!await this.confirm.delete(`Eliminare ${c.ragioneSociale}?`)) return;
     this.ds.deleteCliente(c.id!).subscribe({
       next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: (err) => {
