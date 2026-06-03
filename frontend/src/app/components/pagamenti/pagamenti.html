@@ -223,6 +223,7 @@
                 VB-{{ p.venditaBancoNumero }}
               </span>
             }
+            @else if (p.causale) { <span>{{ p.causale }}</span> }
             @else { <span style="color:#94a3b8">—</span> }
           </td>
         </ng-container>

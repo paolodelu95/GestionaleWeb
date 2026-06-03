@@ -699,6 +699,42 @@
       </div>
     </mat-tab>
 
+    <!-- ── Causali pagamento ────────────────────────────────────────────────── -->
+    <mat-tab label="Causali pagamento">
+      <div class="tab-content">
+        <div class="card" style="max-width:560px">
+          <div class="tab-section-header">
+            <h2 class="tab-section-title">Causali pagamento</h2>
+            <button mat-flat-button type="button" (click)="openCausale()">
+              <mat-icon>add</mat-icon> Nuova
+            </button>
+          </div>
+          <p style="font-size:13px;color:#64748b;margin:0 0 12px">
+            Le causali appaiono nel menu a tendina "Causale" quando registri un pagamento (es. affitto, stipendi, bollette).
+          </p>
+          <table mat-table [dataSource]="causali" class="mat-mdc-table">
+            <ng-container matColumnDef="nome">
+              <th mat-header-cell *matHeaderCellDef>Causale</th>
+              <td mat-cell *matCellDef="let c">{{ c.nome }}</td>
+            </ng-container>
+            <ng-container matColumnDef="azioni">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let c" class="table-actions">
+                <button mat-icon-button type="button" [matMenuTriggerFor]="cauMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #cauMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="openCausale(c)"><mat-icon>edit</mat-icon> Modifica</button>
+                  <button mat-menu-item type="button" (click)="deleteCausale(c)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="causaliColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: causaliColumns;"></tr>
+          </table>
+          @if (!causali.length) { <app-empty-state compact icon="receipt_long" title="Nessuna causale" message="Aggiungine una per velocizzare la registrazione dei pagamenti." /> }
+        </div>
+      </div>
+    </mat-tab>
+
     <!-- ── Grafica documenti ───────────────────────────────────────────────── -->
     <mat-tab label="Grafica documenti">
       <div class="tab-content">

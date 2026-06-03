@@ -30,7 +30,7 @@ import { SectionKey, ColumnKey } from '../../models';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, Listino, ModuloDto } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, Listino, ModuloDto } from '../../models';
 import { ModuliService } from '../../services/moduli.service';
 import { DocLockService } from '../../services/doc-lock.service';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
@@ -316,6 +316,34 @@ export class NotaRapidaDialogComponent {
   save() { if (this.testo.trim()) this.dialogRef.close({ ...this.data, testo: this.testo.trim(), ordine: this.ordine }); }
 }
 
+// ── Causale Pagamento Dialog ─────────────────────────────────────────────────
+@Component({
+  selector: 'app-causale-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  template: `
+    <h2 mat-dialog-title>{{ data?.id ? 'Modifica causale' : 'Nuova causale' }}</h2>
+    <mat-dialog-content style="min-width:400px">
+      <mat-form-field style="width:100%; margin-top:8px">
+        <mat-label>Causale *</mat-label>
+        <input matInput [(ngModel)]="nome" autofocus placeholder="es. Affitto negozio, Stipendi, Bolletta Luce…"
+               (keyup.enter)="save()">
+      </mat-form-field>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="!nome.trim()">Salva</button>
+    </mat-dialog-actions>`
+})
+export class CausaleDialogComponent {
+  nome = '';
+  constructor(
+    public dialogRef: MatDialogRef<CausaleDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: CausalePagamento | null
+  ) { this.nome = data?.nome ?? ''; }
+  save() { if (this.nome.trim()) this.dialogRef.close({ ...this.data, nome: this.nome.trim() }); }
+}
+
 // ── Prefisso Conferma Dialog ─────────────────────────────────────────────────
 interface PrefissoCambiato { documento: string; da: string; a: string; }
 
@@ -418,7 +446,9 @@ export class ImpostazioniComponent implements OnInit {
   utenteColumns = ['username', 'nome', 'ruolo', 'attivo', 'azioni'];
 
   noteRapide: NotaRapida[] = [];
+  causali: CausalePagamento[] = [];
   notaRapidaColumns = ['testo', 'ordine', 'azioni'];
+  causaliColumns = ['nome', 'azioni'];
 
   bugReports: any[] = [];
   bugColumns = ['priorita', 'titolo', 'pagina', 'stato', 'data', 'azioni'];
@@ -521,6 +551,7 @@ export class ImpostazioniComponent implements OnInit {
     this.loadAliquoteIva();
     this.loadUtenti();
     this.loadNoteRapide();
+    this.loadCausali();
     this.loadBugReports();
     this.loadModuli();
   }
@@ -1016,6 +1047,29 @@ export class ImpostazioniComponent implements OnInit {
     if (!await this.confirm.delete(`Eliminare la nota rapida "${n.testo}"?`)) return;
     this.ds.deleteNotaRapida(n.id!).subscribe({
       next: () => { this.loadNoteRapide(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      error: e => this.snack.open(e.message, '', { duration: 3000 })
+    });
+  }
+
+  // ── Causali pagamento ───────────────────────────────────────────────────────
+  loadCausali() { this.ds.getCausali().subscribe(c => { this.causali = c; }); }
+
+  openCausale(c?: CausalePagamento) {
+    this.dialog.open(CausaleDialogComponent, { data: c ?? null, width: '440px' })
+      .afterClosed().subscribe(result => {
+        if (!result) return;
+        const op = result.id ? this.ds.updateCausale(result) : this.ds.createCausale(result);
+        op.subscribe({
+          next: () => { this.loadCausali(); this.snack.open('Salvato', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
+        });
+      });
+  }
+
+  async deleteCausale(c: CausalePagamento) {
+    if (!await this.confirm.delete(`Eliminare la causale "${c.nome}"?`)) return;
+    this.ds.deleteCausale(c.id!).subscribe({
+      next: () => { this.loadCausali(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
     });
   }
