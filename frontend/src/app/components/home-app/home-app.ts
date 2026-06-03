@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth.service';
 import { ModuliService } from '../../services/moduli.service';
+import { OnboardingChecklistComponent } from '../shared/onboarding-checklist';
 
 interface App {
   label: string;
@@ -17,13 +18,15 @@ interface App {
 @Component({
   selector: 'app-home-app',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatIconModule],
+  imports: [CommonModule, RouterLink, MatIconModule, OnboardingChecklistComponent],
   template: `
     <div class="home-app">
       <div class="home-app-hero">
         <h1>Benvenuto{{ userName ? ', ' + userName : '' }} 👋</h1>
         <p>Da dove vuoi iniziare? Le azioni più comuni sono qui sotto.</p>
       </div>
+
+      <app-onboarding-checklist />
 
       @if (quickActionsVisibili.length > 0) {
         <div class="app-section">
