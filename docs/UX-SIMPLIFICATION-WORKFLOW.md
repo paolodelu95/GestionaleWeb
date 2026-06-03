@@ -180,7 +180,7 @@ Priorità = **frequenza d'uso × impatto sul novizio**. Le onde si eseguono in o
 ### Onda 1 — Flussi quotidiani core (il 90% dell'uso reale)
 | # | Schermata | Perché prioritaria | File | Stato |
 |---|---|---|---|---|
-| 1 | **Home / Dashboard** | prima cosa che si vede ogni giorno | `home-app`, `dashboard` | ☐ |
+| 1 | **Home / Dashboard** | prima cosa che si vede ogni giorno | `home-app`, `dashboard` | ✅ Home: azioni rapide + onboarding. Dashboard: auditata, già ~9/10 (KPI chiari, alert con link, empty state positivi, widget show/hide). Nessuna modifica necessaria. |
 | 2 | **Fatture** (lista + dialog documento) | la funzione n.1, la più complessa (1626 righe) | `fatture` | ☐ |
 | 3 | **Clienti** (lista + dialog + import) | dato di base per tutto il resto | `clienti` | ☐ |
 | 4 | **Prodotti** (lista + dialog + quick-add) | dato di base per i documenti | `prodotti` | ☐ |
