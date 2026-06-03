@@ -22,8 +22,22 @@ interface App {
     <div class="home-app">
       <div class="home-app-hero">
         <h1>Benvenuto{{ userName ? ', ' + userName : '' }} 👋</h1>
-        <p>Scegli un'area per iniziare. Tutte le app sono attive nel tuo account.</p>
+        <p>Da dove vuoi iniziare? Le azioni più comuni sono qui sotto.</p>
       </div>
+
+      @if (quickActionsVisibili.length > 0) {
+        <div class="app-section">
+          <h2 class="app-section-title">Cosa vuoi fare?</h2>
+          <div class="qa-grid">
+            @for (q of quickActionsVisibili; track q.route) {
+              <a class="qa-tile" [routerLink]="q.route">
+                <span class="qa-icon"><mat-icon>{{ q.icon }}</mat-icon></span>
+                <span class="qa-label">{{ q.label }}</span>
+              </a>
+            }
+          </div>
+        </div>
+      }
 
       @for (cat of categories; track cat) {
         @if (appsVisibili(cat).length > 0) {
@@ -62,6 +76,28 @@ interface App {
       display: grid; gap: 14px;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
+
+    /* Azioni rapide (task-first) */
+    .qa-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    }
+    .qa-tile {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-radius: 12px; text-decoration: none;
+      background: var(--bg-surface, #fff); color: var(--text-primary, #0f172a);
+      border: 1px solid var(--border-subtle, #eef0f4); box-shadow: var(--shadow-xs);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+    .qa-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--primary, #11769b); }
+    .qa-tile:active { transform: translateY(0); }
+    .qa-icon {
+      width: 38px; height: 38px; flex-shrink: 0; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--primary-soft, #e6f1f6); color: var(--primary, #11769b);
+    }
+    .qa-icon mat-icon { font-size: 22px; width: 22px; height: 22px; }
+    .qa-label { font-size: 14px; font-weight: 600; }
 
     .app-tile {
       display: flex; gap: 14px; align-items: center;
@@ -117,6 +153,20 @@ export class HomeAppComponent {
   userName: string;
 
   readonly categories = ['Anagrafica', 'Vendite', 'Acquisti', 'Magazzino', 'Contabilità', 'Operativo', 'Sistema'];
+
+  // Azioni rapide: i compiti più frequenti, in cima alla Home. Filtrate per modulo attivo.
+  readonly quickActions: { label: string; icon: string; route: string }[] = [
+    { label: 'Nuova fattura',    icon: 'receipt',        route: '/fatture' },
+    { label: 'Nuovo preventivo', icon: 'request_quote',  route: '/preventivi' },
+    { label: 'Vendita al banco', icon: 'point_of_sale',  route: '/vendita-banco' },
+    { label: 'Nuovo cliente',    icon: 'person_add',     route: '/clienti' },
+    { label: 'Nuovo prodotto',   icon: 'add_box',        route: '/prodotti' },
+    { label: 'Registra acquisto',icon: 'shopping_bag',   route: '/acquisti' },
+  ];
+
+  get quickActionsVisibili(): { label: string; icon: string; route: string }[] {
+    return this.quickActions.filter(q => this.moduli.routeAbilitata(q.route));
+  }
 
   // Tile della home: palette distintiva ma elegante (pesi Material 600-700,
   // niente tonalità sature/neon). Ogni macro-categoria ha la sua famiglia di
