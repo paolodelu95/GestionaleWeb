@@ -1,5 +1,6 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators,
          AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
@@ -733,7 +734,7 @@ export class ClienteDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            MatTooltipModule, MatMenuModule, ColumnPickerComponent],
+            MatTooltipModule, MatMenuModule, ColumnPickerComponent, EmptyStateComponent],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })

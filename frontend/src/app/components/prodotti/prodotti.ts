@@ -1,5 +1,6 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -421,7 +422,7 @@ export class ProdottoDialogComponent implements OnInit {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
-            ColumnPickerComponent],
+            ColumnPickerComponent, EmptyStateComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })

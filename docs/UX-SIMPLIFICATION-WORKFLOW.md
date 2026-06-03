@@ -172,7 +172,7 @@ Priorità = **frequenza d'uso × impatto sul novizio**. Le onde si eseguono in o
 |---|---|---|---|---|
 | F0.1 | ConfirmDialog condiviso + sostituite tutte le `confirm()` native (43→0) | componente | `shared/confirm-dialog.ts` + 23 file | ✅ Fatto |
 | F0.2 | FieldHelp + glossario termini fiscali | componente | `shared/` | ☐ |
-| F0.3 | EmptyState condiviso | componente | `shared/` | ☐ |
+| F0.3 | EmptyState condiviso (+ applicato a Clienti, Prodotti, Fornitori) | componente | `shared/empty-state.ts` | 🔄 Componente fatto; rollout liste in corso |
 | F0.4 | Onboarding primo accesso (checklist) | feature | nuovo | ☐ |
 | F0.5 | Home orientata ai compiti + sidebar | schermata | `home-app`, `app.html` | ☐ |
 | F0.6 | Pass linguaggio / microcopy + glossario UI | trasversale | tutti | ☐ |

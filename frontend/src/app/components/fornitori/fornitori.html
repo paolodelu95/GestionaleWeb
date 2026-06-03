@@ -79,7 +79,19 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">Nessun fornitore trovato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length">
+          @if (dataSource.filter) {
+            <app-empty-state compact icon="search_off" title="Nessun risultato"
+              message="Nessun fornitore corrisponde alla ricerca. Prova a cambiare i filtri." />
+          } @else {
+            <app-empty-state icon="local_shipping" title="Ancora nessun fornitore"
+              message="Aggiungi il tuo primo fornitore: ti servirà per registrare acquisti e arrivi merce.">
+              <button mat-flat-button color="primary" type="button" (click)="open()">
+                <mat-icon>add</mat-icon> Nuovo fornitore
+              </button>
+            </app-empty-state>
+          }
+        </td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
