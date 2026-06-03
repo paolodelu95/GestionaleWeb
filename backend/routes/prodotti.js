@@ -8,8 +8,33 @@ router.get('/', (req, res) => {
 });
 
 router.get('/sotto-soglia', (req, res) => {
-  const rows = db.prepare('SELECT * FROM prodotti WHERE quantita < soglia_minima ORDER BY nome').all();
+  // Mostra tutti i prodotti con un problema di giacenza: esauriti o negativi
+  // (quantita <= 0) oppure sotto la soglia minima configurata (se impostata).
+  const rows = db.prepare(`SELECT * FROM prodotti
+    WHERE quantita <= 0 OR (soglia_minima > 0 AND quantita < soglia_minima)
+    ORDER BY quantita ASC, nome`).all();
   res.json(rows.map(r => toDto(r)));
+});
+
+// Rettifica rapida della giacenza: imposta la quantità reale a magazzino,
+// registra automaticamente un movimento di rettifica con la differenza.
+router.post('/:id/rettifica', (req, res) => {
+  const id = Number(req.params.id);
+  const nuova = Number(req.body?.quantita);
+  if (!Number.isFinite(nuova)) return res.status(400).json({ error: 'Quantità non valida' });
+  const prod = db.prepare('SELECT id, nome, quantita FROM prodotti WHERE id=?').get(id);
+  if (!prod) return res.status(404).json({ error: 'Prodotto non trovato' });
+  const delta = nuova - (prod.quantita ?? 0);
+  if (delta !== 0) {
+    db.prepare('UPDATE prodotti SET quantita=? WHERE id=?').run(nuova, id);
+    db.prepare(`INSERT INTO movimenti_magazzino
+      (data, prodotto_id, prodotto_nome, tipo, quantita, causale, note)
+      VALUES (?,?,?,?,?,?,?)`)
+      .run(new Date().toISOString().split('T')[0], id, prod.nome || '',
+           delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta), 'RETTIFICA',
+           (req.body?.note || '').toString().slice(0, 500));
+  }
+  res.json({ success: true, delta });
 });
 
 router.get('/count', (req, res) => {

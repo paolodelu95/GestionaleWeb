@@ -25,6 +25,9 @@ export class DataService {
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }
   getProdottiSottoSoglia(): Observable<Prodotto[]> { return this.api.get('prodotti/sotto-soglia'); }
+  rettificaGiacenza(id: number, quantita: number, note?: string): Observable<any> {
+    return this.api.post(`prodotti/${id}/rettifica`, { quantita, note: note || '' });
+  }
   getProdottiCount(): Observable<number> { return this.api.get('prodotti/count'); }
   getProdottiValore(): Observable<number> { return this.api.get('prodotti/valore'); }
   createProdotto(p: Prodotto): Observable<any> { return this.api.post('prodotti', p); }

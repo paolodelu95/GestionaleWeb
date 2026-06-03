@@ -417,6 +417,49 @@ export class ProdottoDialogComponent implements OnInit {
   }
 }
 
+// ── Rettifica giacenza (rapida) ──────────────────────────────────────────────
+@Component({
+  selector: 'app-rettifica-giacenza-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title>Rettifica giacenza</h2>
+    <mat-dialog-content style="min-width:360px">
+      <p style="margin:0 0 4px;font-weight:600">{{ data.prodotto.nome }}</p>
+      <p style="margin:0 0 16px;font-size:13px;color:var(--text-tertiary,#94a3b8)">
+        Giacenza attuale: <b>{{ data.prodotto.quantita }}</b> {{ data.prodotto.unitaMisura || '' }}
+      </p>
+      <mat-form-field appearance="outline" style="width:100%">
+        <mat-label>Nuova giacenza reale *</mat-label>
+        <input matInput type="number" step="0.001" [(ngModel)]="nuova" (keyup.enter)="save()" autofocus>
+      </mat-form-field>
+      @if (nuova !== null && delta !== 0) {
+        <p style="margin:-6px 0 12px;font-size:13px" [style.color]="delta > 0 ? '#16a34a' : '#dc2626'">
+          <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">{{ delta > 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+          {{ delta > 0 ? '+' : '' }}{{ delta }} — verrà registrato un movimento di rettifica.
+        </p>
+      }
+      <mat-form-field appearance="outline" style="width:100%">
+        <mat-label>Motivo (facoltativo)</mat-label>
+        <input matInput [(ngModel)]="note" placeholder="es. inventario, rottura, ammanco…">
+      </mat-form-field>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="nuova === null">Salva rettifica</button>
+    </mat-dialog-actions>`
+})
+export class RettificaGiacenzaDialogComponent {
+  nuova: number | null = null;
+  note = '';
+  constructor(
+    public dialogRef: MatDialogRef<RettificaGiacenzaDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { prodotto: Prodotto }
+  ) { this.nuova = data.prodotto.quantita ?? 0; }
+  get delta(): number { return (this.nuova ?? 0) - (this.data.prodotto.quantita ?? 0); }
+  save() { if (this.nuova !== null) this.dialogRef.close({ quantita: this.nuova, note: this.note }); }
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 @Component({
   selector: 'app-prodotti',
@@ -459,8 +502,15 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     return Math.round(((v - a) / v) * 1000) / 10;
   }
   get categorieList() { return [...new Set(this.allProdotti.map(p => p.categoria).filter(Boolean))].sort() as string[]; }
+  // "Sotto soglia" = problema di giacenza: esaurito/negativo (<=0) oppure sotto
+  // la soglia minima configurata (se impostata). Negativi e zero sono sempre inclusi.
+  isSottoSoglia(p: Prodotto): boolean {
+    const q = p.quantita ?? 0;
+    const soglia = p.sogliaMinima ?? 0;
+    return q <= 0 || (soglia > 0 && q < soglia);
+  }
   get sottoSogliaCount() {
-    return this.allProdotti.filter(p => (p.sogliaMinima ?? 0) > 0 && (p.quantita ?? 0) < (p.sogliaMinima ?? 0)).length;
+    return this.allProdotti.filter(p => this.isSottoSoglia(p)).length;
   }
   get prodotti() { return this.dataSource.data; }
 
@@ -501,7 +551,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   applyFilters() {
     let data = this.allProdotti;
     if (this.filtroCategoria) data = data.filter(p => p.categoria === this.filtroCategoria);
-    if (this.filtroSottoSoglia) data = data.filter(p => (p.sogliaMinima ?? 0) > 0 && (p.quantita ?? 0) < (p.sogliaMinima ?? 0));
+    if (this.filtroSottoSoglia) data = data.filter(p => this.isSottoSoglia(p));
     if (this.filtroMargineBasso) data = data.filter(p => { const m = this.marginePerc(p); return m !== null && m < 15; });
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
@@ -653,6 +703,17 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     }).catch(() => {
       this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 });
     });
+  }
+
+  openRettifica(p: Prodotto) {
+    this.dialog.open(RettificaGiacenzaDialogComponent, { data: { prodotto: p }, width: '420px' })
+      .afterClosed().subscribe(res => {
+        if (!res) return;
+        this.ds.rettificaGiacenza(p.id!, res.quantita, res.note).subscribe({
+          next: () => { this.load(); this.snack.open('Giacenza aggiornata', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.error?.error || 'Errore rettifica', '', { duration: 3000 })
+        });
+      });
   }
 
   async delete(p: Prodotto) {

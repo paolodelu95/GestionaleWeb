@@ -76,6 +76,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
   ];
   causali = [
     { v: 'DDT', l: 'DDT' }, { v: 'FATTURA', l: 'Fattura' },
+    { v: 'RETTIFICA', l: 'Rettifica' },
     { v: 'STORNO', l: 'Storno' }, { v: 'ELIMINAZIONE', l: 'Eliminazione' },
     { v: 'ANNULLAMENTO', l: 'Annullamento' }, { v: 'RIATTIVAZIONE', l: 'Riattivazione' },
   ];
@@ -168,7 +169,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
 
   labelCausale(causale: string): string {
     const map: Record<string, string> = {
-      DDT: 'DDT', FATTURA: 'Fattura', STORNO: 'Storno',
+      DDT: 'DDT', FATTURA: 'Fattura', RETTIFICA: 'Rettifica', STORNO: 'Storno',
       ELIMINAZIONE: 'Eliminazione', ANNULLAMENTO: 'Annullamento', RIATTIVAZIONE: 'Riattivazione',
     };
     return map[causale] || causale;

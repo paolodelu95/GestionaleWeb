@@ -161,9 +161,9 @@ export class HomeAppComponent {
   readonly quickActions: { label: string; icon: string; route: string }[] = [
     { label: 'Nuova fattura',    icon: 'receipt',        route: '/fatture' },
     { label: 'Nuovo preventivo', icon: 'request_quote',  route: '/preventivi' },
+    { label: 'Nuovo DDT',        icon: 'local_shipping', route: '/ddt' },
     { label: 'Vendita al banco', icon: 'point_of_sale',  route: '/vendita-banco' },
     { label: 'Nuovo cliente',    icon: 'person_add',     route: '/clienti' },
-    { label: 'Nuovo prodotto',   icon: 'add_box',        route: '/prodotti' },
     { label: 'Registra acquisto',icon: 'shopping_bag',   route: '/acquisti' },
   ];
 
