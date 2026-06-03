@@ -1,6 +1,7 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { FieldHelpComponent } from '../shared/field-help';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators,
          AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
@@ -177,7 +178,7 @@ export class AziendaSearchDialogFComponent {
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule,
             MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule,
-            MatCheckboxModule],
+            MatCheckboxModule, FieldHelpComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -214,6 +215,7 @@ export class AziendaSearchDialogFComponent {
               <mat-form-field>
                 <mat-label>P. IVA</mat-label>
                 <input matInput formControlName="pIva" placeholder="11 cifre">
+                <app-field-help matSuffix term="piva" />
                 @if (form.get('pIva')?.hasError('pIva')) {
                   <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
                 }
@@ -247,9 +249,11 @@ export class AziendaSearchDialogFComponent {
           <div class="form-row">
             <mat-form-field><mat-label>Codice SDI</mat-label>
               <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
+              <app-field-help matSuffix term="sdi" />
             </mat-form-field>
             <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
               <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
+              <app-field-help matSuffix term="pec" />
             </mat-form-field>
           </div>
           <div class="form-row">

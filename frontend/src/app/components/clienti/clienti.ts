@@ -1,6 +1,7 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { FieldHelpComponent } from '../shared/field-help';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators,
          AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
@@ -182,7 +183,8 @@ export class AziendaSearchDialogComponent {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule,
-            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, MatTabsModule],
+            MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, MatTabsModule,
+            FieldHelpComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -219,6 +221,7 @@ export class AziendaSearchDialogComponent {
               <mat-form-field>
                 <mat-label>P. IVA</mat-label>
                 <input matInput formControlName="pIva" placeholder="11 cifre">
+                <app-field-help matSuffix term="piva" />
                 @if (form.get('pIva')?.hasError('pIva')) {
                   <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
                 }
@@ -243,6 +246,7 @@ export class AziendaSearchDialogComponent {
             <mat-form-field>
               <mat-label>Codice Fiscale</mat-label>
               <input matInput formControlName="codiceFiscale" style="text-transform:uppercase">
+              <app-field-help matSuffix term="codiceFiscale" />
               @if (form.get('codiceFiscale')?.hasError('codiceFiscale')) {
                 <mat-error>Codice fiscale non valido (16 caratteri o 11 cifre)</mat-error>
               }
@@ -267,9 +271,11 @@ export class AziendaSearchDialogComponent {
             </mat-form-field>
             <mat-form-field><mat-label>Codice SDI</mat-label>
               <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
+              <app-field-help matSuffix term="sdi" />
             </mat-form-field>
             <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
               <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
+              <app-field-help matSuffix term="pec" />
             </mat-form-field>
           </div>
           @if (form.get('tipoSoggetto')?.value === 'PA') {

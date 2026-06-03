@@ -957,6 +957,13 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   --mdc-plain-tooltip-supporting-text-weight: 500;
 }
 
+// Tooltip di aiuto sui campi (app-field-help): testo su più righe + un po' più largo
+.field-help-tip {
+  white-space: pre-line;
+  --mdc-plain-tooltip-supporting-text-size: 12.5px;
+  .mdc-tooltip__surface { max-width: 280px !important; text-align: left; line-height: 1.5; }
+}
+
 // ── Print ─────────────────────────────────────────────────────────────────────
 @media print {
   mat-sidenav, .sidenav, mat-toolbar, .page-header button,
