@@ -129,7 +129,19 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">Nessun ordine trovato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length">
+          @if (dataSource.filter) {
+            <app-empty-state compact icon="search_off" title="Nessun risultato"
+              message="Nessun ordine corrisponde alla ricerca." />
+          } @else {
+            <app-empty-state icon="shopping_cart" title="Ancora nessun ordine"
+              message="Registra il primo ordine cliente: potrai convertirlo in DDT o fattura.">
+              <button mat-flat-button color="primary" type="button" (click)="open()">
+                <mat-icon>add</mat-icon> Nuovo ordine
+              </button>
+            </app-empty-state>
+          }
+        </td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>

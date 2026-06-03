@@ -152,8 +152,18 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">
-          {{ hasActiveFilters() ? 'Nessuna fattura corrisponde ai filtri attuali' : 'Nessuna fattura. Clicca su «Nuova fattura» per crearne una.' }}
+        <td class="mat-cell" [colSpan]="displayedColumns.length">
+          @if (hasActiveFilters()) {
+            <app-empty-state compact icon="search_off" title="Nessun risultato"
+              message="Nessuna fattura corrisponde ai filtri attuali." />
+          } @else {
+            <app-empty-state icon="receipt" title="Ancora nessuna fattura"
+              message="Crea la tua prima fattura: numerazione, data e calcolo IVA sono automatici.">
+              <button mat-flat-button color="primary" type="button" (click)="open()">
+                <mat-icon>add</mat-icon> Nuova fattura
+              </button>
+            </app-empty-state>
+          }
         </td>
       </tr>
     </table>

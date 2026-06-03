@@ -131,7 +131,19 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length">
+          @if (dataSource.filter) {
+            <app-empty-state compact icon="search_off" title="Nessun risultato"
+              message="Nessun acquisto corrisponde alla ricerca." />
+          } @else {
+            <app-empty-state icon="shopping_bag" title="Ancora nessun acquisto"
+              message="Registra la prima fattura di acquisto ricevuta da un fornitore.">
+              <button mat-flat-button color="primary" type="button" (click)="open()">
+                <mat-icon>add</mat-icon> Nuovo acquisto
+              </button>
+            </app-empty-state>
+          }
+        </td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>

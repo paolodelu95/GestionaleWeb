@@ -125,10 +125,21 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:16px;color:#94a3b8;text-align:center">Nessun risultato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length">
+          @if (dataSource.filter) {
+            <app-empty-state compact icon="search_off" title="Nessun risultato"
+              message="Nessun preventivo corrisponde alla ricerca." />
+          } @else {
+            <app-empty-state icon="request_quote" title="Ancora nessun preventivo"
+              message="Crea il primo preventivo da inviare al cliente; se accettato lo converti in ordine o fattura.">
+              <button mat-flat-button color="primary" type="button" (click)="open()">
+                <mat-icon>add</mat-icon> Nuovo preventivo
+              </button>
+            </app-empty-state>
+          }
+        </td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
-    @if (!preventivi.length) { <p class="empty-msg">Nessun preventivo</p> }
   </div>
 </div>

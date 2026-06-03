@@ -133,7 +133,19 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" [colSpan]="displayedColumns.length" style="padding:24px;color:var(--text-tertiary);text-align:center">Nessun DDT trovato</td>
+        <td class="mat-cell" [colSpan]="displayedColumns.length">
+          @if (dataSource.filter) {
+            <app-empty-state compact icon="search_off" title="Nessun risultato"
+              message="Nessun DDT corrisponde alla ricerca." />
+          } @else {
+            <app-empty-state icon="local_shipping" title="Ancora nessun DDT"
+              message="Crea il primo documento di trasporto: da qui potrai poi generare la fattura.">
+              <button mat-flat-button color="primary" type="button" (click)="open()">
+                <mat-icon>add</mat-icon> Nuovo DDT
+              </button>
+            </app-empty-state>
+          }
+        </td>
       </tr>
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
