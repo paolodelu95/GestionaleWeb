@@ -174,7 +174,7 @@ Priorità = **frequenza d'uso × impatto sul novizio**. Le onde si eseguono in o
 | F0.2 | FieldHelp + glossario termini fiscali (dialog Clienti/Fornitori/Prodotti) | componente | `shared/field-help.ts`, `shared/glossario.ts` | 🔄 Foundation + 3 anagrafiche; restano i dialog documenti |
 | F0.3 | EmptyState condiviso — applicato a tutte le liste e sotto-pannelli (anagrafiche, documenti, contabilità, Dashboard, Impostazioni, Storico, Allegati) | componente | `shared/empty-state.ts` | ✅ Fatto |
 | F0.4 | Onboarding primo accesso (checklist in Home) | feature | `shared/onboarding-checklist.ts` | ✅ Fatto |
-| F0.5 | Home orientata ai compiti (riga "Cosa vuoi fare?") + sidebar | schermata | `home-app`, `app.html` | 🔄 Azioni rapide in Home fatte; revisione sidebar da fare |
+| F0.5 | Home orientata ai compiti + sidebar riordinata | schermata | `home-app`, `app.ts` | ✅ Azioni rapide in Home; Anagrafiche in alto + "Andamento" (no doppio Dashboard) |
 | F0.6 | Pass linguaggio / microcopy + glossario UI | trasversale | tutti | ☐ |
 
 ### Onda 1 — Flussi quotidiani core (il 90% dell'uso reale)

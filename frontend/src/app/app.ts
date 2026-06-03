@@ -398,6 +398,13 @@ export class App implements OnInit {
     { label: 'Home',         icon: 'apps',           route: '/app' },
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
     {
+      label: 'Anagrafiche', icon: 'contacts',
+      children: [
+        { label: 'Clienti',   icon: 'people',         route: '/clienti' },
+        { label: 'Fornitori', icon: 'local_shipping', route: '/fornitori' },
+      ]
+    },
+    {
       label: 'Vendite', icon: 'point_of_sale',
       children: [
         { label: 'Preventivi',       icon: 'request_quote',   route: '/preventivi' },
@@ -427,13 +434,6 @@ export class App implements OnInit {
       ]
     },
     {
-      label: 'Anagrafica', icon: 'contacts',
-      children: [
-        { label: 'Clienti',   icon: 'people',         route: '/clienti' },
-        { label: 'Fornitori', icon: 'local_shipping', route: '/fornitori' },
-      ]
-    },
-    {
       label: 'Contabilità', icon: 'account_balance',
       children: [
         { label: 'Pagamenti',       icon: 'payments',         route: '/pagamenti' },
@@ -451,7 +451,7 @@ export class App implements OnInit {
     {
       label: 'Report', icon: 'bar_chart',
       children: [
-        { label: 'Dashboard analitica', icon: 'analytics',  route: '/report' },
+        { label: 'Andamento',           icon: 'analytics',  route: '/report' },
         { label: 'Report tabellari',    icon: 'table_chart', route: '/reports' },
       ]
     },
