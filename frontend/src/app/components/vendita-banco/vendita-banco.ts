@@ -50,100 +50,100 @@ interface MetodoPagamento {
     .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .form-field { display: flex; flex-direction: column; gap: 4px; }
-    .form-field label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
-    .form-field input, .form-field select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; transition: border-color .15s; }
-    .form-field input:focus, .form-field select:focus { border-color: #0e6480; }
+    .form-field label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .5px; }
+    .form-field input, .form-field select { border: 1px solid var(--border-strong); border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; transition: border-color .15s; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--primary); }
 
     /* Metodi pagamento */
     .metodi-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
     .metodo-btn {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 6px; width: 110px; height: 80px; border: 2px solid #e2e8f0;
-      border-radius: 12px; background: #fff; cursor: pointer; transition: all .15s;
-      font-size: 12px; font-weight: 700; color: #475569; padding: 8px 4px;
+      gap: 6px; width: 110px; height: 80px; border: 2px solid var(--border);
+      border-radius: 12px; background: var(--bg-surface); cursor: pointer; transition: all .15s;
+      font-size: 12px; font-weight: 700; color: var(--text-secondary); padding: 8px 4px;
     }
     .metodo-btn mat-icon { font-size: 26px; width: 26px; height: 26px; }
-    .metodo-btn:hover { border-color: #0e6480; background: #f5f3ff; color: #0e6480; }
-    .metodo-btn.selected { border-color: #0e6480; background: #0e6480; color: #fff; }
-    .metodo-btn.selected mat-icon { color: #fff; }
+    .metodo-btn:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+    .metodo-btn.selected { border-color: var(--primary); background: var(--primary); color: var(--primary-on); }
+    .metodo-btn.selected mat-icon { color: var(--primary-on); }
 
     /* Tabella righe */
     .righe-header { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px; }
-    .righe-title { font-size: 13px; font-weight: 700; color: #0e6480; text-transform: uppercase; letter-spacing: .5px; }
+    .righe-title { font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .5px; }
     .righe-table { width: 100%; border-collapse: collapse; }
-    .righe-table th { background: #f8fafc; padding: 8px; font-size: 11px; font-weight: 700; text-align: left; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; }
-    .righe-table td { padding: 4px 4px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-    .riga-input { border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-    .riga-input:focus { outline: none; border-color: #0e6480; }
+    .righe-table th { background: var(--bg-surface-2); padding: 8px; font-size: 11px; font-weight: 700; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-tertiary); text-transform: uppercase; }
+    .righe-table td { padding: 4px 4px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+    .riga-input { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
+    .riga-input:focus { outline: none; border-color: var(--primary); }
     .riga-input.num { width: 70px; text-align: right; }
 
     /* Totali */
     .totali-box { display: flex; justify-content: flex-end; margin-top: 16px; }
     .totali-inner { min-width: 260px; }
-    .totali-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: #64748b; border-bottom: 1px solid #f1f5f9; }
-    .totali-finale { display: flex; justify-content: space-between; padding: 10px 14px; background: #0e6480; color: #fff; border-radius: 8px; font-size: 16px; font-weight: 700; margin-top: 8px; }
+    .totali-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-subtle); }
+    .totali-finale { display: flex; justify-content: space-between; padding: 10px 14px; background: var(--primary); color: var(--primary-on); border-radius: 8px; font-size: 16px; font-weight: 700; margin-top: 8px; }
 
     /* Calcolatrice resto */
-    .resto-box { border: 1px solid #cde3ec; border-radius: 12px; background: #f5f3ff; margin-top: 16px; overflow: hidden; }
-    .resto-header { background: #cffafe; padding: 10px 16px; font-size: 13px; font-weight: 700; color: #0e6480; display: flex; align-items: center; }
+    .resto-box { border: 1px solid var(--primary-soft-hover); border-radius: 12px; background: var(--primary-soft); margin-top: 16px; overflow: hidden; }
+    .resto-header { background: var(--primary-soft); padding: 10px 16px; font-size: 13px; font-weight: 700; color: var(--primary); display: flex; align-items: center; }
     .resto-body { padding: 14px 16px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
     .resto-banconote { display: flex; gap: 8px; flex-wrap: wrap; }
-    .banconota-btn { position: relative; border: 2px solid #c7d2fe; background: #fff; border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 700; color: #0b5066; cursor: pointer; transition: all .15s; }
-    .banconota-btn:hover { background: #cde3ec; border-color: #11769b; }
-    .banconota-btn.banconota-selected { background: #0e6480; color: #fff; border-color: #0e6480; }
-    .banconota-count { position: absolute; top: -7px; right: -7px; background: #f59e0b; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 3px; line-height: 1; }
-    .resto-clear-btn { border: none; background: none; cursor: pointer; color: #94a3b8; padding: 0 6px; display: flex; align-items: center; transition: color .15s; }
-    .resto-clear-btn:hover { color: #dc2626; }
+    .banconota-btn { position: relative; border: 2px solid var(--primary-soft-hover); background: var(--bg-surface); border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 700; color: var(--primary-active); cursor: pointer; transition: all .15s; }
+    .banconota-btn:hover { background: var(--primary-soft-hover); border-color: var(--primary); }
+    .banconota-btn.banconota-selected { background: var(--primary); color: var(--primary-on); border-color: var(--primary); }
+    .banconota-count { position: absolute; top: -7px; right: -7px; background: var(--warning); color: var(--primary-on); border-radius: 99px; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 3px; line-height: 1; }
+    .resto-clear-btn { border: none; background: none; cursor: pointer; color: var(--text-tertiary); padding: 0 6px; display: flex; align-items: center; transition: color .15s; }
+    .resto-clear-btn:hover { color: var(--danger-on); }
     .resto-clear-btn mat-icon { font-size: 16px; width: 16px; height: 16px; }
     .resto-input-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .resto-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
-    .resto-input-wrap { display: flex; align-items: center; border: 2px solid #c7d2fe; border-radius: 8px; background: #fff; overflow: hidden; }
-    .resto-currency { padding: 0 8px; font-weight: 700; color: #11769b; font-size: 15px; }
-    .resto-input { border: none; outline: none; padding: 8px 10px 8px 0; font-size: 15px; font-weight: 700; width: 100px; color: #1e293b; }
+    .resto-label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+    .resto-input-wrap { display: flex; align-items: center; border: 2px solid var(--primary-soft-hover); border-radius: 8px; background: var(--bg-surface); overflow: hidden; }
+    .resto-currency { padding: 0 8px; font-weight: 700; color: var(--primary); font-size: 15px; }
+    .resto-input { border: none; outline: none; padding: 8px 10px 8px 0; font-size: 15px; font-weight: 700; width: 100px; color: var(--text-primary); }
     .resto-risultato { display: flex; align-items: center; gap: 6px; font-size: 15px; padding: 6px 14px; border-radius: 8px; font-weight: 600; }
-    .resto-ok { background: #dcfce7; color: #15803d; }
-    .resto-err { background: #fee2e2; color: #dc2626; }
+    .resto-ok { background: var(--success-soft); color: var(--success-on); }
+    .resto-err { background: var(--danger-soft); color: var(--danger-on); }
     .resto-risultato mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
     /* Pagamento misto */
     .pm-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .pm-select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 600; outline: none; flex: 1; min-width: 0; }
-    .pm-select:focus { border-color: #0e6480; }
-    .pm-currency { font-weight: 700; color: #0e6480; font-size: 15px; padding: 0 2px; }
-    .pm-input { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 14px; outline: none; width: 110px; text-align: right; }
-    .pm-input:focus { border-color: #0e6480; }
+    .pm-select { border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 600; outline: none; flex: 1; min-width: 0; }
+    .pm-select:focus { border-color: var(--primary); }
+    .pm-currency { font-weight: 700; color: var(--primary); font-size: 15px; padding: 0 2px; }
+    .pm-input { border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; font-size: 14px; outline: none; width: 110px; text-align: right; }
+    .pm-input:focus { border-color: var(--primary); }
     .pm-summary { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; }
-    .pm-ok { background: #dcfce7; color: #15803d; }
-    .pm-err { background: #fee2e2; color: #dc2626; }
-    .pm-warn { background: #fef9c3; color: #a16207; }
+    .pm-ok { background: var(--success-soft); color: var(--success-on); }
+    .pm-err { background: var(--danger-soft); color: var(--danger-on); }
+    .pm-warn { background: var(--warning-soft); color: var(--warning-on); }
     .pm-summary mat-icon { font-size: 16px; width: 16px; height: 16px; }
     @media (max-width: 600px) {
       .pm-input { width: 80px; }
     }
 
     /* Sezione fattura */
-    .fattura-toggle-row { display: flex; align-items: center; gap: 12px; margin: 20px 0 0; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; user-select: none; }
-    .fattura-toggle-row mat-icon { font-size: 22px; width: 22px; height: 22px; color: #0e6480; }
-    .fattura-toggle-label { font-size: 14px; font-weight: 700; color: #1e293b; flex: 1; }
-    .fattura-toggle-sub { font-size: 12px; color: #64748b; }
-    .fattura-section { border: 1px solid #c7d2fe; border-top: none; border-radius: 0 0 12px 12px; background: #fff; padding: 16px; }
+    .fattura-toggle-row { display: flex; align-items: center; gap: 12px; margin: 20px 0 0; padding: 14px 16px; background: var(--bg-surface-2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; user-select: none; }
+    .fattura-toggle-row mat-icon { font-size: 22px; width: 22px; height: 22px; color: var(--primary); }
+    .fattura-toggle-label { font-size: 14px; font-weight: 700; color: var(--text-primary); flex: 1; }
+    .fattura-toggle-sub { font-size: 12px; color: var(--text-tertiary); }
+    .fattura-section { border: 1px solid var(--primary-soft-hover); border-top: none; border-radius: 0 0 12px 12px; background: var(--bg-surface); padding: 16px; }
     .piva-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-    .piva-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; text-transform: uppercase; }
-    .piva-input:focus { border-color: #0e6480; }
-    .cliente-trovato { display: flex; align-items: center; gap: 12px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 10px 14px; }
-    .cliente-trovato mat-icon { color: #16a34a; }
-    .cliente-trovato-nome { font-weight: 700; color: #15803d; flex: 1; }
-    .cliente-trovato-piva { font-size: 12px; color: #64748b; }
+    .piva-input { flex: 1; border: 1px solid var(--border-strong); border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; text-transform: uppercase; }
+    .piva-input:focus { border-color: var(--primary); }
+    .cliente-trovato { display: flex; align-items: center; gap: 12px; background: var(--success-soft); border: 1px solid var(--success-on); border-radius: 10px; padding: 10px 14px; }
+    .cliente-trovato mat-icon { color: var(--success-on); }
+    .cliente-trovato-nome { font-weight: 700; color: var(--success-on); flex: 1; }
+    .cliente-trovato-piva { font-size: 12px; color: var(--text-tertiary); }
 
     /* Note e azioni */
     .note-row { margin-top: 16px; }
-    .note-input { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; box-sizing: border-box; resize: vertical; min-height: 60px; font-family: inherit; }
-    .note-input:focus { border-color: #0e6480; }
+    .note-input { width: 100%; border: 1px solid var(--border-strong); border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; box-sizing: border-box; resize: vertical; min-height: 60px; font-family: inherit; }
+    .note-input:focus { border-color: var(--primary); }
     .actions-bar { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
     /* Storico */
     mat-table { width: 100%; }
-    th.mat-header-cell { font-weight: 700; font-size: 12px; color: #64748b; text-transform: uppercase; background: #f8fafc; }
+    th.mat-header-cell { font-weight: 700; font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; background: var(--bg-surface-2); }
     td.mat-cell { font-size: 13px; }
 
     /* Scroll orizzontale per tabella righe su schermi stretti */
@@ -167,16 +167,16 @@ interface MetodoPagamento {
       .righe-table { min-width: 0; width: 100%; }
       .righe-table thead { display: none; }
       .righe-table, .righe-table tbody, .righe-table tr, .righe-table td { display: block; width: 100%; }
-      .righe-table tr { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; background: #fff; box-sizing: border-box; }
+      .righe-table tr { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; background: var(--bg-surface); box-sizing: border-box; }
       .righe-table td { border: none !important; padding: 6px 0 !important; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left !important; }
-      .righe-table td::before { content: attr(data-label); font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; flex: 0 0 auto; }
+      .righe-table td::before { content: attr(data-label); font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; flex: 0 0 auto; }
       .righe-table td:empty, .righe-table td[colspan]::before { content: none; }
       .righe-table td[colspan] { justify-content: center; text-align: center !important; }
       .righe-table .riga-input { width: auto !important; flex: 1 1 auto; max-width: 62%; text-align: right; }
       .righe-table .riga-desc { display: block; }
       .righe-table .riga-desc::before { display: block; margin-bottom: 4px; }
       .righe-table .riga-desc .riga-input { width: 100% !important; max-width: none; text-align: left; }
-      .righe-table .riga-importo { font-size: 15px; border-top: 1px dashed #e2e8f0 !important; margin-top: 4px; padding-top: 10px !important; }
+      .righe-table .riga-importo { font-size: 15px; border-top: 1px dashed var(--border) !important; margin-top: 4px; padding-top: 10px !important; }
       .righe-table .riga-del { justify-content: flex-end; }
       .righe-table .riga-del::before { content: none; }
     }
