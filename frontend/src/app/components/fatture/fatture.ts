@@ -671,6 +671,14 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
       }
 
       </div>
+
+      @if (avvisiAntiErrore.length) {
+        <div class="avvisi-box">
+          @for (a of avvisiAntiErrore; track a) {
+            <div class="avviso-item"><mat-icon>warning_amber</mat-icon><span>{{ a }}</span></div>
+          }
+        </div>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
@@ -688,6 +696,9 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
     .righe-error { display:flex; align-items:center; gap:4px; color:#dc2626; font-size:12px; font-weight:500; }
     .righe-error mat-icon { font-size:15px; width:15px; height:15px; }
     .input-error { border-color:#dc2626 !important; }
+    .avvisi-box { display:flex; flex-direction:column; gap:6px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:8px; padding:10px 14px; margin-top:4px; }
+    .avviso-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--warning-on); font-weight:500; }
+    .avviso-item mat-icon { font-size:18px; width:18px; height:18px; flex-shrink:0; }
     .acconto-table { width:100%; border-collapse:collapse; margin-bottom:8px; font-size:13px; }
     .acconto-table th { background:#f8fafc; padding:6px 8px; text-align:left; border-bottom:1px solid #e2e8f0; font-size:12px; }
     .acconto-table td { padding:4px 8px; border-bottom:1px solid #f1f5f9; }
@@ -787,6 +798,31 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   get hasCliente(): boolean {
     const v = this.clienteCtrl.value;
     return !!(v && typeof v !== 'string');
+  }
+  get clienteSelezionato(): Cliente | null {
+    const v = this.clienteCtrl.value;
+    return v && typeof v === 'object' ? (v as Cliente) : null;
+  }
+  /** Avvisi anti-errore (non bloccanti): cliente con insoluti, righe sotto il costo d'acquisto. */
+  get avvisiAntiErrore(): string[] {
+    const out: string[] = [];
+    const cli = this.clienteSelezionato;
+    if (cli && (cli.fattureInsolute ?? 0) > 0) {
+      const n = cli.fattureInsolute!;
+      out.push(`${cli.ragioneSociale} ha ${n} fattura${n === 1 ? '' : 'e'} non ancora pagat${n === 1 ? 'a' : 'e'}.`);
+    }
+    const sottoCosto: string[] = [];
+    for (const r of this.righe) {
+      if (r.tipo === 'NOTA' || !r.prodottoId) continue;
+      const costo = this.prodotti.find(p => p.id === r.prodottoId)?.prezzoAcquisto;
+      if (costo == null || costo <= 0) continue;
+      const netto = (r.prezzo ?? 0) * (1 - (r.sconto ?? 0) / 100);
+      if (netto < costo) sottoCosto.push(r.descrizione || 'riga');
+    }
+    if (sottoCosto.length) {
+      out.push(`Prezzo sotto il costo d'acquisto: ${sottoCosto.join(', ')}.`);
+    }
+    return out;
   }
   get hasRighe(): boolean {
     return this.righe.length > 0 && this.righe.some(r => r.descrizione?.trim());
