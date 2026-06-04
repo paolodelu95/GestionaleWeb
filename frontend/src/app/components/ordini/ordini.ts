@@ -321,6 +321,25 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
 
   showNetto = false;
   get isFornitore() { return this.form.get('tipo')?.value === 'FORNITORE'; }
+  get fornitoreSelezionatoId(): number | null {
+    const fv = this.fornitoreCtrl.value;
+    return fv && typeof fv !== 'string' ? ((fv as Fornitore).id ?? null) : null;
+  }
+  /** Ricarica il codice (e prezzo) del fornitore dell'ordine per tutte le righe già inserite. */
+  private refreshCodiciFornitore() {
+    const fornId = this.fornitoreSelezionatoId;
+    if (!fornId) return;
+    this.righe.forEach((r, i) => {
+      if (!r.prodottoId) return;
+      this.ds.getProdottoFornitori(r.prodottoId).subscribe(list => {
+        const m = list.find(x => x.fornitoreId === fornId);
+        if (m) {
+          this.righe[i].codiceFornitore = m.codiceFornitore || this.righe[i].codiceFornitore;
+          if (m.prezzoAcquisto != null) this.righe[i].prezzo = m.prezzoAcquisto;
+        }
+      });
+    });
+  }
   get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
   get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
   get totale() { return this.imponibile + this.ivaTotal; }
@@ -362,6 +381,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
     this.fornitoreCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredFornitori = this.fornitori.filter(f => f.ragioneSociale.toLowerCase().includes(q));
+      if (v && typeof v !== 'string') this.refreshCodiciFornitore();
     });
 
     this.ds.getClienti().subscribe(c => {
@@ -436,8 +456,20 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
     this.righe[index].varianteId = v?.id ?? null;
     this.righe[index].varianteTaglia = v?.taglia ?? '';
     this.righe[index].varianteColore = v?.colore ?? '';
-    if (this.isFornitore && p.codiceFornitore) {
-      this.righe[index].codiceFornitore = p.codiceFornitore;
+    if (this.isFornitore) {
+      // Codice di default del prodotto (predefinito), poi sovrascritto col codice
+      // del fornitore dell'ordine se esiste una riga specifica.
+      if (p.codiceFornitore) this.righe[index].codiceFornitore = p.codiceFornitore;
+      const fornId = this.fornitoreSelezionatoId;
+      if (p.id && fornId) {
+        this.ds.getProdottoFornitori(p.id).subscribe(list => {
+          const m = list.find(x => x.fornitoreId === fornId);
+          if (m) {
+            this.righe[index].codiceFornitore = m.codiceFornitore || this.righe[index].codiceFornitore;
+            if (m.prezzoAcquisto != null) this.righe[index].prezzo = m.prezzoAcquisto;
+          }
+        });
+      }
     }
     if (this.form.get('tipo')?.value === 'CLIENTE') {
       this.applyListino(index);
