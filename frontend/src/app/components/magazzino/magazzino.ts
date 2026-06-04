@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -11,8 +11,70 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { DataService } from '../../services/data.service';
 import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente } from '../../models';
+
+// ── Rettifica giacenza con scelta prodotto (dal Magazzino) ───────────────────
+@Component({
+  selector: 'app-magazzino-rettifica-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title>Rettifica giacenza</h2>
+    <mat-dialog-content style="min-width:380px">
+      <mat-form-field appearance="outline" style="width:100%">
+        <mat-label>Prodotto *</mat-label>
+        <mat-select [(ngModel)]="prodottoId" (ngModelChange)="onProdotto()">
+          @for (p of data.prodotti; track p.id) {
+            <mat-option [value]="p.id">{{ p.nome }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (sel) {
+        <p style="margin:0 0 12px;font-size:13px;color:var(--text-tertiary,#94a3b8)">
+          Giacenza attuale: <b>{{ sel.quantita }}</b> {{ sel.unitaMisura || '' }}
+        </p>
+        <mat-form-field appearance="outline" style="width:100%">
+          <mat-label>Nuova giacenza reale *</mat-label>
+          <input matInput type="number" step="0.001" [(ngModel)]="nuova" (keyup.enter)="save()">
+        </mat-form-field>
+        @if (nuova !== null && delta !== 0) {
+          <p style="margin:-6px 0 12px;font-size:13px" [style.color]="delta > 0 ? '#16a34a' : '#dc2626'">
+            <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">{{ delta > 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+            {{ delta > 0 ? '+' : '' }}{{ delta }} — verrà registrato un movimento di rettifica.
+          </p>
+        }
+        <mat-form-field appearance="outline" style="width:100%">
+          <mat-label>Motivo (facoltativo)</mat-label>
+          <input matInput [(ngModel)]="note" placeholder="es. inventario, rottura, ammanco…">
+        </mat-form-field>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="!sel || nuova === null">Salva rettifica</button>
+    </mat-dialog-actions>`
+})
+export class MagazzinoRettificaDialogComponent {
+  prodottoId: number | null = null;
+  nuova: number | null = null;
+  note = '';
+  sel: Prodotto | null = null;
+  constructor(
+    public dialogRef: MatDialogRef<MagazzinoRettificaDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { prodotti: Prodotto[] }
+  ) {}
+  onProdotto() {
+    this.sel = this.data.prodotti.find(p => p.id === this.prodottoId) || null;
+    this.nuova = this.sel?.quantita ?? 0;
+  }
+  get delta(): number { return (this.nuova ?? 0) - (this.sel?.quantita ?? 0); }
+  save() {
+    if (this.sel && this.nuova !== null)
+      this.dialogRef.close({ prodottoId: this.sel.id, quantita: this.nuova, note: this.note });
+  }
+}
 
 @Component({
   selector: 'app-magazzino',
@@ -21,7 +83,7 @@ import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente } from '../../mo
     CommonModule, FormsModule,
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatTabsModule, MatTooltipModule, MatSnackBarModule,
+    MatTabsModule, MatTooltipModule, MatSnackBarModule, MatDialogModule,
   ],
   templateUrl: './magazzino.html',
   styles: [`
@@ -101,7 +163,22 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
 
   @ViewChild('sortStor') sortStor!: MatSort;
 
-  constructor(private ds: DataService, private snack: MatSnackBar) {}
+  constructor(private ds: DataService, private snack: MatSnackBar, private dialog: MatDialog) {}
+
+  openRettifica() {
+    this.dialog.open(MagazzinoRettificaDialogComponent, { data: { prodotti: this.prodottiList }, width: '440px' })
+      .afterClosed().subscribe(res => {
+        if (!res) return;
+        this.ds.rettificaGiacenza(res.prodottoId, res.quantita, res.note).subscribe({
+          next: () => {
+            this.snack.open('Giacenza aggiornata', '', { duration: 2000 });
+            this.ds.getProdotti().subscribe(p => this.prodottiList = p);
+            this.loadMovimenti();
+          },
+          error: e => this.snack.open(e.error?.error || 'Errore rettifica', '', { duration: 3000 })
+        });
+      });
+  }
 
   ngOnInit() {
     const y = new Date().getFullYear();
