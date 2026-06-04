@@ -11,6 +11,7 @@
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     <input #importInput type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden-input" (change)="importExcel($event)">
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> Listino fornitore</button>
     <span class="header-overflow-item"><app-column-picker storageKey="prodotti" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
 
     <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuProd" title="Altre azioni">
@@ -21,6 +22,7 @@
       <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
       <button mat-menu-item type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
       <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+      <button mat-menu-item type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> Importa listino fornitore</button>
     </mat-menu>
   </div>
 

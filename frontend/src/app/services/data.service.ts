@@ -45,6 +45,9 @@ export class DataService {
   // Varianti prodotto
   getProdottoVarianti(prodottoId: number): Observable<ProdottoVariante[]> { return this.api.get(`prodotto-varianti/${prodottoId}`); }
   getProdottoFornitori(prodottoId: number): Observable<ProdottoFornitore[]> { return this.api.get(`prodotti/${prodottoId}/fornitori`); }
+  importListino(fornitoreId: number, ivato: boolean, righe: { codice: any; prezzo: any }[]): Observable<{ aggiornati: number; nonTrovati: string[] }> {
+    return this.api.post('prodotti/import-listino', { fornitoreId, ivato, righe });
+  }
   searchByBarcode(barcode: string): Observable<{ prodotto: Prodotto; variante: ProdottoVariante | null }> {
     return this.api.get(`prodotto-varianti/barcode/${encodeURIComponent(barcode)}`);
   }

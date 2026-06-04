@@ -125,6 +125,42 @@ router.post('/import', (req, res) => {
   }
 });
 
+// POST /api/prodotti/import-listino — aggiorna i prezzi di acquisto di un fornitore
+// abbinando il codice del file al codice fornitore salvato nel prodotto.
+// body: { fornitoreId, ivato: bool, righe: [{ codice, prezzo }] }
+// I prezzi vengono SEMPRE salvati in netto: se 'ivato' è true, sono convertiti
+// usando l'IVA del prodotto.
+router.post('/import-listino', (req, res) => {
+  const { fornitoreId, ivato, righe } = req.body || {};
+  if (!fornitoreId || !Array.isArray(righe)) return res.status(400).json({ error: 'Dati mancanti (fornitore o righe).' });
+  const findPF = db.prepare(`
+    SELECT pf.id, pf.prodotto_id, p.iva, p.nome
+    FROM prodotto_fornitori pf
+    JOIN prodotti p ON p.id = pf.prodotto_id
+    WHERE pf.fornitore_id = ? AND pf.codice_fornitore != ''
+      AND LOWER(TRIM(pf.codice_fornitore)) = LOWER(TRIM(?))`);
+  const updPF = db.prepare('UPDATE prodotto_fornitori SET prezzo_acquisto=? WHERE id=?');
+  const updProdPref = db.prepare('UPDATE prodotti SET prezzo_acquisto=? WHERE id=? AND fornitore_id_preferito=?');
+
+  let aggiornati = 0;
+  const nonTrovati = [];
+  db.transaction(() => {
+    for (const r of righe) {
+      const codice = String(r.codice ?? '').trim();
+      const prezzoRaw = parseFloat(String(r.prezzo ?? '').replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      if (!codice) continue;
+      if (!Number.isFinite(prezzoRaw)) { nonTrovati.push(codice); continue; }
+      const pf = findPF.get(fornitoreId, codice);
+      if (!pf) { nonTrovati.push(codice); continue; }
+      const netto = ivato ? +(prezzoRaw / (1 + (pf.iva || 0) / 100)).toFixed(4) : +prezzoRaw.toFixed(4);
+      updPF.run(netto, pf.id);
+      updProdPref.run(netto, pf.prodotto_id, fornitoreId);
+      aggiornati++;
+    }
+  })();
+  res.json({ aggiornati, nonTrovati });
+});
+
 // GET /api/prodotti/:id — dettaglio singolo prodotto
 router.get('/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);

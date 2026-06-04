@@ -25,6 +25,7 @@ import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 import { QuickAddProdottoDialogComponent } from './quick-add-prodotto-dialog';
+import { ImportListinoDialogComponent } from './import-listino-dialog';
 import { BarcodeScannerDialogComponent } from '../shared/barcode-scanner-dialog';
 
 const PRODOTTI_FIELDS: FieldDef[] = [
@@ -637,6 +638,11 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
+  }
+
+  openImportListino() {
+    this.dialog.open(ImportListinoDialogComponent, { width: '600px', maxWidth: '96vw' })
+      .afterClosed().subscribe(() => this.load());
   }
 
   quickAdd() {
