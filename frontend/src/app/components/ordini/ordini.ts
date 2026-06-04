@@ -71,13 +71,6 @@ import { forkJoin } from 'rxjs';
       <form [formGroup]="form" class="dialog-form">
 
         <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px">
-          <mat-form-field style="flex:0 0 150px">
-            <mat-label>Tipo</mat-label>
-            <mat-select formControlName="tipo">
-              <mat-option value="CLIENTE">Cliente</mat-option>
-              <mat-option value="FORNITORE">Fornitore</mat-option>
-            </mat-select>
-          </mat-form-field>
           @if (form.get('tipo')?.value === 'CLIENTE') {
             <mat-form-field style="flex:1">
               <mat-label>Cliente</mat-label>
@@ -626,7 +619,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
   private allOrdini: Ordine[] = [];
   dataSource = new MatTableDataSource<Ordine>([]);
-  displayedColumns = ['select', 'numero', 'dataOrdine', 'tipo', 'controparte', 'totale', 'stato', 'azioni'];
+  displayedColumns = ['select', 'numero', 'dataOrdine', 'controparte', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Ordine>(true, []);
 
   readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
@@ -677,7 +670,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   load() {
     this.ds.getOrdini().subscribe(o => {
-      this.allOrdini = o;
+      this.allOrdini = o.filter(x => x.tipo === 'CLIENTE');
       this.applyFilters();
       this.selection.clear();
     });
@@ -721,7 +714,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   open(o?: Ordine) {
     const ref = this.dialog.open(OrdineDialogComponent, {
-      data: o ?? null, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
+      data: o ?? { tipo: 'CLIENTE' }, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;

@@ -189,7 +189,8 @@ export class HomeAppComponent {
     { label: 'Ricorrenti',        description: 'Fatturazione periodica', icon: 'autorenew',       route: '/fatture-ricorrenti', color: 'linear-gradient(135deg,#ea580c,#c2410c)', category: 'Vendite' },
 
     // ── Acquisti ── amber / yellow scuri (warm, "outgoing") ───────────────
-    { label: 'Acquisti',     description: 'Fatture passive e ordini fornitore', icon: 'shopping_bag',  route: '/acquisti',     color: 'linear-gradient(135deg,#d97706,#b45309)', category: 'Acquisti' },
+    { label: 'Acquisti',     description: 'Fatture passive ricevute', icon: 'shopping_bag',  route: '/acquisti',     color: 'linear-gradient(135deg,#d97706,#b45309)', category: 'Acquisti' },
+    { label: 'Ordini fornitore', description: 'Ordini verso i fornitori', icon: 'shopping_cart', route: '/ordini-fornitore', color: 'linear-gradient(135deg,#ea580c,#c2410c)', category: 'Acquisti' },
     { label: 'Arrivi merce', description: 'Entrate magazzino', icon: 'move_to_inbox', route: '/arrivi-merce', color: 'linear-gradient(135deg,#ca8a04,#a16207)', category: 'Acquisti' },
 
     // ── Magazzino ── lime scuro (movimento/freschezza) ────────────────────
