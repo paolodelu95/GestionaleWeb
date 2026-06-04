@@ -388,6 +388,8 @@ export interface Ordine {
   clienteNome?: string;
   fornitoreId?: number | null;
   fornitoreNome?: string;
+  acquistoId?: number | null;
+  acquistoNumero?: string | null;
   tipo: string;
   stato: string;
   note?: string;

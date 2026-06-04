@@ -513,6 +513,7 @@ function initTenantSchema(db) {
     'ALTER TABLE acquisti ADD COLUMN conto_acquisto_id INTEGER REFERENCES conti_acquisto(id)',
     'ALTER TABLE categorie_prodotto ADD COLUMN aliquota_iva_id INTEGER REFERENCES aliquote_iva(id)',
     'ALTER TABLE ordini_righe ADD COLUMN codice_fornitore TEXT DEFAULT ""',
+    'ALTER TABLE ordini ADD COLUMN acquisto_id INTEGER',
     "ALTER TABLE azienda ADD COLUMN email_mode TEXT DEFAULT 'SMTP'",
     'ALTER TABLE fornitori ADD COLUMN estero INTEGER DEFAULT 0',
     'ALTER TABLE clienti   ADD COLUMN estero INTEGER DEFAULT 0',

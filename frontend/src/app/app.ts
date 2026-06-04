@@ -421,6 +421,7 @@ export class App implements OnInit {
       label: 'Acquisti', icon: 'shopping_bag',
       children: [
         { label: 'Acquisti',          icon: 'shopping_bag',     route: '/acquisti' },
+        { label: 'Ordini fornitore',  icon: 'shopping_cart',    route: '/ordini-fornitore' },
         { label: 'Arrivi merce',      icon: 'move_to_inbox',    route: '/arrivi-merce' },
         { label: 'OCR fatture (PDF)', icon: 'document_scanner', route: '/ocr-fatture' },
         { label: 'SDI ricezione',     icon: 'cloud_download',   route: '/sdi-passive' },

@@ -54,7 +54,7 @@ export class ModuliService {
       '/fatture-elettroniche': 'vendite',
       '/fatture-ricorrenti': 'fatture_ricorrenti',
       '/vendita-banco': 'vendita_banco',
-      '/acquisti': 'acquisti', '/arrivi-merce': 'acquisti',
+      '/acquisti': 'acquisti', '/arrivi-merce': 'acquisti', '/ordini-fornitore': 'acquisti',
       '/ocr-fatture': 'acquisti', '/sdi-passive': 'acquisti',
       '/prodotti': 'magazzino', '/magazzino': 'magazzino',
       '/clienti': 'anagrafica', '/fornitori': 'anagrafica',

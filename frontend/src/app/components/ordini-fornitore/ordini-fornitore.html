@@ -1,0 +1,80 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Ordini fornitore</h1>
+    <button mat-flat-button color="primary" type="button" (click)="nuovo()">
+      <mat-icon>add</mat-icon> Nuovo ordine fornitore
+    </button>
+  </div>
+
+  <div class="card">
+    <table mat-table [dataSource]="ordini" class="mat-mdc-table">
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Numero</th>
+        <td mat-cell *matCellDef="let o"><b>{{ o.numero }}</b></td>
+      </ng-container>
+      <ng-container matColumnDef="data">
+        <th mat-header-cell *matHeaderCellDef>Data</th>
+        <td mat-cell *matCellDef="let o">{{ o.dataOrdine | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="fornitore">
+        <th mat-header-cell *matHeaderCellDef>Fornitore</th>
+        <td mat-cell *matCellDef="let o">{{ o.fornitoreNome || '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="stato">
+        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <td mat-cell *matCellDef="let o"><span class="stato-chip" [class]="o.stato.toLowerCase()">{{ o.stato | titlecase }}</span></td>
+      </ng-container>
+      <ng-container matColumnDef="fattura">
+        <th mat-header-cell *matHeaderCellDef>Fattura ricevuta</th>
+        <td mat-cell *matCellDef="let o">
+          @if (o.acquistoNumero) {
+            <span class="fattura-badge"><mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle">link</mat-icon> {{ o.acquistoNumero }}</span>
+          } @else { <span style="color:var(--text-tertiary)">—</span> }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="totale">
+        <th mat-header-cell *matHeaderCellDef>Totale</th>
+        <td mat-cell *matCellDef="let o" class="euro">{{ (o.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="azioni">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let o" class="table-actions">
+          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="ofMenu" [matMenuTriggerData]="{ o: o }"><mat-icon>more_vert</mat-icon></button>
+        </td>
+      </ng-container>
+
+      <mat-menu #ofMenu="matMenu">
+        <ng-template matMenuContent let-o="o">
+          <button mat-menu-item type="button" (click)="modifica(o)"><mat-icon>edit</mat-icon> Modifica</button>
+          @if (o.stato === 'BOZZA') {
+            <button mat-menu-item type="button" (click)="setStato(o, 'EMESSO')"><mat-icon>send</mat-icon> Segna emesso</button>
+          }
+          @if (o.stato === 'EMESSO') {
+            <button mat-menu-item type="button" (click)="setStato(o, 'RICEVUTO')"><mat-icon>inventory_2</mat-icon> Segna ricevuto</button>
+          }
+          <button mat-menu-item type="button" (click)="collegaFattura(o)">
+            <mat-icon>link</mat-icon> {{ o.acquistoNumero ? 'Cambia / scollega fattura' : 'Collega fattura ricevuta' }}
+          </button>
+          <button mat-menu-item type="button" (click)="stampa(o)"><mat-icon>print</mat-icon> Stampa</button>
+          @if (o.stato !== 'ANNULLATO') {
+            <button mat-menu-item type="button" (click)="setStato(o, 'ANNULLATO')"><mat-icon>cancel</mat-icon> Annulla</button>
+          }
+          <button mat-menu-item type="button" (click)="elimina(o)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+        </ng-template>
+      </mat-menu>
+
+      <tr mat-header-row *matHeaderRowDef="cols"></tr>
+      <tr mat-row *matRowDef="let row; columns: cols;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [colSpan]="cols.length">
+          <app-empty-state icon="shopping_cart" title="Nessun ordine fornitore"
+            message="Crea il primo ordine verso un fornitore: il prodotto userà il codice di quel fornitore. Poi potrai segnarlo emesso, ricevuto e collegarlo alla fattura.">
+            <button mat-flat-button color="primary" type="button" (click)="nuovo()">
+              <mat-icon>add</mat-icon> Nuovo ordine fornitore
+            </button>
+          </app-empty-state>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>

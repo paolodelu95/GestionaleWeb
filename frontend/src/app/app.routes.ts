@@ -23,6 +23,7 @@ export const routes: Routes = [
   { path: 'ordini',       loadComponent: () => import('./components/ordini/ordini').then(m => m.OrdiniComponent) },
   { path: 'preventivi',   loadComponent: () => import('./components/preventivi/preventivi').then(m => m.PreventiviComponent) },
   { path: 'acquisti',     loadComponent: () => import('./components/acquisti/acquisti').then(m => m.AcquistiComponent) },
+  { path: 'ordini-fornitore', loadComponent: () => import('./components/ordini-fornitore/ordini-fornitore').then(m => m.OrdiniFornitoreComponent) },
   { path: 'pagamenti',    loadComponent: () => import('./components/pagamenti/pagamenti').then(m => m.PagamentiComponent) },
   { path: 'scadenzario', loadComponent: () => import('./components/scadenzario/scadenzario').then(m => m.ScadenzarioComponent) },
   { path: 'magazzino',      loadComponent: () => import('./components/magazzino/magazzino').then(m => m.MagazzinoComponent) },

@@ -4,11 +4,14 @@ const db = require('../database');
 const { audit } = require('../utils/audit');
 
 router.get('/', (req, res) => {
-  const rows = db.prepare(`SELECT o.*, c.ragione_sociale as cliente_nome, f.ragione_sociale as fornitore_nome
+  const rows = db.prepare(`SELECT o.*, c.ragione_sociale as cliente_nome, f.ragione_sociale as fornitore_nome,
+    a.numero as acquisto_numero
     FROM ordini o
     LEFT JOIN clienti c ON o.cliente_id = c.id
     LEFT JOIN fornitori f ON o.fornitore_id = f.id
-    ORDER BY o.data_ordine DESC`).all();
+    LEFT JOIN acquisti a ON o.acquisto_id = a.id
+    ${req.query.tipo ? "WHERE o.tipo = @tipo" : ''}
+    ORDER BY o.data_ordine DESC`).all(req.query.tipo ? { tipo: req.query.tipo } : {});
   res.json(rows.map(r => toDto(r)));
 });
 
@@ -31,9 +34,9 @@ router.post('/', (req, res) => {
   const o = req.body;
   const dup = db.prepare('SELECT id FROM ordini WHERE numero=?').get(o.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${o.numero} è già utilizzato da un altro documento` });
-  const result = db.prepare(`INSERT INTO ordini (numero, data_ordine, cliente_id, fornitore_id, tipo, stato, note)
-    VALUES (?,?,?,?,?,?,?)`)
-    .run(o.numero, o.dataOrdine, o.clienteId || null, o.fornitoreId || null, o.tipo || 'CLIENTE', o.stato || 'APERTO', o.note);
+  const result = db.prepare(`INSERT INTO ordini (numero, data_ordine, cliente_id, fornitore_id, tipo, stato, note, acquisto_id)
+    VALUES (?,?,?,?,?,?,?,?)`)
+    .run(o.numero, o.dataOrdine, o.clienteId || null, o.fornitoreId || null, o.tipo || 'CLIENTE', o.stato || 'APERTO', o.note, o.acquistoId || null);
   if (o.righe?.length) saveRighe(result.lastInsertRowid, o.righe);
   audit('ordine', result.lastInsertRowid, 'CREATE', { numero: o.numero, tipo: o.tipo, clienteId: o.clienteId, fornitoreId: o.fornitoreId, stato: o.stato || 'APERTO', numRighe: o.righe?.length || 0 });
   res.json({ id: result.lastInsertRowid });
@@ -87,6 +90,7 @@ function toDto(r) {
   return { id: r.id, numero: r.numero, dataOrdine: r.data_ordine,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
     fornitoreId: r.fornitore_id, fornitoreNome: r.fornitore_nome,
+    acquistoId: r.acquisto_id || null, acquistoNumero: r.acquisto_numero || null,
     tipo: r.tipo, stato: r.stato, note: r.note, totale, imponibile };
 }
 
@@ -110,6 +114,13 @@ router.patch('/:id/stato', (req, res) => {
   const before = db.prepare('SELECT stato FROM ordini WHERE id=?').get(req.params.id);
   db.prepare('UPDATE ordini SET stato=? WHERE id=?').run(req.body.stato, req.params.id);
   audit('ordine', Number(req.params.id), 'UPDATE', { before, after: { stato: req.body.stato } });
+  res.json({ success: true });
+});
+
+// Collega / scollega una fattura ricevuta (acquisto) all'ordine fornitore.
+router.patch('/:id/acquisto', (req, res) => {
+  const acquistoId = req.body?.acquistoId || null;
+  db.prepare('UPDATE ordini SET acquisto_id=? WHERE id=?').run(acquistoId, req.params.id);
   res.json({ success: true });
 });
 

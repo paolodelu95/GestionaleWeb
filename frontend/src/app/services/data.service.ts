@@ -128,6 +128,7 @@ export class DataService {
   setFatturaStato(id: number, stato: string): Observable<any> { return this.api.patch(`fatture/${id}/stato`, { stato }); }
   setNotaCreditoStato(id: number, stato: string): Observable<any> { return this.api.patch(`note-credito/${id}/stato`, { stato }); }
   setOrdineStato(id: number, stato: string): Observable<any> { return this.api.patch(`ordini/${id}/stato`, { stato }); }
+  collegaAcquistoOrdine(id: number, acquistoId: number | null): Observable<any> { return this.api.patch(`ordini/${id}/acquisto`, { acquistoId }); }
   setPreventivoStato(id: number, stato: string): Observable<any> { return this.api.patch(`preventivi/${id}/stato`, { stato }); }
 
   // Pagamenti
