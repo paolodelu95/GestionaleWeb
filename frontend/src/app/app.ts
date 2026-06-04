@@ -7,6 +7,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -44,7 +45,7 @@ interface NavItem {
   imports: [
     CommonModule, RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatListModule,
-    MatIconModule, MatExpansionModule, MatButtonModule, MatTooltipModule,
+    MatIconModule, MatExpansionModule, MatMenuModule, MatButtonModule, MatTooltipModule,
     MatBadgeModule, MatInputModule, MatFormFieldModule, FormsModule,
     LoginComponent, CookieConsentComponent,
   ],

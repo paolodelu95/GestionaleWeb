@@ -2,6 +2,7 @@
 .shell {
   height: 100vh;
   display: flex;
+  flex-direction: column; // EXPERIMENT top-nav: nav in alto, contenuto sotto
   background: var(--bg-page);
   overflow: hidden;
 }
@@ -268,7 +269,121 @@
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  min-height: 0; // EXPERIMENT top-nav: lascia scrollare .content-area sotto la barra
   overflow: hidden;
+}
+
+// ── EXPERIMENT top-nav: barra di navigazione orizzontale ───────────────────────
+.sidenav.sidenav--top {
+  width: 100% !important;
+  height: auto !important;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-right: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+
+  .sidenav-header {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    min-height: 56px;
+    padding: 0 14px 0 2px;
+    background: none;
+    border-bottom: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    flex-shrink: 0;
+  }
+  .sidenav-title { font-size: 18px; }
+
+  .top-nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .top-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 12px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+
+    mat-icon { font-size: 19px; width: 19px; height: 19px; color: inherit; flex-shrink: 0; }
+    .top-nav-caret { font-size: 16px; width: 16px; height: 16px; opacity: 0.6; margin-left: -3px; }
+
+    &:hover { background: rgba(255, 255, 255, 0.06); color: #e2e8f0; }
+    &.active-link {
+      background: linear-gradient(135deg, #11769b 0%, #15a4a2 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px -3px rgba(17, 118, 155, 0.5);
+    }
+    .nav-badge.warn {
+      background: #f59e0b; color: #1e293b;
+      font-size: 10px; font-weight: 800;
+      min-width: 16px; height: 16px; line-height: 16px;
+      border-radius: 99px; padding: 0 4px; text-align: center;
+    }
+  }
+
+  .sidenav-footer {
+    margin: 0;
+    padding: 0 0 0 6px;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+  .sidenav-footer-btn {
+    width: auto;
+    height: 40px;
+    flex-direction: row;
+    gap: 7px;
+    padding: 0 12px;
+    .top-nav-label { font-size: 13px; }
+  }
+
+  // Toggle hamburger → modalità compatta solo icone
+  &.icons-only {
+    .top-nav-label { display: none; }
+    .top-nav-btn { padding: 0 10px; }
+    .sidenav-footer-btn .top-nav-label { display: none; }
+  }
+}
+
+// Top-nav: niente drawer fisso su mobile, resta barra orizzontale scrollabile
+@media (max-width: 767px) {
+  .sidenav.sidenav--top {
+    position: relative !important;
+    width: 100% !important;
+    transform: none !important;
+  }
 }
 
 // ── Topbar ────────────────────────────────────────────────────────────────────
