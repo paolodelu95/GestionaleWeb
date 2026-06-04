@@ -219,6 +219,17 @@ button:focus:not(:focus-visible) { outline: none; }
   .mat-expansion-indicator::after { color: #64748b !important; }
 }
 
+// ── Host dei componenti instradati ────────────────────────────────────────────
+// Gli host dei componenti standalone sono `display: inline` di default: così
+// l'elemento <app-...> si restringe al contenuto e la pagina non riempie la
+// larghezza/altezza. Forzandolo a block (full size) la .page e le card riempiono.
+.content-area > *:not(.pwa-banner):not(router-outlet) {
+  display: block;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
 // ── Page layout helpers ───────────────────────────────────────────────────────
 .page {
   padding: 28px 32px;
