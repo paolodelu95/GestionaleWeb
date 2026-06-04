@@ -226,7 +226,16 @@ button:focus:not(:focus-visible) { outline: none; }
   min-height: 100%;
   box-sizing: border-box;
   max-width: 100%;
+  /* Flex column: i figli (header, filtri, card) si estendono sempre a tutta la
+     larghezza, anche quando la card contiene una tabella vuota (che altrimenti
+     farebbe "collassare" la larghezza). */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
+
+/* La card delle liste riempie sempre la larghezza disponibile */
+.page > .card { width: 100%; }
 
 .page-header {
   display: flex;
