@@ -4,20 +4,19 @@
 } @else if (!loggedIn) {
   <app-login (loggedIn)="onLogin()" />
 } @else {
-<div class="shell">
-  @if (!collapsed) {
-    <div class="sidenav-backdrop" (click)="toggleSidebar()"></div>
-  }
-  <!-- EXPERIMENT top-nav: barra di navigazione orizzontale in alto -->
-  <aside class="sidenav sidenav--top" [class.icons-only]="collapsed">
+<div class="shell" [class.shell--top]="layout.navLayout() === 'top'">
+
+@if (layout.navLayout() === 'top') {
+  <!-- ── Layout: barra di navigazione superiore (priority nav + "Altro") ── -->
+  <aside class="sidenav sidenav--top">
     <div class="sidenav-header">
       <span class="sidenav-title">Ordeva</span>
     </div>
 
-    <nav class="top-nav">
-      @for (item of visibleNavItems; track item.label) {
+    <nav class="top-nav" #topNavEl [class.nav-measuring]="navMeasuring">
+      @for (item of topVisibleItems; track item.label) {
         @if (!item.children) {
-          <a class="top-nav-btn" [routerLink]="item.route" routerLinkActive="active-link"
+          <a class="top-nav-btn top-nav-item" [routerLink]="item.route" routerLinkActive="active-link"
              [matTooltip]="item.label" matTooltipPosition="below" (click)="closeOnMobile()">
             <mat-icon>{{ item.icon }}</mat-icon>
             <span class="top-nav-label">{{ item.label }}</span>
@@ -28,7 +27,7 @@
             }
           </a>
         } @else {
-          <button class="top-nav-btn" type="button" [matMenuTriggerFor]="grpMenu"
+          <button class="top-nav-btn top-nav-item" type="button" [matMenuTriggerFor]="grpMenu"
                   [matTooltip]="item.label" matTooltipPosition="below">
             <mat-icon>{{ item.icon }}</mat-icon>
             <span class="top-nav-label">{{ item.label }}</span>
@@ -49,7 +48,56 @@
           </mat-menu>
         }
       }
+
+      <!-- Voci in eccesso: menu "Altro" (priority nav) -->
+      @if (topOverflowItems.length) {
+        <button class="top-nav-btn top-nav-more" type="button" [matMenuTriggerFor]="moreMenu"
+                matTooltip="Altre sezioni" matTooltipPosition="below">
+          <mat-icon>more_horiz</mat-icon>
+          <span class="top-nav-label">Altro</span>
+          <mat-icon class="top-nav-caret">expand_more</mat-icon>
+        </button>
+        <mat-menu #moreMenu="matMenu">
+          @for (item of topOverflowItems; track item.label) {
+            @if (!item.children) {
+              <a mat-menu-item [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+                <mat-icon>{{ item.icon }}</mat-icon>
+                <span>{{ item.label }}</span>
+                @if (item.route === '/pagamenti' && badges.scadenzeScadute > 0) {
+                  <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
+                } @else if (item.route === '/prodotti' && badges.prodottiSottoSoglia > 0) {
+                  <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
+                }
+              </a>
+            } @else {
+              <button mat-menu-item type="button" [matMenuTriggerFor]="ovSub">
+                <mat-icon>{{ item.icon }}</mat-icon>
+                <span>{{ item.label }}</span>
+              </button>
+              <mat-menu #ovSub="matMenu">
+                @for (child of item.children; track child.label) {
+                  <a mat-menu-item [routerLink]="child.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+                    <mat-icon>{{ child.icon }}</mat-icon>
+                    <span>{{ child.label }}</span>
+                  </a>
+                }
+              </mat-menu>
+            }
+          }
+        </mat-menu>
+      }
     </nav>
+
+    <!-- Ruler nascosto: misura la larghezza naturale di tutte le voci per l'overflow -->
+    <div class="top-nav-ruler" #topNavRuler aria-hidden="true">
+      @for (item of visibleNavItems; track item.label) {
+        <span class="top-nav-btn top-nav-item">
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span class="top-nav-label">{{ item.label }}</span>
+          @if (item.children) { <mat-icon class="top-nav-caret">expand_more</mat-icon> }
+        </span>
+      }
+    </div>
 
     <div class="sidenav-footer">
       <button class="sidenav-footer-btn" (click)="openBugReport()"
@@ -59,12 +107,91 @@
       </button>
     </div>
   </aside>
+} @else {
+  <!-- ── Layout: barra laterale (collassabile, default) ── -->
+  @if (!collapsed) {
+    <div class="sidenav-backdrop" (click)="toggleSidebar()"></div>
+  }
+  <aside class="sidenav" [class.collapsed]="collapsed">
+    <div class="sidenav-header">
+      @if (!collapsed) {
+        <span class="sidenav-title">Ordeva</span>
+        <span class="sidenav-sub">Gestionale ERP</span>
+      } @else {
+        <mat-icon class="collapsed-logo">business</mat-icon>
+      }
+    </div>
+
+    @if (collapsed) {
+      <div class="nav-icons">
+        @for (item of visibleFlatNavItems; track item.label) {
+          <a class="nav-icon-btn" [routerLink]="item.route" routerLinkActive="active-link"
+             [matTooltip]="item.label" matTooltipPosition="right" (click)="closeOnMobile()">
+            <mat-icon>{{ item.icon }}</mat-icon>
+          </a>
+        }
+      </div>
+    } @else {
+      <mat-nav-list dense>
+        @for (item of visibleNavItems; track item.label) {
+          @if (!item.children) {
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              @if (item.route === '/pagamenti') {
+                <span matListItemTitle class="nav-item-with-badge">
+                  Pagamenti
+                  @if (badges.scadenzeScadute > 0) {
+                    <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
+                  }
+                </span>
+              } @else if (item.route === '/prodotti') {
+                <span matListItemTitle class="nav-item-with-badge">
+                  Prodotti
+                  @if (badges.prodottiSottoSoglia > 0) {
+                    <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
+                  }
+                </span>
+              } @else {
+                <span matListItemTitle>{{ item.label }}</span>
+              }
+            </a>
+          } @else {
+            <mat-expansion-panel class="sidenav-panel">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-icon">{{ item.icon }}</mat-icon>
+                  {{ item.label }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              @for (child of item.children; track child.label) {
+                <a mat-list-item [routerLink]="child.route" routerLinkActive="active-link" class="sub-item" (click)="closeOnMobile()">
+                  <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
+                  <span matListItemTitle>{{ child.label }}</span>
+                </a>
+              }
+            </mat-expansion-panel>
+          }
+        }
+      </mat-nav-list>
+    }
+
+    <div class="sidenav-footer">
+      <button class="sidenav-footer-btn" (click)="openBugReport()"
+              [matTooltip]="collapsed ? 'Segnala un problema' : ''" matTooltipPosition="right">
+        <mat-icon>bug_report</mat-icon>
+        @if (!collapsed) { <span>Segnala problema</span> }
+      </button>
+    </div>
+  </aside>
+}
 
   <div class="main-content">
     <mat-toolbar class="topbar">
-      <button mat-icon-button type="button" class="toggle-btn" (click)="toggleSidebar()" [title]="collapsed ? 'Espandi menu' : 'Comprimi menu'">
-        <mat-icon>{{ collapsed ? 'menu' : 'menu_open' }}</mat-icon>
-      </button>
+      @if (layout.navLayout() === 'side') {
+        <button mat-icon-button type="button" class="toggle-btn" (click)="toggleSidebar()" [title]="collapsed ? 'Espandi menu' : 'Comprimi menu'">
+          <mat-icon>{{ collapsed ? 'menu' : 'menu_open' }}</mat-icon>
+        </button>
+      }
       <div class="topbar-company-wrap">
         <div class="company-avatar" [attr.aria-hidden]="true">
           {{ (azienda?.ragioneSociale || 'A').charAt(0).toUpperCase() }}

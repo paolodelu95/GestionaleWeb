@@ -101,6 +101,28 @@
       </div>
     </mat-tab>
 
+    <!-- ── Aspetto (preferenze UI: layout navigazione) ────────────────────────── -->
+    <mat-tab label="Aspetto">
+      <div class="tab-content">
+        <div class="card" style="max-width:600px">
+          <h3 class="section-title">Navigazione</h3>
+          <p style="color:#64748b;font-size:13px;margin:0 0 14px">
+            Scegli dove mostrare il menu. La <b>barra laterale</b> resta collassabile;
+            la <b>barra superiore</b> raccoglie le voci in eccesso nel menu «Altro».
+          </p>
+          <mat-button-toggle-group [value]="navLayout" (change)="setNavLayout($event.value)"
+                                   aria-label="Layout di navigazione" hideSingleSelectionIndicator>
+            <mat-button-toggle value="side">
+              <mat-icon>view_sidebar</mat-icon> Barra laterale
+            </mat-button-toggle>
+            <mat-button-toggle value="top">
+              <mat-icon>toolbar</mat-icon> Barra superiore
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+      </div>
+    </mat-tab>
+
     <!-- ── Moduli (Livello 2: attivazione moduli per tenant) ──────────────────── -->
     <mat-tab label="Moduli">
       <div class="tab-content">

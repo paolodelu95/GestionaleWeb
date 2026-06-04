@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -22,6 +22,7 @@ import { NotificationService, NotificationBadges } from './services/notification
 import { OfflineService } from './services/offline.service';
 import { ModuliService } from './services/moduli.service';
 import { DocLockService } from './services/doc-lock.service';
+import { LayoutService } from './services/layout.service';
 import { LoginComponent } from './components/login/login';
 import { CookieConsentComponent } from './components/shared/cookie-consent';
 import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
@@ -52,11 +53,28 @@ interface NavItem {
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App implements OnInit {
+export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
+  /** Container della top-nav: serve per calcolare l'overflow delle voci. */
+  @ViewChild('topNavEl') topNavEl?: ElementRef<HTMLElement>;
 
   azienda: Azienda | null = null;
   collapsed = false;
+
+  // ── Top-nav overflow ("priority nav"): mostra le voci che entrano, il resto
+  //    finisce nel menu "Altro". navVisibleCount = quante voci inline mostrare. ──
+  /** Container nascosto che misura la larghezza naturale di TUTTE le voci. */
+  @ViewChild('topNavRuler') topNavRuler?: ElementRef<HTMLElement>;
+  navVisibleCount = 99;
+  /** True finché non è stato calcolato il primo overflow: la barra resta nascosta (no flash). */
+  navMeasuring = true;
+  private navLastTotal = -1;
+  private navRecomputePending = false;
+  private navRO?: ResizeObserver;
+  private navObservedEl?: HTMLElement;
+  /** Spazio da riservare a fine barra per il pulsante "Altro". */
+  private readonly NAV_MORE_W = 104;
+  private readonly NAV_GAP = 2;
   loggedIn = false;
   /**
    * True quando l'URL corrente è una route pubblica (es. /faq).
@@ -113,6 +131,8 @@ export class App implements OnInit {
     private offlineSvc: OfflineService,
     public moduli: ModuliService,
     private docLockSvc: DocLockService,
+    private zone: NgZone,
+    public layout: LayoutService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -275,6 +295,80 @@ export class App implements OnInit {
 
   toggleSidebar() { this.collapsed = !this.collapsed; }
   closeOnMobile() { if (window.innerWidth < 768) this.collapsed = true; }
+
+  // ── Top-nav overflow ─────────────────────────────────────────────────────────
+  ngAfterViewInit() { this.syncNavObserver(); }
+
+  ngAfterViewChecked() {
+    // Attacca/stacca l'observer quando si entra/esce dalla modalità top-nav.
+    this.syncNavObserver();
+    // Solo in modalità top: se cambia il numero di voci (login/moduli/ruolo)
+    // senza un resize, ricalcola l'overflow fuori dal ciclo di CD.
+    if (this.layout.navLayout() !== 'top') return;
+    const total = this.visibleNavItems.length;
+    if (total !== this.navLastTotal && !this.navRecomputePending) {
+      this.navRecomputePending = true;
+      requestAnimationFrame(() => { this.navRecomputePending = false; this.zone.run(() => this.computeNavOverflow()); });
+    }
+  }
+
+  ngOnDestroy() { this.navRO?.disconnect(); }
+
+  /** Collega il ResizeObserver alla barra solo quando la top-nav è montata. */
+  private syncNavObserver() {
+    const el = this.layout.navLayout() === 'top' ? this.topNavEl?.nativeElement : undefined;
+    if (el) {
+      if (this.navObservedEl !== el) {
+        this.navRO?.disconnect();
+        if (typeof ResizeObserver !== 'undefined') {
+          this.navRO = new ResizeObserver(() => this.zone.run(() => this.computeNavOverflow()));
+          this.navRO.observe(el);
+        }
+        this.navObservedEl = el;
+        this.navLastTotal = -1;              // forza un nuovo calcolo
+        this.navMeasuring = true;
+        requestAnimationFrame(() => this.zone.run(() => this.computeNavOverflow()));
+      }
+    } else if (this.navObservedEl) {
+      this.navRO?.disconnect();
+      this.navObservedEl = undefined;
+    }
+  }
+
+  /** Voci top-level che entrano inline nella barra. */
+  get topVisibleItems(): NavItem[] { return this.visibleNavItems.slice(0, this.navVisibleCount); }
+  /** Voci in eccesso, mostrate nel menu "Altro". */
+  get topOverflowItems(): NavItem[] { return this.visibleNavItems.slice(this.navVisibleCount); }
+
+  /**
+   * Calcola quante voci stanno nella larghezza disponibile; il resto va in "Altro".
+   * Le larghezze naturali si leggono dal "ruler" nascosto (contiene SEMPRE tutte le
+   * voci): misura affidabile, indipendente da quante voci sono al momento visibili.
+   */
+  computeNavOverflow() {
+    const el = this.topNavEl?.nativeElement;
+    const ruler = this.topNavRuler?.nativeElement;
+    if (!el || !ruler) return;
+
+    const widths = Array.from(ruler.querySelectorAll<HTMLElement>('.top-nav-item'))
+      .map(i => i.offsetWidth + this.NAV_GAP);
+    const total = widths.length;
+    this.navLastTotal = total;
+    if (total === 0) { this.navVisibleCount = 0; this.navMeasuring = false; return; }
+
+    const avail = el.clientWidth;
+    const sum = widths.reduce((a, b) => a + b, 0);
+    if (sum <= avail) {
+      this.navVisibleCount = total;            // entrano tutte: niente "Altro"
+    } else {
+      let acc = 0, count = 0;
+      for (const w of widths) {
+        if (acc + w <= avail - this.NAV_MORE_W) { acc += w; count++; } else break;
+      }
+      this.navVisibleCount = Math.max(1, count);
+    }
+    this.navMeasuring = false;
+  }
 
   onSearchInput(q: string) {
     this.highlightedIndex = 0;

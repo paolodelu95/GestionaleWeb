@@ -2,10 +2,11 @@
 .shell {
   height: 100vh;
   display: flex;
-  flex-direction: column; // EXPERIMENT top-nav: nav in alto, contenuto sotto
   background: var(--bg-page);
   overflow: hidden;
 }
+// Layout "barra superiore": nav in alto, contenuto sotto
+.shell.shell--top { flex-direction: column; }
 
 // ── Sidenav ──────────────────────────────────────────────────────────────────
 .sidenav {
@@ -313,9 +314,27 @@
     gap: 2px;
     flex: 1 1 auto;
     min-width: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
+    overflow: hidden;             // niente scroll: l'eccesso va nel menu "Altro"
+    // Durante la misura delle voci la barra è nascosta (no flash di tutte le voci)
+    &.nav-measuring { visibility: hidden; }
+  }
+
+  // Pulsante "Altro" (overflow): leggermente smorzato
+  .top-nav-more { color: #cbd5e1; }
+
+  // Ruler: fuori dal flusso e invisibile, serve solo a misurare le larghezze naturali
+  .top-nav-ruler {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    white-space: nowrap;
   }
 
   .top-nav-btn {
@@ -324,6 +343,7 @@
     gap: 7px;
     height: 40px;
     padding: 0 12px;
+    flex-shrink: 0;              // niente shrink: la misura per l'overflow resta corretta
     border: none;
     background: transparent;
     color: #94a3b8;
@@ -368,21 +388,28 @@
     padding: 0 12px;
     .top-nav-label { font-size: 13px; }
   }
-
-  // Toggle hamburger → modalità compatta solo icone
-  &.icons-only {
-    .top-nav-label { display: none; }
-    .top-nav-btn { padding: 0 10px; }
-    .sidenav-footer-btn .top-nav-label { display: none; }
-  }
 }
 
-// Top-nav: niente drawer fisso su mobile, resta barra orizzontale scrollabile
+// Top-nav: niente drawer fisso su mobile, resta barra orizzontale.
+// Neutralizza le regole del drawer laterale (.sidenav) che userebbero !important.
 @media (max-width: 767px) {
   .sidenav.sidenav--top {
     position: relative !important;
     width: 100% !important;
+    height: auto !important;
     transform: none !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    box-shadow: none !important;
+    z-index: auto;
+    padding: 0 6px;
+
+    // Più spazio per le voci: header compatto e footer solo-icona
+    .sidenav-header { padding: 0 8px 0 2px; min-height: 52px; }
+    .sidenav-title { font-size: 16px; }
+    .sidenav-footer { padding-left: 4px; }
+    .sidenav-footer-btn { padding: 0 8px; }
+    .sidenav-footer .top-nav-label { display: none; }
   }
 }
 

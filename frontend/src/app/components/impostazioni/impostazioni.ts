@@ -1,6 +1,7 @@
 import { inject, Component, OnInit, Inject } from '@angular/core';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
+import { LayoutService, NavLayout } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -410,6 +411,11 @@ export class PrefissoConfermaDialogComponent {
 })
 export class ImpostazioniComponent implements OnInit {
   private confirm = inject(ConfirmService);
+  private layout = inject(LayoutService);
+
+  /** Layout di navigazione corrente (barra laterale / superiore). */
+  get navLayout(): NavLayout { return this.layout.navLayout(); }
+  setNavLayout(v: NavLayout) { this.layout.setNavLayout(v); }
   form: FormGroup;
   filteredCities: CityResult[] = [];
   private cityMap = new Map<string, CityResult>();
