@@ -1020,5 +1020,23 @@
       </div>
     </mat-tab>
 
+    <!-- ── Amministrazione (solo ADMIN/SUPERADMIN) ─────────────────────────── -->
+    @if (isAdmin) {
+      <mat-tab label="Amministrazione">
+        <div class="tab-content">
+          <app-admin [embedded]="true"></app-admin>
+        </div>
+      </mat-tab>
+    }
+
+    <!-- ── Console SaaS (solo SUPERADMIN) ──────────────────────────────────── -->
+    @if (isSuper) {
+      <mat-tab label="Console SaaS">
+        <div class="tab-content">
+          <app-super-admin [embedded]="true"></app-super-admin>
+        </div>
+      </mat-tab>
+    }
+
   </mat-tab-group>
 </div>

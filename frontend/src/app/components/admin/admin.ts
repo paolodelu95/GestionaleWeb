@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject, Input } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -197,13 +197,15 @@ export class MembriDialogComponent {
   ],
   template: `
     <div class="page">
-      <div class="page-header">
-        <h1 class="page-title">Amministrazione</h1>
-        <p style="color:#64748b;font-size:13px;margin:4px 0 0">
-          Gestisci utenti e gruppi del tuo magazzino.
-          @if (isSuper) { Da SUPERADMIN puoi anche gestire altri clienti (tenant) e i loro moduli. }
-        </p>
-      </div>
+      @if (!embedded) {
+        <div class="page-header">
+          <h1 class="page-title">Amministrazione</h1>
+          <p style="color:#64748b;font-size:13px;margin:4px 0 0">
+            Gestisci utenti e gruppi del tuo magazzino.
+            @if (isSuper) { Da SUPERADMIN puoi anche gestire altri clienti (tenant) e i loro moduli. }
+          </p>
+        </div>
+      }
 
       @if (!isAdmin) {
         <div class="card" style="text-align:center;color:#dc2626;padding:32px">
@@ -387,6 +389,8 @@ export class MembriDialogComponent {
 })
 export class AdminComponent implements OnInit {
   private confirm = inject(ConfirmService);
+  /** Quando true (scheda dentro Impostazioni) nasconde l'header di pagina ridondante. */
+  @Input() embedded = false;
   isSuper = false;
   isAdmin = false;  // ADMIN o SUPERADMIN — può gestire gruppi/utenti
   tenants: any[] = [];

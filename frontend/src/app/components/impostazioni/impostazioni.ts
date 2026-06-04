@@ -36,6 +36,9 @@ import { ModuliService } from '../../services/moduli.service';
 import { DocLockService } from '../../services/doc-lock.service';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 import { ListinoDialogComponent } from './listino-dialog';
+import { AuthService } from '../../services/auth.service';
+import { AdminComponent } from '../admin/admin';
+import { SuperAdminComponent } from '../super-admin/super-admin';
 
 // ── Tipo Pagamento Dialog ────────────────────────────────────────────────────
 @Component({
@@ -405,13 +408,18 @@ export class PrefissoConfermaDialogComponent {
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
             MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule,
             MatExpansionModule, MatButtonToggleModule, MatSliderModule, MatTooltipModule, DragDropModule,
-            EmptyStateComponent],
+            EmptyStateComponent, AdminComponent, SuperAdminComponent],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })
 export class ImpostazioniComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private layout = inject(LayoutService);
+  private authSvc = inject(AuthService);
+
+  /** Ruolo utente: le schede Amministrazione e Console SaaS sono qui dentro, gated per ruolo. */
+  get isSuper(): boolean { return this.authSvc.getUser()?.ruolo === 'SUPERADMIN'; }
+  get isAdmin(): boolean { return this.isSuper || this.authSvc.getUser()?.ruolo === 'ADMIN'; }
 
   /** Layout di navigazione corrente (barra laterale / superiore). */
   get navLayout(): NavLayout { return this.layout.navLayout(); }

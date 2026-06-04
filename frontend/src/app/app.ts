@@ -469,8 +469,9 @@ export class App implements OnInit {
         { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },
       ]
     },
-    { label: 'Amministrazione', icon: 'admin_panel_settings', route: '/admin', adminOnly: true },
-    { label: 'Console SaaS',    icon: 'space_dashboard', route: '/super-admin', superadminOnly: true },
+    // Amministrazione e Console SaaS ora sono schede dentro Impostazioni (gated per ruolo),
+    // così non ingombrano la barra laterale/superiore. Le route /admin e /super-admin restano
+    // attive per il deep-link diretto.
   ];
 
   /** Voci di menu filtrate dai moduli attivi e dal ruolo dell'utente. */

@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, Inject } from '@angular/core';
+import { inject, Component, OnInit, Inject, Input } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -135,10 +135,12 @@ export class SuperTenantEditDialogComponent {
   template: `
     <div class="sa-page">
       <header class="sa-header">
-        <div>
-          <h1>Console SUPERADMIN</h1>
-          <p>Monitoraggio e gestione del SaaS Ordeva — tutti i tenant, abbonamenti, attività commerciale.</p>
-        </div>
+        @if (!embedded) {
+          <div>
+            <h1>Console SUPERADMIN</h1>
+            <p>Monitoraggio e gestione del SaaS Ordeva — tutti i tenant, abbonamenti, attività commerciale.</p>
+          </div>
+        }
         <button mat-stroked-button (click)="reload()" [disabled]="loading">
           <mat-icon>refresh</mat-icon> Aggiorna
         </button>
@@ -473,6 +475,8 @@ export class SuperTenantEditDialogComponent {
 })
 export class SuperAdminComponent implements OnInit {
   private confirm = inject(ConfirmService);
+  /** Quando true (scheda dentro Impostazioni) nasconde il titolo di pagina ridondante. */
+  @Input() embedded = false;
   isSuperAdmin = false;
   loading = false;
   stats: Stats | null = null;
