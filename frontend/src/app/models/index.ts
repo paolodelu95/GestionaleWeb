@@ -166,6 +166,16 @@ export interface Prodotto {
   varianti?: ProdottoVariante[];
   fornitoreIdPreferito?: number | null;
   riordinoQuantita?: number;
+  fornitori?: ProdottoFornitore[];
+}
+
+export interface ProdottoFornitore {
+  id?: number;
+  fornitoreId: number | null;
+  fornitoreNome?: string;
+  codiceFornitore?: string;
+  prezzoAcquisto?: number | null;
+  predefinito?: boolean;
 }
 
 export interface ProdottoVariante {

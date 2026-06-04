@@ -413,6 +413,25 @@ function initTenantSchema(db) {
     'ALTER TABLE clienti ADD COLUMN cellulare TEXT DEFAULT ""',
     'ALTER TABLE fornitori ADD COLUMN cellulare TEXT DEFAULT ""',
     'ALTER TABLE prodotti ADD COLUMN prezzo_acquisto REAL DEFAULT NULL',
+    `CREATE TABLE IF NOT EXISTS prodotto_fornitori (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      prodotto_id INTEGER NOT NULL,
+      fornitore_id INTEGER NOT NULL,
+      codice_fornitore TEXT DEFAULT '',
+      prezzo_acquisto REAL,
+      predefinito INTEGER DEFAULT 0,
+      FOREIGN KEY (prodotto_id) REFERENCES prodotti(id) ON DELETE CASCADE,
+      FOREIGN KEY (fornitore_id) REFERENCES fornitori(id) ON DELETE CASCADE
+    )`,
+    // Migrazione: porta il fornitore/codice/prezzo singolo esistente in prodotto_fornitori
+    // (solo per prodotti che non hanno ancora righe fornitore — idempotente).
+    `INSERT INTO prodotto_fornitori (prodotto_id, fornitore_id, codice_fornitore, prezzo_acquisto, predefinito)
+     SELECT id, fornitore_id_preferito, COALESCE(codice_fornitore,''), prezzo_acquisto, 1
+     FROM prodotti
+     WHERE fornitore_id_preferito IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM prodotto_fornitori pf WHERE pf.prodotto_id = prodotti.id)`,
+    'CREATE INDEX IF NOT EXISTS idx_pf_prodotto ON prodotto_fornitori(prodotto_id)',
+    'CREATE INDEX IF NOT EXISTS idx_pf_fornitore ON prodotto_fornitori(fornitore_id)',
     `CREATE TABLE IF NOT EXISTS clienti_indirizzi (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cliente_id INTEGER NOT NULL,

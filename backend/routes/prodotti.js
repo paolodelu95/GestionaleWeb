@@ -61,6 +61,7 @@ router.post('/', (req, res) => {
     saveVarianti(id, p.varianti);
     syncQuantita(id);
   }
+  if (p.fornitori) saveFornitori(id, p.fornitori);
   res.json({ id });
 });
 
@@ -133,6 +134,22 @@ router.get('/:id', (req, res) => {
   res.json(toDto(row));
 });
 
+// GET /api/prodotti/:id/fornitori — fornitori del prodotto (codice + prezzo per fornitore)
+router.get('/:id/fornitori', (req, res) => {
+  const rows = db.prepare(`
+    SELECT pf.id, pf.fornitore_id, pf.codice_fornitore, pf.prezzo_acquisto, pf.predefinito,
+           f.ragione_sociale AS fornitore_nome
+    FROM prodotto_fornitori pf
+    LEFT JOIN fornitori f ON f.id = pf.fornitore_id
+    WHERE pf.prodotto_id = ?
+    ORDER BY pf.predefinito DESC, f.ragione_sociale`).all(req.params.id);
+  res.json(rows.map(r => ({
+    id: r.id, fornitoreId: r.fornitore_id, fornitoreNome: r.fornitore_nome || '',
+    codiceFornitore: r.codice_fornitore || '', prezzoAcquisto: r.prezzo_acquisto ?? null,
+    predefinito: r.predefinito === 1,
+  })));
+});
+
 router.put('/:id', (req, res) => {
   const p = req.body;
   db.prepare(`UPDATE prodotti SET nome=?, categoria=?, descrizione=?, prezzo=?, prezzo_acquisto=?,
@@ -149,6 +166,7 @@ router.put('/:id', (req, res) => {
   } else {
     db.prepare('DELETE FROM prodotto_varianti WHERE prodotto_id=?').run(req.params.id);
   }
+  if (p.fornitori) saveFornitori(req.params.id, p.fornitori);
   res.json({ success: true });
 });
 
@@ -170,6 +188,27 @@ function saveVarianti(prodottoId, varianti) {
   for (const v of varianti) {
     stmt.run(prodottoId, v.taglia || '', v.colore || '', v.quantita ?? 0, v.barcode || '');
   }
+}
+
+// Salva i fornitori del prodotto (codice + prezzo per fornitore) e sincronizza i
+// campi singoli di compatibilità (fornitore_id_preferito, codice_fornitore) dal predefinito.
+function saveFornitori(prodottoId, fornitori) {
+  db.prepare('DELETE FROM prodotto_fornitori WHERE prodotto_id=?').run(prodottoId);
+  const list = Array.isArray(fornitori) ? fornitori.filter(f => f.fornitoreId) : [];
+  if (!list.length) {
+    db.prepare("UPDATE prodotti SET fornitore_id_preferito=NULL, codice_fornitore='' WHERE id=?").run(prodottoId);
+    return;
+  }
+  const pref = list.find(f => f.predefinito) || list[0];
+  const ins = db.prepare(`INSERT INTO prodotto_fornitori
+    (prodotto_id, fornitore_id, codice_fornitore, prezzo_acquisto, predefinito) VALUES (?,?,?,?,?)`);
+  for (const f of list) {
+    ins.run(prodottoId, f.fornitoreId, f.codiceFornitore || '',
+      (f.prezzoAcquisto === '' || f.prezzoAcquisto == null) ? null : Number(f.prezzoAcquisto),
+      f === pref ? 1 : 0);
+  }
+  db.prepare('UPDATE prodotti SET fornitore_id_preferito=?, codice_fornitore=? WHERE id=?')
+    .run(pref.fornitoreId, pref.codiceFornitore || '', prodottoId);
 }
 
 function syncQuantita(prodottoId) {

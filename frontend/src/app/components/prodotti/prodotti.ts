@@ -20,7 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
-import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
+import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva, Fornitore, ProdottoFornitore } from '../../models';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
@@ -131,11 +131,6 @@ const PRODOTTI_FIELDS: FieldDef[] = [
                 <mat-icon>qr_code_scanner</mat-icon>
               </button>
             </div>
-            <mat-form-field>
-              <mat-label>Codice fornitore</mat-label>
-              <input matInput formControlName="codiceFornitore" placeholder="Codice usato dal fornitore">
-              <mat-icon matSuffix>local_shipping</mat-icon>
-            </mat-form-field>
           </div>
         </div>
 
@@ -197,6 +192,52 @@ const PRODOTTI_FIELDS: FieldDef[] = [
               }
             </mat-form-field>
           </div>
+        </div>
+
+        <!-- ── Fornitori ────────────────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>local_shipping</mat-icon>
+            <span>Fornitori</span>
+            <span class="section-hint">Codice e prezzo per ciascun fornitore</span>
+          </div>
+          @for (f of fornitori; track $index) {
+            <div class="form-row" style="align-items:flex-start;gap:8px">
+              <mat-form-field style="flex:2">
+                <mat-label>Fornitore</mat-label>
+                <mat-select [(ngModel)]="f.fornitoreId" [ngModelOptions]="{ standalone: true }">
+                  @for (fo of fornitoriList; track fo.id) {
+                    <mat-option [value]="fo.id">{{ fo.ragioneSociale }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field style="flex:1">
+                <mat-label>Codice</mat-label>
+                <input matInput [(ngModel)]="f.codiceFornitore" [ngModelOptions]="{ standalone: true }" placeholder="Codice del fornitore">
+              </mat-form-field>
+              <mat-form-field style="flex:1">
+                <mat-label>Prezzo netto €</mat-label>
+                <input matInput type="number" step="0.01" min="0" [(ngModel)]="f.prezzoAcquisto" [ngModelOptions]="{ standalone: true }">
+              </mat-form-field>
+              <button mat-icon-button type="button" style="margin-top:6px"
+                      [color]="f.predefinito ? 'primary' : undefined"
+                      [title]="f.predefinito ? 'Fornitore predefinito' : 'Imposta come predefinito'"
+                      (click)="setPredefinito($index)">
+                <mat-icon>{{ f.predefinito ? 'star' : 'star_border' }}</mat-icon>
+              </button>
+              <button mat-icon-button type="button" style="margin-top:6px" title="Rimuovi fornitore" (click)="removeFornitore($index)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+          <button mat-stroked-button type="button" (click)="addFornitore()">
+            <mat-icon>add</mat-icon> Aggiungi fornitore
+          </button>
+          @if (!fornitori.length) {
+            <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px">
+              Aggiungi i fornitori da cui acquisti questo prodotto, ciascuno col proprio codice. Negli ordini il prodotto userà il codice del fornitore scelto.
+            </div>
+          }
         </div>
 
         <!-- ── Magazzino ────────────────────────────────── -->
@@ -317,6 +358,8 @@ export class ProdottoDialogComponent implements OnInit {
   unitaMisura: UnitaMisura[] = [];
   aliquoteIva: AliquotaIva[] = [];
   varianti: { id?: number; taglia: string; colore: string; quantita: number; barcode: string }[] = [];
+  fornitori: ProdottoFornitore[] = [];
+  fornitoriList: Fornitore[] = [];
 
   prezzoMode: 'netto' | 'ivato' = (localStorage.getItem('prodotto-prezzo-mode') as 'netto' | 'ivato') ?? 'netto';
 
@@ -368,7 +411,6 @@ export class ProdottoDialogComponent implements OnInit {
       nome:         [data?.nome ?? '', Validators.required],
       categoria:    [data?.categoria ?? ''],
       codice:          [data?.codice ?? ''],
-      codiceFornitore: [data?.codiceFornitore ?? ''],
       barcode:         [data?.barcode ?? ''],
       unitaMisura:  [data?.unitaMisura ?? 'pz'],
       prezzo:         [data?.prezzo ?? 0, [Validators.min(0)]],
@@ -395,13 +437,27 @@ export class ProdottoDialogComponent implements OnInit {
     });
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
     this.ds.getAliquoteIva().subscribe(a => this.aliquoteIva = a.filter(x => x.attiva));
+    this.ds.getFornitori().subscribe(f => this.fornitoriList = f);
     if (this.data?.id && this.data.haVarianti) {
       this.ds.getProdottoVarianti(this.data.id).subscribe(v => this.varianti = v);
+    }
+    if (this.data?.id) {
+      this.ds.getProdottoFornitori(this.data.id).subscribe(f => this.fornitori = f);
     }
   }
 
   addVariante() { this.varianti.push({ taglia: '', colore: '', quantita: 0, barcode: '' }); }
   removeVariante(i: number) { this.varianti.splice(i, 1); }
+
+  addFornitore() {
+    this.fornitori.push({ fornitoreId: null, codiceFornitore: '', prezzoAcquisto: null, predefinito: this.fornitori.length === 0 });
+  }
+  removeFornitore(i: number) {
+    const wasPref = this.fornitori[i]?.predefinito;
+    this.fornitori.splice(i, 1);
+    if (wasPref && this.fornitori.length) this.fornitori[0].predefinito = true;
+  }
+  setPredefinito(i: number) { this.fornitori.forEach((f, idx) => f.predefinito = idx === i); }
 
   scannerBarcode() {
     const ref = this.dialog.open(BarcodeScannerDialogComponent, { width: '480px', maxWidth: '95vw' });
@@ -412,7 +468,7 @@ export class ProdottoDialogComponent implements OnInit {
 
   save() {
     if (this.form.valid) {
-      this.dialogRef.close({ ...this.data, ...this.form.value, varianti: this.varianti });
+      this.dialogRef.close({ ...this.data, ...this.form.value, varianti: this.varianti, fornitori: this.fornitori });
     }
   }
 }

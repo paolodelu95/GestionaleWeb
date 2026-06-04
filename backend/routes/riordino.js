@@ -49,9 +49,10 @@ router.post('/genera', (req, res) => {
   const created = [];
   const insOrd = db.prepare(`INSERT INTO ordini (numero, data_ordine, fornitore_id, tipo, stato, note)
     VALUES (?,?,?,?,?,?)`);
-  const insRiga = db.prepare(`INSERT INTO ordini_righe (ordine_id, prodotto_id, descrizione, quantita, prezzo, iva)
-    VALUES (?,?,?,?,?,?)`);
+  const insRiga = db.prepare(`INSERT INTO ordini_righe (ordine_id, prodotto_id, descrizione, quantita, prezzo, iva, codice_fornitore)
+    VALUES (?,?,?,?,?,?,?)`);
   const getProd = db.prepare('SELECT nome, prezzo_acquisto, prezzo, iva FROM prodotti WHERE id=?');
+  const getPF = db.prepare('SELECT codice_fornitore, prezzo_acquisto FROM prodotto_fornitori WHERE prodotto_id=? AND fornitore_id=?');
 
   db.transaction(() => {
     for (const [fornitoreId, righe] of byForn) {
@@ -61,8 +62,10 @@ router.post('/genera', (req, res) => {
       const ordineId = insOrd.run(numero, oggi, fornitoreId, 'FORNITORE', 'APERTO', 'Riordino scorte').lastInsertRowid;
       for (const r of righe) {
         const prod = getProd.get(r.prodottoId);
+        const pf = getPF.get(r.prodottoId, fornitoreId);
+        const prezzo = pf?.prezzo_acquisto != null ? pf.prezzo_acquisto : (prod?.prezzo_acquisto ?? prod?.prezzo ?? 0);
         insRiga.run(ordineId, r.prodottoId, prod?.nome || '', Number(r.quantita),
-          prod?.prezzo_acquisto ?? prod?.prezzo ?? 0, prod?.iva ?? 22);
+          prezzo, prod?.iva ?? 22, pf?.codice_fornitore || '');
       }
       const forn = db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(fornitoreId);
       created.push({ numero, fornitoreNome: forn?.ragione_sociale || '', righe: righe.length });

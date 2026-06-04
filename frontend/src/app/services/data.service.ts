@@ -3,7 +3,7 @@ import { Observable, switchMap, shareReplay, map } from 'rxjs';
 import { ModuloDto } from '../models';
 import { ApiService } from './api.service';
 import {
-  Azienda, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
+  Azienda, Prodotto, ProdottoVariante, ProdottoFornitore, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
@@ -44,6 +44,7 @@ export class DataService {
 
   // Varianti prodotto
   getProdottoVarianti(prodottoId: number): Observable<ProdottoVariante[]> { return this.api.get(`prodotto-varianti/${prodottoId}`); }
+  getProdottoFornitori(prodottoId: number): Observable<ProdottoFornitore[]> { return this.api.get(`prodotti/${prodottoId}/fornitori`); }
   searchByBarcode(barcode: string): Observable<{ prodotto: Prodotto; variante: ProdottoVariante | null }> {
     return this.api.get(`prodotto-varianti/barcode/${encodeURIComponent(barcode)}`);
   }
