@@ -30,9 +30,13 @@ import { MatIconModule } from '@angular/material/icon';
       <div class="es-actions"><ng-content></ng-content></div>
     </div>`,
   styles: [`
+    :host { display: block; width: 100%; }
     .empty-state {
-      display: flex; flex-direction: column; align-items: center; text-align: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
       padding: 48px 24px; gap: 6px;
+      /* Riempie verticalmente quando la lista è vuota, restando responsive:
+         su schermi alti occupa lo spazio disponibile, su schermi bassi/mobile ha un minimo. */
+      min-height: max(260px, calc(100dvh - 420px));
     }
     .es-icon {
       width: 64px; height: 64px; border-radius: 50%;
@@ -48,8 +52,12 @@ import { MatIconModule } from '@angular/material/icon';
     .es-actions:empty { display: none; }
     .es-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
-    /* Variante compatta per sotto-liste */
-    .empty-state.compact { padding: 28px 16px; }
+    /* Variante compatta per sotto-liste / widget: resta piccola */
+    .empty-state.compact { padding: 28px 16px; min-height: 0; }
+    /* Su mobile riduco un po' l'altezza minima per evitare scroll eccessivo */
+    @media (max-width: 767px) {
+      .empty-state:not(.compact) { min-height: max(220px, calc(100dvh - 320px)); }
+    }
     .empty-state.compact .es-icon { width: 44px; height: 44px; margin-bottom: 6px; }
     .empty-state.compact .es-icon mat-icon { font-size: 22px; width: 22px; height: 22px; }
     .empty-state.compact .es-title { font-size: 14px; }
