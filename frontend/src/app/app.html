@@ -8,12 +8,12 @@
 
 @if (layout.navLayout() === 'top') {
   <!-- ── Layout: barra di navigazione superiore (priority nav + "Altro") ── -->
-  <aside class="sidenav sidenav--top" [class.icons-only]="navIconsOnly">
+  <aside class="sidenav sidenav--top">
     <div class="sidenav-header">
       <span class="sidenav-title">Ordeva</span>
     </div>
 
-    <nav class="top-nav" #topNavEl [class.nav-measuring]="navMeasuring">
+    <nav class="top-nav">
       @for (item of visibleNavItems; track item.label) {
         @if (!item.children) {
           <a class="top-nav-btn top-nav-item" [routerLink]="item.route" routerLinkActive="active-link"
@@ -49,17 +49,6 @@
         }
       }
     </nav>
-
-    <!-- Ruler nascosto: misura la larghezza naturale (icona+testo) di tutte le voci -->
-    <div class="top-nav-ruler" #topNavRuler aria-hidden="true">
-      @for (item of visibleNavItems; track item.label) {
-        <span class="top-nav-btn top-nav-item">
-          <mat-icon>{{ item.icon }}</mat-icon>
-          <span class="top-nav-label">{{ item.label }}</span>
-          @if (item.children) { <mat-icon class="top-nav-caret">expand_more</mat-icon> }
-        </span>
-      }
-    </div>
 
     <div class="sidenav-footer">
       <button class="sidenav-footer-btn" (click)="openBugReport()"

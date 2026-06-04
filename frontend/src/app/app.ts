@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, ElementRef, ViewChild, NgZone } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -53,27 +53,11 @@ interface NavItem {
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
+export class App implements OnInit {
   @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
-  /** Container della top-nav: serve per calcolare l'overflow delle voci. */
-  @ViewChild('topNavEl') topNavEl?: ElementRef<HTMLElement>;
 
   azienda: Azienda | null = null;
   collapsed = false;
-
-  // ── Top-nav adattiva: icona+testo quando entrano, altrimenti tutta la barra
-  //    passa a sole icone (una riga, niente menu "Altro"). ──
-  /** Container nascosto che misura la larghezza naturale (icona+testo) di tutte le voci. */
-  @ViewChild('topNavRuler') topNavRuler?: ElementRef<HTMLElement>;
-  /** True quando le voci con testo non entrano: la barra mostra solo le icone. */
-  navIconsOnly = false;
-  /** True finché non è stato calcolato il primo layout: la barra resta nascosta (no flash). */
-  navMeasuring = true;
-  private navLastTotal = -1;
-  private navRecomputePending = false;
-  private navRO?: ResizeObserver;
-  private navObservedEl?: HTMLElement;
-  private readonly NAV_GAP = 2;
   loggedIn = false;
   /**
    * True quando l'URL corrente è una route pubblica (es. /faq).
@@ -130,7 +114,6 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     private offlineSvc: OfflineService,
     public moduli: ModuliService,
     private docLockSvc: DocLockService,
-    private zone: NgZone,
     public layout: LayoutService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
@@ -294,65 +277,6 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   toggleSidebar() { this.collapsed = !this.collapsed; }
   closeOnMobile() { if (window.innerWidth < 768) this.collapsed = true; }
-
-  // ── Top-nav overflow ─────────────────────────────────────────────────────────
-  ngAfterViewInit() { this.syncNavObserver(); }
-
-  ngAfterViewChecked() {
-    // Attacca/stacca l'observer quando si entra/esce dalla modalità top-nav.
-    this.syncNavObserver();
-    // Solo in modalità top: se cambia il numero di voci (login/moduli/ruolo)
-    // senza un resize, ricalcola l'overflow fuori dal ciclo di CD.
-    if (this.layout.navLayout() !== 'top') return;
-    const total = this.visibleNavItems.length;
-    if (total !== this.navLastTotal && !this.navRecomputePending) {
-      this.navRecomputePending = true;
-      requestAnimationFrame(() => { this.navRecomputePending = false; this.zone.run(() => this.computeNavOverflow()); });
-    }
-  }
-
-  ngOnDestroy() { this.navRO?.disconnect(); }
-
-  /** Collega il ResizeObserver alla barra solo quando la top-nav è montata. */
-  private syncNavObserver() {
-    const el = this.layout.navLayout() === 'top' ? this.topNavEl?.nativeElement : undefined;
-    if (el) {
-      if (this.navObservedEl !== el) {
-        this.navRO?.disconnect();
-        if (typeof ResizeObserver !== 'undefined') {
-          this.navRO = new ResizeObserver(() => this.zone.run(() => this.computeNavOverflow()));
-          this.navRO.observe(el);
-        }
-        this.navObservedEl = el;
-        this.navLastTotal = -1;              // forza un nuovo calcolo
-        this.navMeasuring = true;
-        requestAnimationFrame(() => this.zone.run(() => this.computeNavOverflow()));
-      }
-    } else if (this.navObservedEl) {
-      this.navRO?.disconnect();
-      this.navObservedEl = undefined;
-    }
-  }
-
-  /**
-   * Decide se la barra mostra icona+testo o solo icone: confronta la somma delle
-   * larghezze naturali (icona+testo, lette dal "ruler" nascosto che contiene SEMPRE
-   * tutte le voci) con lo spazio disponibile. Misura affidabile e stabile (niente
-   * oscillazioni: la soglia non dipende dallo stato corrente della barra).
-   */
-  computeNavOverflow() {
-    const el = this.topNavEl?.nativeElement;
-    const ruler = this.topNavRuler?.nativeElement;
-    if (!el || !ruler) return;
-
-    const items = Array.from(ruler.querySelectorAll<HTMLElement>('.top-nav-item'));
-    this.navLastTotal = items.length;
-    if (items.length === 0) { this.navIconsOnly = false; this.navMeasuring = false; return; }
-
-    const sum = items.reduce((a, i) => a + i.offsetWidth + this.NAV_GAP, 0);
-    this.navIconsOnly = sum > el.clientWidth;   // il testo non entra → solo icone
-    this.navMeasuring = false;
-  }
 
   onSearchInput(q: string) {
     this.highlightedIndex = 0;

@@ -283,15 +283,12 @@
   align-items: center;
   gap: 6px;
   padding: 0 14px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
   border-right: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   position: relative !important;
   inset: auto !important;
   transform: none !important;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
 
   .sidenav-header {
     position: static;
@@ -307,49 +304,21 @@
   }
   .sidenav-title { font-size: 18px; }
 
+  // Desktop/tablet: icona+testo che vanno a capo su più righe se non entrano.
+  // Niente scroll, niente sole-icone: tutto sempre visibile e leggibile.
   .top-nav {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 2px;
+    gap: 2px 4px;
     flex: 1 1 auto;
     min-width: 0;
-    // Adattiva: di norma entra tutto (icona+testo o solo icone). Lo scroll è solo
-    // un'ultima risorsa su telefoni strettissimi dove neppure le sole icone entrano.
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
-    // Durante la prima misura la barra è nascosta (no flash)
-    &.nav-measuring { visibility: hidden; }
+    padding: 6px 0;
   }
 
-  // Footer "Segnala": sempre solo-icona in modalità top. Tenerlo a larghezza
-  // costante evita che il toggle icons-only cambi lo spazio della nav (oscillazione).
+  // Footer "Segnala": solo-icona (utility), tooltip col nome.
   .sidenav-footer .top-nav-label { display: none; }
-
-  // Modalità sole-icone (il testo non entra): nascondi le label delle voci (NON
-  // quelle del ruler, che servono a misurare) e compatta i pulsanti.
-  &.icons-only {
-    .top-nav .top-nav-label { display: none; }
-    .top-nav-btn { padding: 0 10px; gap: 0; }
-    .top-nav-caret { display: none; }
-  }
-
-  // Ruler: fuori dal flusso e invisibile, serve solo a misurare le larghezze naturali
-  .top-nav-ruler {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 0;
-    overflow: hidden;
-    visibility: hidden;
-    pointer-events: none;
-    display: flex;
-    flex-direction: row;
-    gap: 2px;
-    white-space: nowrap;
-  }
 
   .top-nav-btn {
     display: inline-flex;
@@ -404,26 +373,38 @@
   }
 }
 
-// Top-nav: niente drawer fisso su mobile, resta barra orizzontale.
-// Neutralizza le regole del drawer laterale (.sidenav) che userebbero !important.
+// Top-nav su mobile: niente drawer fisso; una sola riga di SOLE ICONE che
+// scorre orizzontalmente (swipe). Così ogni sezione resta raggiungibile
+// (es. Sistema → Impostazioni) anche con tante voci.
 @media (max-width: 767px) {
   .sidenav.sidenav--top {
     position: relative !important;
     width: 100% !important;
     height: auto !important;
     transform: none !important;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: visible;
     box-shadow: none !important;
     z-index: auto;
     padding: 0 6px;
 
-    // Più spazio per le voci: header compatto e footer solo-icona
+    // Header compatto; footer solo-icona
     .sidenav-header { padding: 0 8px 0 2px; min-height: 52px; }
     .sidenav-title { font-size: 16px; }
-    .sidenav-footer { padding-left: 4px; }
+    .sidenav-footer { padding-left: 4px; flex-shrink: 0; }
     .sidenav-footer-btn { padding: 0 8px; }
-    .sidenav-footer .top-nav-label { display: none; }
+
+    // Riga unica scrollabile a sole icone
+    .top-nav {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      padding: 4px 0;
+      &::-webkit-scrollbar { display: none; }
+    }
+    .top-nav .top-nav-label { display: none; }   // solo icone su mobile
+    .top-nav-caret { display: none; }
+    .top-nav-btn { padding: 0 9px; gap: 0; }
   }
 }
 
