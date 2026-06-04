@@ -668,6 +668,7 @@ app.use('/api/ddt',              require('./routes/ddt'));
 app.use('/api/fatture',          require('./routes/fatture'));
 app.use('/api/note-credito',     require('./routes/noteCredito'));
 app.use('/api/ordini',           require('./routes/ordini'));
+app.use('/api/riordino',         require('./routes/riordino'));
 app.use('/api/preventivi',       require('./routes/preventivi'));
 app.use('/api/pagamenti',        require('./routes/pagamenti'));
 app.use('/api/acquisti',         require('./routes/acquisti'));

@@ -478,6 +478,22 @@ export interface CausalePagamento {
   attivo?: boolean;
 }
 
+export interface PropostaRiordino {
+  prodottoId: number;
+  nome: string;
+  codice: string;
+  quantita: number;
+  sogliaMinima: number;
+  quantitaSuggerita: number;
+  prezzoAcquisto: number;
+  iva: number;
+  unitaMisura: string;
+  fornitoreId: number | null;
+  fornitoreNome: string | null;
+  // stato UI (non dal backend)
+  selected?: boolean;
+}
+
 export interface VenditaBanco {
   id?: number;
   numero: string;

@@ -6,7 +6,7 @@
     </button>
   </div>
 
-  <mat-tab-group animationDuration="0">
+  <mat-tab-group animationDuration="0" [(selectedIndex)]="selectedTab">
 
     <!-- ── Tab Movimenti ─────────────────────────────────────────────────── -->
     <mat-tab label="Movimenti">
@@ -216,6 +216,67 @@
           </table>
         } @else if (!loadingStorico) {
           <p class="empty-msg">Seleziona una data e premi "Calcola" per vedere le giacenze storiche.</p>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- ── Tab Da riordinare ─────────────────────────────────────────────── -->
+    <mat-tab label="Da riordinare">
+      <div class="card" style="margin-top:16px">
+        <div class="storico-bar" style="justify-content:space-between">
+          <span class="filter-label">
+            {{ proposte.length }} prodott{{ proposte.length === 1 ? 'o' : 'i' }} da riordinare
+            @if (proposteSelezionate.length) { · {{ proposteSelezionate.length }} selezionat{{ proposteSelezionate.length === 1 ? 'o' : 'i' }} }
+          </span>
+          <button mat-flat-button color="primary" type="button"
+                  [disabled]="generando || !proposteSelezionate.length" (click)="generaOrdini()">
+            <mat-icon>shopping_cart_checkout</mat-icon> Genera ordini fornitore
+          </button>
+        </div>
+
+        @if (!proposte.length) {
+          <app-empty-state compact icon="inventory_2" title="Niente da riordinare"
+            message="Tutti i prodotti sono sopra la soglia minima." />
+        } @else {
+          <table class="riordino-table">
+            <thead>
+              <tr>
+                <th style="width:36px"></th>
+                <th>Prodotto</th>
+                <th>Giacenza</th>
+                <th>Soglia</th>
+                <th>Fornitore</th>
+                <th style="width:120px">Q.tà da ordinare</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of proposte; track p.prodottoId) {
+                <tr [class.riordino-no-forn]="!p.fornitoreId">
+                  <td>
+                    <input type="checkbox" [(ngModel)]="p.selected" [disabled]="!p.fornitoreId">
+                  </td>
+                  <td>
+                    <div style="font-weight:600">{{ p.nome }}</div>
+                    @if (p.codice) { <div style="font-size:11px;color:var(--text-tertiary)">{{ p.codice }}</div> }
+                  </td>
+                  <td [style.color]="p.quantita <= 0 ? 'var(--danger-on)' : ''" style="font-weight:700">{{ p.quantita }}</td>
+                  <td>{{ p.sogliaMinima }}</td>
+                  <td>
+                    @if (p.fornitoreNome) { {{ p.fornitoreNome }} }
+                    @else { <span style="color:var(--warning-on);font-size:12px">Nessun fornitore preferito</span> }
+                  </td>
+                  <td>
+                    <input class="riordino-qty" type="number" min="1" step="1"
+                           [(ngModel)]="p.quantitaSuggerita" [disabled]="!p.fornitoreId">
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <p style="font-size:12px;color:var(--text-tertiary);padding:10px 16px;margin:0">
+            I prodotti senza fornitore preferito non sono ordinabili in automatico: impostalo nella scheda prodotto.
+            Gli ordini vengono creati raggruppati per fornitore (uno per fornitore).
+          </p>
         }
       </div>
     </mat-tab>

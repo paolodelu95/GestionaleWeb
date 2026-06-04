@@ -110,9 +110,9 @@
                   </a>
                 }
                 @if (prodottiSottoSoglia.length > 0) {
-                  <a class="alert-chip alert-orange" [routerLink]="['/prodotti']">
-                    <mat-icon>inventory</mat-icon>
-                    {{ prodottiSottoSoglia.length }} {{ prodottiSottoSoglia.length === 1 ? 'prodotto sotto soglia' : 'prodotti sotto soglia' }}
+                  <a class="alert-chip alert-orange" [routerLink]="['/magazzino']" [queryParams]="{ tab: 'riordino' }">
+                    <mat-icon>shopping_cart_checkout</mat-icon>
+                    {{ prodottiSottoSoglia.length }} da riordinare
                   </a>
                 }
               </div>

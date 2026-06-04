@@ -12,8 +12,10 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { ActivatedRoute } from '@angular/router';
+import { EmptyStateComponent } from '../shared/empty-state';
 import { DataService } from '../../services/data.service';
-import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente } from '../../models';
+import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente, PropostaRiordino } from '../../models';
 
 // ── Rettifica giacenza con scelta prodotto (dal Magazzino) ───────────────────
 @Component({
@@ -83,7 +85,7 @@ export class MagazzinoRettificaDialogComponent {
     CommonModule, FormsModule,
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatTabsModule, MatTooltipModule, MatSnackBarModule, MatDialogModule,
+    MatTabsModule, MatTooltipModule, MatSnackBarModule, MatDialogModule, EmptyStateComponent,
   ],
   templateUrl: './magazzino.html',
   styles: [`
@@ -109,6 +111,11 @@ export class MagazzinoRettificaDialogComponent {
     .summary-bar { display: flex; gap: 20px; padding: 12px 16px; background: var(--bg-surface-2); border-bottom: 1px solid var(--border-subtle); }
     .summary-item { font-size: 13px; color: var(--text-secondary); }
     .summary-item b { color: var(--text-primary); }
+    .riordino-table { width: 100%; border-collapse: collapse; }
+    .riordino-table th { font-weight: 700; font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .5px; background: var(--bg-surface-2); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border-subtle); }
+    .riordino-table td { font-size: 13px; color: var(--text-primary); padding: 8px 16px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+    .riordino-no-forn { opacity: .65; }
+    .riordino-qty { width: 90px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 8px; font-size: 13px; text-align: right; background: var(--bg-surface); color: var(--text-primary); }
   `]
 })
 export class MagazzinoComponent implements OnInit, AfterViewInit {
@@ -163,7 +170,37 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
 
   @ViewChild('sortStor') sortStor!: MatSort;
 
-  constructor(private ds: DataService, private snack: MatSnackBar, private dialog: MatDialog) {}
+  // ── Da riordinare ────────────────────────────────────────────────────────
+  proposte: PropostaRiordino[] = [];
+  generando = false;
+  selectedTab = 0;
+
+  loadProposte() {
+    this.ds.getProposteRiordino().subscribe(p => {
+      this.proposte = p.map(x => ({ ...x, selected: x.fornitoreId != null }));
+    });
+  }
+  get proposteSelezionate(): PropostaRiordino[] {
+    return this.proposte.filter(p => p.selected && p.fornitoreId);
+  }
+  generaOrdini() {
+    const items = this.proposteSelezionate.map(p => ({
+      prodottoId: p.prodottoId, quantita: p.quantitaSuggerita, fornitoreId: p.fornitoreId!,
+    }));
+    if (!items.length) { this.snack.open('Seleziona almeno un prodotto con fornitore preferito', '', { duration: 2800 }); return; }
+    this.generando = true;
+    this.ds.generaRiordino(items).subscribe({
+      next: r => {
+        this.generando = false;
+        const n = r.created.length;
+        this.snack.open(`${n} ordine${n === 1 ? '' : 'i'} fornitore creat${n === 1 ? 'o' : 'i'}`, '', { duration: 3000, panelClass: 'snack-ok' });
+        this.loadProposte();
+      },
+      error: e => { this.generando = false; this.snack.open(e.error?.error || 'Errore generazione ordini', '', { duration: 3000 }); },
+    });
+  }
+
+  constructor(private ds: DataService, private snack: MatSnackBar, private dialog: MatDialog, private route: ActivatedRoute) {}
 
   openRettifica() {
     this.dialog.open(MagazzinoRettificaDialogComponent, { data: { prodotti: this.prodottiList }, width: '440px' })
@@ -186,6 +223,8 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
     this.ds.getProdotti().subscribe(p => this.prodottiList = p);
     this.ds.getClienti().subscribe(c => this.clientiList = c);
     this.loadMovimenti();
+    this.loadProposte();
+    this.route.queryParams.subscribe(q => { if (q['tab'] === 'riordino') this.selectedTab = 2; });
   }
 
   ngAfterViewInit() {

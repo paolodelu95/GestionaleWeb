@@ -6,7 +6,7 @@ import {
   Azienda, Prodotto, ProdottoVariante, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
-  CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
+  CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
@@ -27,6 +27,12 @@ export class DataService {
   getProdottiSottoSoglia(): Observable<Prodotto[]> { return this.api.get('prodotti/sotto-soglia'); }
   rettificaGiacenza(id: number, quantita: number, note?: string): Observable<any> {
     return this.api.post(`prodotti/${id}/rettifica`, { quantita, note: note || '' });
+  }
+
+  // Riordino scorte
+  getProposteRiordino(): Observable<PropostaRiordino[]> { return this.api.get('riordino/proposte'); }
+  generaRiordino(items: { prodottoId: number; quantita: number; fornitoreId: number }[]): Observable<{ created: { numero: string; fornitoreNome: string; righe: number }[] }> {
+    return this.api.post('riordino/genera', { items });
   }
   getProdottiCount(): Observable<number> { return this.api.get('prodotti/count'); }
   getProdottiValore(): Observable<number> { return this.api.get('prodotti/valore'); }
