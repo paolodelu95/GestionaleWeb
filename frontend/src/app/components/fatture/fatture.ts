@@ -1481,23 +1481,42 @@ export class FattureComponent implements OnInit, AfterViewInit {
           error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
         });
       };
-      if (!result.id && this.notificheConfig.avvisoInsolutiFattura && result.clienteId) {
-        this.ds.getFattureInsoluteCliente(result.clienteId).subscribe({
-          next: fatture => {
-            if (fatture.length > 0) {
-              this.dialog.open(FattureInsoluteDialogComponent, {
-                data: { clienteNome: result.clienteNome || '', fatture },
-                width: '560px', maxWidth: '98vw',
-              }).afterClosed().subscribe(procedi => { if (procedi) salva(); });
-            } else {
-              salva();
-            }
-          },
-          error: () => salva(),
-        });
-      } else {
-        salva();
+      const conInsoluti = () => {
+        if (!result.id && this.notificheConfig.avvisoInsolutiFattura && result.clienteId) {
+          this.ds.getFattureInsoluteCliente(result.clienteId).subscribe({
+            next: fatture => {
+              if (fatture.length > 0) {
+                this.dialog.open(FattureInsoluteDialogComponent, {
+                  data: { clienteNome: result.clienteNome || '', fatture },
+                  width: '560px', maxWidth: '98vw',
+                }).afterClosed().subscribe(procedi => { if (procedi) salva(); });
+              } else {
+                salva();
+              }
+            },
+            error: () => salva(),
+          });
+        } else {
+          salva();
+        }
+      };
+      // Anti-duplicato: nuova fattura con stesso cliente, stessa data e stesso importo di una esistente
+      if (!result.id && result.clienteId) {
+        const tot = (result.righe || []).reduce((s: number, r: any) =>
+          s + (r.quantita || 0) * (r.prezzo || 0) * (1 - (r.sconto || 0) / 100) * (1 + (r.iva || 0) / 100), 0);
+        const dup = this.dataSource.data.find(f =>
+          f.stato !== 'ANNULLATA' && f.clienteId === result.clienteId &&
+          f.dataEmissione === result.dataEmissione && Math.abs((f.totale ?? 0) - tot) < 0.01);
+        if (dup) {
+          this.confirm.ask({
+            title: 'Possibile duplicato',
+            message: `Esiste già la fattura n. ${dup.numero} per lo stesso cliente, stessa data e stesso importo (${tot.toFixed(2)} €). Vuoi crearla comunque?`,
+            confirmText: 'Crea comunque', danger: true,
+          }).then(ok => { if (ok) conInsoluti(); });
+          return;
+        }
       }
+      conInsoluti();
     });
   }
 
