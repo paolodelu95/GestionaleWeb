@@ -87,28 +87,28 @@ export class MagazzinoRettificaDialogComponent {
   ],
   templateUrl: './magazzino.html',
   styles: [`
-    .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.08); overflow-x: auto; padding: 0; }
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+    .card { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); border: 1px solid var(--border-subtle); overflow-x: auto; padding: 0; }
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-subtle); align-items: center; }
     .filter-bar mat-select { min-width: 150px; }
-    .filter-bar input[type=date] { border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #334155; height: 36px; }
-    .filter-label { font-size: 12px; color: #94a3b8; font-weight: 600; letter-spacing:.5px; }
+    .filter-bar input[type=date] { border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--text-primary); background: var(--bg-surface); height: 36px; }
+    .filter-label { font-size: 12px; color: var(--text-tertiary); font-weight: 600; letter-spacing:.5px; }
     .filter-group { display: flex; align-items: center; gap: 6px; }
     mat-table { width: 100%; }
-    th.mat-header-cell { font-weight: 700; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; background: #f8fafc; }
-    td.mat-cell { font-size: 13px; color: #334155; padding: 8px 16px; }
+    th.mat-header-cell { font-weight: 700; font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .5px; background: var(--bg-surface-2); }
+    td.mat-cell { font-size: 13px; color: var(--text-primary); padding: 8px 16px; }
     .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
-    .chip.carico  { background: #dcfce7; color: #15803d; }
-    .chip.scarico { background: #fee2e2; color: #dc2626; }
-    .causale-label { font-size: 11px; color: #64748b; font-weight: 600; }
-    .doc-link { font-weight: 600; color: #0e6480; }
-    .empty-msg { text-align: center; padding: 40px; color: #94a3b8; }
-    .storico-bar { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; }
-    .storico-bar input[type=date] { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; font-size: 14px; }
-    .qty-low { color: #dc2626; font-weight: 700; }
-    .qty-ok  { color: #15803d; font-weight: 700; }
-    .summary-bar { display: flex; gap: 20px; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #f1f5f9; }
-    .summary-item { font-size: 13px; color: #64748b; }
-    .summary-item b { color: #1a1a2e; }
+    .chip.carico  { background: var(--success-soft); color: var(--success-on); }
+    .chip.scarico { background: var(--danger-soft); color: var(--danger-on); }
+    .causale-label { font-size: 11px; color: var(--text-tertiary); font-weight: 600; }
+    .doc-link { font-weight: 600; color: var(--primary); }
+    .empty-msg { text-align: center; padding: 40px; color: var(--text-tertiary); }
+    .storico-bar { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; }
+    .storico-bar input[type=date] { border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; font-size: 14px; color: var(--text-primary); background: var(--bg-surface); }
+    .qty-low { color: var(--danger-on); font-weight: 700; }
+    .qty-ok  { color: var(--success-on); font-weight: 700; }
+    .summary-bar { display: flex; gap: 20px; padding: 12px 16px; background: var(--bg-surface-2); border-bottom: 1px solid var(--border-subtle); }
+    .summary-item { font-size: 13px; color: var(--text-secondary); }
+    .summary-item b { color: var(--text-primary); }
   `]
 })
 export class MagazzinoComponent implements OnInit, AfterViewInit {
