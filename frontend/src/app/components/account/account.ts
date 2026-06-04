@@ -232,6 +232,10 @@ import { AuthService } from '../../services/auth.service';
     }
     .acc-card-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
     .acc-card-icon {
+      /* box-sizing:content-box: col border-box globale il padding mangerebbe i 24px
+         dell'icona (24-16=8px di contenuto) e il glifo verrebbe clippato. Così il
+         riquadro è 40x40 con l'icona da 24px intera e centrata. */
+      box-sizing: content-box;
       flex-shrink: 0; padding: 8px;
       background: var(--primary-soft, #e6f1f6); color: var(--primary, #11769b);
       border-radius: 10px;
