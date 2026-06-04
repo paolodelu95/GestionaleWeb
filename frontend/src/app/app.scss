@@ -314,13 +314,27 @@
     gap: 2px;
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;             // niente scroll: l'eccesso va nel menu "Altro"
-    // Durante la misura delle voci la barra è nascosta (no flash di tutte le voci)
+    // Adattiva: di norma entra tutto (icona+testo o solo icone). Lo scroll è solo
+    // un'ultima risorsa su telefoni strettissimi dove neppure le sole icone entrano.
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+    // Durante la prima misura la barra è nascosta (no flash)
     &.nav-measuring { visibility: hidden; }
   }
 
-  // Pulsante "Altro" (overflow): leggermente smorzato
-  .top-nav-more { color: #cbd5e1; }
+  // Footer "Segnala": sempre solo-icona in modalità top. Tenerlo a larghezza
+  // costante evita che il toggle icons-only cambi lo spazio della nav (oscillazione).
+  .sidenav-footer .top-nav-label { display: none; }
+
+  // Modalità sole-icone (il testo non entra): nascondi le label delle voci (NON
+  // quelle del ruler, che servono a misurare) e compatta i pulsanti.
+  &.icons-only {
+    .top-nav .top-nav-label { display: none; }
+    .top-nav-btn { padding: 0 10px; gap: 0; }
+    .top-nav-caret { display: none; }
+  }
 
   // Ruler: fuori dal flusso e invisibile, serve solo a misurare le larghezze naturali
   .top-nav-ruler {
