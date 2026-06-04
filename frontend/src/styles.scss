@@ -1901,9 +1901,13 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .mat-mdc-dialog-content [style*="display:flex"] { flex-wrap: wrap; }
 }
 
-// Tabelle dentro card: scroll orizzontale invece di overflow
-.card > table,
-.card > .mat-mdc-table {
+// Tabelle native (non mat-table) dentro card: scroll orizzontale invece di overflow.
+// Le mat-table sono ESCLUSE di proposito: con display:block una <table> vuota
+// (matNoDataRow) non si stira a tutta larghezza e thead/tbody si stringono al
+// contenuto, lasciando vuota la metà destra della card sui laptop. Restando
+// display:table riempiono sempre la card; se le colonne non entrano è la
+// .card (overflow-x:auto) a scrollare.
+.card > table:not(.mat-mdc-table) {
   display: block;
   overflow-x: auto;
   max-width: 100%;
