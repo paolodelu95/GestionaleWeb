@@ -2007,6 +2007,21 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .mat-mdc-dialog-content { padding: 0 10px 12px !important; }
   .mat-mdc-dialog-actions { padding: 8px 10px !important; }
   .form-section { padding: 10px; gap: 6px; }
+
+  // Testata documento: UNA colonna su telefono. Il default è una griglia 3 colonne
+  // con min 220/140/150px (≈510px): su schermi <510px sforava in orizzontale
+  // (la regola a 2 colonne esisteva solo per i tablet 768–1023). Qui i campi si
+  // impilano e prendono tutta la larghezza → niente scroll orizzontale del form.
+  .doc-field-grid,
+  .doc-field-grid.has-2-extra { grid-template-columns: 1fr; }
+  .doc-field-grid > mat-form-field,
+  .doc-field-grid .grid-span-all { grid-column: 1 / -1; }
+
+  // Tab dei dialog documento: su telefono nascondo le icone "lead" e stringo il
+  // padding così le 3-4 tab entrano per intero, senza le frecce di paginazione
+  // (che sembravano un bug). Le icone di stato (warning/check) e i badge restano.
+  .mat-mdc-dialog-surface .tab-lead-icon { display: none !important; }
+  .mat-mdc-dialog-surface .mdc-tab { padding: 0 10px !important; }
   .dialog-hero {
     .dialog-hero-icon { width: 32px; height: 32px;
       mat-icon { font-size: 18px; width: 18px; height: 18px; } }

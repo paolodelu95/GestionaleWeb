@@ -7,6 +7,13 @@
       "runtimeArgs": ["start"],
       "port": 4200,
       "cwd": "frontend"
+    },
+    {
+      "name": "frontend-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["ng", "serve", "--configuration", "preview", "--port", "4300"],
+      "port": 4300,
+      "cwd": "frontend"
     }
   ]
 }
