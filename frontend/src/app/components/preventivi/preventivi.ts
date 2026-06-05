@@ -42,7 +42,7 @@ import { forkJoin } from 'rxjs';
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);box-shadow:0 4px 12px -2px rgba(8, 145, 178,0.35)">
+        <div class="dialog-hero-icon">
           <mat-icon>request_quote</mat-icon>
         </div>
         <div class="dialog-hero-text">
@@ -68,88 +68,92 @@ import { forkJoin } from 'rxjs';
 
       <div [class.doc-locked-content]="locked" (click)="onLockedClick($event)">
 
-      <form [formGroup]="form" class="dialog-form">
+      <div class="doc-form">
 
-        <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px" [formGroup]="form">
-          <mat-form-field style="flex:1">
-            <mat-label>Cliente *</mat-label>
-            <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                   (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
-                   [class.input-error]="submitted && !hasCliente">
-            <mat-icon matSuffix>search</mat-icon>
-            <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
-              @for (c of filteredClienti; track c.id) {
-                <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
-              }
-            </mat-autocomplete>
-            @if (submitted && !hasCliente) {
-              <mat-error>Seleziona un cliente</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field style="flex:0 0 175px">
-            <mat-label>Numero *</mat-label>
-            <input matInput formControlName="numero">
-          </mat-form-field>
-          <mat-form-field style="flex:0 0 160px">
-            <mat-label>Data emissione *</mat-label>
-            <input matInput type="date" formControlName="dataEmissione">
-          </mat-form-field>
-          <mat-form-field style="flex:0 0 140px">
-            <mat-label>Validità (gg)</mat-label>
-            <input matInput type="number" formControlName="validita">
-            <mat-icon matSuffix>schedule</mat-icon>
-          </mat-form-field>
-        </div>
-      </form>
-      <div class="righe-section">
-        <div class="righe-header">
-          <div style="display:flex;align-items:center;gap:12px">
-            <b>Righe *</b>
-            @if (submitted && !hasRighe) {
-              <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
-            }
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-              <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-              <mat-button-toggle [value]="true">Netto</mat-button-toggle>
-            </mat-button-toggle-group>
-            <button mat-stroked-button type="button" (click)="addRiga()">
-              <mat-icon>add</mat-icon> Aggiungi riga
-            </button>
-            <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-              <mat-icon>content_copy</mat-icon> Copia da...
-            </button>
-            <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-              <mat-icon>note_add</mat-icon> Aggiungi nota
-            </button>
-            <mat-menu #menuNota="matMenu">
-              <button mat-menu-item type="button" (click)="addNota('')">
-                <mat-icon>edit_note</mat-icon> Nota libera
-              </button>
-              @if (noteRapideList.length) {
-                <div style="padding:4px 16px;font-size:11px;font-weight:600;color:#94a3b8;pointer-events:none;text-transform:uppercase">Note rapide</div>
-                @for (nr of noteRapideList; track nr.id) {
-                  <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
+        <div class="form-section is-primary">
+          <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+          <div class="doc-field-grid has-2-extra" [formGroup]="form">
+            <mat-form-field>
+              <mat-label>Cliente *</mat-label>
+              <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
+                     (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
+                     [class.input-error]="submitted && !hasCliente">
+              <mat-icon matSuffix>search</mat-icon>
+              <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
+                @for (c of filteredClienti; track c.id) {
+                  <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
                 }
+              </mat-autocomplete>
+              @if (submitted && !hasCliente) {
+                <mat-error>Seleziona un cliente</mat-error>
               }
-            </mat-menu>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Numero *</mat-label>
+              <input matInput formControlName="numero">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Data emissione *</mat-label>
+              <input matInput type="date" formControlName="dataEmissione">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Validità (gg)</mat-label>
+              <input matInput type="number" formControlName="validita">
+              <mat-icon matSuffix>schedule</mat-icon>
+            </mat-form-field>
           </div>
         </div>
-        <table class="righe-table">
+
+        <div class="form-section">
+          <div class="righe-header">
+            <div class="righe-header-title">
+              <span>Righe *</span>
+              @if (submitted && !hasRighe) {
+                <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
+              }
+            </div>
+            <div class="righe-actions">
+              <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
+                <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
+                <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+              </mat-button-toggle-group>
+              <button mat-flat-button color="primary" type="button" (click)="addRiga()">
+                <mat-icon>add</mat-icon> Aggiungi riga
+              </button>
+              <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
+                <mat-icon>content_copy</mat-icon> Copia da...
+              </button>
+              <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
+                <mat-icon>note_add</mat-icon> Aggiungi nota
+              </button>
+              <mat-menu #menuNota="matMenu">
+                <button mat-menu-item type="button" (click)="addNota('')">
+                  <mat-icon>edit_note</mat-icon> Nota libera
+                </button>
+                @if (noteRapideList.length) {
+                  <div class="menu-section-label">Note rapide</div>
+                  @for (nr of noteRapideList; track nr.id) {
+                    <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
+                  }
+                }
+              </mat-menu>
+            </div>
+          </div>
+          <div class="righe-scroll">
+          <table class="righe-table">
           <thead>
             <tr>
               <th class="td-drag"></th>
               <th class="td-desc">Codice / Descrizione</th>
               <th class="td-search"></th>
-              <th>Qtà</th>
-              <th>UM</th>
-              <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+              <th class="td-qta">Qtà</th>
+              <th class="td-um">UM</th>
+              <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
               <th class="td-history"></th>
-              <th>Sconto%</th>
-              <th>IVA%</th>
-              <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
-              <th></th>
+              <th class="td-sconto">Sconto%</th>
+              <th class="td-iva">IVA%</th>
+              <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+              <th class="td-actions"></th>
             </tr>
           </thead>
           <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
@@ -157,10 +161,10 @@ import { forkJoin } from 'rxjs';
               @if (riga.tipo === 'NOTA') {
                 <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                   <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                  <td colspan="9">
+                  <td class="td-nota" colspan="9">
                     <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
                   </td>
-                  <td>
+                  <td class="td-actions">
                     <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                       <mat-icon>delete</mat-icon>
                     </button>
@@ -169,75 +173,77 @@ import { forkJoin } from 'rxjs';
               } @else {
               <tr cdkDrag cdkDragPreviewContainer="parent">
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                <td class="td-desc" style="padding:2px">
-                  <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                  <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                <td class="td-desc">
+                  <div class="codice-desc-stack">
+                    <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                    <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                  </div>
                 </td>
                 <td class="td-search">
                   <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                     <mat-icon>search</mat-icon>
                   </button>
                 </td>
-                <td><input class="riga-input num" type="number" min="0"
+                <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
                   [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                   [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                <td>
-                  <select class="riga-input num" [(ngModel)]="riga.unitaMisura">
+                <td class="td-um" [attr.data-label]="'UM'">
+                  <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                     <option value="">—</option>
                     @for (u of unitaMisura; track u.id) {
                       <option [value]="u.simbolo">{{ u.simbolo }}</option>
                     }
                   </select>
                 </td>
-                <td><input class="riga-input num" type="number" min="0" step="0.01"
+                <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
                   [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                   (change)="setPrezzoFromInput(riga, $event)"></td>
                 <td class="td-history">
                   @if (prezziRecenti[$index]?.length) {
                     <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
-                      <mat-icon style="font-size:16px;color:#11769b">history</mat-icon>
+                      <mat-icon class="icon-primary">history</mat-icon>
                     </button>
                     <mat-menu #menuPrezzi="matMenu">
-                      <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>
+                      <div class="menu-section-label">Prezzi recenti</div>
                       @for (pr of prezziRecenti[rowIdx]; track $index) {
                         <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
-                          <span style="font-size:12px;color:#64748b">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
-                          <b style="margin-left:8px;color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                          @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                          <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                          <b class="pr-value">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                          @if (pr.sconto) { <span class="pr-discount">(-{{ pr.sconto }}%)</span> }
                         </button>
                       }
                     </mat-menu>
                   }
                   @if (riga.prodottoId) {
                     <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
-                      <mat-icon style="font-size:16px;color:#94a3b8">groups</mat-icon>
+                      <mat-icon class="icon-muted">groups</mat-icon>
                     </button>
                     <mat-menu #menuTutti="matMenu">
-                      <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Tutti i clienti</div>
+                      <div class="menu-section-label">Tutti i clienti</div>
                       @if (!tuttiCaricati[$index]) {
-                        <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Clicca per caricare...</div>
+                        <div class="menu-empty">Clicca per caricare...</div>
                       }
                       @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                        <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
+                        <div class="menu-empty">Nessun prezzo trovato</div>
                       }
                       @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
                         <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                           <div>
-                            <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
-                            <b style="color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                            @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                            <span class="pr-meta" style="display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                            <b class="pr-value" style="margin-left:0">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                            @if (pr.sconto) { <span class="pr-discount">(-{{ pr.sconto }}%)</span> }
                           </div>
                         </button>
                       }
                     </mat-menu>
                   }
                 </td>
-                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                <td style="padding:4px 8px; white-space:nowrap">
+                <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
+                <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                <td class="td-totale" [attr.data-label]="'Totale'">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </td>
-                <td>
+                <td class="td-actions">
                   <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -247,17 +253,23 @@ import { forkJoin } from 'rxjs';
             }
           </tbody>
         </table>
-        <div class="righe-total">
-          <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          Totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
         </div>
       </div>
-      <div [formGroup]="form" style="margin-top:16px">
-        <mat-form-field style="width:100%">
+
+      <div class="doc-totals-strip">
+        <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+        <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+        <span class="totals-spacer"></span>
+        <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+      </div>
+
+      <div class="form-section is-flat" [formGroup]="form">
+        <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+        <mat-form-field>
           <mat-label>Note ad uso interno</mat-label>
           <textarea matInput rows="2" formControlName="note"></textarea>
         </mat-form-field>
+      </div>
       </div>
       </div>
     </mat-dialog-content>
@@ -270,11 +282,7 @@ import { forkJoin } from 'rxjs';
       <button mat-flat-button (click)="save()" [disabled]="locked"
               [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
     </mat-dialog-actions>`,
-  styles: [RIGHE_STYLES + `
-    .righe-error { display:flex; align-items:center; gap:4px; color:#dc2626; font-size:12px; font-weight:500; }
-    .righe-error mat-icon { font-size:15px; width:15px; height:15px; }
-    .input-error { border-color:#dc2626 !important; }
-  `]
+  styles: [RIGHE_STYLES]
 })
 export class PreventivoDialogComponent implements OnInit, AfterViewInit {
   locked = false;

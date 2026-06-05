@@ -49,7 +49,7 @@ import { DocLockService } from '../../services/doc-lock.service';
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0ea5e9 0%,#06b6d4 100%);box-shadow:0 4px 12px -2px rgba(14,165,233,0.35)">
+        <div class="dialog-hero-icon is-info">
           <mat-icon>local_shipping</mat-icon>
         </div>
         <div class="dialog-hero-text">
@@ -79,48 +79,51 @@ import { DocLockService } from '../../services/doc-lock.service';
 
         <!-- ── TAB 1: Documento ──────────────────────────────────── -->
         <mat-tab label="Documento">
-          <div style="padding-top:16px">
+          <div class="doc-form">
 
-            <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px" [formGroup]="documentoForm">
-              <mat-form-field style="flex:1">
-                <mat-label>Cliente *</mat-label>
-                <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                       (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
-                       [class.input-error]="submitted && !hasCliente">
-                <mat-icon matSuffix>search</mat-icon>
-                <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
-                  @for (c of filteredClienti; track c.id) {
-                    <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
+            <div class="form-section is-primary">
+              <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+              <div class="doc-field-grid" [formGroup]="documentoForm">
+                <mat-form-field>
+                  <mat-label>Cliente *</mat-label>
+                  <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
+                         (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
+                         [class.input-error]="submitted && !hasCliente">
+                  <mat-icon matSuffix>search</mat-icon>
+                  <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
+                    @for (c of filteredClienti; track c.id) {
+                      <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
+                    }
+                  </mat-autocomplete>
+                  @if (submitted && !hasCliente) {
+                    <mat-error>Seleziona un cliente</mat-error>
                   }
-                </mat-autocomplete>
-                @if (submitted && !hasCliente) {
-                  <mat-error>Seleziona un cliente</mat-error>
-                }
-              </mat-form-field>
-              <mat-form-field style="flex:0 0 175px">
-                <mat-label>Numero *</mat-label>
-                <input matInput formControlName="numero">
-              </mat-form-field>
-              <mat-form-field style="flex:0 0 160px">
-                <mat-label>Data emissione *</mat-label>
-                <input matInput type="date" formControlName="dataEmissione">
-              </mat-form-field>
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Numero *</mat-label>
+                  <input matInput formControlName="numero">
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Data emissione *</mat-label>
+                  <input matInput type="date" formControlName="dataEmissione">
+                </mat-form-field>
+              </div>
             </div>
 
-            <div class="righe-section">
+            <div class="form-section">
               <div class="righe-header">
-                <div style="display:flex;align-items:center;gap:12px">
-                  <b>Righe *</b>
+                <div class="righe-header-title">
+                  <span>Righe *</span>
                   @if (submitted && !hasRighe) {
                     <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
                   }
                 </div>
-                <div style="display:flex;gap:8px;align-items:center">
+                <div class="righe-actions">
                   <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
                     <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
                     <mat-button-toggle [value]="true">Netto</mat-button-toggle>
                   </mat-button-toggle-group>
-                  <button mat-stroked-button type="button" (click)="addRiga()">
+                  <button mat-flat-button color="primary" type="button" (click)="addRiga()">
                     <mat-icon>add</mat-icon> Aggiungi riga
                   </button>
                   <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
@@ -134,7 +137,7 @@ import { DocLockService } from '../../services/doc-lock.service';
                       <mat-icon>edit_note</mat-icon> Nota libera
                     </button>
                     @if (noteRapideList.length) {
-                      <div style="padding:4px 16px;font-size:11px;font-weight:600;color:#94a3b8;pointer-events:none;text-transform:uppercase">Note rapide</div>
+                      <div class="menu-section-label">Note rapide</div>
                       @for (nr of noteRapideList; track nr.id) {
                         <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                       }
@@ -142,20 +145,21 @@ import { DocLockService } from '../../services/doc-lock.service';
                   </mat-menu>
                 </div>
               </div>
+              <div class="righe-scroll">
               <table class="righe-table">
                 <thead>
                   <tr>
                     <th class="td-drag"></th>
                     <th class="td-desc">Codice / Descrizione</th>
                     <th class="td-search"></th>
-                    <th>Qtà</th>
-                    <th>UM</th>
-                    <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+                    <th class="td-qta">Qtà</th>
+                    <th class="td-um">UM</th>
+                    <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
                     <th class="td-history"></th>
-                    <th>Sconto%</th>
-                    <th>IVA%</th>
-                    <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
-                    <th></th>
+                    <th class="td-sconto">Sconto%</th>
+                    <th class="td-iva">IVA%</th>
+                    <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                    <th class="td-actions"></th>
                   </tr>
                 </thead>
                 <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
@@ -163,10 +167,10 @@ import { DocLockService } from '../../services/doc-lock.service';
                     @if (riga.tipo === 'NOTA') {
                       <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                         <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                        <td colspan="9">
+                        <td class="td-nota" colspan="9">
                           <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
                         </td>
-                        <td>
+                        <td class="td-actions">
                           <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                             <mat-icon>delete</mat-icon>
                           </button>
@@ -175,75 +179,77 @@ import { DocLockService } from '../../services/doc-lock.service';
                     } @else {
                     <tr cdkDrag cdkDragPreviewContainer="parent">
                       <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                      <td class="td-desc" style="padding:2px">
-                        <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                        <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                      <td class="td-desc">
+                        <div class="codice-desc-stack">
+                          <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                          <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                        </div>
                       </td>
                       <td class="td-search">
                         <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                           <mat-icon>search</mat-icon>
                         </button>
                       </td>
-                      <td><input class="riga-input num" type="number" min="0"
+                      <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
                         [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                         [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                      <td>
-                        <select class="riga-input num" [(ngModel)]="riga.unitaMisura">
+                      <td class="td-um" [attr.data-label]="'UM'">
+                        <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                           <option value="">—</option>
                           @for (u of unitaMisura; track u.id) {
                             <option [value]="u.simbolo">{{ u.simbolo }}</option>
                           }
                         </select>
                       </td>
-                      <td><input class="riga-input num" type="number" min="0" step="0.01"
+                      <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
                         [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                         (change)="setPrezzoFromInput(riga, $event)"></td>
                       <td class="td-history">
                         @if (prezziRecenti[$index]?.length) {
                           <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
-                            <mat-icon style="font-size:16px;color:#11769b">history</mat-icon>
+                            <mat-icon class="icon-primary">history</mat-icon>
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
-                            <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>
+                            <div class="menu-section-label">Prezzi recenti</div>
                             @for (pr of prezziRecenti[rowIdx]; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
-                                <span style="font-size:12px;color:#64748b">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
-                                <b style="margin-left:8px;color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                                @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                                <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                                <b class="pr-value">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                                @if (pr.sconto) { <span class="pr-discount">(-{{ pr.sconto }}%)</span> }
                               </button>
                             }
                           </mat-menu>
                         }
                         @if (riga.prodottoId) {
                           <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
-                            <mat-icon style="font-size:16px;color:#94a3b8">groups</mat-icon>
+                            <mat-icon class="icon-muted">groups</mat-icon>
                           </button>
                           <mat-menu #menuTutti="matMenu">
-                            <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Tutti i clienti</div>
+                            <div class="menu-section-label">Tutti i clienti</div>
                             @if (!tuttiCaricati[$index]) {
-                              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Clicca per caricare...</div>
+                              <div class="menu-empty">Clicca per caricare...</div>
                             }
                             @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
+                              <div class="menu-empty">Nessun prezzo trovato</div>
                             }
                             @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                                 <div>
-                                  <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
-                                  <b style="color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                                  @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                                  <span class="pr-meta" style="display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                                  <b class="pr-value" style="margin-left:0">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                                  @if (pr.sconto) { <span class="pr-discount">(-{{ pr.sconto }}%)</span> }
                                 </div>
                               </button>
                             }
                           </mat-menu>
                         }
                       </td>
-                      <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                      <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                      <td style="padding:4px 8px; white-space:nowrap">
+                      <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
+                      <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                      <td class="td-totale" [attr.data-label]="'Totale'">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
-                      <td>
+                      <td class="td-actions">
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                           <mat-icon>delete</mat-icon>
                         </button>
@@ -253,16 +259,20 @@ import { DocLockService } from '../../services/doc-lock.service';
                   }
                 </tbody>
               </table>
-              <div class="righe-total">
-                <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-                <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-                Totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
               </div>
             </div>
 
-            <div [formGroup]="documentoForm" style="margin-top:16px">
-              <mat-form-field style="width:100%">
-                <mat-label>Note ad uso interno</mat-label>
+            <div class="doc-totals-strip">
+              <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <span class="totals-spacer"></span>
+              <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+            </div>
+
+            <div class="form-section is-flat" [formGroup]="documentoForm">
+              <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+              <mat-form-field>
+                <mat-label>Annotazioni ad uso interno (non stampate)</mat-label>
                 <textarea matInput rows="2" formControlName="note"></textarea>
               </mat-form-field>
             </div>
@@ -272,119 +282,125 @@ import { DocLockService } from '../../services/doc-lock.service';
         <!-- ── TAB 2: Dati Trasporto ─────────────────────────────── -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">local_shipping</mat-icon>
+            <mat-icon class="tab-lead-icon">local_shipping</mat-icon>
             Dati trasporto
             @if (!trasportoForm.get('dataOraInizioTrasporto')?.value) {
-              <mat-icon style="font-size:16px;margin-left:6px;color:#f59e0b;vertical-align:middle">warning_amber</mat-icon>
+              <mat-icon class="tab-status-icon icon-warning">warning_amber</mat-icon>
             } @else {
-              <mat-icon style="font-size:16px;margin-left:6px;color:#16a34a;vertical-align:middle">check_circle</mat-icon>
+              <mat-icon class="tab-status-icon icon-success">check_circle</mat-icon>
             }
           </ng-template>
-          <div style="padding-top:24px">
-            <form [formGroup]="trasportoForm" class="dialog-form">
+          <div class="doc-form">
+            <form [formGroup]="trasportoForm">
 
-              <div class="form-row">
-                <mat-form-field style="flex:1.4">
-                  <mat-label>Data e ora inizio trasporto *</mat-label>
-                  <input matInput type="datetime-local" formControlName="dataOraInizioTrasporto">
-                  @if (trasportoForm.get('dataOraInizioTrasporto')?.invalid && trasportoForm.get('dataOraInizioTrasporto')?.touched) {
-                    <mat-error>Campo obbligatorio</mat-error>
-                  }
-                </mat-form-field>
-                <mat-form-field>
-                  <mat-label>Causale</mat-label>
-                  <mat-select formControlName="causaleTrasporto">
-                    <mat-option value="Vendita">Vendita</mat-option>
-                    <mat-option value="Reso">Reso</mat-option>
-                    <mat-option value="C/Riparazione">C/Riparazione</mat-option>
-                    <mat-option value="C/Conto lavoro">C/Conto lavoro</mat-option>
-                    <mat-option value="C/Conto visione">C/Conto visione</mat-option>
-                    <mat-option value="Omaggio">Omaggio</mat-option>
-                    <mat-option value="Campioni">Campioni</mat-option>
-                    <mat-option value="Esposizione">Esposizione</mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-
-              <div class="form-row">
-                <mat-form-field>
-                  <mat-label>Porto</mat-label>
-                  <mat-select formControlName="porto">
-                    <mat-option value="Franco">Franco (pagato dal mittente)</mat-option>
-                    <mat-option value="Assegnato">Assegnato (pagato dal destinatario)</mat-option>
-                    <mat-option value="Reso">Reso</mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field>
-                  <mat-label>Aspetto dei beni</mat-label>
-                  <mat-select formControlName="aspettoBeni">
-                    <mat-option value="">— non specificato —</mat-option>
-                    <mat-option value="A vista">A vista</mat-option>
-                    <mat-option value="Scatole">Scatole</mat-option>
-                    <mat-option value="Bancali">Bancali</mat-option>
-                    <mat-option value="Pallet">Pallet</mat-option>
-                    <mat-option value="Sacchi">Sacchi</mat-option>
-                    <mat-option value="Rotoli">Rotoli</mat-option>
-                    <mat-option value="Fusti">Fusti</mat-option>
-                    <mat-option value="Colli">Colli</mat-option>
-                    <mat-option value="Sfuso">Sfuso</mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-
-              <div class="form-row colli-row">
-                <mat-form-field>
-                  <mat-label>Numero colli</mat-label>
-                  <input matInput type="number" min="0" formControlName="numeroColli">
-                  <mat-hint>Somma quantità righe: {{ totalQuantita }}</mat-hint>
-                </mat-form-field>
-                <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaColli()" title="Calcola da righe">
-                  <mat-icon>calculate</mat-icon>
-                </button>
-                <mat-form-field>
-                  <mat-label>Peso lordo (kg)</mat-label>
-                  <input matInput type="number" min="0" step="0.01" formControlName="pesoLordo">
-                </mat-form-field>
-              </div>
-
-              <div class="form-row">
-                <mat-form-field>
-                  <mat-label>Incaricato del trasporto</mat-label>
-                  <mat-select formControlName="incaricatoTrasporto">
-                    <mat-option value="Mittente">Mittente</mat-option>
-                    <mat-option value="Destinatario">Destinatario</mat-option>
-                    <mat-option value="Corriere">Corriere / Vettore</mat-option>
-                  </mat-select>
-                </mat-form-field>
-                @if (trasportoForm.get('incaricatoTrasporto')?.value === 'Corriere') {
+              <div class="form-section is-primary">
+                <div class="form-section-header"><mat-icon>local_shipping</mat-icon><span>Trasporto</span></div>
+                <div class="doc-field-grid has-2-extra">
                   <mat-form-field>
-                    <mat-label>Nome corriere / vettore</mat-label>
-                    <input matInput formControlName="vettore" placeholder="Es. GLS, BRT...">
+                    <mat-label>Data e ora inizio trasporto *</mat-label>
+                    <input matInput type="datetime-local" formControlName="dataOraInizioTrasporto">
+                    @if (trasportoForm.get('dataOraInizioTrasporto')?.invalid && trasportoForm.get('dataOraInizioTrasporto')?.touched) {
+                      <mat-error>Campo obbligatorio</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Causale</mat-label>
+                    <mat-select formControlName="causaleTrasporto">
+                      <mat-option value="Vendita">Vendita</mat-option>
+                      <mat-option value="Reso">Reso</mat-option>
+                      <mat-option value="C/Riparazione">C/Riparazione</mat-option>
+                      <mat-option value="C/Conto lavoro">C/Conto lavoro</mat-option>
+                      <mat-option value="C/Conto visione">C/Conto visione</mat-option>
+                      <mat-option value="Omaggio">Omaggio</mat-option>
+                      <mat-option value="Campioni">Campioni</mat-option>
+                      <mat-option value="Esposizione">Esposizione</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Porto</mat-label>
+                    <mat-select formControlName="porto">
+                      <mat-option value="Franco">Franco (pagato dal mittente)</mat-option>
+                      <mat-option value="Assegnato">Assegnato (pagato dal destinatario)</mat-option>
+                      <mat-option value="Reso">Reso</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Aspetto dei beni</mat-label>
+                    <mat-select formControlName="aspettoBeni">
+                      <mat-option value="">— non specificato —</mat-option>
+                      <mat-option value="A vista">A vista</mat-option>
+                      <mat-option value="Scatole">Scatole</mat-option>
+                      <mat-option value="Bancali">Bancali</mat-option>
+                      <mat-option value="Pallet">Pallet</mat-option>
+                      <mat-option value="Sacchi">Sacchi</mat-option>
+                      <mat-option value="Rotoli">Rotoli</mat-option>
+                      <mat-option value="Fusti">Fusti</mat-option>
+                      <mat-option value="Colli">Colli</mat-option>
+                      <mat-option value="Sfuso">Sfuso</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="form-section-header"><mat-icon>inventory_2</mat-icon><span>Colli e peso</span></div>
+                <div class="form-row colli-row">
+                  <mat-form-field>
+                    <mat-label>Numero colli</mat-label>
+                    <input matInput type="number" min="0" formControlName="numeroColli">
+                    <mat-hint>Somma quantità righe: {{ totalQuantita }}</mat-hint>
+                  </mat-form-field>
+                  <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaColli()" title="Calcola da righe">
+                    <mat-icon>calculate</mat-icon>
+                  </button>
+                  <mat-form-field>
+                    <mat-label>Peso lordo (kg)</mat-label>
+                    <input matInput type="number" min="0" step="0.01" formControlName="pesoLordo">
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="form-section-header"><mat-icon>place</mat-icon><span>Destinazione e vettore</span></div>
+                <div class="form-row">
+                  <mat-form-field>
+                    <mat-label>Incaricato del trasporto</mat-label>
+                    <mat-select formControlName="incaricatoTrasporto">
+                      <mat-option value="Mittente">Mittente</mat-option>
+                      <mat-option value="Destinatario">Destinatario</mat-option>
+                      <mat-option value="Corriere">Corriere / Vettore</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  @if (trasportoForm.get('incaricatoTrasporto')?.value === 'Corriere') {
+                    <mat-form-field>
+                      <mat-label>Nome corriere / vettore</mat-label>
+                      <input matInput formControlName="vettore" placeholder="Es. GLS, BRT...">
+                    </mat-form-field>
+                  }
+                </div>
+
+                @if (indirizziCliente.length) {
+                  <mat-form-field>
+                    <mat-label>Destinazione salvata</mat-label>
+                    <mat-select [(ngModel)]="destinazioneId" [ngModelOptions]="{standalone:true}" (ngModelChange)="onDestinazioneChange($event)">
+                      <mat-option [value]="null">— indirizzo principale cliente —</mat-option>
+                      @for (addr of indirizziCliente; track addr.id) {
+                        <mat-option [value]="addr.id">{{ addr.nome }} — {{ [addr.via, addr.cap, addr.citta].filter(v => !!v).join(', ') }}</mat-option>
+                      }
+                      <mat-option [value]="-1">Altra destinazione (manuale)</mat-option>
+                    </mat-select>
                   </mat-form-field>
                 }
-              </div>
-
-              @if (indirizziCliente.length) {
-                <mat-form-field style="width:100%">
-                  <mat-label>Destinazione salvata</mat-label>
-                  <mat-select [(ngModel)]="destinazioneId" [ngModelOptions]="{standalone:true}" (ngModelChange)="onDestinazioneChange($event)">
-                    <mat-option [value]="null">— indirizzo principale cliente —</mat-option>
-                    @for (addr of indirizziCliente; track addr.id) {
-                      <mat-option [value]="addr.id">{{ addr.nome }} — {{ [addr.via, addr.cap, addr.citta].filter(v => !!v).join(', ') }}</mat-option>
-                    }
-                    <mat-option [value]="-1">Altra destinazione (manuale)</mat-option>
-                  </mat-select>
+                <mat-form-field>
+                  <mat-label>Destinazione (se diversa dall'indirizzo cliente)</mat-label>
+                  <input matInput formControlName="destinazioneDiversa" placeholder="Via, Città, CAP...">
                 </mat-form-field>
-              }
-              <mat-form-field style="width:100%">
-                <mat-label>Destinazione (se diversa dall'indirizzo cliente)</mat-label>
-                <input matInput formControlName="destinazioneDiversa" placeholder="Via, Città, CAP...">
-              </mat-form-field>
 
-              <mat-form-field style="width:100%">
-                <mat-label>Note trasporto</mat-label>
-                <textarea matInput rows="2" formControlName="noteTrasporto"></textarea>
-              </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Note trasporto</mat-label>
+                  <textarea matInput rows="2" formControlName="noteTrasporto"></textarea>
+                </mat-form-field>
+              </div>
             </form>
           </div>
         </mat-tab>

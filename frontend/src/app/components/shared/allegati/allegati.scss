@@ -1,31 +1,31 @@
 .allegati-section {
-  margin-top: 20px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  margin-top: var(--sp-5);
+  padding: var(--sp-4);
+  background: var(--bg-surface-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
 }
 
 .allegati-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-3);
 }
 
 .allegati-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-2);
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-secondary);
 
   mat-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
-    color: #11769b;
+    color: var(--primary);
   }
 }
 
@@ -36,9 +36,9 @@
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  background: #11769b;
-  color: #fff;
-  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-on);
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 700;
 }
@@ -46,7 +46,7 @@
 .empty-msg {
   margin: 0;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .allegati-list {
@@ -55,21 +55,22 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-2);
 }
 
 .allegato-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 8px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 
   &:hover {
-    border-color: #c7d2fe;
-    background: #f5f3ff;
+    border-color: var(--primary);
+    background: var(--primary-soft);
   }
 }
 
@@ -78,10 +79,10 @@
   font-size: 22px;
   width: 22px;
   height: 22px;
-  color: #64748b;
+  color: var(--text-secondary);
 
-  &.pdf { color: #dc2626; }
-  &.image { color: #0ea5e9; }
+  &.pdf { color: var(--danger); }
+  &.image { color: var(--info); }
 }
 
 .file-info {
@@ -95,7 +96,7 @@
 .file-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -103,7 +104,7 @@
 
 .file-meta {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .file-actions {

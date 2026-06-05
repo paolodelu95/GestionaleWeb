@@ -83,6 +83,24 @@ html, body { max-width: 100%; overflow-x: hidden; }
   --radius-2xl: 20px;
   --radius-full: 9999px;
 
+  // Spacing scale — usare SEMPRE questi al posto dei px magici nei dialog/righe.
+  // Geometrici: nessuna controparte dark.
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  // Tap target minimo touch (icon-button di riga su tablet/mobile). WCAG 2.5.5.
+  --tap-min: 44px;
+
+  // Fill/bordo degli input GREZZI della tabella righe (non Material): tokenizzati
+  // così rispettano la dark mode (gli input grezzi non ereditano --field-fill).
+  --row-input-bg: #ffffff;
+  --row-input-border: var(--border);
+
   // Transitions
   --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -116,6 +134,13 @@ html, body { max-width: 100%; overflow-x: hidden; }
   --primary-active: #11769b;
   --primary-soft: rgba(21, 164, 162, 0.14);
   --primary-soft-hover: rgba(21, 164, 162, 0.22);
+  // --primary-on mancava in dark: testo scuro sul teal chiaro per contrasto pieno
+  // (badge/chip su sfondo --primary). #ffffff su #15a4a2 ha contrasto insufficiente.
+  --primary-on: #06242c;
+
+  // Input grezzi righe in dark: superficie scura + bordo visibile
+  --row-input-bg: #1c2336;
+  --row-input-border: var(--border-strong);
 
   --success-soft: rgba(16, 185, 129, 0.16);
   --success-on: #34d399;
@@ -705,7 +730,161 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
     .totals-label { font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
     .totals-value { font-size: 18px; font-weight: 700; color: var(--primary); }
   }
+  // Riga extra opzionale (es. Resto in vendita banco): occupa la sua riga
+  .totals-row-extra { flex: 1 1 100%; display: flex; align-items: baseline; gap: 6px; }
 }
+
+// ── Doc form: impaginazione interna dei dialog documento ──────────────────────
+// Contenitore verticale del form documento (dentro la tab/Documento). Dà respiro
+// e ritmo costante tra le sezioni (.form-section) → risolve "tutto ammassato".
+.doc-form { display: flex; flex-direction: column; gap: var(--sp-4); padding-top: var(--sp-2); }
+// Dentro .doc-form il ritmo lo dà il gap: niente doppia spaziatura dalle sezioni
+.doc-form > .form-section { margin-bottom: 0; }
+
+// Griglia a due colonne per la tab Pagamento (modalità | acconti) e simili
+.pagamento-grid {
+  display: grid; gap: var(--sp-4);
+  grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.5fr);
+  align-items: start;
+}
+.pagamento-grid > .form-section { margin-bottom: 0; }
+@media (max-width: 767.98px) { .pagamento-grid { grid-template-columns: 1fr; } }
+
+// Griglia campi testata (Cliente/Fornitore espanso + Numero/Data compatti).
+// Niente larghezze magiche inline (175px/160px/140px): è responsive di natura.
+.doc-field-grid {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns:
+    minmax(220px, 2.4fr)   /* campo principale: Cliente / Fornitore */
+    minmax(140px, 0.9fr)   /* Numero */
+    minmax(150px, 0.9fr);  /* Data */
+  align-items: start;
+}
+// Variante 4 colonne (testate con campo extra: Fattura da stornare, Validità, Tipo pagamento)
+.doc-field-grid.has-2-extra {
+  grid-template-columns:
+    minmax(200px, 2fr) minmax(170px, 1.4fr)
+    minmax(140px, 0.9fr) minmax(150px, 0.9fr);
+}
+.doc-field-grid > mat-form-field { width: 100%; min-width: 0; }
+// Slot full-width opzionale (toggle Attiva, banner, ecc.)
+.doc-field-grid .grid-span-all { grid-column: 1 / -1; }
+
+// Le mat-form-field dentro una sezione documento prendono tutta la larghezza
+// (niente più style="width:100%" inline su textarea/note).
+.doc-form .form-section > mat-form-field,
+.form-section.is-flat > mat-form-field { width: 100%; }
+
+// Banner contestuale dentro una sezione (es. storno nota di credito)
+.doc-banner {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 500;
+  background: var(--info-soft); color: var(--info-on);
+  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
+  mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+}
+.doc-banner.is-success { background: var(--success-soft); color: var(--success-on); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+.doc-banner.is-warning { background: var(--warning-soft); color: var(--warning-on); border-color: color-mix(in srgb, var(--warning) 30%, transparent); }
+
+// Chip informativo (es. profilo Ordine cliente/fornitore, suggeriti)
+.doc-chip {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: 3px var(--sp-2); border-radius: var(--radius-full);
+  font-size: 11px; font-weight: 600;
+  background: var(--primary-soft); color: var(--primary);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+.doc-chip.is-info { background: var(--info-soft); color: var(--info-on); }
+.doc-chip .chip-remove {
+  background: none; border: 0; cursor: pointer; color: inherit;
+  font-size: 15px; line-height: 1; padding: 0; margin-left: 2px; opacity: 0.7;
+  &:hover { opacity: 1; }
+}
+
+// Riga di chip (DDT collegati, suggeriti, ecc.)
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+// Barra suggerimenti prodotto (storico cliente)
+.suggeriti-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2);
+  background: var(--primary-soft); border-radius: var(--radius-md);
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+.suggeriti-label { font-size: 12px; font-weight: 600; color: var(--primary); }
+.sugg-chip {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  background: var(--bg-surface); border: 1px solid var(--primary-soft-hover);
+  border-radius: var(--radius-full); padding: var(--sp-1) var(--sp-2);
+  font-size: 12px; font-weight: 600; color: var(--primary); cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  &:hover { background: var(--primary-soft-hover); }
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+.sugg-count { opacity: 0.6; font-weight: 400; }
+
+// Testo "vuoto" dentro una sezione (es. nessun DDT collegato)
+.section-empty { margin: 0; font-size: 12px; color: var(--text-tertiary); }
+
+// Select compatto agganciato a destra nell'header di una sezione
+.form-section-header > select.riga-input {
+  margin-left: auto; width: auto; min-width: 200px; text-transform: none;
+  letter-spacing: 0; font-weight: 500;
+}
+// Bottone azione agganciato a destra nell'header di una sezione
+.form-section-header .header-action { margin-left: auto; }
+
+// Riferimenti documento (fattura PA): intro + griglia campi responsive
+.rif-intro { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); flex-wrap: wrap; }
+.rif-intro-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.rif-empty {
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  text-align: center; padding: var(--sp-6) 0; color: var(--text-tertiary); font-size: 13px;
+  mat-icon { font-size: 40px; width: 40px; height: 40px; opacity: 0.4; }
+}
+.rif-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.rif-grid .rif-field { display: flex; flex-direction: column; gap: 3px; }
+.rif-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.input-upper { text-transform: uppercase; }
+
+// Badge sui tab (conteggio / stato pagamento). Riusabile, tokenizzato.
+.tab-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
+  border-radius: var(--radius-full); font-size: 11px; font-weight: 700;
+  background: var(--primary); color: var(--primary-on);
+}
+.tab-badge--warn { background: var(--warning); color: #3a2700; }
+.tab-badge--ok   { background: var(--success); color: #04261a; }
+// Icone dentro le label dei tab (geometria via classe, niente inline)
+.tab-lead-icon   { font-size: 18px; width: 18px; height: 18px; margin-right: 4px; vertical-align: middle; }
+.tab-status-icon { font-size: 16px; width: 16px; height: 16px; margin-left: 6px; vertical-align: middle; }
+
+// Etichetta sezione dentro i menu (prezzi recenti, note rapide): niente colori inline
+.menu-section-label {
+  padding: var(--sp-1) var(--sp-4); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary);
+  pointer-events: none;
+}
+.menu-empty { padding: var(--sp-2) var(--sp-4); font-size: 12px; color: var(--text-tertiary); }
+.pr-value { font-weight: 700; color: var(--text-primary); margin-left: var(--sp-2); }
+.pr-discount { color: var(--danger); font-size: 11px; margin-left: var(--sp-1); }
+
+// Icone con colore semantico via classe (sostituiscono style="color:#..." nei menu)
+.icon-primary { color: var(--primary) !important; }
+.icon-muted   { color: var(--text-tertiary) !important; }
+.icon-danger  { color: var(--danger) !important; }
+.icon-success { color: var(--success) !important; }
+.icon-warning { color: var(--warning) !important; }
+.icon-info    { color: var(--info) !important; }
+
+// Modificatori colore dell'icona hero (sostituiscono i gradient inline per-documento)
+.dialog-hero-icon.is-danger  { background: linear-gradient(135deg, var(--danger) 0%, #b91c1c 100%); box-shadow: 0 4px 12px -2px rgba(239, 68, 68, 0.35); }
+.dialog-hero-icon.is-info    { background: linear-gradient(135deg, var(--info) 0%, #0369a1 100%); box-shadow: 0 4px 12px -2px rgba(14, 165, 233, 0.35); }
+.dialog-hero-icon.is-success { background: linear-gradient(135deg, var(--success) 0%, #047857 100%); box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.35); }
+.dialog-hero-icon.is-purple  { background: linear-gradient(135deg, var(--brand-teal) 0%, #6d28d9 100%); }
 
 // Dark mode for sections
 .dark-mode {
@@ -1386,83 +1565,77 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   // regole che le nascondevano (rendevano illeggibili login, ricerche,
   // bottoni show/hide password, ecc.).
 
-  // Righe table → card stack su mobile.
-  // Le righe dei documenti hanno 9-11 colonne (codice, q.tà, UM, prezzo,
-  // sconto, IVA, totale, ...). Su mobile la tabella diventa un grid:
-  //   td "codice/descrizione" full width
-  //   q.tà + UM affiancate
-  //   prezzo + sconto% + IVA% su tre
-  //   totale full width, allineato a destra
-  //   azioni (search/history/delete) raggruppate in fondo
-  .righe-section { overflow: visible; }
-  .righe-table {
-    display: block;
-    width: 100%;
-    border-collapse: separate;
-  }
+  // ── Righe table → CARD STACK su mobile (flex + order, PER CLASSE) ──────────
+  // Ogni riga diventa una card; le celle si dispongono per CLASSE SEMANTICA con
+  // `order` (l'ordine DOM varia tra documenti) e mostrano l'etichetta via
+  // [attr.data-label]. NIENTE nth-of-type: robusto anche con colonne diverse o
+  // condizionali (Ordini fornitore, vendita banco, ricorrenti). Le celle assenti
+  // semplicemente non occupano spazio.
+  .righe-section, .righe-scroll { overflow: visible; }
+  .righe-table, .righe-table tbody { display: block; width: 100%; }
   .righe-table thead { display: none; }
-  .righe-table tbody { display: block; }
   .righe-table tr {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 6px 8px;
-    background: var(--bg-surface-2, #f8fafc);
-    border: 1px solid var(--border-subtle, #e2e8f0);
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 10px;
-  }
-  .righe-table tr.riga-nota {
-    grid-template-columns: 1fr auto;
-    background: #fffbeb;
-    border-color: #fde68a;
+    display: flex; flex-wrap: wrap; align-items: flex-end;
+    column-gap: var(--sp-3); row-gap: var(--sp-2);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3);
+    margin-bottom: var(--sp-3);
   }
   .righe-table td {
-    display: flex;
-    align-items: center;
-    border: 0;
-    padding: 0;
-    background: transparent;
+    display: flex; flex-direction: column; gap: 2px; align-items: stretch;
+    flex: 1 1 calc(50% - var(--sp-3)); min-width: 0;
+    border: 0; padding: 0; background: transparent;
   }
-  // Cella drag-handle: ridotta in angolo
-  .righe-table td.td-drag { grid-column: 1 / 2; justify-content: flex-start; }
-  // Cella descrizione: full width (riga 1)
-  .righe-table td.td-desc { grid-column: 2 / -1; }
-  // Search button: dopo descrizione
-  .righe-table td.td-search { grid-column: 1 / 2; justify-content: center; }
-  // History button: vicino prezzo
-  .righe-table td.td-history { grid-column: 6 / -1; justify-content: center; }
-  // q.tà
-  .righe-table td:nth-of-type(4) { grid-column: 2 / 4; }
-  // UM
-  .righe-table td:nth-of-type(5) { grid-column: 4 / 7; }
-  // Prezzo (input)
-  .righe-table td:nth-of-type(6) { grid-column: 1 / 4; }
-  // Sconto%
-  .righe-table td:nth-of-type(8) { grid-column: 4 / 5; }
-  // IVA
-  .righe-table td:nth-of-type(9) { grid-column: 5 / 7; }
-  // Totale
-  .righe-table td:nth-of-type(10) {
-    grid-column: 1 / -1;
-    justify-content: flex-end;
-    font-weight: 700; font-size: 15px;
-    border-top: 1px dashed var(--border-subtle);
-    padding-top: 8px; margin-top: 2px;
+  // Etichetta campo (solo per le celle dato)
+  .righe-table td::before {
+    content: attr(data-label);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--text-tertiary);
   }
-  // Ultima cella: delete button
-  .righe-table td:last-child { grid-column: 1 / -1; justify-content: flex-end; }
-  // Input dentro la cella: full width
+  // Celle senza etichetta: niente ::before
+  .td-drag::before, .td-search::before, .td-history::before, .td-actions::before,
+  .td-desc::before, .td-codfornitore::before, .td-variante::before { content: none; }
+
+  // Ordine e larghezza PER CLASSE
+  .righe-table td.td-drag        { order: 1; flex: 0 0 auto; align-items: center; }
+  .righe-table td.td-desc        { order: 2; flex: 1 1 60%; }
+  .righe-table td.td-variante    { order: 3; flex: 1 1 100%; }
+  .righe-table td.td-search      { order: 4; flex: 0 0 auto; align-items: center; }
+  .righe-table td.td-history     { order: 5; flex: 0 0 auto; align-items: center; }
+  .righe-table td.td-codfornitore{ order: 6; flex: 1 1 100%; }
+  .righe-table td.td-qta         { order: 7; }
+  .righe-table td.td-um          { order: 8; }
+  .righe-table td.td-prezzo      { order: 9; }
+  .righe-table td.td-sconto      { order: 10; }
+  .righe-table td.td-iva         { order: 11; }
+  .righe-table td.td-totale {
+    order: 20; flex: 1 1 100%; align-items: flex-end;
+    border-top: 1px dashed var(--border); padding-top: var(--sp-2); margin-top: 2px;
+    font-weight: 700; font-size: 16px;
+  }
+  .righe-table td.td-actions { order: 21; flex: 0 0 auto; align-items: flex-end; margin-left: auto; }
+
+  // Input/select full width + target touch
   .righe-table td > input,
   .righe-table td > select,
-  .righe-table td > .riga-input { width: 100% !important; min-width: 0 !important; }
-  .righe-table td input.riga-input.num,
-  .righe-table td input.riga-input.sconto { width: 100% !important; }
-  // Codice + descrizione stack (sono dentro lo stesso <td class="td-desc">)
-  .righe-table td.td-desc { flex-direction: column; align-items: stretch; gap: 0; }
-  .righe-table td.td-desc .riga-input { display: block; }
-  // Header table → th nascosti, ma le riga-nota ha colspan=9 ↑ deve riempire
-  .righe-table tr.riga-nota td[colspan] { grid-column: 1 / -1; }
+  .righe-table td .riga-input {
+    width: 100% !important; min-width: 0 !important; min-height: var(--tap-min);
+  }
+  .righe-table td.td-totale, .righe-table td.td-drag { min-height: 0; }
+  .codice-desc-stack { width: 100%; }
+  // Bottoni icona di riga: target touch
+  .righe-table td.td-actions button,
+  .righe-table td.td-search button,
+  .righe-table td.td-history button { min-width: var(--tap-min); min-height: var(--tap-min); }
+
+  // Riga NOTA: full width, indipendente dal colspan / dalle classi
+  .righe-table tr.riga-nota { background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 35%, transparent); }
+  .righe-table tr.riga-nota td,
+  .righe-table tr.riga-nota td[colspan],
+  .righe-table tr.riga-nota td.td-nota { flex: 1 1 100%; order: 1; }
+  .righe-table tr.riga-nota td.td-actions { flex: 0 0 auto; order: 2; }
 
   // Doc totals strip: stack su mobile
   .doc-totals-strip {
@@ -1899,6 +2072,17 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .mat-mdc-dialog-content > *,
   .mat-mdc-dialog-content [style*="min-width"] { min-width: 0 !important; max-width: 100% !important; }
   .mat-mdc-dialog-content [style*="display:flex"] { flex-wrap: wrap; }
+
+  // Testata documento: 2 colonne, campo principale (Cliente/Fornitore) a tutta riga
+  .doc-field-grid,
+  .doc-field-grid.has-2-extra { grid-template-columns: 1fr 1fr; }
+  .doc-field-grid > mat-form-field:first-child,
+  .doc-field-grid .grid-span-all { grid-column: 1 / -1; }
+
+  // Tabella righe: scroll orizzontale controllato (la somma delle colonne ≈ 950px),
+  // così gli input restano leggibili invece di schiacciarsi sotto i 50px.
+  .righe-section, .righe-scroll { overflow-x: auto; }
+  .righe-table { min-width: 900px; }
 }
 
 // Tabelle native (non mat-table) dentro card: scroll orizzontale invece di overflow.

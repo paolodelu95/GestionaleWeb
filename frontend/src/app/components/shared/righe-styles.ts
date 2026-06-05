@@ -1,37 +1,125 @@
 /**
  * Stili condivisi della tabella "righe" dei documenti (fatture, preventivi, ordini,
- * DDT, note di credito, acquisti, ricorrenti).
+ * DDT, note di credito, acquisti, ricorrenti, vendita banco).
  *
- * Prima erano duplicati in 7 componenti e avevano iniziato a divergere
- * (es. .prezzo-cell solo in Fatture, .colli-row solo in DDT): un'unica fonte
- * garantisce che la griglia righe resti identica in tutti i documenti.
- * Le classi specifiche di un documento sono incluse qui ma applicate solo dove usate.
+ * UNICA FONTE DI VERITÀ per la griglia righe: prima era duplicata in 7 componenti
+ * e aveva iniziato a divergere. Tutto è tokenizzato (dark-mode aware "by construction")
+ * e ogni colonna si identifica per CLASSE SEMANTICA (.td-qta, .td-prezzo, ...),
+ * MAI per posizione: così il card-stack mobile (in styles.scss) resta robusto anche
+ * quando i documenti hanno colonne diverse o condizionali.
+ *
+ * CONTRATTO DI CLASSI (i template devono usare ESATTAMENTE questi nomi):
+ *   Header:  .righe-header > .righe-header-title (label + errore) | .righe-actions (toggle + bottoni)
+ *   Celle:   .td-drag .td-desc .td-search .td-history .td-qta .td-um .td-prezzo
+ *            .td-sconto .td-iva .td-totale .td-actions  (+ opzionali .td-codfornitore .td-variante .td-nota)
+ *   Input:   .riga-input (+ .riga-input--num / .riga-input--sconto ; alias legacy .num/.sconto)
+ *   Codice:  .codice-desc-stack > .riga-codice (sopra) + .riga-input--desc (sotto)
+ *   Note:    riga .riga-nota
+ *   Totali:  usare .doc-totals-strip globale (NON più .righe-total)
+ *
+ * Il responsive (tablet/mobile card-stack per-classe) vive in styles.scss perché
+ * deve applicarsi globalmente (anche ai pochi componenti che non importano questa stringa).
  */
 export const RIGHE_STYLES = `
-  .righe-section { margin-top: 16px; }
-  .righe-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  /* ===== Header sezione righe ===== */
+  .righe-section { margin-top: var(--sp-5); }
+  .righe-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3);
+  }
+  .righe-header-title {
+    display: flex; align-items: center; gap: var(--sp-3);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-tertiary);
+  }
+  .righe-actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+
+  /* ===== Tabella ===== */
   .righe-table { width: 100%; border-collapse: collapse; }
-  .righe-table th { background: #f8fafc; padding: 8px; font-size: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-  .righe-table td { padding: 4px 2px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-  .riga-input { border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-  .riga-input.num { width: 72px; }
-  .riga-input.sconto { width: 60px; }
-  .righe-total { text-align: right; padding: 10px 16px; font-weight: 700; background: #f8fafc; border-top: 2px solid #e2e8f0; }
-  .td-search { width: 36px; padding: 0 !important; }
-  .td-history { width: 28px; padding: 0 !important; }
-  .td-desc { min-width: 160px; }
-  .td-drag { width: 28px; padding: 0 !important; cursor: grab; color: #94a3b8; }
-  .riga-codice { font-size:11px; color:#64748b; border-bottom:none !important; border-radius:4px 4px 0 0 !important; background:#f8fafc; margin-bottom:0; }
-  .riga-nota td { background: #fefce8; }
-  .riga-nota input { font-style: italic; color: #78716c; }
-  .prezzo-cell { display: flex; align-items: center; gap: 2px; }
-  .prezzo-recente-item { display:flex; justify-content:space-between; gap:16px; font-size:13px; min-width:220px; }
-  .pr-meta { color:#64748b; font-size:11px; }
-  .righe-error { display: flex; align-items: center; gap: 4px; color: #dc2626; font-size: 12px; font-weight: 500; }
+  .righe-table th {
+    background: var(--bg-surface-2); color: var(--text-tertiary);
+    padding: var(--sp-2); font-size: 11px; font-weight: 600;
+    text-align: left; text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+  .righe-table td {
+    padding: var(--sp-2) var(--sp-1); border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+  }
+  .righe-table tbody tr:hover td { background: var(--bg-subtle); }
+
+  /* ===== Input riga (grezzi, tokenizzati) ===== */
+  .riga-input {
+    border: 1px solid var(--row-input-border); border-radius: var(--radius-xs);
+    background: var(--row-input-bg); color: var(--text-primary);
+    padding: var(--sp-1) var(--sp-2); font-size: 13px;
+    width: 100%; box-sizing: border-box;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .riga-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--shadow-focus); }
+  .riga-input.num, .riga-input--num { width: 76px; }
+  .riga-input.sconto, .riga-input--sconto { width: 64px; }
+  .input-error { border-color: var(--danger) !important; }
+
+  /* ===== Larghezze colonna PER CLASSE (niente magic inline, niente nth-of-type) ===== */
+  .td-drag    { width: 32px; padding: 0 !important; cursor: grab; color: var(--text-muted); }
+  .td-search  { width: 40px; padding: 0 !important; }
+  .td-history { width: 40px; padding: 0 !important; }
+  .td-desc    { min-width: 200px; }
+  .td-qta     { width: 84px; }
+  .td-um      { width: 92px; }
+  .td-prezzo  { width: 120px; }
+  .td-sconto  { width: 78px; }
+  .td-iva     { width: 104px; }
+  .td-totale  { width: 112px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .td-actions { width: 44px; padding: 0 !important; }
+  .td-codfornitore { width: 130px; }   /* Ordini fornitore / Acquisti */
+  .td-variante     { width: 140px; }   /* Vendita banco */
+
+  /* Cluster azioni di riga (search/history) raggruppate */
+  .riga-tools { display: inline-flex; align-items: center; gap: 2px; }
+
+  /* ===== Codice + descrizione impilati come field-group ===== */
+  .codice-desc-stack { display: flex; flex-direction: column; gap: 0; }
+  .riga-codice {
+    font-size: 11px; color: var(--text-secondary);
+    background: var(--bg-surface-2); border: 1px solid var(--row-input-border);
+    border-bottom: none; border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    padding: 3px var(--sp-2); box-sizing: border-box; width: 100%;
+  }
+  .riga-input--desc { border-radius: 0 0 var(--radius-xs) var(--radius-xs); }
+
+  /* ===== Riga NOTA (tokenizzata) ===== */
+  .riga-nota td { background: var(--warning-soft); }
+  .riga-nota .riga-input, .riga-nota input { font-style: italic; color: var(--text-secondary); }
+
+  /* ===== Menu prezzi recenti ===== */
+  .prezzo-recente-item {
+    display: flex; justify-content: space-between; gap: var(--sp-4);
+    font-size: 13px; min-width: 220px; color: var(--text-primary);
+  }
+  .pr-meta { color: var(--text-tertiary); font-size: 11px; }
+
+  /* ===== Errori ===== */
+  .righe-error {
+    display: flex; align-items: center; gap: var(--sp-1);
+    color: var(--danger); font-size: 12px; font-weight: 600;
+  }
   .righe-error mat-icon { font-size: 15px; width: 15px; height: 15px; }
-  .input-error { border-color:#dc2626 !important; }
-  .colli-row { display:flex; align-items:flex-end; gap:8px; }
-  .colli-calc-btn { margin-bottom:20px; flex-shrink:0; }
+
+  /* ===== DDT: colli ===== */
+  .colli-row { display: flex; align-items: flex-end; gap: var(--sp-2); }
+  .colli-calc-btn { margin-bottom: 20px; flex-shrink: 0; }
+
+  /* ===== CDK drag ===== */
   .cdk-drag-placeholder { opacity: 0.4; }
   .cdk-drag-animating { transition: transform 250ms cubic-bezier(0,0,0.2,1); }
+
+  /* ===== Totali (legacy alias: i nuovi doc usano .doc-totals-strip globale) ===== */
+  .righe-total {
+    text-align: right; padding: var(--sp-3) var(--sp-4); font-weight: 700;
+    background: var(--bg-surface-2); color: var(--text-primary);
+    border-top: 2px solid var(--border);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
 `;

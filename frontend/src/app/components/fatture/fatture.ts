@@ -224,7 +224,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0e6480 0%,#11769b 100%)">
+        <div class="dialog-hero-icon">
           <mat-icon>receipt</mat-icon>
         </div>
         <div class="dialog-hero-text">
@@ -252,106 +252,104 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
 
       <mat-tab-group>
         <mat-tab label="Documento">
-          <div style="padding-top:16px">
+          <div class="doc-form">
 
-            <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px" [formGroup]="form">
-              <mat-form-field style="flex:1">
-                <mat-label>Cliente *</mat-label>
-                <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                       (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
-                       [class.input-error]="submitted && !hasCliente">
-                <mat-icon matSuffix>search</mat-icon>
-                <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
-                  @for (c of filteredClienti; track c.id) {
-                    <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
+            <div class="form-section is-primary">
+              <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+              <div class="doc-field-grid" [formGroup]="form">
+                <mat-form-field>
+                  <mat-label>Cliente *</mat-label>
+                  <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
+                         (keyup.enter)="autoSelectCliente()" placeholder="Cerca per ragione sociale o P.IVA..."
+                         [class.input-error]="submitted && !hasCliente">
+                  <mat-icon matSuffix>search</mat-icon>
+                  <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
+                    @for (c of filteredClienti; track c.id) {
+                      <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
+                    }
+                  </mat-autocomplete>
+                  @if (submitted && !hasCliente) {
+                    <mat-error>Seleziona un cliente</mat-error>
                   }
-                </mat-autocomplete>
-                @if (submitted && !hasCliente) {
-                  <mat-error>Seleziona un cliente</mat-error>
-                }
-              </mat-form-field>
-              <mat-form-field style="flex:0 0 175px">
-                <mat-label>Numero *</mat-label>
-                <input matInput formControlName="numero">
-              </mat-form-field>
-              <mat-form-field style="flex:0 0 160px">
-                <mat-label>Data emissione *</mat-label>
-                <input matInput type="date" formControlName="dataEmissione">
-              </mat-form-field>
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Numero *</mat-label>
+                  <input matInput formControlName="numero">
+                </mat-form-field>
+                <mat-form-field>
+                  <mat-label>Data emissione *</mat-label>
+                  <input matInput type="date" formControlName="dataEmissione">
+                </mat-form-field>
+              </div>
             </div>
 
             <!-- DDT collegati (visibile solo dopo aver selezionato il cliente) -->
             @if (hasCliente) {
-            <div class="ddt-section">
-              <div class="ddt-header">
-                <span style="font-size:13px;font-weight:600;color:#374151">DDT collegati</span>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <select class="riga-input" style="width:auto;min-width:220px" [(ngModel)]="ddtSelezione" (change)="addDdt()">
-                    <option [ngValue]="null">— Collega DDT... —</option>
-                    @for (d of ddtDisponibili; track d.id) {
-                      <option [ngValue]="d.id">DDT {{ d.numero }} — {{ d.dataEmissione | date:'dd/MM/yy' }}</option>
-                    }
-                  </select>
-                </div>
+            <div class="form-section">
+              <div class="form-section-header">
+                <mat-icon>local_shipping</mat-icon><span>DDT collegati</span>
+                <select class="riga-input" [(ngModel)]="ddtSelezione" (change)="addDdt()">
+                  <option [ngValue]="null">— Collega DDT… —</option>
+                  @for (d of ddtDisponibili; track d.id) {
+                    <option [ngValue]="d.id">DDT {{ d.numero }} — {{ d.dataEmissione | date:'dd/MM/yy' }}</option>
+                  }
+                </select>
               </div>
               @if (linkedDdts.length) {
-                <div class="ddt-chips">
+                <div class="chip-row">
                   @for (d of linkedDdts; track d.id) {
-                    <span class="ddt-chip">
-                      <mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle;margin-right:4px">local_shipping</mat-icon>
+                    <span class="doc-chip is-info">
+                      <mat-icon>local_shipping</mat-icon>
                       DDT n. {{ d.numero }} del {{ d.dataEmissione | date:'dd/MM/yyyy' }}
                       <button type="button" class="chip-remove" (click)="removeDdt(d.id!)" title="Scollega DDT">×</button>
                     </span>
                   }
                 </div>
               } @else {
-                <p style="margin:6px 0 0;font-size:12px;color:#94a3b8">Nessun DDT collegato. Selezionane uno per importare le righe automaticamente.</p>
+                <p class="section-empty">Nessun DDT collegato. Selezionane uno per importare le righe automaticamente.</p>
               }
             </div>
             }
 
-            <div class="righe-section">
+            <div class="form-section">
               @if (suggerimenti.length) {
-                <div class="suggerimenti-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#f5f3ff;border:1px solid #cde3ec;border-radius:8px;margin-bottom:10px">
-                  <mat-icon style="color:#11769b;font-size:18px;width:18px;height:18px">auto_awesome</mat-icon>
-                  <span style="font-size:12px;font-weight:600;color:#0b5066">Suggeriti per questo cliente:</span>
+                <div class="suggeriti-bar">
+                  <mat-icon class="icon-primary">auto_awesome</mat-icon>
+                  <span class="suggeriti-label">Suggeriti per questo cliente</span>
                   @for (s of suggerimenti; track s.id) {
-                    <button type="button" class="sugg-chip" (click)="addRigaDaSuggerimento(s)"
-                            style="background:#fff;border:1px solid #c7d2fe;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600;color:#0b5066;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
-                      <mat-icon style="font-size:14px;width:14px;height:14px">add</mat-icon>
-                      {{ s.nome }}
-                      <span style="opacity:.6;font-weight:400">·{{ s.occorrenze }}</span>
+                    <button type="button" class="sugg-chip" (click)="addRigaDaSuggerimento(s)">
+                      <mat-icon>add</mat-icon>{{ s.nome }}<span class="sugg-count">·{{ s.occorrenze }}</span>
                     </button>
                   }
                 </div>
               }
               <div class="righe-header">
-                <div style="display:flex;align-items:center;gap:12px">
-                  <b>Righe *</b>
+                <div class="righe-header-title">
+                  <span>Righe *</span>
                   @if (submitted && !hasRighe) {
                     <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
                   }
                 </div>
-                <div style="display:flex;gap:8px;align-items:center">
+                <div class="righe-actions">
                   <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
                     <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
                     <mat-button-toggle [value]="true">Netto</mat-button-toggle>
                   </mat-button-toggle-group>
-                  <button mat-stroked-button type="button" (click)="addRiga()">
+                  <button mat-flat-button color="primary" type="button" (click)="addRiga()">
                     <mat-icon>add</mat-icon> Aggiungi riga
                   </button>
                   <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-                    <mat-icon>content_copy</mat-icon> Copia da...
+                    <mat-icon>content_copy</mat-icon> Copia da…
                   </button>
                   <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-                    <mat-icon>note_add</mat-icon> Aggiungi nota
+                    <mat-icon>sticky_note_2</mat-icon> Nota
                   </button>
                   <mat-menu #menuNota="matMenu">
                     <button mat-menu-item type="button" (click)="addNota('')">
                       <mat-icon>edit_note</mat-icon> Nota libera
                     </button>
                     @if (noteRapideList.length) {
-                      <div style="padding:4px 16px;font-size:11px;font-weight:600;color:#94a3b8;pointer-events:none;text-transform:uppercase">Note rapide</div>
+                      <div class="menu-section-label">Note rapide</div>
                       @for (nr of noteRapideList; track nr.id) {
                         <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                       }
@@ -359,20 +357,21 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                   </mat-menu>
                 </div>
               </div>
+              <div class="righe-scroll">
               <table class="righe-table">
                 <thead>
                   <tr>
                     <th class="td-drag"></th>
                     <th class="td-desc">Codice / Descrizione</th>
                     <th class="td-search"></th>
-                    <th>Qtà</th>
-                    <th>UM</th>
-                    <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+                    <th class="td-qta">Qtà</th>
+                    <th class="td-um">UM</th>
+                    <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
                     <th class="td-history"></th>
-                    <th>Sconto%</th>
-                    <th style="min-width:130px">IVA</th>
-                    <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
-                    <th></th>
+                    <th class="td-sconto">Sconto%</th>
+                    <th class="td-iva">IVA</th>
+                    <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                    <th class="td-actions"></th>
                   </tr>
                 </thead>
                 <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
@@ -380,10 +379,10 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                     @if (riga.tipo === 'NOTA') {
                       <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                         <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                        <td colspan="9">
-                          <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                        <td class="td-nota" colspan="9">
+                          <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota…">
                         </td>
-                        <td>
+                        <td class="td-actions">
                           <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                             <mat-icon>delete</mat-icon>
                           </button>
@@ -392,75 +391,77 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                     } @else {
                     <tr cdkDrag cdkDragPreviewContainer="parent">
                       <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                      <td class="td-desc" style="padding:2px">
-                        <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice"
-                          (keydown.enter)="risolviCodiceRiga(rowIdx, $event)" (keydown.f2)="searchProdotto(rowIdx)"
-                          (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace(rowIdx, $event)">
-                        <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                      <td class="td-desc">
+                        <div class="codice-desc-stack">
+                          <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice"
+                            (keydown.enter)="risolviCodiceRiga(rowIdx, $event)" (keydown.f2)="searchProdotto(rowIdx)"
+                            (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace(rowIdx, $event)">
+                          <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                        </div>
                       </td>
                       <td class="td-search">
                         <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
                           <mat-icon>search</mat-icon>
                         </button>
                       </td>
-                      <td><input class="riga-input num" type="number" min="0"
+                      <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
                         [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                         [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                      <td>
-                        <select class="riga-input num" [(ngModel)]="riga.unitaMisura">
+                      <td class="td-um" [attr.data-label]="'UM'">
+                        <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                           <option value="">—</option>
                           @for (u of unitaMisura; track u.id) {
                             <option [value]="u.simbolo">{{ u.simbolo }}</option>
                           }
                         </select>
                       </td>
-                      <td><input class="riga-input num" type="number" min="0" step="0.01"
+                      <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
                         [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                         (change)="setPrezzoFromInput(riga, $event)"></td>
                       <td class="td-history">
                         @if (prezziRecenti[$index]?.length) {
                           <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
-                            <mat-icon style="font-size:16px;color:#11769b">history</mat-icon>
+                            <mat-icon class="icon-primary">history</mat-icon>
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
-                            <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Prezzi recenti</div>
+                            <div class="menu-section-label">Prezzi recenti</div>
                             @for (pr of prezziRecenti[rowIdx]; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
-                                <span style="font-size:12px;color:#64748b">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
-                                <b style="margin-left:8px;color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                                @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                                <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                                <b class="pr-value">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                                @if (pr.sconto) { <span class="pr-discount">(-{{ pr.sconto }}%)</span> }
                               </button>
                             }
                           </mat-menu>
                         }
                         @if (riga.prodottoId) {
                           <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
-                            <mat-icon style="font-size:16px;color:#94a3b8">groups</mat-icon>
+                            <mat-icon class="icon-muted">groups</mat-icon>
                           </button>
                           <mat-menu #menuTutti="matMenu">
-                            <div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:#64748b;pointer-events:none">Tutti i clienti</div>
+                            <div class="menu-section-label">Tutti i clienti</div>
                             @if (!tuttiCaricati[$index]) {
-                              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Clicca per caricare...</div>
+                              <div class="menu-empty">Clicca per caricare…</div>
                             }
                             @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                              <div style="padding:8px 16px;font-size:12px;color:#94a3b8">Nessun prezzo trovato</div>
+                              <div class="menu-empty">Nessun prezzo trovato</div>
                             }
                             @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                                 <div>
-                                  <span style="font-size:11px;color:#64748b;display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
-                                  <b style="color:#1e293b">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                                  @if (pr.sconto) { <span style="font-size:11px;color:#dc2626;margin-left:4px">(-{{ pr.sconto }}%)</span> }
+                                  <span class="pr-meta" style="display:block">{{ pr.clienteNome ?? '' }} · {{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
+                                  <b class="pr-value" style="margin-left:0">{{ pr.prezzoEffettivo | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                                  @if (pr.sconto) { <span class="pr-discount">(-{{ pr.sconto }}%)</span> }
                                 </div>
                               </button>
                             }
                           </mat-menu>
                         }
                       </td>
-                      <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                      <td>
+                      <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
+                      <td class="td-iva" [attr.data-label]="'IVA'">
                         @if (aliquoteIva.length) {
-                          <select class="riga-input" style="min-width:120px"
+                          <select class="riga-input"
                                   [ngModel]="riga.codiceIva || resolveAliquotaCodice(riga.iva)"
                                   (ngModelChange)="onAliquotaChange(riga, $event)">
                             @for (a of aliquoteIva; track a.id) {
@@ -468,13 +469,13 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                             }
                           </select>
                         } @else {
-                          <input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva">
+                          <input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva">
                         }
                       </td>
-                      <td style="padding:4px 8px; white-space:nowrap">
+                      <td class="td-totale" [attr.data-label]="'Totale'">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
-                      <td>
+                      <td class="td-actions">
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                           <mat-icon>delete</mat-icon>
                         </button>
@@ -484,15 +485,20 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                   }
                 </tbody>
               </table>
-              <div class="righe-total">
-                <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-                <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-                Totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
               </div>
             </div>
-            <div [formGroup]="form" style="margin-top:16px">
-              <mat-form-field style="width:100%">
-                <mat-label>Note ad uso interno</mat-label>
+
+            <div class="doc-totals-strip">
+              <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <span class="totals-spacer"></span>
+              <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+            </div>
+
+            <div class="form-section is-flat" [formGroup]="form">
+              <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+              <mat-form-field>
+                <mat-label>Annotazioni ad uso interno (non stampate)</mat-label>
                 <textarea matInput rows="2" formControlName="note"></textarea>
               </mat-form-field>
             </div>
@@ -501,18 +507,19 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
 
         <mat-tab>
           <ng-template mat-tab-label>
-            <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">payment</mat-icon>
+            <mat-icon class="tab-lead-icon">payment</mat-icon>
             Pagamento
             @if (!selectedTipoPagamentoId) {
-              <mat-icon style="font-size:16px;margin-left:6px;color:#f59e0b;vertical-align:middle">warning_amber</mat-icon>
+              <mat-icon class="tab-status-icon icon-warning">warning_amber</mat-icon>
             } @else {
-              <mat-icon style="font-size:16px;margin-left:6px;color:#16a34a;vertical-align:middle">check_circle</mat-icon>
+              <mat-icon class="tab-status-icon icon-success">check_circle</mat-icon>
             }
           </ng-template>
-          <div style="padding-top:24px">
-            <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
-              <div style="flex:0 0 300px">
-                <mat-form-field style="width:100%">
+          <div class="doc-form">
+            <div class="pagamento-grid">
+              <div class="form-section is-primary">
+                <div class="form-section-header"><mat-icon>payment</mat-icon><span>Modalità di pagamento</span></div>
+                <mat-form-field>
                   <mat-label>Tipo di pagamento</mat-label>
                   <mat-select [(ngModel)]="selectedTipoPagamentoId" (ngModelChange)="onTipoPagamentoChange()">
                     <mat-option [value]="null">— non specificato —</mat-option>
@@ -542,10 +549,10 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                   </div>
                 }
               </div>
-              <div style="flex:1;min-width:300px">
-                <b style="display:block;margin-bottom:12px;font-size:14px">Acconti versati</b>
+              <div class="form-section">
+                <div class="form-section-header"><mat-icon>savings</mat-icon><span>Acconti versati</span></div>
                 @if (!data?.id) {
-                  <p style="color:#94a3b8;font-size:13px;margin:0">Salva prima il documento per aggiungere acconti.</p>
+                  <p class="section-empty">Salva prima il documento per registrare gli acconti.</p>
                 } @else {
                   @if (pagamenti.length > 0) {
                     <table class="acconto-table">
@@ -555,7 +562,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                           <tr>
                             <td>{{ p.dataPagamento | date:'dd/MM/yyyy' }}</td>
                             <td>{{ p.metodo }}</td>
-                            <td style="font-weight:600;white-space:nowrap">{{ p.importo | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                            <td class="acconto-importo">{{ p.importo | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
                             <td><span [class]="'tipo-badge tipo-' + (p.tipo ?? 'acconto').toLowerCase()">{{ p.tipo ?? 'ACCONTO' }}</span></td>
                             <td>
                               <button mat-icon-button color="warn" type="button" (click)="deleteAcconto(p.id!)">
@@ -567,12 +574,12 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                       </tbody>
                     </table>
                   } @else {
-                    <p style="color:#94a3b8;font-size:13px;margin:0 0 12px">Nessun acconto registrato.</p>
+                    <p class="section-empty" style="margin-bottom:12px">Nessun acconto registrato.</p>
                   }
                   <div class="acconto-summary">
                     <span>Totale fattura: <b>{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
                     <span>Acconti: <b>{{ totalePagato | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
-                    <span [style.color]="rimanente > 0.005 ? '#dc2626' : '#16a34a'">Rimanente: <b>{{ rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+                    <span [style.color]="rimanente > 0.005 ? 'var(--danger)' : 'var(--success)'">Rimanente: <b>{{ rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
                   </div>
                   <div class="acconto-form">
                     <input class="riga-input" type="date" [(ngModel)]="nuovoAcconto.dataPagamento">
@@ -597,41 +604,40 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
 
         <mat-tab>
           <ng-template mat-tab-label>
-            <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">account_balance</mat-icon>
+            <mat-icon class="tab-lead-icon">account_balance</mat-icon>
             Riferimenti
             @if (riferimenti.length) {
-              <span style="background:#11769b;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;margin-left:6px">{{ riferimenti.length }}</span>
+              <span class="tab-badge">{{ riferimenti.length }}</span>
             }
           </ng-template>
-          <div style="padding-top:16px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div class="doc-form">
+            <div class="rif-intro">
               <div>
-                <b style="font-size:14px;color:#1e293b">Documento emesso in seguito a</b>
-                <p style="font-size:12px;color:#64748b;margin:4px 0 0">Per fattura PA: ordini d'acquisto, contratti, convenzioni. Ogni riga genera un blocco nel file XML SDI.</p>
+                <div class="rif-intro-title">Documento emesso in seguito a</div>
+                <p class="section-empty">Per fattura PA: ordini d'acquisto, contratti, convenzioni. Ogni riga genera un blocco nel file XML SDI.</p>
               </div>
-              <button mat-stroked-button type="button" (click)="addRiferimento()">
-                <mat-icon>add</mat-icon> Aggiungi riga
+              <button mat-flat-button color="primary" type="button" (click)="addRiferimento()">
+                <mat-icon>add</mat-icon> Aggiungi riferimento
               </button>
             </div>
 
             @if (!riferimenti.length) {
-              <div style="text-align:center;padding:32px 0;color:#94a3b8;font-size:13px">
-                <mat-icon style="display:block;font-size:40px;width:40px;height:40px;margin:0 auto 10px;opacity:.4">link</mat-icon>
-                Nessun riferimento. Clicca "Aggiungi riga" per collegare un ordine, contratto o convenzione.
+              <div class="rif-empty">
+                <mat-icon>link</mat-icon>
+                Nessun riferimento. Aggiungine uno per collegare un ordine, contratto o convenzione.
               </div>
             }
 
             @for (rif of riferimenti; track $index) {
-              <div class="rif-card">
-                <div class="rif-card-header">
-                  <mat-icon style="font-size:16px;width:16px;height:16px;color:#11769b">link</mat-icon>
-                  <span style="font-size:13px;font-weight:600;color:#374151;flex:1">Riga {{ $index + 1 }}</span>
-                  <button mat-icon-button color="warn" type="button" (click)="removeRiferimento($index)">
-                    <mat-icon style="font-size:18px">delete</mat-icon>
+              <div class="form-section">
+                <div class="form-section-header">
+                  <mat-icon>link</mat-icon><span>Riferimento {{ $index + 1 }}</span>
+                  <button mat-icon-button color="warn" type="button" class="header-action" (click)="removeRiferimento($index)">
+                    <mat-icon>delete</mat-icon>
                   </button>
                 </div>
-                <div class="rif-fields">
-                  <div class="rif-field rif-field-tipo">
+                <div class="rif-grid">
+                  <div class="rif-field">
                     <label class="rif-label">Tipo documento</label>
                     <select class="riga-input" [(ngModel)]="rif.tipo">
                       @for (t of TIPI_RIF; track t.value) {
@@ -639,23 +645,23 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                       }
                     </select>
                   </div>
-                  <div class="rif-field rif-field-numero">
+                  <div class="rif-field">
                     <label class="rif-label">Numero *</label>
                     <input class="riga-input" [(ngModel)]="rif.numero" placeholder="es. ODA-2024-001">
                   </div>
-                  <div class="rif-field rif-field-data">
+                  <div class="rif-field">
                     <label class="rif-label">Data</label>
                     <input class="riga-input" type="date" [(ngModel)]="rif.data">
                   </div>
-                  <div class="rif-field rif-field-cig">
+                  <div class="rif-field">
                     <label class="rif-label">CIG</label>
-                    <input class="riga-input" [(ngModel)]="rif.cig" placeholder="es. Z123456789" style="text-transform:uppercase" (input)="rif.cig = rif.cig?.toUpperCase() ?? ''">
+                    <input class="riga-input input-upper" [(ngModel)]="rif.cig" placeholder="es. Z123456789" (input)="rif.cig = rif.cig?.toUpperCase() ?? ''">
                   </div>
-                  <div class="rif-field rif-field-cup">
+                  <div class="rif-field">
                     <label class="rif-label">CUP</label>
-                    <input class="riga-input" [(ngModel)]="rif.cup" placeholder="es. C57I18000050006" style="text-transform:uppercase" (input)="rif.cup = rif.cup?.toUpperCase() ?? ''">
+                    <input class="riga-input input-upper" [(ngModel)]="rif.cup" placeholder="es. C57I18000050006" (input)="rif.cup = rif.cup?.toUpperCase() ?? ''">
                   </div>
-                  <div class="rif-field rif-field-commessa">
+                  <div class="rif-field">
                     <label class="rif-label">Commessa / Convenzione</label>
                     <input class="riga-input" [(ngModel)]="rif.commessa" placeholder="Codice commessa o convenzione">
                   </div>
@@ -664,11 +670,18 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
             }
           </div>
         </mat-tab>
+        @if (data?.id) {
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-lead-icon">attach_file</mat-icon>
+              Allegati
+            </ng-template>
+            <div class="doc-form">
+              <app-allegati [documentoTipo]="'fattura'" [documentoId]="data?.id ?? null"></app-allegati>
+            </div>
+          </mat-tab>
+        }
       </mat-tab-group>
-
-      @if (data?.id) {
-        <app-allegati [documentoTipo]="'fattura'" [documentoId]="data?.id ?? null"></app-allegati>
-      }
 
       </div>
 
@@ -690,40 +703,21 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
               [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES + `
-    .pagamento-info { background:#f8fafc; border-radius:8px; padding:16px; margin-top:8px; display:flex; flex-direction:column; gap:12px; }
-    .info-row { display:flex; align-items:center; gap:8px; color:#374151; }
-    .info-row mat-icon { color:#11769b; font-size:20px; }
-    .righe-error { display:flex; align-items:center; gap:4px; color:#dc2626; font-size:12px; font-weight:500; }
-    .righe-error mat-icon { font-size:15px; width:15px; height:15px; }
-    .input-error { border-color:#dc2626 !important; }
-    .avvisi-box { display:flex; flex-direction:column; gap:6px; background:var(--warning-soft); border:1px solid var(--warning); border-radius:8px; padding:10px 14px; margin-top:4px; }
-    .avviso-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--warning-on); font-weight:500; }
+    .pagamento-info { background:var(--bg-subtle); border-radius:var(--radius-md); padding:var(--sp-4); margin-top:var(--sp-2); display:flex; flex-direction:column; gap:var(--sp-3); }
+    .info-row { display:flex; align-items:center; gap:var(--sp-2); color:var(--text-secondary); font-size:13px; }
+    .info-row mat-icon { color:var(--primary); font-size:20px; width:20px; height:20px; }
+    .avvisi-box { display:flex; flex-direction:column; gap:var(--sp-1); background:var(--warning-soft); border:1px solid var(--warning); border-radius:var(--radius-md); padding:var(--sp-2) var(--sp-3); margin-top:var(--sp-1); }
+    .avviso-item { display:flex; align-items:center; gap:var(--sp-2); font-size:13px; color:var(--warning-on); font-weight:500; }
     .avviso-item mat-icon { font-size:18px; width:18px; height:18px; flex-shrink:0; }
-    .acconto-table { width:100%; border-collapse:collapse; margin-bottom:8px; font-size:13px; }
-    .acconto-table th { background:#f8fafc; padding:6px 8px; text-align:left; border-bottom:1px solid #e2e8f0; font-size:12px; }
-    .acconto-table td { padding:4px 8px; border-bottom:1px solid #f1f5f9; }
-    .acconto-summary { display:flex; gap:16px; flex-wrap:wrap; padding:8px 0; font-size:13px; color:#374151; margin-bottom:12px; }
-    .acconto-form { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:4px; }
-    .tipo-badge { font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600; background:#e2e8f0; color:#475569; }
-    .tipo-automatico { background:#dbeafe; color:#1d4ed8; }
-    .tipo-acconto { background:#dcfce7; color:#15803d; }
-    .ddt-section { margin: 12px 0 8px; padding: 12px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
-    .ddt-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-    .ddt-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-    .ddt-chip { display:inline-flex; align-items:center; background:#dbeafe; color:#1d4ed8; border-radius:20px; padding:4px 10px 4px 10px; font-size:12px; font-weight:500; }
-    .chip-remove { background:none; border:none; cursor:pointer; color:#1d4ed8; font-size:16px; line-height:1; margin-left:6px; padding:0; opacity:0.7; }
-    .chip-remove:hover { opacity:1; }
-    .rif-card { border:1px solid #e2e8f0; border-radius:8px; margin-bottom:10px; overflow:hidden; }
-    .rif-card-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f8fafc; border-bottom:1px solid #f1f5f9; }
-    .rif-fields { display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px; }
-    .rif-field { display:flex; flex-direction:column; gap:3px; }
-    .rif-field-tipo { flex:0 0 190px; }
-    .rif-field-numero { flex:1; min-width:130px; }
-    .rif-field-data { flex:0 0 140px; }
-    .rif-field-cig { flex:0 0 130px; }
-    .rif-field-cup { flex:0 0 160px; }
-    .rif-field-commessa { flex:1; min-width:140px; }
-    .rif-label { font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.4px; }
+    .acconto-table { width:100%; border-collapse:collapse; margin-bottom:var(--sp-2); font-size:13px; }
+    .acconto-table th { background:var(--bg-surface-2); padding:6px 8px; text-align:left; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-tertiary); }
+    .acconto-table td { padding:var(--sp-1) var(--sp-2); border-bottom:1px solid var(--border-subtle); }
+    .acconto-importo { font-weight:600; white-space:nowrap; }
+    .acconto-summary { display:flex; gap:var(--sp-4); flex-wrap:wrap; padding:var(--sp-2) 0; font-size:13px; color:var(--text-secondary); margin-bottom:var(--sp-3); }
+    .acconto-form { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-top:var(--sp-1); }
+    .tipo-badge { font-size:11px; padding:2px 6px; border-radius:var(--radius-xs); font-weight:600; background:var(--bg-subtle); color:var(--text-secondary); }
+    .tipo-automatico { background:var(--info-soft); color:var(--info-on); }
+    .tipo-acconto { background:var(--success-soft); color:var(--success-on); }
   `]
 })
 export class FatturaDialogComponent implements OnInit, AfterViewInit {

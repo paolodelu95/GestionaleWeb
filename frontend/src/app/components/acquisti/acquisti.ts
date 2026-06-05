@@ -45,7 +45,7 @@ import { DocLockService } from '../../services/doc-lock.service';
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0ea5e9 0%,#0284c7 100%);box-shadow:0 4px 12px -2px rgba(14,165,233,0.35)">
+        <div class="dialog-hero-icon is-info">
           <mat-icon>shopping_bag</mat-icon>
         </div>
         <div class="dialog-hero-text">
@@ -71,151 +71,165 @@ import { DocLockService } from '../../services/doc-lock.service';
 
       <div [class.doc-locked-content]="locked" (click)="onLockedClick($event)">
 
-      <form [formGroup]="form" class="dialog-form">
+      <div class="doc-form">
 
-        <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px">
-          <mat-form-field style="flex:1">
-            <mat-label>Fornitore</mat-label>
-            <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
-                   (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore per ragione sociale o P.IVA...">
-            <mat-icon matSuffix>search</mat-icon>
-            <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
-              @for (f of filteredFornitori; track f.id) {
-                <mat-option [value]="f">{{ f.ragioneSociale }}</mat-option>
-              }
-            </mat-autocomplete>
-          </mat-form-field>
-          <mat-form-field style="flex:1">
-            <mat-label>Tipo pagamento</mat-label>
-            <mat-select formControlName="tipoPagamentoId">
-              <mat-option [value]="null">— nessuno —</mat-option>
-              @for (t of tipiPagamento; track t.id) {
-                <mat-option [value]="t.id">{{ t.nome }}</mat-option>
-              }
-            </mat-select>
-            <mat-icon matSuffix>payments</mat-icon>
-          </mat-form-field>
-          <mat-form-field style="flex:0 0 175px">
-            <mat-label>Numero *</mat-label>
-            <input matInput formControlName="numero">
-          </mat-form-field>
-          <mat-form-field style="flex:0 0 160px">
-            <mat-label>Data ricezione *</mat-label>
-            <input matInput type="date" formControlName="dataEmissione">
-          </mat-form-field>
-        </div>
-      </form>
-      <div class="righe-section">
-        <div class="righe-header">
-          <b>Righe</b>
-          <div style="display:flex;gap:8px;align-items:center">
-            <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-              <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-              <mat-button-toggle [value]="true">Netto</mat-button-toggle>
-            </mat-button-toggle-group>
-            <button mat-stroked-button type="button" (click)="addRiga()">
-              <mat-icon>add</mat-icon> Aggiungi riga
-            </button>
-            <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-              <mat-icon>content_copy</mat-icon> Copia da...
-            </button>
-            <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-              <mat-icon>note_add</mat-icon> Aggiungi nota
-            </button>
-            <mat-menu #menuNota="matMenu">
-              <button mat-menu-item type="button" (click)="addNota('')">
-                <mat-icon>edit_note</mat-icon> Nota libera
-              </button>
-              @if (noteRapideList.length) {
-                <div style="padding:4px 16px;font-size:11px;font-weight:600;color:#94a3b8;pointer-events:none;text-transform:uppercase">Note rapide</div>
-                @for (nr of noteRapideList; track nr.id) {
-                  <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
+        <div class="form-section is-primary">
+          <div class="form-section-header"><mat-icon>business</mat-icon><span>Intestazione</span></div>
+          <div class="doc-field-grid has-2-extra" [formGroup]="form">
+            <mat-form-field>
+              <mat-label>Fornitore</mat-label>
+              <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
+                     (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore per ragione sociale o P.IVA...">
+              <mat-icon matSuffix>search</mat-icon>
+              <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
+                @for (f of filteredFornitori; track f.id) {
+                  <mat-option [value]="f">{{ f.ragioneSociale }}</mat-option>
                 }
-              }
-            </mat-menu>
+              </mat-autocomplete>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Tipo pagamento</mat-label>
+              <mat-select formControlName="tipoPagamentoId">
+                <mat-option [value]="null">— nessuno —</mat-option>
+                @for (t of tipiPagamento; track t.id) {
+                  <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+                }
+              </mat-select>
+              <mat-icon matSuffix>payments</mat-icon>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Numero *</mat-label>
+              <input matInput formControlName="numero">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Data ricezione *</mat-label>
+              <input matInput type="date" formControlName="dataEmissione">
+            </mat-form-field>
           </div>
         </div>
-        <table class="righe-table">
-          <thead>
-            <tr>
-              <th class="td-drag"></th>
-              <th class="td-desc">Codice / Descrizione</th>
-              <th class="td-search"></th>
-              <th>Qtà</th>
-              <th>UM</th>
-              <th>{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
-              <th>Sconto%</th>
-              <th>IVA%</th>
-              <th>{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
-            @for (riga of righe; track $index) {
-              @if (riga.tipo === 'NOTA') {
-                <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
+
+        <div class="form-section">
+          <div class="righe-header">
+            <div class="righe-header-title">
+              <span>Righe</span>
+            </div>
+            <div class="righe-actions">
+              <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
+                <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
+                <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+              </mat-button-toggle-group>
+              <button mat-flat-button color="primary" type="button" (click)="addRiga()">
+                <mat-icon>add</mat-icon> Aggiungi riga
+              </button>
+              <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
+                <mat-icon>content_copy</mat-icon> Copia da...
+              </button>
+              <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
+                <mat-icon>note_add</mat-icon> Aggiungi nota
+              </button>
+              <mat-menu #menuNota="matMenu">
+                <button mat-menu-item type="button" (click)="addNota('')">
+                  <mat-icon>edit_note</mat-icon> Nota libera
+                </button>
+                @if (noteRapideList.length) {
+                  <div class="menu-section-label">Note rapide</div>
+                  @for (nr of noteRapideList; track nr.id) {
+                    <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
+                  }
+                }
+              </mat-menu>
+            </div>
+          </div>
+          <div class="righe-scroll">
+          <table class="righe-table">
+            <thead>
+              <tr>
+                <th class="td-drag"></th>
+                <th class="td-desc">Codice / Descrizione</th>
+                <th class="td-search"></th>
+                <th class="td-qta">Qtà</th>
+                <th class="td-um">UM</th>
+                <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+                <th class="td-sconto">Sconto%</th>
+                <th class="td-iva">IVA%</th>
+                <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                <th class="td-actions"></th>
+              </tr>
+            </thead>
+            <tbody cdkDropList (cdkDropListDropped)="dropRiga($event)">
+              @for (riga of righe; track $index) {
+                @if (riga.tipo === 'NOTA') {
+                  <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
+                    <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
+                    <td class="td-nota" colspan="8">
+                      <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                    </td>
+                    <td class="td-actions">
+                      <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                } @else {
+                <tr cdkDrag cdkDragPreviewContainer="parent">
                   <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                  <td colspan="8">
-                    <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                  <td class="td-desc">
+                    <div class="codice-desc-stack">
+                      <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                      <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                    </div>
                   </td>
-                  <td>
+                  <td class="td-search">
+                    <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                      <mat-icon>search</mat-icon>
+                    </button>
+                  </td>
+                  <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
+                    [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
+                    [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
+                  <td class="td-um" [attr.data-label]="'UM'">
+                    <select class="riga-input" [(ngModel)]="riga.unitaMisura">
+                      <option value="">—</option>
+                      @for (u of unitaMisura; track u.id) {
+                        <option [value]="u.simbolo">{{ u.simbolo }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
+                    [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
+                    (change)="setPrezzoFromInput(riga, $event)"></td>
+                  <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)"></td>
+                  <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                  <td class="td-totale" [attr.data-label]="'Totale'">
+                    {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
+                  </td>
+                  <td class="td-actions">
                     <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
                       <mat-icon>delete</mat-icon>
                     </button>
                   </td>
                 </tr>
-              } @else {
-              <tr cdkDrag cdkDragPreviewContainer="parent">
-                <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                <td class="td-desc" style="padding:2px">
-                  <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                  <input class="riga-input" style="border-radius:0 0 4px 4px" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
-                </td>
-                <td class="td-search">
-                  <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
-                    <mat-icon>search</mat-icon>
-                  </button>
-                </td>
-                <td><input class="riga-input num" type="number" min="0"
-                  [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
-                  [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                <td>
-                  <select class="riga-input num" [(ngModel)]="riga.unitaMisura">
-                    <option value="">—</option>
-                    @for (u of unitaMisura; track u.id) {
-                      <option [value]="u.simbolo">{{ u.simbolo }}</option>
-                    }
-                  </select>
-                </td>
-                <td><input class="riga-input num" type="number" min="0" step="0.01"
-                  [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
-                  (change)="setPrezzoFromInput(riga, $event)"></td>
-                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
-                <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                <td style="padding:4px 8px; white-space:nowrap">
-                  {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
-                </td>
-                <td>
-                  <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </td>
-              </tr>
+                }
               }
-            }
-          </tbody>
-        </table>
-        <div class="righe-total">
-          <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          Totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
+            </tbody>
+          </table>
+          </div>
         </div>
-      </div>
-      <div [formGroup]="form" style="margin-top:16px">
-        <mat-form-field style="width:100%">
-          <mat-label>Note ad uso interno</mat-label>
-          <textarea matInput rows="2" formControlName="note"></textarea>
-        </mat-form-field>
+
+        <div class="doc-totals-strip">
+          <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <span class="totals-spacer"></span>
+          <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+        </div>
+
+        <div class="form-section is-flat" [formGroup]="form">
+          <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+          <mat-form-field>
+            <mat-label>Note ad uso interno</mat-label>
+            <textarea matInput rows="2" formControlName="note"></textarea>
+          </mat-form-field>
+        </div>
       </div>
       </div>
     </mat-dialog-content>

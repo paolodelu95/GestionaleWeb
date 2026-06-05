@@ -32,9 +32,9 @@ import { docRigaTotale } from '../../utils/doc-calc';
     MatIconModule, MatSnackBarModule
   ],
   template: `
-    <mat-dialog-content style="min-width:680px;max-width:900px">
+    <mat-dialog-content>
       <div class="dialog-hero">
-        <div class="dialog-hero-icon" style="background:linear-gradient(135deg,#0e7490 0%,#a78bfa 100%)">
+        <div class="dialog-hero-icon is-purple">
           <mat-icon>repeat</mat-icon>
         </div>
         <div class="dialog-hero-text">
@@ -42,135 +42,146 @@ import { docRigaTotale } from '../../utils/doc-calc';
           <span class="dialog-hero-sub">{{ data?.id ? 'Aggiorna le impostazioni di ricorrenza' : 'Configura la generazione automatica della fattura' }}</span>
         </div>
       </div>
-      <form [formGroup]="form" class="dialog-form">
-        <div class="form-row">
-          <mat-form-field style="flex:2">
-            <mat-label>Cliente *</mat-label>
-            <mat-select formControlName="clienteId">
-              @for (c of clienti; track c.id) {
-                <mat-option [value]="c.id">{{ c.ragioneSociale }}</mat-option>
-              }
-            </mat-select>
-            @if (form.get('clienteId')?.invalid && submitted) {
-              <mat-error>Seleziona un cliente</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field style="flex:1">
-            <mat-label>Frequenza *</mat-label>
-            <mat-select formControlName="frequenza">
-              <mat-option value="MENSILE">Mensile</mat-option>
-              <mat-option value="BIMESTRALE">Bimestrale</mat-option>
-              <mat-option value="TRIMESTRALE">Trimestrale</mat-option>
-              <mat-option value="SEMESTRALE">Semestrale</mat-option>
-              <mat-option value="ANNUALE">Annuale</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
 
-        <div class="form-row">
-          <mat-form-field style="flex:2">
-            <mat-label>Descrizione *</mat-label>
-            <input matInput formControlName="descrizione" placeholder="Es. Canone mensile assistenza">
-            @if (form.get('descrizione')?.invalid && submitted) {
-              <mat-error>Campo obbligatorio</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field style="flex:1">
-            <mat-label>Giorno emissione (1-28)</mat-label>
-            <input matInput type="number" min="1" max="28" formControlName="giornoEmissione">
-          </mat-form-field>
-        </div>
+      <div class="doc-form">
 
-        <div class="form-row">
-          <mat-form-field style="flex:1">
-            <mat-label>Prima/prossima emissione *</mat-label>
-            <input matInput type="date" formControlName="prossimaEmissione">
-            @if (form.get('prossimaEmissione')?.invalid && submitted) {
-              <mat-error>Data obbligatoria</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field style="flex:1">
-            <mat-label>Tipo di pagamento</mat-label>
-            <mat-select formControlName="tipoPagamentoId">
-              <mat-option [value]="null">— non specificato —</mat-option>
-              @for (t of tipiPagamento; track t.id) {
-                <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+        <div class="form-section is-primary">
+          <div class="form-section-header"><mat-icon>person</mat-icon><span>Cliente e contenuto</span></div>
+          <div class="doc-field-grid has-2-extra" [formGroup]="form">
+            <mat-form-field>
+              <mat-label>Cliente *</mat-label>
+              <mat-select formControlName="clienteId">
+                @for (c of clienti; track c.id) {
+                  <mat-option [value]="c.id">{{ c.ragioneSociale }}</mat-option>
+                }
+              </mat-select>
+              @if (form.get('clienteId')?.invalid && submitted) {
+                <mat-error>Seleziona un cliente</mat-error>
               }
-            </mat-select>
-          </mat-form-field>
-          <div style="display:flex;align-items:center;gap:8px;padding:0 8px">
-            <mat-slide-toggle formControlName="attiva">Attiva</mat-slide-toggle>
+            </mat-form-field>
+            <mat-form-field class="grid-span-all">
+              <mat-label>Descrizione *</mat-label>
+              <input matInput formControlName="descrizione" placeholder="Es. Canone mensile assistenza">
+              @if (form.get('descrizione')?.invalid && submitted) {
+                <mat-error>Campo obbligatorio</mat-error>
+              }
+            </mat-form-field>
           </div>
         </div>
-      </form>
 
-      <!-- Righe -->
-      <div class="righe-section">
-        <div class="righe-header">
-          <div style="display:flex;align-items:center;gap:12px">
-            <b>Righe *</b>
-            @if (submitted && !hasRighe) {
-              <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
-            }
+        <div class="form-section">
+          <div class="form-section-header"><mat-icon>event_repeat</mat-icon><span>Pianificazione</span></div>
+          <div class="doc-field-grid has-2-extra" [formGroup]="form">
+            <mat-form-field>
+              <mat-label>Frequenza *</mat-label>
+              <mat-select formControlName="frequenza">
+                <mat-option value="MENSILE">Mensile</mat-option>
+                <mat-option value="BIMESTRALE">Bimestrale</mat-option>
+                <mat-option value="TRIMESTRALE">Trimestrale</mat-option>
+                <mat-option value="SEMESTRALE">Semestrale</mat-option>
+                <mat-option value="ANNUALE">Annuale</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Giorno emissione (1-28)</mat-label>
+              <input matInput type="number" min="1" max="28" formControlName="giornoEmissione">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Prima/prossima emissione *</mat-label>
+              <input matInput type="date" formControlName="prossimaEmissione">
+              @if (form.get('prossimaEmissione')?.invalid && submitted) {
+                <mat-error>Data obbligatoria</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Tipo di pagamento</mat-label>
+              <mat-select formControlName="tipoPagamentoId">
+                <mat-option [value]="null">— non specificato —</mat-option>
+                @for (t of tipiPagamento; track t.id) {
+                  <mat-option [value]="t.id">{{ t.nome }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <div class="ric-toggle grid-span-all">
+              <mat-slide-toggle formControlName="attiva">Ricorrenza attiva</mat-slide-toggle>
+              <span class="ric-toggle-hint">Se disattivata, la fattura non verrà generata automaticamente.</span>
+            </div>
           </div>
-          <button mat-stroked-button type="button" (click)="addRiga()">
-            <mat-icon>add</mat-icon> Aggiungi riga
-          </button>
         </div>
-        <table class="righe-table">
-          <thead>
-            <tr>
-              <th>Descrizione</th>
-              <th>Qtà</th>
-              <th>UM</th>
-              <th>Prezzo</th>
-              <th>Sconto%</th>
-              <th>IVA%</th>
-              <th>Totale</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (riga of righe; track $index) {
+
+        <div class="form-section">
+          <div class="righe-header">
+            <div class="righe-header-title">
+              <span>Righe *</span>
+              @if (submitted && !hasRighe) {
+                <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
+              }
+            </div>
+            <div class="righe-actions">
+              <button mat-flat-button color="primary" type="button" (click)="addRiga()">
+                <mat-icon>add</mat-icon> Aggiungi riga
+              </button>
+            </div>
+          </div>
+          <div class="righe-scroll">
+          <table class="righe-table">
+            <thead>
               <tr>
-                <td><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Descrizione"></td>
-                <td><input class="riga-input num" type="number" min="0" step="0.01" [(ngModel)]="riga.quantita"></td>
-                <td>
-                  <select class="riga-input num" [(ngModel)]="riga.unitaMisura">
-                    <option value="">—</option>
-                    @for (u of unitaMisura; track u.id) {
-                      <option [value]="u.simbolo">{{ u.simbolo }}</option>
-                    }
-                  </select>
-                </td>
-                <td><input class="riga-input num" type="number" min="0" step="0.01" [(ngModel)]="riga.prezzo"></td>
-                <td><input class="riga-input sconto" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
-                <td><input class="riga-input num" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                <td style="padding:4px 8px;white-space:nowrap">
-                  {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
-                </td>
-                <td>
-                  <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </td>
+                <th class="td-desc">Descrizione</th>
+                <th class="td-qta">Qtà</th>
+                <th class="td-um">UM</th>
+                <th class="td-prezzo">Prezzo</th>
+                <th class="td-sconto">Sconto%</th>
+                <th class="td-iva">IVA%</th>
+                <th class="td-totale">Totale</th>
+                <th class="td-actions"></th>
               </tr>
-            }
-          </tbody>
-        </table>
-        <div class="righe-total">
-          <span style="font-weight:400;color:#64748b;margin-right:16px">Imponibile: {{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          <span style="font-weight:400;color:#64748b;margin-right:16px">IVA: {{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
-          Totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
+            </thead>
+            <tbody>
+              @for (riga of righe; track $index) {
+                <tr>
+                  <td class="td-desc"><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Descrizione"></td>
+                  <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0" step="0.01" [(ngModel)]="riga.quantita"></td>
+                  <td class="td-um" [attr.data-label]="'UM'">
+                    <select class="riga-input" [(ngModel)]="riga.unitaMisura">
+                      <option value="">—</option>
+                      @for (u of unitaMisura; track u.id) {
+                        <option [value]="u.simbolo">{{ u.simbolo }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td class="td-prezzo" [attr.data-label]="'Prezzo'"><input class="riga-input" type="number" min="0" step="0.01" [(ngModel)]="riga.prezzo"></td>
+                  <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
+                  <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                  <td class="td-totale" [attr.data-label]="'Totale'">
+                    {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
+                  </td>
+                  <td class="td-actions">
+                    <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          </div>
         </div>
-      </div>
 
-      <!-- Note -->
-      <div [formGroup]="form" style="margin-top:16px">
-        <mat-form-field style="width:100%">
-          <mat-label>Note</mat-label>
-          <textarea matInput rows="2" formControlName="note"></textarea>
-        </mat-form-field>
+        <div class="doc-totals-strip">
+          <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <span class="totals-spacer"></span>
+          <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+        </div>
+
+        <div class="form-section is-flat" [formGroup]="form">
+          <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note</span></div>
+          <mat-form-field>
+            <mat-label>Note</mat-label>
+            <textarea matInput rows="2" formControlName="note"></textarea>
+          </mat-form-field>
+        </div>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -179,8 +190,8 @@ import { docRigaTotale } from '../../utils/doc-calc';
     </mat-dialog-actions>
   `,
   styles: [RIGHE_STYLES + `
-    .dialog-form { display: flex; flex-direction: column; gap: 0; }
-    .form-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 4px; }
+    .ric-toggle { display: flex; flex-direction: column; gap: var(--sp-1); }
+    .ric-toggle-hint { font-size: 12px; color: var(--text-tertiary); }
   `]
 })
 export class FatturaRicorrenteDialogComponent implements OnInit {
