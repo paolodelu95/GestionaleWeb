@@ -1726,7 +1726,16 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
       flex: 1 1 calc(50% - 3px);
       min-width: 0;
     }
-    > div:last-child > mat-button-toggle-group { flex: 1 1 100%; }
+    // Toggle Ivato/Netto: occupa tutta la riga e i due bottoni si dividono il 50%
+    // ciascuno (segmented control). Senza questo il gruppo si allargava ma i due
+    // bottoni restavano a sinistra, lasciando un grande box vuoto a destra (sembrava
+    // un campo input rotto).
+    > div:last-child > mat-button-toggle-group {
+      flex: 1 1 100%;
+      display: flex;
+      .mat-button-toggle { flex: 1 1 0; }
+      .mat-button-toggle-label-content { text-align: center; }
+    }
   }
 
   // Full screen dialogs + override min-width inline (es. listino-dialog usa 680px)
