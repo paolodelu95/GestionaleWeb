@@ -13,6 +13,9 @@
         <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('ANNULLATO')">
           <mat-icon>cancel</mat-icon> Annulla
         </button>
+        <button mat-stroked-button type="button" (click)="bulkConvertiInDdt()">
+          <mat-icon>local_shipping</mat-icon> Genera DDT
+        </button>
         <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
       </div>
     }

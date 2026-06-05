@@ -31,7 +31,8 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-ordine-dialog',
@@ -814,6 +815,21 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
       next: r => { this.load(); this.snack.open(`DDT ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.message || 'Errore conversione', '', { duration: 3000 }),
     });
+  }
+
+  // ── Conversione massiva: ordini selezionati -> DDT ──────────────────────────
+  async bulkConvertiInDdt() {
+    const sel = this.selection.selected.slice();
+    if (!sel.length) return;
+    if (!await this.confirm.ask(`Convertire ${sel.length} ordini in DDT?`)) return;
+    forkJoin(sel.map(o => this.ds.ordineToDD(o.id!).pipe(catchError(() => of(null)))))
+      .subscribe((res: any[]) => {
+        const ok = res.filter(Boolean).length;
+        this.selection.clear();
+        this.load();
+        const falliti = sel.length - ok;
+        this.snack.open(`${ok} DDT creat${ok === 1 ? 'o' : 'i'}${falliti ? ` · ${falliti} non convertiti` : ''}`, '', { duration: 4000 });
+      });
   }
 
   info(o: Ordine) {

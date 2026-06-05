@@ -40,6 +40,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
   loading = true;
   loadError = false;
   bi: any = null;
+  margini: any = null;
   annoSel = new Date().getFullYear();
   anni = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   abcFiltro: 'A' | 'B' | 'C' | 'tutti' = 'tutti';
@@ -64,6 +65,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadError = false;
     this.dataReady = false;
     this.destroyCharts();
+    this.ds.getMargini(this.annoSel).subscribe({ next: m => this.margini = m ?? {}, error: () => this.margini = {} });
     this.ds.getBiStats(this.annoSel).subscribe({
       next: data => {
         this.bi = data ?? {};

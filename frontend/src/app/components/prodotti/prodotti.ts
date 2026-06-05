@@ -20,7 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
-import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva, Fornitore, ProdottoFornitore } from '../../models';
+import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva, Fornitore, ProdottoFornitore, CodiceAlias } from '../../models';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
@@ -239,6 +239,29 @@ const PRODOTTI_FIELDS: FieldDef[] = [
               Aggiungi i fornitori da cui acquisti questo prodotto, ciascuno col proprio codice. Negli ordini il prodotto userà il codice del fornitore scelto.
             </div>
           }
+
+          @if (codiciAlias.length) {
+            <div style="margin-top:14px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px">
+                <mat-icon style="font-size:15px;width:15px;height:15px">bookmark</mat-icon> Codici memorizzati
+              </div>
+              <div style="font-size:11px;color:var(--text-tertiary);margin:2px 0 8px">
+                Codici riconosciuti automaticamente nei prossimi import listino. Rimuovi quelli sbagliati.
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                @for (a of codiciAlias; track a.id) {
+                  <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:99px;padding:3px 6px 3px 10px;font-size:12px;background:var(--surface-2, transparent)">
+                    <span style="font-family:monospace;font-weight:700;color:var(--primary)">{{ a.codice }}</span>
+                    @if (a.fornitoreNome) { <span style="color:var(--text-tertiary)">· {{ a.fornitoreNome }}</span> }
+                    <button mat-icon-button type="button" title="Rimuovi codice memorizzato"
+                            style="width:22px;height:22px;line-height:22px" (click)="removeCodiceAlias(a)">
+                      <mat-icon style="font-size:15px;width:15px;height:15px">close</mat-icon>
+                    </button>
+                  </span>
+                }
+              </div>
+            </div>
+          }
         </div>
 
         <!-- ── Magazzino ────────────────────────────────── -->
@@ -361,6 +384,7 @@ export class ProdottoDialogComponent implements OnInit {
   varianti: { id?: number; taglia: string; colore: string; quantita: number; barcode: string }[] = [];
   fornitori: ProdottoFornitore[] = [];
   fornitoriList: Fornitore[] = [];
+  codiciAlias: CodiceAlias[] = [];
 
   prezzoMode: 'netto' | 'ivato' = (localStorage.getItem('prodotto-prezzo-mode') as 'netto' | 'ivato') ?? 'netto';
 
@@ -405,6 +429,7 @@ export class ProdottoDialogComponent implements OnInit {
     private fb: FormBuilder,
     private ds: DataService,
     private dialog: MatDialog,
+    private confirm: ConfirmService,
     public dialogRef: MatDialogRef<ProdottoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Prodotto | null
   ) {
@@ -444,7 +469,15 @@ export class ProdottoDialogComponent implements OnInit {
     }
     if (this.data?.id) {
       this.ds.getProdottoFornitori(this.data.id).subscribe(f => this.fornitori = f);
+      this.ds.getCodiciAlias(this.data.id).subscribe(a => this.codiciAlias = a);
     }
+  }
+
+  async removeCodiceAlias(a: CodiceAlias) {
+    if (!await this.confirm.delete(`Rimuovere il codice memorizzato "${a.codice}"${a.fornitoreNome ? ' di ' + a.fornitoreNome : ''}? Non verrà più riconosciuto automaticamente nei prossimi import.`)) return;
+    this.ds.deleteCodiceAlias(a.id).subscribe(() => {
+      this.codiciAlias = this.codiciAlias.filter(x => x.id !== a.id);
+    });
   }
 
   addVariante() { this.varianti.push({ taglia: '', colore: '', quantita: 0, barcode: '' }); }

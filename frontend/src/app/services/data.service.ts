@@ -7,6 +7,7 @@ import {
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
+  ListinoRigaNonTrovata, ListinoMatchRisultato, CodiceAlias, VariazionePrezzo,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
@@ -45,8 +46,28 @@ export class DataService {
   // Varianti prodotto
   getProdottoVarianti(prodottoId: number): Observable<ProdottoVariante[]> { return this.api.get(`prodotto-varianti/${prodottoId}`); }
   getProdottoFornitori(prodottoId: number): Observable<ProdottoFornitore[]> { return this.api.get(`prodotti/${prodottoId}/fornitori`); }
-  importListino(fornitoreId: number, ivato: boolean, righe: { codice: any; prezzo: any }[]): Observable<{ aggiornati: number; nonTrovati: string[] }> {
+  /** Codici fornitore memorizzati per il prodotto (memoria degli import listino). */
+  getCodiciAlias(prodottoId: number): Observable<CodiceAlias[]> { return this.api.get(`prodotti/${prodottoId}/codici-alias`); }
+  deleteCodiceAlias(aliasId: number): Observable<any> { return this.api.delete(`prodotti/codici-alias/${aliasId}`); }
+  importListino(
+    fornitoreId: number, ivato: boolean,
+    righe: { codice: any; prezzo: any; descrizione?: string }[],
+  ): Observable<{ aggiornati: number; aggiornamenti: VariazionePrezzo[]; nonTrovati: ListinoRigaNonTrovata[] }> {
     return this.api.post('prodotti/import-listino', { fornitoreId, ivato, righe });
+  }
+  /** Propone i prodotti piu probabili per le righe di listino non abbinate (sola lettura). */
+  matchListino(
+    fornitoreId: number, righe: ListinoRigaNonTrovata[],
+    opts?: { limit?: number; minScore?: number },
+  ): Observable<{ risultati: ListinoMatchRisultato[] }> {
+    return this.api.post('prodotti/import-listino/match', { fornitoreId, righe, ...(opts || {}) });
+  }
+  /** Conferma in batch gli abbinamenti scelti: attacca i codici fornitore ai prodotti. */
+  abbinaListino(
+    fornitoreId: number, ivato: boolean,
+    abbinamenti: { codice: string; prodottoId: number; prezzo?: any }[],
+  ): Observable<{ associati: number; aggiornati: number; saltati: { codice: string; motivo: string }[] }> {
+    return this.api.post('prodotti/import-listino/abbina', { fornitoreId, ivato, abbinamenti });
   }
   searchByBarcode(barcode: string): Observable<{ prodotto: Prodotto; variante: ProdottoVariante | null }> {
     return this.api.get(`prodotto-varianti/barcode/${encodeURIComponent(barcode)}`);
@@ -286,6 +307,10 @@ export class DataService {
 
   getBiStats(anno?: number): Observable<any> {
     return this.api.get(anno ? `stats/bi?anno=${anno}` : 'stats/bi');
+  }
+  /** Margini (ricavo - costo) per prodotto e per cliente. */
+  getMargini(anno?: number): Observable<any> {
+    return this.api.get(anno ? `stats/margini?anno=${anno}` : 'stats/margini');
   }
 
   // ── Moduli (Livello 2: attivazione moduli per tenant) ────────────────────

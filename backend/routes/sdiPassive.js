@@ -13,6 +13,7 @@ const express = require('express');
 const router = express.Router();
 const { XMLParser } = require('fast-xml-parser');
 const db = require('../database');
+const aliasMem = require('../utils/aliasMemoria');
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -86,20 +87,27 @@ router.post('/import-xml', express.text({ type: ['text/xml','application/xml','t
         VALUES (?,?,?,?,?)`).run(numero, data, fornitore.id, 'Importato da XML FatturaPA passiva', 'RICEVUTA');
       const acquistoId = result.lastInsertRowid;
       const stmt = db.prepare(`INSERT INTO acquisti_righe
-        (acquisto_id, descrizione, quantita, prezzo, iva, unita_misura)
-        VALUES (?,?,?,?,?,?)`);
-      let imp = 0;
+        (acquisto_id, descrizione, quantita, prezzo, iva, unita_misura, prodotto_id, codice_prodotto)
+        VALUES (?,?,?,?,?,?,?,?)`);
+      // Auto-abbinamento: le righe il cui codice articolo (o descrizione) e' gia
+      // stato abbinato in passato a questo fornitore vengono collegate al prodotto.
+      const alias = aliasMem.mappaFornitore(db, fornitore.id);
+      let imp = 0, abbinate = 0;
       for (const l of linee) {
         const q = parseFloat(l.Quantita ?? 1) || 1;
         const pu = parseFloat(l.PrezzoUnitario ?? 0) || 0;
         const aliq = parseFloat(l.AliquotaIVA ?? 0) || 0;
-        stmt.run(acquistoId, String(l.Descrizione || ''), q, pu, aliq, String(l.UnitaMisura || ''));
+        const descr = String(l.Descrizione || '');
+        const codiceArt = asArray(l.CodiceArticolo).map(c => c && c.CodiceValore).filter(Boolean)[0] || '';
+        const prodottoId = alias.get(aliasMem.norm(codiceArt || descr)) || null;
+        if (prodottoId) abbinate++;
+        stmt.run(acquistoId, descr, q, pu, aliq, String(l.UnitaMisura || ''), prodottoId, String(codiceArt));
         imp += q * pu;
       }
-      return { acquistoId, imp };
+      return { acquistoId, imp, abbinate };
     })();
 
-    res.json({ id: out.acquistoId, numero, fornitoreId: fornitore.id, ragSoc, righe: linee.length, imponibile: +out.imp.toFixed(2) });
+    res.json({ id: out.acquistoId, numero, fornitoreId: fornitore.id, ragSoc, righe: linee.length, abbinate: out.abbinate, imponibile: +out.imp.toFixed(2) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

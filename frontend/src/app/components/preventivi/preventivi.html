@@ -13,6 +13,12 @@
         <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('RIFIUTATO')">
           <mat-icon>thumb_down</mat-icon> Rifiuta
         </button>
+        <button mat-stroked-button type="button" (click)="bulkConvertiInOrdine()">
+          <mat-icon>shopping_cart</mat-icon> In ordine
+        </button>
+        <button mat-stroked-button type="button" (click)="bulkConvertiInDdt()">
+          <mat-icon>local_shipping</mat-icon> In DDT
+        </button>
         <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
       </div>
     }
