@@ -642,6 +642,23 @@ function initTenantSchema(db) {
     'ALTER TABLE note_credito_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
     'ALTER TABLE preventivi_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
     'ALTER TABLE ordini_righe ADD COLUMN codice_prodotto TEXT DEFAULT ""',
+    // Memoria degli abbinamenti codice fornitore -> prodotto confermati durante
+    // l'import listino. Permette PIU codici per lo stesso prodotto (cosa che il
+    // singolo prodotto_fornitori.codice_fornitore non consente) e rende automatici
+    // gli import successivi. codice_norm = LOWER(TRIM(codice)) per il match.
+    `CREATE TABLE IF NOT EXISTS fornitore_codice_alias (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fornitore_id INTEGER NOT NULL,
+      prodotto_id INTEGER NOT NULL,
+      codice TEXT NOT NULL,
+      codice_norm TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (fornitore_id) REFERENCES fornitori(id) ON DELETE CASCADE,
+      FOREIGN KEY (prodotto_id) REFERENCES prodotti(id) ON DELETE CASCADE,
+      UNIQUE (fornitore_id, codice_norm)
+    )`,
+    'CREATE INDEX IF NOT EXISTS idx_alias_lookup ON fornitore_codice_alias(fornitore_id, codice_norm)',
+    'CREATE INDEX IF NOT EXISTS idx_alias_prodotto ON fornitore_codice_alias(prodotto_id)',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

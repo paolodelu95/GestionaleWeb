@@ -187,6 +187,46 @@ export interface ProdottoVariante {
   barcode: string;
 }
 
+// ── Import listino: abbinamento codice fornitore -> prodotto ──────────────────
+/** Riga del listino non abbinata a un codice fornitore esistente. */
+export interface ListinoRigaNonTrovata {
+  codice: string;
+  prezzo?: any;
+  descrizione?: string;
+  marca?: string;
+}
+
+/** Candidato proposto per una riga non abbinata. `score` e interno (non mostrato). */
+export interface ListinoCandidato {
+  prodottoId: number;
+  nome: string;
+  codice: string;
+  categoria: string;
+  prezzoAcquistoAttuale: number | null;
+  quantita: number | null;
+  score: number;
+  fascia: 'alta' | 'media' | 'bassa';
+  perche: string;
+  giaAssociatoAFornitore?: boolean;
+}
+
+/** Risultato del match per una riga: la riga di listino + i candidati ordinati. */
+export interface ListinoMatchRisultato {
+  codice: string;
+  descrizione: string;
+  prezzo?: any;
+  candidati: ListinoCandidato[];
+}
+
+/** Codice fornitore memorizzato per un prodotto (memoria degli import listino). */
+export interface CodiceAlias {
+  id: number;
+  codice: string;
+  fornitoreId: number;
+  fornitoreNome: string;
+  createdAt?: string;
+}
+
 export interface ClienteIndirizzo {
   id?: number;
   clienteId?: number;

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { scoreCandidati } = require('../utils/matchProdotti');
 
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM prodotti ORDER BY nome').all();
@@ -141,24 +142,151 @@ router.post('/import-listino', (req, res) => {
       AND LOWER(TRIM(pf.codice_fornitore)) = LOWER(TRIM(?))`);
   const updPF = db.prepare('UPDATE prodotto_fornitori SET prezzo_acquisto=? WHERE id=?');
   const updProdPref = db.prepare('UPDATE prodotti SET prezzo_acquisto=? WHERE id=? AND fornitore_id_preferito=?');
+  // Fallback: codici memorizzati in precedenti abbinamenti confermati (anche piu
+  // codici per lo stesso prodotto). Se il match esatto su prodotto_fornitori
+  // fallisce, prova l'alias: cosi gli import successivi diventano automatici.
+  const findAlias = db.prepare('SELECT prodotto_id FROM fornitore_codice_alias WHERE fornitore_id=? AND codice_norm=?');
+  const findPFById = db.prepare('SELECT id FROM prodotto_fornitori WHERE prodotto_id=? AND fornitore_id=?');
+  const ivaProd = db.prepare('SELECT iva FROM prodotti WHERE id=?');
 
   let aggiornati = 0;
+  // nonTrovati: oggetti { codice, prezzo, descrizione } cosi il dialog puo
+  // proporre un abbinamento per somiglianza testuale senza ri-leggere il file.
   const nonTrovati = [];
+  const meta = (r, codice) => ({ codice, prezzo: r.prezzo ?? '', descrizione: String(r.descrizione ?? '').trim() });
+  // applica il prezzo a un prodotto via il suo prodotto_fornitori (creandolo se manca)
+  const applica = (prodottoId, codice, prezzoRaw) => {
+    const iva = ivaProd.get(prodottoId)?.iva || 0;
+    const netto = ivato ? +(prezzoRaw / (1 + iva / 100)).toFixed(4) : +prezzoRaw.toFixed(4);
+    const row = findPFById.get(prodottoId, fornitoreId);
+    if (row) {
+      updPF.run(netto, row.id);
+    } else {
+      const isFirst = !db.prepare('SELECT 1 FROM prodotto_fornitori WHERE prodotto_id=? LIMIT 1').get(prodottoId);
+      db.prepare('INSERT INTO prodotto_fornitori (prodotto_id, fornitore_id, codice_fornitore, prezzo_acquisto, predefinito) VALUES (?,?,?,?,?)')
+        .run(prodottoId, fornitoreId, codice, netto, isFirst ? 1 : 0);
+    }
+    updProdPref.run(netto, prodottoId, fornitoreId);
+  };
   db.transaction(() => {
     for (const r of righe) {
       const codice = String(r.codice ?? '').trim();
       const prezzoRaw = parseFloat(String(r.prezzo ?? '').replace(/[^0-9,.-]/g, '').replace(',', '.'));
       if (!codice) continue;
-      if (!Number.isFinite(prezzoRaw)) { nonTrovati.push(codice); continue; }
+      if (!Number.isFinite(prezzoRaw)) { nonTrovati.push(meta(r, codice)); continue; }
       const pf = findPF.get(fornitoreId, codice);
-      if (!pf) { nonTrovati.push(codice); continue; }
-      const netto = ivato ? +(prezzoRaw / (1 + (pf.iva || 0) / 100)).toFixed(4) : +prezzoRaw.toFixed(4);
-      updPF.run(netto, pf.id);
-      updProdPref.run(netto, pf.prodotto_id, fornitoreId);
-      aggiornati++;
+      if (pf) {
+        const netto = ivato ? +(prezzoRaw / (1 + (pf.iva || 0) / 100)).toFixed(4) : +prezzoRaw.toFixed(4);
+        updPF.run(netto, pf.id);
+        updProdPref.run(netto, pf.prodotto_id, fornitoreId);
+        aggiornati++;
+        continue;
+      }
+      const al = findAlias.get(fornitoreId, codice.toLowerCase());
+      if (al) { applica(al.prodotto_id, codice, prezzoRaw); aggiornati++; continue; }
+      nonTrovati.push(meta(r, codice));
     }
   })();
   res.json({ aggiornati, nonTrovati });
+});
+
+// POST /api/prodotti/import-listino/match — per le righe NON abbinate propone i
+// prodotti a magazzino piu probabili per somiglianza testuale (SOLA LETTURA).
+// body: { fornitoreId, righe: [{ codice, descrizione, marca?, prezzo? }], limit?, minScore? }
+router.post('/import-listino/match', (req, res) => {
+  const { fornitoreId, righe, limit, minScore } = req.body || {};
+  if (!fornitoreId || !Array.isArray(righe)) return res.status(400).json({ error: 'Dati mancanti (fornitore o righe).' });
+  const prodotti = db.prepare(
+    'SELECT id, nome, categoria, codice, descrizione, prezzo, prezzo_acquisto, quantita FROM prodotti'
+  ).all();
+  // prodotti gia associati a questo fornitore: lo segnaliamo (non li escludiamo,
+  // potrebbero avere il codice ancora vuoto)
+  const gia = new Set(
+    db.prepare('SELECT prodotto_id FROM prodotto_fornitori WHERE fornitore_id=?').all(fornitoreId).map((r) => r.prodotto_id)
+  );
+  const risultati = scoreCandidati(righe, prodotti, { limit, minScore }).map((r) => ({
+    ...r,
+    candidati: r.candidati.map((c) => ({ ...c, giaAssociatoAFornitore: gia.has(c.prodottoId) })),
+  }));
+  res.json({ risultati });
+});
+
+// POST /api/prodotti/import-listino/abbina — conferma in batch gli abbinamenti
+// scelti dall'utente: attacca il codice fornitore (UPSERT su prodotto_fornitori
+// per coppia prodotto+fornitore, senza toccare gli altri fornitori) ed eventuale
+// prezzo d'acquisto (convertito in netto come l'import).
+// body: { fornitoreId, ivato, abbinamenti: [{ codice, prodottoId, prezzo? }] }
+router.post('/import-listino/abbina', (req, res) => {
+  const { fornitoreId, ivato, abbinamenti } = req.body || {};
+  if (!fornitoreId || !Array.isArray(abbinamenti)) return res.status(400).json({ error: 'Dati mancanti.' });
+  const fid = Number(fornitoreId);
+
+  // codici gia usati da questo fornitore -> prodotto_id (per non assegnare lo
+  // stesso codice fornitore a due prodotti diversi, presupposto del match esatto).
+  // Unione dei codici primari (prodotto_fornitori) e della memoria (alias).
+  const usati = new Map();
+  for (const row of db.prepare("SELECT prodotto_id, codice_fornitore FROM prodotto_fornitori WHERE fornitore_id=? AND codice_fornitore!=''").all(fid))
+    usati.set(String(row.codice_fornitore).trim().toLowerCase(), row.prodotto_id);
+  for (const row of db.prepare('SELECT prodotto_id, codice_norm FROM fornitore_codice_alias WHERE fornitore_id=?').all(fid))
+    usati.set(row.codice_norm, row.prodotto_id);
+  const insAlias = db.prepare(`INSERT INTO fornitore_codice_alias (fornitore_id, prodotto_id, codice, codice_norm)
+    VALUES (?,?,?,?) ON CONFLICT(fornitore_id, codice_norm) DO UPDATE SET prodotto_id=excluded.prodotto_id, codice=excluded.codice`);
+
+  let associati = 0, aggiornati = 0;
+  const saltati = [];
+
+  db.transaction(() => {
+    for (const a of abbinamenti) {
+      const codice = String(a.codice ?? '').trim();
+      const prodottoId = Number(a.prodottoId);
+      if (!codice || !Number.isFinite(prodottoId)) { saltati.push({ codice, motivo: 'dati incompleti' }); continue; }
+
+      const prod = db.prepare('SELECT id, iva FROM prodotti WHERE id=?').get(prodottoId);
+      if (!prod) { saltati.push({ codice, motivo: 'prodotto inesistente' }); continue; }
+
+      const key = codice.toLowerCase();
+      if (usati.has(key) && usati.get(key) !== prodottoId) {
+        saltati.push({ codice, motivo: 'codice gia usato su un altro prodotto' });
+        continue;
+      }
+
+      // prezzo netto (stessa conversione di /import-listino)
+      let netto = null;
+      const raw = parseFloat(String(a.prezzo ?? '').replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      if (Number.isFinite(raw)) netto = ivato ? +(raw / (1 + (prod.iva || 0) / 100)).toFixed(4) : +raw.toFixed(4);
+
+      const exist = db.prepare('SELECT id FROM prodotto_fornitori WHERE prodotto_id=? AND fornitore_id=?').get(prodottoId, fid);
+      if (exist) {
+        // non distruttivo: il codice primario resta se gia valorizzato; il codice
+        // appena confermato vive comunque nella memoria alias (sotto).
+        db.prepare(`UPDATE prodotto_fornitori
+          SET codice_fornitore = CASE WHEN codice_fornitore IS NULL OR codice_fornitore='' THEN ? ELSE codice_fornitore END,
+              prezzo_acquisto = COALESCE(?, prezzo_acquisto)
+          WHERE id=?`).run(codice, netto, exist.id);
+        aggiornati++;
+      } else {
+        const isFirst = !db.prepare('SELECT 1 FROM prodotto_fornitori WHERE prodotto_id=? LIMIT 1').get(prodottoId);
+        db.prepare('INSERT INTO prodotto_fornitori (prodotto_id, fornitore_id, codice_fornitore, prezzo_acquisto, predefinito) VALUES (?,?,?,?,?)')
+          .run(prodottoId, fid, codice, netto, isFirst ? 1 : 0);
+        associati++;
+      }
+      usati.set(key, prodottoId);
+      // memorizza l'abbinamento (idempotente): rende automatici i prossimi import
+      insAlias.run(fid, prodottoId, codice, key);
+
+      // sincronizza i campi legacy del prodotto dal fornitore predefinito
+      // (come saveFornitori) senza toccare gli altri fornitori
+      const pref = db.prepare('SELECT fornitore_id, codice_fornitore FROM prodotto_fornitori WHERE prodotto_id=? ORDER BY predefinito DESC, id LIMIT 1').get(prodottoId);
+      if (pref) {
+        db.prepare('UPDATE prodotti SET fornitore_id_preferito=?, codice_fornitore=? WHERE id=?')
+          .run(pref.fornitore_id, pref.codice_fornitore || '', prodottoId);
+        if (pref.fornitore_id === fid && netto != null)
+          db.prepare('UPDATE prodotti SET prezzo_acquisto=? WHERE id=?').run(netto, prodottoId);
+      }
+    }
+  })();
+
+  res.json({ associati, aggiornati, saltati });
 });
 
 // GET /api/prodotti/:id — dettaglio singolo prodotto
@@ -184,6 +312,27 @@ router.get('/:id/fornitori', (req, res) => {
     codiceFornitore: r.codice_fornitore || '', prezzoAcquisto: r.prezzo_acquisto ?? null,
     predefinito: r.predefinito === 1,
   })));
+});
+
+// GET /api/prodotti/:id/codici-alias — codici fornitore memorizzati per questo
+// prodotto (dalla conferma abbinamenti durante l'import listino).
+router.get('/:id/codici-alias', (req, res) => {
+  const rows = db.prepare(`
+    SELECT a.id, a.codice, a.fornitore_id, a.created_at, f.ragione_sociale AS fornitore_nome
+    FROM fornitore_codice_alias a
+    LEFT JOIN fornitori f ON f.id = a.fornitore_id
+    WHERE a.prodotto_id = ?
+    ORDER BY f.ragione_sociale, a.codice`).all(req.params.id);
+  res.json(rows.map(r => ({
+    id: r.id, codice: r.codice, fornitoreId: r.fornitore_id,
+    fornitoreNome: r.fornitore_nome || '', createdAt: r.created_at,
+  })));
+});
+
+// DELETE /api/prodotti/codici-alias/:aliasId — rimuove un codice memorizzato.
+router.delete('/codici-alias/:aliasId', (req, res) => {
+  db.prepare('DELETE FROM fornitore_codice_alias WHERE id=?').run(req.params.aliasId);
+  res.json({ success: true });
 });
 
 router.put('/:id', (req, res) => {
