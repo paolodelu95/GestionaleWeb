@@ -313,6 +313,68 @@
         </div>
       </mat-tab>
 
+      <!-- TAB: Margini (prodotto + cliente) -->
+      <mat-tab label="Margini">
+        <div class="tab-content report-grid">
+          <div class="card">
+            <div class="card-title"><mat-icon>groups</mat-icon> Margine per cliente</div>
+            <div class="report-table-wrap"><table class="report-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th style="text-align:right">Ricavo</th>
+                  <th style="text-align:right">Costo</th>
+                  <th style="text-align:right">Margine €</th>
+                  <th style="text-align:right">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of margini?.clienti; track c.id) {
+                  <tr>
+                    <td>{{ c.nome }}</td>
+                    <td style="text-align:right">{{ c.ricavo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
+                    <td style="text-align:right;color:#94a3b8">{{ c.costo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
+                    <td style="text-align:right" [style.color]="c.margine >= 0 ? '#22c55e' : '#ef4444'"><b>{{ c.margine | currency:'EUR':'symbol':'1.0-0':'it' }}</b></td>
+                    <td style="text-align:right" [style.color]="(c.marginePct ?? 0) >= 20 ? '#22c55e' : (c.marginePct ?? 0) >= 8 ? '#f59e0b' : '#ef4444'">{{ c.marginePct != null ? (c.marginePct | number:'1.0-0') + '%' : '—' }}</td>
+                  </tr>
+                }
+                @if (!margini?.clienti?.length) {
+                  <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato (serve il prezzo d'acquisto sui prodotti)</td></tr>
+                }
+              </tbody>
+            </table></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><mat-icon>inventory_2</mat-icon> Margine per prodotto <span style="font-weight:400;color:#94a3b8;font-size:12px">· sottocosto in rosso</span></div>
+            <div class="report-table-wrap"><table class="report-table">
+              <thead>
+                <tr>
+                  <th>Prodotto</th>
+                  <th style="text-align:right">Ricavo</th>
+                  <th style="text-align:right">Costo</th>
+                  <th style="text-align:right">Margine €</th>
+                  <th style="text-align:right">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of margini?.prodotti; track p.id) {
+                  <tr [style.background]="p.margine < 0 ? '#fef2f2' : 'transparent'">
+                    <td>{{ p.nome }}</td>
+                    <td style="text-align:right">{{ p.ricavo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
+                    <td style="text-align:right;color:#94a3b8">{{ p.costo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
+                    <td style="text-align:right" [style.color]="p.margine >= 0 ? '#22c55e' : '#ef4444'"><b>{{ p.margine | currency:'EUR':'symbol':'1.0-0':'it' }}</b></td>
+                    <td style="text-align:right" [style.color]="(p.marginePct ?? 0) >= 30 ? '#22c55e' : (p.marginePct ?? 0) >= 10 ? '#f59e0b' : '#ef4444'">{{ p.marginePct != null ? (p.marginePct | number:'1.0-0') + '%' : '—' }}</td>
+                  </tr>
+                }
+                @if (!margini?.prodotti?.length) {
+                  <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato (serve il prezzo d'acquisto sui prodotti)</td></tr>
+                }
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+      </mat-tab>
+
     </mat-tab-group>
   }
 </div>

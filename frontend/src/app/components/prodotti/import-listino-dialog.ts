@@ -14,7 +14,7 @@ import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
-import { Fornitore, ListinoRigaNonTrovata, ListinoCandidato } from '../../models';
+import { Fornitore, ListinoRigaNonTrovata, ListinoCandidato, VariazionePrezzo } from '../../models';
 
 /** Riga in revisione: la riga di listino non abbinata + i candidati + la scelta utente. */
 interface RigaMatchVM {
@@ -113,6 +113,26 @@ interface RigaMatchVM {
         <div style="text-align:center;padding:8px 0">
           <mat-icon style="font-size:42px;width:42px;height:42px;color:var(--success-on)">task_alt</mat-icon>
           <div style="font-size:16px;font-weight:700;margin-top:6px">{{ esito.aggiornati }} prezz{{ esito.aggiornati === 1 ? 'o' : 'i' }} aggiornat{{ esito.aggiornati === 1 ? 'o' : 'i' }}</div>
+
+          @if (variazioni.length) {
+            <div style="margin-top:8px;text-align:left">
+              <button mat-button type="button" (click)="mostraVariazioni = !mostraVariazioni" style="font-size:12px">
+                <mat-icon>{{ mostraVariazioni ? 'expand_less' : 'expand_more' }}</mat-icon>
+                {{ nRincari }} rincar{{ nRincari === 1 ? 'o' : 'i' }}, {{ nRibassi }} ribass{{ nRibassi === 1 ? 'o' : 'i' }} di prezzo
+              </button>
+              @if (mostraVariazioni) {
+                <div style="max-height:160px;overflow:auto;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-md);padding:6px 8px">
+                  @for (v of variazioni; track v.codice) {
+                    <div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0">
+                      <span style="flex:1;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ v.prodottoNome }}</span>
+                      <span style="color:var(--text-tertiary)">{{ v.prezzoVecchio != null ? (v.prezzoVecchio | number:'1.2-2') : '—' }} → {{ v.prezzoNuovo | number:'1.2-2' }}</span>
+                      <span [style.color]="(v.deltaPct ?? 0) > 0 ? 'var(--danger-on, #b91c1c)' : 'var(--success-on, #15803d)'" style="font-weight:700;min-width:56px;text-align:right">{{ (v.deltaPct ?? 0) > 0 ? '+' : '' }}{{ v.deltaPct }}%</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
 
           @if (esito.nonTrovati.length) {
             <div style="margin-top:14px;text-align:left">
@@ -222,7 +242,8 @@ export class ImportListinoDialogComponent {
   importing = false;
 
   fase: 'form' | 'esito' | 'rivedi' = 'form';
-  esito: { aggiornati: number; nonTrovati: ListinoRigaNonTrovata[] } | null = null;
+  esito: { aggiornati: number; aggiornamenti?: VariazionePrezzo[]; nonTrovati: ListinoRigaNonTrovata[] } | null = null;
+  mostraVariazioni = false;
 
   matching = false;
   abbinando = false;
@@ -258,6 +279,11 @@ export class ImportListinoDialogComponent {
   get haAlta(): boolean {
     return this.righeMatch.some(r => r.candidati[0]?.fascia === 'alta');
   }
+  get variazioni(): VariazionePrezzo[] {
+    return (this.esito?.aggiornamenti || []).filter(a => a.deltaPct != null && a.deltaPct !== 0);
+  }
+  get nRincari(): number { return this.variazioni.filter(v => (v.deltaPct ?? 0) > 0).length; }
+  get nRibassi(): number { return this.variazioni.filter(v => (v.deltaPct ?? 0) < 0).length; }
 
   async onFile(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0];

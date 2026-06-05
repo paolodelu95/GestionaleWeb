@@ -132,10 +132,11 @@ router.post('/import', (req, res) => {
 // I prezzi vengono SEMPRE salvati in netto: se 'ivato' è true, sono convertiti
 // usando l'IVA del prodotto.
 router.post('/import-listino', (req, res) => {
-  const { fornitoreId, ivato, righe } = req.body || {};
+  const { fornitoreId, ivato, righe, anteprima } = req.body || {};
   if (!fornitoreId || !Array.isArray(righe)) return res.status(400).json({ error: 'Dati mancanti (fornitore o righe).' });
+  // match esatto sul codice fornitore (ritorna anche il prezzo attuale per il delta)
   const findPF = db.prepare(`
-    SELECT pf.id, pf.prodotto_id, p.iva, p.nome
+    SELECT pf.id, pf.prodotto_id, pf.prezzo_acquisto AS old, p.iva, p.nome
     FROM prodotto_fornitori pf
     JOIN prodotti p ON p.id = pf.prodotto_id
     WHERE pf.fornitore_id = ? AND pf.codice_fornitore != ''
@@ -146,48 +147,58 @@ router.post('/import-listino', (req, res) => {
   // codici per lo stesso prodotto). Se il match esatto su prodotto_fornitori
   // fallisce, prova l'alias: cosi gli import successivi diventano automatici.
   const findAlias = db.prepare('SELECT prodotto_id FROM fornitore_codice_alias WHERE fornitore_id=? AND codice_norm=?');
-  const findPFById = db.prepare('SELECT id FROM prodotto_fornitori WHERE prodotto_id=? AND fornitore_id=?');
-  const ivaProd = db.prepare('SELECT iva FROM prodotti WHERE id=?');
+  const findPFById = db.prepare('SELECT id, prezzo_acquisto AS old FROM prodotto_fornitori WHERE prodotto_id=? AND fornitore_id=?');
+  const prodInfo = db.prepare('SELECT iva, nome FROM prodotti WHERE id=?');
 
   let aggiornati = 0;
-  // nonTrovati: oggetti { codice, prezzo, descrizione } cosi il dialog puo
-  // proporre un abbinamento per somiglianza testuale senza ri-leggere il file.
   const nonTrovati = [];
+  // aggiornamenti: { codice, prodottoNome, prezzoVecchio, prezzoNuovo, deltaPct }
+  const aggiornamenti = [];
   const meta = (r, codice) => ({ codice, prezzo: r.prezzo ?? '', descrizione: String(r.descrizione ?? '').trim() });
-  // applica il prezzo a un prodotto via il suo prodotto_fornitori (creandolo se manca)
-  const applica = (prodottoId, codice, prezzoRaw) => {
-    const iva = ivaProd.get(prodottoId)?.iva || 0;
-    const netto = ivato ? +(prezzoRaw / (1 + iva / 100)).toFixed(4) : +prezzoRaw.toFixed(4);
-    const row = findPFById.get(prodottoId, fornitoreId);
-    if (row) {
-      updPF.run(netto, row.id);
-    } else {
-      const isFirst = !db.prepare('SELECT 1 FROM prodotto_fornitori WHERE prodotto_id=? LIMIT 1').get(prodottoId);
-      db.prepare('INSERT INTO prodotto_fornitori (prodotto_id, fornitore_id, codice_fornitore, prezzo_acquisto, predefinito) VALUES (?,?,?,?,?)')
-        .run(prodottoId, fornitoreId, codice, netto, isFirst ? 1 : 0);
-    }
-    updProdPref.run(netto, prodottoId, fornitoreId);
-  };
-  db.transaction(() => {
+  const calcDelta = (old, nuovo) => (old != null && old > 0) ? +(((nuovo - old) / old) * 100).toFixed(1) : null;
+
+  const run = () => {
     for (const r of righe) {
       const codice = String(r.codice ?? '').trim();
       const prezzoRaw = parseFloat(String(r.prezzo ?? '').replace(/[^0-9,.-]/g, '').replace(',', '.'));
       if (!codice) continue;
       if (!Number.isFinite(prezzoRaw)) { nonTrovati.push(meta(r, codice)); continue; }
+
+      // risolvi il prodotto: prima match esatto, poi memoria alias
+      let prodottoId = null, pfRow = null, iva = 0, nome = '';
       const pf = findPF.get(fornitoreId, codice);
-      if (pf) {
-        const netto = ivato ? +(prezzoRaw / (1 + (pf.iva || 0) / 100)).toFixed(4) : +prezzoRaw.toFixed(4);
-        updPF.run(netto, pf.id);
-        updProdPref.run(netto, pf.prodotto_id, fornitoreId);
-        aggiornati++;
-        continue;
+      if (pf) { prodottoId = pf.prodotto_id; pfRow = { id: pf.id, old: pf.old }; iva = pf.iva || 0; nome = pf.nome; }
+      else {
+        const al = findAlias.get(fornitoreId, codice.toLowerCase());
+        if (al) {
+          prodottoId = al.prodotto_id;
+          const info = prodInfo.get(prodottoId) || {};
+          iva = info.iva || 0; nome = info.nome || '';
+          pfRow = findPFById.get(prodottoId, fornitoreId) || null; // puo non esistere ancora
+        }
       }
-      const al = findAlias.get(fornitoreId, codice.toLowerCase());
-      if (al) { applica(al.prodotto_id, codice, prezzoRaw); aggiornati++; continue; }
-      nonTrovati.push(meta(r, codice));
+      if (!prodottoId) { nonTrovati.push(meta(r, codice)); continue; }
+
+      const netto = ivato ? +(prezzoRaw / (1 + iva / 100)).toFixed(4) : +prezzoRaw.toFixed(4);
+      const old = pfRow ? pfRow.old : null;
+      aggiornamenti.push({ codice, prodottoNome: nome, prezzoVecchio: old, prezzoNuovo: netto, deltaPct: calcDelta(old, netto) });
+      aggiornati++;
+
+      if (!anteprima) {
+        if (pfRow && pfRow.id) {
+          updPF.run(netto, pfRow.id);
+        } else {
+          const isFirst = !db.prepare('SELECT 1 FROM prodotto_fornitori WHERE prodotto_id=? LIMIT 1').get(prodottoId);
+          db.prepare('INSERT INTO prodotto_fornitori (prodotto_id, fornitore_id, codice_fornitore, prezzo_acquisto, predefinito) VALUES (?,?,?,?,?)')
+            .run(prodottoId, fornitoreId, codice, netto, isFirst ? 1 : 0);
+        }
+        updProdPref.run(netto, prodottoId, fornitoreId);
+      }
     }
-  })();
-  res.json({ aggiornati, nonTrovati });
+  };
+
+  if (anteprima) run(); else db.transaction(run)();
+  res.json({ anteprima: !!anteprima, aggiornati, aggiornamenti, nonTrovati });
 });
 
 // POST /api/prodotti/import-listino/match — per le righe NON abbinate propone i

@@ -14,6 +14,33 @@ const router = express.Router();
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const db = require('../database');
+const { scoreCandidati } = require('../utils/matchProdotti');
+const aliasMem = require('../utils/aliasMemoria');
+
+// Trova (senza creare) un fornitore per P.IVA o ragione sociale.
+function trovaFornitore(fornitore, pIva) {
+  let f = null;
+  if (pIva) f = db.prepare('SELECT * FROM fornitori WHERE p_iva=? OR p_iva=?').get(pIva, 'IT' + pIva);
+  if (!f && fornitore) f = db.prepare('SELECT * FROM fornitori WHERE LOWER(TRIM(ragione_sociale))=?')
+    .get(String(fornitore).toLowerCase().trim());
+  return f;
+}
+
+// Aggiorna il prezzo d'acquisto del prodotto per quel fornitore (upsert su
+// prodotto_fornitori + sync legacy). Da chiamare dentro una transazione.
+function upsertPrezzoAcquisto(prodottoId, fornitoreId, prezzo) {
+  if (prezzo == null || !Number.isFinite(prezzo)) return;
+  const netto = +prezzo.toFixed(4);
+  const exist = db.prepare('SELECT id FROM prodotto_fornitori WHERE prodotto_id=? AND fornitore_id=?').get(prodottoId, fornitoreId);
+  if (exist) {
+    db.prepare('UPDATE prodotto_fornitori SET prezzo_acquisto=? WHERE id=?').run(netto, exist.id);
+  } else {
+    const isFirst = !db.prepare('SELECT 1 FROM prodotto_fornitori WHERE prodotto_id=? LIMIT 1').get(prodottoId);
+    db.prepare('INSERT INTO prodotto_fornitori (prodotto_id, fornitore_id, codice_fornitore, prezzo_acquisto, predefinito) VALUES (?,?,?,?,?)')
+      .run(prodottoId, fornitoreId, '', netto, isFirst ? 1 : 0);
+  }
+  db.prepare('UPDATE prodotti SET prezzo_acquisto=? WHERE id=? AND fornitore_id_preferito=?').run(netto, prodottoId, fornitoreId);
+}
 
 // fileSize ridotto a 5MB: con memoryStorage ogni upload resta in RAM + copia
 // Blob per i ~30s di poll. Su 256MB più upload da 10MB causavano OOM.
@@ -138,8 +165,52 @@ router.post('/fattura', ocrLimiter, ocrGate, upload.single('file'), async (req, 
   }
 });
 
+// POST /api/ocr/fattura/analizza-righe — risolve il fornitore esistente, segnala
+// se la fattura e' gia presente (anti-duplicato) e per ogni riga propone i
+// prodotti a magazzino piu probabili (memoria alias + match testuale fuzzy).
+// body: { fornitore, pIva, numero, righe: [{descrizione, codice?, prezzo?}] }
+router.post('/fattura/analizza-righe', (req, res) => {
+  const { fornitore, pIva, numero, righe } = req.body || {};
+  if (!Array.isArray(righe)) return res.status(400).json({ error: 'righe mancanti' });
+  const f = trovaFornitore(fornitore, pIva);
+  const fornitoreId = f ? f.id : null;
+
+  let duplicato = null;
+  if (fornitoreId && numero) {
+    const dup = db.prepare('SELECT id FROM acquisti WHERE numero=? AND fornitore_id=?').get(String(numero).trim(), fornitoreId);
+    if (dup) duplicato = { acquistoId: dup.id };
+  }
+
+  const prodotti = db.prepare('SELECT id, nome, categoria, codice, descrizione, prezzo, prezzo_acquisto, quantita FROM prodotti').all();
+  const byId = new Map(prodotti.map(p => [p.id, p]));
+  const alias = aliasMem.mappaFornitore(db, fornitoreId);
+  const base = scoreCandidati(
+    righe.map(r => ({ codice: r.codice || '', descrizione: r.descrizione || '', prezzo: r.prezzo })),
+    prodotti, {}
+  );
+  const out = base.map((r, i) => {
+    const chiave = (righe[i].codice && String(righe[i].codice).trim()) || righe[i].descrizione || '';
+    let candidati = r.candidati;
+    const pid = alias.get(aliasMem.norm(chiave));
+    if (pid && byId.has(pid)) {
+      const p = byId.get(pid);
+      const forced = {
+        prodottoId: p.id, nome: p.nome, codice: p.codice, categoria: p.categoria,
+        prezzoAcquistoAttuale: p.prezzo_acquisto != null ? p.prezzo_acquisto : null,
+        quantita: p.quantita != null ? p.quantita : null,
+        score: 1, fascia: 'alta', perche: 'gia abbinato in precedenza', giaMemorizzato: true,
+      };
+      candidati = [forced, ...candidati.filter(c => c.prodottoId !== pid)];
+    }
+    return { descrizione: r.descrizione, candidati };
+  });
+  res.json({ fornitoreId, fornitoreNome: f ? f.ragione_sociale : '', duplicato, righe: out });
+});
+
 // POST /api/ocr/fattura/conferma — crea l'acquisto a partire dai dati confermati
-// body: { fornitore, pIva, dataDoc, numero, righe: [{descrizione,quantita,prezzo,iva}] }
+// body: { fornitore, pIva, dataDoc, numero, righe: [{descrizione,quantita,prezzo,iva,prodottoId?,codice?}] }
+// Se una riga ha prodottoId, collega il prodotto, memorizza l'abbinamento per i
+// prossimi documenti e aggiorna il prezzo d'acquisto del prodotto.
 router.post('/fattura/conferma', (req, res) => {
   const { fornitore, pIva, dataDoc, numero, righe } = req.body || {};
   if (!fornitore || !dataDoc || !Array.isArray(righe) || !righe.length) {
@@ -164,15 +235,27 @@ router.post('/fattura/conferma', (req, res) => {
                           VALUES (?,?,?,?,?)`)
       .run(numDoc, dataDoc, f.id, 'Importato da OCR Mindee', 'RICEVUTA');
     const id = a.lastInsertRowid;
-    const stmt = db.prepare(`INSERT INTO acquisti_righe (acquisto_id, descrizione, quantita, prezzo, iva)
-                             VALUES (?,?,?,?,?)`);
-    for (const r of righe) stmt.run(id, r.descrizione || '', r.quantita || 1, r.prezzo || 0, r.iva ?? 22);
-    return id;
+    const stmt = db.prepare(`INSERT INTO acquisti_righe (acquisto_id, descrizione, quantita, prezzo, iva, prodotto_id, codice_prodotto)
+                             VALUES (?,?,?,?,?,?,?)`);
+    let abbinate = 0;
+    for (const r of righe) {
+      const prodottoId = Number(r.prodottoId) || null;
+      const codiceP = String(r.codice ?? '').trim();
+      stmt.run(id, r.descrizione || '', r.quantita || 1, r.prezzo || 0, r.iva ?? 22, prodottoId, codiceP);
+      if (prodottoId) {
+        abbinate++;
+        // memorizza l'abbinamento (chiave = codice del fornitore se presente, altrimenti descrizione)
+        aliasMem.save(db, f.id, prodottoId, codiceP || r.descrizione || '');
+        // aggiorna il costo d'acquisto del prodotto per questo fornitore
+        upsertPrezzoAcquisto(prodottoId, f.id, Number(r.prezzo) || null);
+      }
+    }
+    return { id, abbinate };
   });
 
   try {
-    const acquistoId = tx();
-    res.json({ acquistoId, fornitoreId: f.id, righe: righe.length });
+    const out = tx();
+    res.json({ acquistoId: out.id, fornitoreId: f.id, righe: righe.length, abbinate: out.abbinate });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

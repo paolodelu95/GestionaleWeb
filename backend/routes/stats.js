@@ -76,6 +76,46 @@ router.get('/top-clienti', (req, res) => {
   res.json(rows);
 });
 
+// ── GET /margini – margine (ricavo - costo) per prodotto e cliente ────────────
+// Il costo usa il prezzo_acquisto CORRENTE del prodotto (approssimazione: non e'
+// il costo storico al momento della vendita). Imponibili al netto sconto riga.
+function conMargine(r) {
+  const ricavo = +((r.ricavo || 0)).toFixed(2);
+  const costo  = +((r.costo  || 0)).toFixed(2);
+  const margine = +(ricavo - costo).toFixed(2);
+  const marginePct = ricavo > 0 ? +((margine / ricavo) * 100).toFixed(1) : null;
+  return { ...r, ricavo, costo, margine, marginePct };
+}
+
+router.get('/margini', (req, res) => {
+  const anno = String(req.query.anno || new Date().getFullYear());
+  const prodotti = db.prepare(`
+    SELECT p.id, p.nome, COALESCE(NULLIF(TRIM(p.categoria),''),'—') AS categoria,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) AS ricavo,
+           COALESCE(SUM(fr.quantita*COALESCE(p.prezzo_acquisto,0)),0) AS costo,
+           COALESCE(SUM(fr.quantita),0) AS quantita
+    FROM fatture_righe fr
+    JOIN fatture f ON f.id = fr.fattura_id
+    JOIN prodotti p ON p.id = fr.prodotto_id
+    WHERE substr(f.data_emissione,1,4) = ? AND f.stato != 'ANNULLATA'
+    GROUP BY fr.prodotto_id
+    HAVING ricavo <> 0 OR costo <> 0`).all(anno).map(conMargine).sort((a, b) => b.margine - a.margine);
+
+  const clienti = db.prepare(`
+    SELECT c.id, c.ragione_sociale AS nome,
+           COALESCE(SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)),0) AS ricavo,
+           COALESCE(SUM(fr.quantita*COALESCE(p.prezzo_acquisto,0)),0) AS costo
+    FROM fatture f
+    JOIN fatture_righe fr ON fr.fattura_id = f.id
+    LEFT JOIN prodotti p ON p.id = fr.prodotto_id
+    LEFT JOIN clienti c ON c.id = f.cliente_id
+    WHERE substr(f.data_emissione,1,4) = ? AND f.stato != 'ANNULLATA' AND f.cliente_id IS NOT NULL
+    GROUP BY f.cliente_id`).all(anno).map(conMargine).sort((a, b) => b.margine - a.margine);
+
+  const t = prodotti.reduce((a, p) => ({ ricavo: a.ricavo + p.ricavo, costo: a.costo + p.costo }), { ricavo: 0, costo: 0 });
+  res.json({ anno: +anno, prodotti, clienti, totali: conMargine({ ricavo: t.ricavo, costo: t.costo }) });
+});
+
 // ── GET /cashflow – proiezione 6 mesi ─────────────────────────────────────────
 router.get('/cashflow', (req, res) => {
   const entrate = db.prepare(`

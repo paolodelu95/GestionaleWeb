@@ -218,6 +218,15 @@ export interface ListinoMatchRisultato {
   candidati: ListinoCandidato[];
 }
 
+/** Variazione di prezzo d'acquisto rilevata durante un import listino. */
+export interface VariazionePrezzo {
+  codice: string;
+  prodottoNome: string;
+  prezzoVecchio: number | null;
+  prezzoNuovo: number;
+  deltaPct: number | null;
+}
+
 /** Codice fornitore memorizzato per un prodotto (memoria degli import listino). */
 export interface CodiceAlias {
   id: number;

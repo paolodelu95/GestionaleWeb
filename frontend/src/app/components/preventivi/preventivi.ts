@@ -31,7 +31,8 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-preventivo-dialog',
@@ -728,6 +729,29 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
       next: r => { this.load(); this.snack.open(`Ordine n. ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
     });
+  }
+
+  // ── Conversione massiva (multi-selezione) ───────────────────────────────────
+  async bulkConvertiInOrdine() {
+    const sel = this.selection.selected.slice();
+    if (!sel.length) return;
+    if (!await this.confirm.ask(`Convertire ${sel.length} preventivi in ordini cliente? Verranno marcati come CONFERMATI.`)) return;
+    forkJoin(sel.map(p => this.ds.preventivoToOrdine(p.id!).pipe(catchError(() => of(null)))))
+      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'ordine', 'ordini'));
+  }
+  async bulkConvertiInDdt() {
+    const sel = this.selection.selected.slice();
+    if (!sel.length) return;
+    if (!await this.confirm.ask(`Convertire ${sel.length} preventivi in DDT? Verranno marcati come CONFERMATI.`)) return;
+    forkJoin(sel.map(p => this.ds.preventivoToDdt(p.id!).pipe(catchError(() => of(null)))))
+      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'DDT', 'DDT'));
+  }
+  private fineBulk(res: any[], tot: number, sing: string, plur: string) {
+    const ok = res.filter(Boolean).length;
+    this.selection.clear();
+    this.load();
+    const falliti = tot - ok;
+    this.snack.open(`${ok} ${ok === 1 ? sing : plur} creat${ok === 1 ? 'o' : 'i'}${falliti ? ` · ${falliti} non convertiti` : ''}`, '', { duration: 4000 });
   }
 
   info(p: Preventivo) {

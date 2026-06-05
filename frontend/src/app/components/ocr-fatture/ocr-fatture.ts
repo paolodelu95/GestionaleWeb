@@ -10,11 +10,23 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
+interface Candidato {
+  prodottoId: number;
+  nome: string;
+  codice?: string;
+  fascia: 'alta' | 'media' | 'bassa';
+  perche?: string;
+  giaMemorizzato?: boolean;
+}
+
 interface OcrRiga {
   descrizione: string;
   quantita: number;
   prezzo: number;
   iva: number;
+  codice?: string;
+  prodottoId?: number | null;
+  candidati?: Candidato[];
 }
 
 type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
@@ -222,17 +234,41 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
           </div>
         </div>
 
+        @if (avvisi.length) {
+          <div style="background:var(--warning-soft,#fef3c7);border:1px solid var(--warning,#f59e0b);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:var(--warning-on,#b45309)">
+              <mat-icon style="font-size:18px;width:18px;height:18px">warning</mat-icon> Controlli da verificare
+            </div>
+            <ul style="margin:6px 0 0;padding-left:20px;font-size:12px;color:var(--text-secondary)">
+              @for (w of avvisi; track w) { <li>{{ w }}</li> }
+            </ul>
+          </div>
+        }
+
         <div class="righe-section">
           <div class="righe-header">
             <b>Righe ({{ righe.length }})</b>
-            <button mat-button (click)="addRiga()">
-              <mat-icon>add</mat-icon> Aggiungi riga
-            </button>
+            <div style="display:flex;align-items:center;gap:10px">
+              @if (analizzando) {
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-tertiary)">
+                  <mat-spinner diameter="14"></mat-spinner> riconoscimento prodotti…
+                </span>
+              } @else if (righe.length) {
+                <span style="font-size:12px;color:var(--text-tertiary)">{{ nAbbinate }}/{{ righe.length }} abbinate</span>
+                <button mat-button (click)="analizzaRighe()" matTooltip="Ricalcola gli abbinamenti">
+                  <mat-icon>auto_fix_high</mat-icon> Riconosci prodotti
+                </button>
+              }
+              <button mat-button (click)="addRiga()">
+                <mat-icon>add</mat-icon> Aggiungi riga
+              </button>
+            </div>
           </div>
           <table class="righe-table">
             <thead>
               <tr>
                 <th>Descrizione</th>
+                <th style="min-width:180px">Prodotto a magazzino</th>
                 <th class="num-col">Qtà</th>
                 <th class="num-col">Prezzo</th>
                 <th class="num-col">IVA %</th>
@@ -244,6 +280,19 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
               @for (r of righe; track $index) {
                 <tr>
                   <td><input class="riga-input" [(ngModel)]="r.descrizione" placeholder="Descrizione"></td>
+                  <td>
+                    <select class="riga-input" [(ngModel)]="r.prodottoId" style="width:100%">
+                      <option [ngValue]="null">— non abbinato —</option>
+                      @for (c of r.candidati; track c.prodottoId) {
+                        <option [ngValue]="c.prodottoId">{{ c.nome }}{{ c.giaMemorizzato ? ' ★' : '' }}</option>
+                      }
+                    </select>
+                    @if (candidatoSel(r); as c) {
+                      <div style="font-size:11px;margin-top:1px" [style.color]="fasciaColor(c.fascia)">
+                        {{ c.giaMemorizzato ? 'già abbinato' : c.fascia }}<span style="color:var(--text-tertiary)"> · {{ c.perche }}</span>
+                      </div>
+                    }
+                  </td>
                   <td><input class="riga-input num" type="number" [(ngModel)]="r.quantita" min="0.001" step="0.001"></td>
                   <td><input class="riga-input num" type="number" [(ngModel)]="r.prezzo" min="0" step="0.01"></td>
                   <td><input class="riga-input num" type="number" [(ngModel)]="r.iva" min="0" max="100"></td>
@@ -259,15 +308,15 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
             </tbody>
             <tfoot>
               <tr>
-                <td colspan="4" class="summary-label">Imponibile</td>
+                <td colspan="5" class="summary-label">Imponibile</td>
                 <td colspan="2" class="summary-value">{{ formatCurrency(totaleNetto) }}</td>
               </tr>
               <tr>
-                <td colspan="4" class="summary-label">IVA</td>
+                <td colspan="5" class="summary-label">IVA</td>
                 <td colspan="2" class="summary-value">{{ formatCurrency(totaleIva) }}</td>
               </tr>
               <tr class="total-row">
-                <td colspan="4" class="summary-label">Totale lordo</td>
+                <td colspan="5" class="summary-label">Totale lordo</td>
                 <td colspan="2" class="summary-value">{{ formatCurrency(totaleLordo) }}</td>
               </tr>
             </tfoot>
@@ -320,6 +369,13 @@ export class OcrFattureComponent {
   acquistoId: number | null = null;
   errorMsg = '';
 
+  // abbinamento prodotti + controllo qualita
+  fornitoreId: number | null = null;
+  fornitoreNoto = false;
+  duplicatoId: number | null = null;
+  analizzando = false;
+  ocrTotaleNetto: number | null = null;
+
   constructor(private http: HttpClient, private snack: MatSnackBar) {}
 
   onDragOver(e: DragEvent) {
@@ -364,10 +420,12 @@ export class OcrFattureComponent {
         this.pIva = s.pIvaFornitore || '';
         this.dataDoc = s.dataDoc || new Date().toISOString().substring(0, 10);
         this.numero = s.numero || '';
+        this.ocrTotaleNetto = s.totaleNetto != null ? s.totaleNetto : null;
         this.righe = s.righe?.length
           ? s.righe
           : [{ descrizione: '', quantita: 1, prezzo: 0, iva: 22 }];
         this.step = 'preview';
+        this.analizzaRighe();
       },
       error: (e) => {
         this.errorMsg = e.error?.error || 'Errore durante l\'analisi OCR';
@@ -376,8 +434,68 @@ export class OcrFattureComponent {
     });
   }
 
+  // Chiede al server: fornitore esistente? fattura gia caricata? e i prodotti
+  // a magazzino piu probabili per ogni riga (memoria + match testuale).
+  analizzaRighe() {
+    if (!this.righe.length) return;
+    this.analizzando = true;
+    this.http.post<any>(`${environment.apiUrl}/ocr/fattura/analizza-righe`, {
+      fornitore: this.fornitore, pIva: this.pIva, numero: this.numero,
+      righe: this.righe.map(r => ({ descrizione: r.descrizione, codice: r.codice || '', prezzo: r.prezzo })),
+    }).subscribe({
+      next: (res) => {
+        this.analizzando = false;
+        this.fornitoreId = res.fornitoreId || null;
+        this.fornitoreNoto = !!res.fornitoreId;
+        this.duplicatoId = res.duplicato?.acquistoId || null;
+        (res.righe || []).forEach((rr: any, i: number) => {
+          if (!this.righe[i]) return;
+          this.righe[i].candidati = rr.candidati || [];
+          // pre-seleziona il candidato gia memorizzato o ad alta confidenza
+          const top = rr.candidati?.[0];
+          this.righe[i].prodottoId = (top && (top.giaMemorizzato || top.fascia === 'alta')) ? top.prodottoId : null;
+        });
+      },
+      error: () => { this.analizzando = false; },
+    });
+  }
+
+  candidatoSel(r: OcrRiga): Candidato | null {
+    return r.prodottoId == null ? null : (r.candidati?.find(c => c.prodottoId === r.prodottoId) || null);
+  }
+  fasciaColor(f?: string): string {
+    return f === 'alta' ? 'var(--success-on, #15803d)' : f === 'media' ? 'var(--warning-on, #b45309)' : 'var(--text-tertiary, #94a3b8)';
+  }
+
+  // ── Controllo qualita (#5) ──────────────────────────────────────────────────
+  get pIvaValida(): boolean {
+    const v = (this.pIva || '').replace(/^IT/i, '').trim();
+    if (!v) return true; // vuota = non segnalata
+    if (!/^\d{11}$/.test(v)) return false;
+    let s = 0;
+    for (let i = 0; i < 11; i++) {
+      let n = +v[i];
+      if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+      s += n;
+    }
+    return s % 10 === 0;
+  }
+  get quadraturaDelta(): number | null {
+    if (this.ocrTotaleNetto == null) return null;
+    return +(this.totaleNetto - this.ocrTotaleNetto).toFixed(2);
+  }
+  get avvisi(): string[] {
+    const a: string[] = [];
+    if (this.duplicatoId) a.push(`Questa fattura sembra gia caricata (acquisto #${this.duplicatoId}).`);
+    if (!this.pIvaValida) a.push('La P.IVA del fornitore non e valida (controllo cifra di controllo).');
+    const d = this.quadraturaDelta;
+    if (d != null && Math.abs(d) > 0.02) a.push(`L'imponibile delle righe (${this.formatCurrency(this.totaleNetto)}) non quadra con il totale letto (${this.formatCurrency(this.ocrTotaleNetto!)}): differenza ${this.formatCurrency(d)}.`);
+    return a;
+  }
+  get nAbbinate(): number { return this.righe.filter(r => r.prodottoId != null).length; }
+
   addRiga() {
-    this.righe.push({ descrizione: '', quantita: 1, prezzo: 0, iva: 22 });
+    this.righe.push({ descrizione: '', quantita: 1, prezzo: 0, iva: 22, candidati: [] });
   }
 
   removeRiga(i: number) {
@@ -412,7 +530,10 @@ export class OcrFattureComponent {
       pIva: this.pIva,
       dataDoc: this.dataDoc,
       numero: this.numero,
-      righe: this.righe,
+      righe: this.righe.map(r => ({
+        descrizione: r.descrizione, quantita: r.quantita, prezzo: r.prezzo, iva: r.iva,
+        prodottoId: r.prodottoId ?? null, codice: r.codice || '',
+      })),
     }).subscribe({
       next: (res) => {
         this.acquistoId = res.acquistoId;
@@ -443,6 +564,11 @@ export class OcrFattureComponent {
     this.righe = [];
     this.acquistoId = null;
     this.errorMsg = '';
+    this.fornitoreId = null;
+    this.fornitoreNoto = false;
+    this.duplicatoId = null;
+    this.analizzando = false;
+    this.ocrTotaleNetto = null;
     if (this.fileInput) this.fileInput.nativeElement.value = '';
   }
 

@@ -7,7 +7,7 @@ import {
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
   CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
-  ListinoRigaNonTrovata, ListinoMatchRisultato, CodiceAlias,
+  ListinoRigaNonTrovata, ListinoMatchRisultato, CodiceAlias, VariazionePrezzo,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
@@ -52,7 +52,7 @@ export class DataService {
   importListino(
     fornitoreId: number, ivato: boolean,
     righe: { codice: any; prezzo: any; descrizione?: string }[],
-  ): Observable<{ aggiornati: number; nonTrovati: ListinoRigaNonTrovata[] }> {
+  ): Observable<{ aggiornati: number; aggiornamenti: VariazionePrezzo[]; nonTrovati: ListinoRigaNonTrovata[] }> {
     return this.api.post('prodotti/import-listino', { fornitoreId, ivato, righe });
   }
   /** Propone i prodotti piu probabili per le righe di listino non abbinate (sola lettura). */
@@ -307,6 +307,10 @@ export class DataService {
 
   getBiStats(anno?: number): Observable<any> {
     return this.api.get(anno ? `stats/bi?anno=${anno}` : 'stats/bi');
+  }
+  /** Margini (ricavo - costo) per prodotto e per cliente. */
+  getMargini(anno?: number): Observable<any> {
+    return this.api.get(anno ? `stats/margini?anno=${anno}` : 'stats/margini');
   }
 
   // ── Moduli (Livello 2: attivazione moduli per tenant) ────────────────────
