@@ -389,39 +389,46 @@
     width: 100% !important;
     height: auto !important;
     transform: none !important;
-    overflow: visible;
     box-shadow: none !important;
     z-index: auto;
-    padding: 0 6px;
+    padding: 0;
 
-    // Header minimo: solo il marchio "O" (niente scritta "Ordeva") per dare
-    // tutta la larghezza possibile alle icone di navigazione.
-    .sidenav-header { padding: 0 4px 0 2px; min-height: 52px; flex-shrink: 0; }
+    // È l'INTERA barra a scorrere in orizzontale (meccanismo che funzionava prima
+    // di spostare lo scroll sul solo .top-nav in a0743c8). overflow-x:auto sul
+    // contenitore + touch-action:pan-x = swipe col dito affidabile.
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+
+    // Logo pinnato a sinistra: resta visibile mentre le icone scorrono sotto.
+    .sidenav-header {
+      position: sticky; left: 0; z-index: 3;
+      background: #0e2a38;
+      padding: 0 6px 0 8px; min-height: 52px; flex-shrink: 0;
+    }
     .sidenav-title { display: none; }
     .sidenav-brand-mark {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
-      background: linear-gradient(135deg, #11769b 0%, #15a4a2 100%);
-      color: #fff; font-weight: 800; font-size: 15px; letter-spacing: 0;
+      display: block; width: 30px; height: 30px; object-fit: contain; flex-shrink: 0;
     }
-    .sidenav-footer { padding-left: 4px; flex-shrink: 0; }
-    .sidenav-footer-btn { padding: 0 8px; }
 
-    // Riga unica scrollabile a sole icone (swipe orizzontale col dito)
+    // Le voci: una fila a dimensione naturale (è la barra a scrollare, non loro).
     .top-nav {
+      flex: 0 0 auto;
       flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scrollbar-width: none;
-      touch-action: pan-x;                 // abilita lo scroll orizzontale al touch
-      -webkit-overflow-scrolling: touch;   // momentum su iOS
-      overscroll-behavior-x: contain;
+      overflow: visible;
       padding: 4px 0;
-      &::-webkit-scrollbar { display: none; }
     }
     .top-nav .top-nav-label { display: none; }   // solo icone su mobile
     .top-nav-caret { display: none; }
     .top-nav-btn { padding: 0 9px; gap: 0; }
+
+    .sidenav-footer { flex-shrink: 0; padding: 0 6px 0 4px; }
+    .sidenav-footer-btn { padding: 0 8px; }
   }
 }
 
