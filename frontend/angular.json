@@ -87,6 +87,13 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "preview": {
+              "browser": "src/main.preview.ts",
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "serviceWorker": false
             }
           },
           "defaultConfiguration": "production"
@@ -99,6 +106,9 @@
             },
             "development": {
               "buildTarget": "frontend:build:development"
+            },
+            "preview": {
+              "buildTarget": "frontend:build:preview"
             }
           },
           "defaultConfiguration": "development"
