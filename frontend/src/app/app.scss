@@ -284,10 +284,9 @@
   gap: 6px;
   padding: 0 14px;
   overflow: visible;
-  // La barra superiore scorre in ORIZZONTALE: il `.sidenav` base ha
-  // `touch-action: pan-y` (per il drawer verticale laterale), che però bloccherebbe
-  // lo swipe orizzontale col dito sulla riga di icone. Lo riportiamo a pan-x.
-  touch-action: pan-x;
+  // La barra superiore non scorre (le icone vanno a capo): lascio il touch libero
+  // così toccando la barra si può comunque scorrere la pagina in verticale.
+  touch-action: auto;
   border-right: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   position: relative !important;
@@ -389,45 +388,33 @@
     width: 100% !important;
     height: auto !important;
     transform: none !important;
+    overflow: visible;
     box-shadow: none !important;
     z-index: auto;
-    padding: 0;
+    padding: 0 6px;
 
-    // È l'INTERA barra a scorrere in orizzontale (meccanismo che funzionava prima
-    // di spostare lo scroll sul solo .top-nav in a0743c8). overflow-x:auto sul
-    // contenitore + touch-action:pan-x = swipe col dito affidabile.
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    touch-action: pan-x;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
-
-    // Logo pinnato a sinistra: resta visibile mentre le icone scorrono sotto.
-    .sidenav-header {
-      position: sticky; left: 0; z-index: 3;
-      background: #0e2a38;
-      padding: 0 6px 0 8px; min-height: 52px; flex-shrink: 0;
-    }
+    // Niente scroll orizzontale: su alcuni browser mobile (Android/Samsung) lo swipe
+    // orizzontale su una barra flex non è affidabile. Le icone VANNO A CAPO su più
+    // righe → sono SEMPRE tutte visibili e toccabili, senza dover scorrere nulla.
+    .sidenav-header { padding: 0 6px 0 4px; min-height: 48px; flex-shrink: 0; }
     .sidenav-title { display: none; }
     .sidenav-brand-mark {
-      display: block; width: 30px; height: 30px; object-fit: contain; flex-shrink: 0;
+      display: block; width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;
     }
 
-    // Le voci: una fila a dimensione naturale (è la barra a scrollare, non loro).
     .top-nav {
-      flex: 0 0 auto;
-      flex-wrap: nowrap;
+      flex: 1 1 auto;
+      flex-wrap: wrap;          // icone su più righe invece che in una riga scrollabile
+      align-content: center;
+      gap: 4px;
       overflow: visible;
-      padding: 4px 0;
+      padding: 5px 0;
     }
     .top-nav .top-nav-label { display: none; }   // solo icone su mobile
     .top-nav-caret { display: none; }
-    .top-nav-btn { padding: 0 9px; gap: 0; }
+    .top-nav-btn { padding: 0 8px; gap: 0; height: 38px; }
 
-    .sidenav-footer { flex-shrink: 0; padding: 0 6px 0 4px; }
+    .sidenav-footer { flex-shrink: 0; padding: 0 2px 0 4px; align-self: center; }
     .sidenav-footer-btn { padding: 0 8px; }
   }
 }
