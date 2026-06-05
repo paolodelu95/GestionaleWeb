@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -53,12 +53,22 @@ interface NavItem {
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App implements OnInit {
+export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
+  /** Container della barra superiore: serve a calcolare quante voci entrano. */
+  @ViewChild('topNavEl') topNavEl?: ElementRef<HTMLElement>;
 
   azienda: Azienda | null = null;
   collapsed = false;
   loggedIn = false;
+
+  // ── Barra superiore: priority-nav ("⋯ Altro") ───────────────────────────────
+  /** Quante voci mostrare in barra; le restanti finiscono nel menu "Altro". */
+  navMaxVisible = 99;
+  private navLastTotal = -1;
+  private navRecomputePending = false;
+  private navRO?: ResizeObserver;
+  private navObservedEl?: HTMLElement;
   /**
    * True quando l'URL corrente è una route pubblica (es. /faq).
    * Le public route NON richiedono autenticazione: vengono renderizzate
@@ -115,6 +125,7 @@ export class App implements OnInit {
     public moduli: ModuliService,
     private docLockSvc: DocLockService,
     public layout: LayoutService,
+    private zone: NgZone,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -131,6 +142,11 @@ export class App implements OnInit {
   ngOnInit() {
     this.darkMode = localStorage.getItem('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
+
+    // Quando cambiano i moduli attivi (login, caricamento, modifiche in Impostazioni)
+    // cambia il numero di voci in barra: ricalcolo l'overflow del priority-nav.
+    this.moduli.attivi$.subscribe(() =>
+      requestAnimationFrame(() => this.zone.run(() => this.computeNavOverflow())));
 
     this.offlineSvc.offline$.subscribe(v => this.isOffline = v);
     window.addEventListener('online',  () => this.offlineSvc.setOffline(false));
@@ -277,6 +293,96 @@ export class App implements OnInit {
 
   toggleSidebar() { this.collapsed = !this.collapsed; }
   closeOnMobile() { if (window.innerWidth < 768) this.collapsed = true; }
+
+  // ── Barra superiore: priority-nav ("⋯ Altro") ───────────────────────────────
+  /** Voci mostrate direttamente in barra. */
+  get priorityNavItems(): NavItem[] {
+    if (this.layout.navLayout() !== 'top') return this.visibleNavItems;
+    return this.visibleNavItems.slice(0, this.navMaxVisible);
+  }
+  /** Voci che non entrano → finiscono nel menu "Altro". */
+  get overflowNavItems(): NavItem[] {
+    if (this.layout.navLayout() !== 'top') return [];
+    return this.visibleNavItems.slice(this.navMaxVisible);
+  }
+  get hasNavOverflow(): boolean { return this.overflowNavItems.length > 0; }
+  /** Versione flat delle voci in overflow (i gruppi diventano i loro figli). */
+  get overflowFlatNavItems(): NavItem[] {
+    return this.overflowNavItems.flatMap(it => it.children ?? [it]);
+  }
+  /** True se una voce in overflow ha un badge: lo segnaliamo sul bottone "Altro". */
+  get overflowHasBadge(): boolean {
+    return this.overflowFlatNavItems.some(o =>
+      (o.route === '/pagamenti' && this.badges.scadenzeScadute > 0) ||
+      (o.route === '/prodotti' && this.badges.prodottiSottoSoglia > 0));
+  }
+
+  ngAfterViewInit() { this.syncNavObserver(); }
+
+  ngAfterViewChecked() {
+    this.syncNavObserver();
+    if (this.layout.navLayout() !== 'top') return;
+    // Ricalcola se cambia il numero di voci (login/moduli/ruolo) senza un resize.
+    const total = this.visibleNavItems.length;
+    if (total !== this.navLastTotal && !this.navRecomputePending) {
+      this.navRecomputePending = true;
+      requestAnimationFrame(() => {
+        this.navRecomputePending = false;
+        this.zone.run(() => this.computeNavOverflow());
+      });
+    }
+  }
+
+  ngOnDestroy() { this.navRO?.disconnect(); }
+
+  /** Collega il ResizeObserver alla barra solo quando la top-nav è montata. */
+  private syncNavObserver() {
+    const el = this.layout.navLayout() === 'top' ? this.topNavEl?.nativeElement : undefined;
+    if (el) {
+      if (this.navObservedEl !== el) {
+        this.navRO?.disconnect();
+        if (typeof ResizeObserver !== 'undefined') {
+          this.navRO = new ResizeObserver(() => this.zone.run(() => this.computeNavOverflow()));
+          this.navRO.observe(el);
+        }
+        this.navObservedEl = el;
+        this.navLastTotal = -1;
+        requestAnimationFrame(() => this.zone.run(() => this.computeNavOverflow()));
+      }
+    } else if (this.navObservedEl) {
+      this.navRO?.disconnect();
+      this.navObservedEl = undefined;
+    }
+  }
+
+  /**
+   * Calcola quante voci entrano in UNA riga; le altre vanno nel menu "Altro".
+   * Su mobile i bottoni sono a sola icona (larghezza uniforme), quindi basta
+   * misurarne uno. Niente scroll, niente righe multiple: una riga + "⋯".
+   */
+  computeNavOverflow() {
+    if (this.layout.navLayout() !== 'top') return;
+    const el = this.topNavEl?.nativeElement;
+    if (!el) return;
+    const items = Array.from(el.querySelectorAll<HTMLElement>('.top-nav-item'));
+    const total = this.visibleNavItems.length;
+    this.navLastTotal = total;
+    if (!items.length) return;
+
+    const gap = 4;
+    const itemW = items[0].offsetWidth + gap;
+    const containerW = el.clientWidth;
+    if (itemW <= 0 || containerW <= 0) return;
+
+    let next: number;
+    if (total * itemW <= containerW) {
+      next = total;                                   // entrano tutte: niente "Altro"
+    } else {
+      const moreW = itemW;                            // spazio per il bottone "⋯"
+      next = Math.max(1, Math.floor((containerW - moreW) / itemW));
+    }
+    if (next !== this.navMaxVisible) this.navMaxVisible = next;
+  }
 
   onSearchInput(q: string) {
     this.highlightedIndex = 0;

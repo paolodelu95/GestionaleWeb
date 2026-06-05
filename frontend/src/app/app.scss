@@ -362,6 +362,17 @@
     }
   }
 
+  // Bottone "⋯ Altro" (priority-nav): apre il menu con le sezioni che non entrano.
+  .top-nav-more {
+    position: relative;
+    flex-shrink: 0;
+    .nav-badge-dot {
+      position: absolute; top: 5px; right: 5px;
+      width: 8px; min-width: 8px; height: 8px; padding: 0;
+      border-radius: 50%; font-size: 0; line-height: 0;
+    }
+  }
+
   .sidenav-footer {
     margin: 0;
     padding: 0 0 0 6px;
@@ -393,9 +404,9 @@
     z-index: auto;
     padding: 0 6px;
 
-    // Niente scroll orizzontale: su alcuni browser mobile (Android/Samsung) lo swipe
-    // orizzontale su una barra flex non è affidabile. Le icone VANNO A CAPO su più
-    // righe → sono SEMPRE tutte visibili e toccabili, senza dover scorrere nulla.
+    // UNA riga sola: niente scroll (inaffidabile col touch) e niente righe multiple.
+    // Le voci che non entrano finiscono nel menu "⋯ Altro" (vedi top-nav-more);
+    // quante ne entrano lo calcola il componente (priority-nav).
     .sidenav-header { padding: 0 6px 0 4px; min-height: 48px; flex-shrink: 0; }
     .sidenav-title { display: none; }
     .sidenav-brand-mark {
@@ -404,11 +415,12 @@
 
     .top-nav {
       flex: 1 1 auto;
-      flex-wrap: wrap;          // icone su più righe invece che in una riga scrollabile
-      align-content: center;
+      flex-wrap: nowrap;        // una sola riga
+      align-items: center;
       gap: 4px;
-      overflow: visible;
-      padding: 5px 0;
+      overflow: hidden;         // nessuno scroll: il JS limita le voci a quelle che entrano
+      min-width: 0;
+      padding: 4px 0;
     }
     .top-nav .top-nav-label { display: none; }   // solo icone su mobile
     .top-nav-caret { display: none; }

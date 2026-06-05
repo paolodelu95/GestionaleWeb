@@ -14,8 +14,8 @@
       <img class="sidenav-brand-mark" src="icons/ordeva-icon.png" alt="Ordeva" />
     </div>
 
-    <nav class="top-nav">
-      @for (item of visibleNavItems; track item.label) {
+    <nav class="top-nav" #topNavEl>
+      @for (item of priorityNavItems; track item.label) {
         @if (!item.children) {
           <a class="top-nav-btn top-nav-item" [routerLink]="item.route" routerLinkActive="active-link"
              [matTooltip]="item.label" matTooltipPosition="below" (click)="closeOnMobile()">
@@ -48,6 +48,28 @@
             }
           </mat-menu>
         }
+      }
+
+      @if (hasNavOverflow) {
+        <button class="top-nav-btn top-nav-more" type="button" [matMenuTriggerFor]="altroMenu"
+                matTooltip="Altre sezioni" matTooltipPosition="below" aria-label="Altre sezioni">
+          <mat-icon>more_horiz</mat-icon>
+          <span class="top-nav-label">Altro</span>
+          @if (overflowHasBadge) { <span class="nav-badge warn nav-badge-dot"></span> }
+        </button>
+        <mat-menu #altroMenu="matMenu">
+          @for (o of overflowFlatNavItems; track o.label) {
+            <a mat-menu-item [routerLink]="o.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+              <mat-icon>{{ o.icon }}</mat-icon>
+              <span>{{ o.label }}</span>
+              @if (o.route === '/pagamenti' && badges.scadenzeScadute > 0) {
+                <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
+              } @else if (o.route === '/prodotti' && badges.prodottiSottoSoglia > 0) {
+                <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
+              }
+            </a>
+          }
+        </mat-menu>
       }
     </nav>
 
