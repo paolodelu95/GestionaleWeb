@@ -284,6 +284,10 @@
   gap: 6px;
   padding: 0 14px;
   overflow: visible;
+  // La barra superiore scorre in ORIZZONTALE: il `.sidenav` base ha
+  // `touch-action: pan-y` (per il drawer verticale laterale), che però bloccherebbe
+  // lo swipe orizzontale col dito sulla riga di icone. Lo riportiamo a pan-x.
+  touch-action: pan-x;
   border-right: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   position: relative !important;
@@ -393,12 +397,15 @@
     .sidenav-footer { padding-left: 4px; flex-shrink: 0; }
     .sidenav-footer-btn { padding: 0 8px; }
 
-    // Riga unica scrollabile a sole icone
+    // Riga unica scrollabile a sole icone (swipe orizzontale col dito)
     .top-nav {
       flex-wrap: nowrap;
       overflow-x: auto;
       overflow-y: hidden;
       scrollbar-width: none;
+      touch-action: pan-x;                 // abilita lo scroll orizzontale al touch
+      -webkit-overflow-scrolling: touch;   // momentum su iOS
+      overscroll-behavior-x: contain;
       padding: 4px 0;
       &::-webkit-scrollbar { display: none; }
     }
