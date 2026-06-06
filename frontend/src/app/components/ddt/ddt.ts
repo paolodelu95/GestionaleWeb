@@ -159,7 +159,7 @@ import { DocLockService } from '../../services/doc-lock.service';
                     <th class="td-sconto">Sconto%</th>
                     <th class="td-iva">IVA%</th>
                     <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
-                    <th class="td-scarico" title="Scarica dal magazzino"><mat-icon>inventory_2</mat-icon></th>
+                    <th class="td-scarico" title="Spunta le righe da scaricare dal magazzino">Scarico</th>
                     <th class="td-actions"></th>
                   </tr>
                 </thead>
