@@ -9,10 +9,11 @@ router.get('/', (req, res) => {
 });
 
 router.get('/sotto-soglia', (req, res) => {
-  // Mostra tutti i prodotti con un problema di giacenza: esauriti o negativi
-  // (quantita <= 0) oppure sotto la soglia minima configurata (se impostata).
+  // Avvisa SOLO i prodotti con una soglia minima configurata (> 0) e sotto di essa.
+  // I prodotti senza soglia (0 / vuota) NON generano avvisi nemmeno a 0: utile per
+  // gli articoli acquistati su ordinazione, che restano a zero senza notifiche.
   const rows = db.prepare(`SELECT * FROM prodotti
-    WHERE quantita <= 0 OR (soglia_minima > 0 AND quantita < soglia_minima)
+    WHERE soglia_minima > 0 AND quantita < soglia_minima
     ORDER BY quantita ASC, nome`).all();
   res.json(rows.map(r => toDto(r)));
 });

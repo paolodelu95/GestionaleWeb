@@ -10,8 +10,9 @@ function suggestQty(p) {
   return diff > 0 ? diff : 1;
 }
 
-// GET /api/riordino/proposte — prodotti da riordinare (esauriti/negativi o sotto soglia),
-// con fornitore preferito e quantità suggerita.
+// GET /api/riordino/proposte — prodotti da riordinare: solo quelli con soglia minima
+// configurata (> 0) e sotto di essa. Gli articoli senza soglia (es. su ordinazione)
+// non vengono proposti automaticamente nemmeno se a zero.
 router.get('/proposte', (req, res) => {
   const rows = db.prepare(`
     SELECT p.id, p.nome, p.codice, p.quantita, p.soglia_minima, p.riordino_quantita,
@@ -19,7 +20,7 @@ router.get('/proposte', (req, res) => {
            p.fornitore_id_preferito, f.ragione_sociale AS fornitore_nome
     FROM prodotti p
     LEFT JOIN fornitori f ON f.id = p.fornitore_id_preferito
-    WHERE p.quantita <= 0 OR (p.soglia_minima > 0 AND p.quantita < p.soglia_minima)
+    WHERE p.soglia_minima > 0 AND p.quantita < p.soglia_minima
     ORDER BY COALESCE(f.ragione_sociale, 'ZZZZ'), p.nome
   `).all();
   res.json(rows.map(r => ({

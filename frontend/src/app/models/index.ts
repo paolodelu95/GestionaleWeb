@@ -156,7 +156,7 @@ export interface Prodotto {
   prezzo: number;
   prezzoAcquisto?: number;
   quantita?: number;
-  sogliaMinima?: number;
+  sogliaMinima?: number | null;   // null/0 = nessun avviso di scorta (es. su ordinazione)
   unitaMisura?: string;
   codice?: string;
   codiceFornitore?: string;

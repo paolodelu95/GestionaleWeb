@@ -27,6 +27,7 @@ import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 import { QuickAddProdottoDialogComponent } from './quick-add-prodotto-dialog';
 import { ImportListinoDialogComponent } from './import-listino-dialog';
 import { BarcodeScannerDialogComponent } from '../shared/barcode-scanner-dialog';
+import { unitaFrazionabile, stepPerUnita, arrotondaPerUnita } from '../../utils/unita';
 
 const PRODOTTI_FIELDS: FieldDef[] = [
   { key: 'nome', label: 'Nome', required: true, aliases: [
@@ -282,8 +283,10 @@ const PRODOTTI_FIELDS: FieldDef[] = [
                 <mat-icon matSuffix>inventory</mat-icon>
               </mat-form-field>
               <mat-form-field><mat-label>Soglia minima</mat-label>
-                <input matInput type="number" formControlName="sogliaMinima">
+                <input matInput type="number" min="0" step="1" formControlName="sogliaMinima"
+                       placeholder="Nessun avviso">
                 <mat-icon matSuffix>warning</mat-icon>
+                <mat-hint>Lascia vuoto per non ricevere avvisi (es. articoli su ordinazione)</mat-hint>
               </mat-form-field>
             </div>
           }
@@ -443,7 +446,7 @@ export class ProdottoDialogComponent implements OnInit {
       prezzoAcquisto: [data?.prezzoAcquisto ?? null, [Validators.min(0)]],
       iva:            [data?.iva ?? 22, [Validators.min(0), Validators.max(100)]],
       quantita:     [data?.quantita ?? 0, [Validators.min(0)]],
-      sogliaMinima: [data?.sogliaMinima ?? 0, [Validators.min(0)]],
+      sogliaMinima: [data?.sogliaMinima || null, [Validators.min(0)]],
       descrizione:  [data?.descrizione ?? ''],
       haVarianti:   [data?.haVarianti ?? false],
     });
@@ -521,7 +524,9 @@ export class ProdottoDialogComponent implements OnInit {
       </p>
       <mat-form-field appearance="outline" style="width:100%">
         <mat-label>Nuova giacenza reale *</mat-label>
-        <input matInput type="number" step="0.001" [(ngModel)]="nuova" (keyup.enter)="save()" autofocus>
+        <input matInput type="number" [step]="step" [min]="0" [(ngModel)]="nuova"
+               (keyup.enter)="save()" autofocus>
+        <span matTextSuffix>{{ data.prodotto.unitaMisura || 'pz' }}</span>
       </mat-form-field>
       @if (nuova !== null && delta !== 0) {
         <p style="margin:-6px 0 12px;font-size:13px" [style.color]="delta > 0 ? '#16a34a' : '#dc2626'">
@@ -546,8 +551,16 @@ export class RettificaGiacenzaDialogComponent {
     public dialogRef: MatDialogRef<RettificaGiacenzaDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { prodotto: Prodotto }
   ) { this.nuova = data.prodotto.quantita ?? 0; }
+  /** L'unità del prodotto è frazionabile (kg, lt…)? Determina lo step dell'input. */
+  get frazionabile(): boolean { return unitaFrazionabile(this.data.prodotto.unitaMisura); }
+  get step(): number { return stepPerUnita(this.data.prodotto.unitaMisura); }
   get delta(): number { return (this.nuova ?? 0) - (this.data.prodotto.quantita ?? 0); }
-  save() { if (this.nuova !== null) this.dialogRef.close({ quantita: this.nuova, note: this.note }); }
+  save() {
+    if (this.nuova === null) return;
+    // Arrotonda in modo coerente con l'unità: per i pezzi niente decimali.
+    const q = arrotondaPerUnita(this.nuova, this.data.prodotto.unitaMisura);
+    this.dialogRef.close({ quantita: q, note: this.note });
+  }
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -592,12 +605,13 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     return Math.round(((v - a) / v) * 1000) / 10;
   }
   get categorieList() { return [...new Set(this.allProdotti.map(p => p.categoria).filter(Boolean))].sort() as string[]; }
-  // "Sotto soglia" = problema di giacenza: esaurito/negativo (<=0) oppure sotto
-  // la soglia minima configurata (se impostata). Negativi e zero sono sempre inclusi.
+  // "Sotto soglia" = SOLO i prodotti con una soglia minima configurata (> 0) e
+  // sotto di essa. Senza soglia (0/vuota) niente avviso, nemmeno a 0: così gli
+  // articoli su ordinazione non generano notifiche perenni.
   isSottoSoglia(p: Prodotto): boolean {
     const q = p.quantita ?? 0;
     const soglia = p.sogliaMinima ?? 0;
-    return q <= 0 || (soglia > 0 && q < soglia);
+    return soglia > 0 && q < soglia;
   }
   get sottoSogliaCount() {
     return this.allProdotti.filter(p => this.isSottoSoglia(p)).length;
