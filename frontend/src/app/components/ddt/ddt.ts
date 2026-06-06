@@ -159,6 +159,7 @@ import { DocLockService } from '../../services/doc-lock.service';
                     <th class="td-sconto">Sconto%</th>
                     <th class="td-iva">IVA%</th>
                     <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                    <th class="td-scarico" title="Scarica dal magazzino"><mat-icon>inventory_2</mat-icon></th>
                     <th class="td-actions"></th>
                   </tr>
                 </thead>
@@ -167,7 +168,7 @@ import { DocLockService } from '../../services/doc-lock.service';
                     @if (riga.tipo === 'NOTA') {
                       <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                         <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                        <td class="td-nota" colspan="9">
+                        <td class="td-nota" colspan="10">
                           <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
                         </td>
                         <td class="td-actions">
@@ -248,6 +249,10 @@ import { DocLockService } from '../../services/doc-lock.service';
                       <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
                       <td class="td-totale" [attr.data-label]="'Totale'">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
+                      </td>
+                      <td class="td-scarico" [attr.data-label]="'Scarica magazzino'">
+                        <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
+                               [disabled]="!riga.prodottoId" title="Scarica questa riga dal magazzino">
                       </td>
                       <td class="td-actions">
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -541,7 +546,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
 
     if (data?.id) {
       this.ds.getDdtById(data.id).subscribe(d => {
-        this.righe = d.righe ?? [];
+        this.righe = this.normalizeRighe(d.righe ?? []);
         this.prezziRecenti = new Array(this.righe.length).fill([]);
         this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
         this.tuttiCaricati = new Array(this.righe.length).fill(false);
@@ -642,6 +647,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
     this.righe[index].varianteId = v?.id ?? null;
     this.righe[index].varianteTaglia = v?.taglia ?? '';
     this.righe[index].varianteColore = v?.colore ?? '';
+    if (this.righe[index].scaricaMagazzino === undefined) this.righe[index].scaricaMagazzino = true;
     this.applyListino(index);
     this.loadPrezziRecenti(index);
   }
@@ -724,8 +730,13 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
     riga.sconto = Math.min(100, Math.max(0, riga.sconto ?? 0));
   }
 
+  /** Le righe prodotto senza il flag definito ereditano scaricaMagazzino=true (default storico). */
+  private normalizeRighe(righe: RigaDocumento[]): RigaDocumento[] {
+    return righe.map(r => (r.tipo !== 'NOTA' && r.prodottoId && r.scaricaMagazzino === undefined)
+      ? { ...r, scaricaMagazzino: true } : r);
+  }
   addRiga() {
-    this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22 });
+    this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva: 22, scaricaMagazzino: true });
     this.prezziRecenti.push([]);
     this.prezziRecentiTutti.push([]);
     this.tuttiCaricati.push(false);

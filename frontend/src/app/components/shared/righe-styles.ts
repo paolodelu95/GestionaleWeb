@@ -75,6 +75,10 @@ export const RIGHE_STYLES = `
   .td-actions { width: 44px; padding: 0 !important; }
   .td-codfornitore { width: 130px; }   /* Ordini fornitore / Acquisti */
   .td-variante     { width: 140px; }   /* Vendita banco */
+  /* Flag "scarica magazzino" per riga (Fatture / DDT) */
+  .td-scarico { width: 58px; text-align: center; padding: 0 !important; }
+  .td-scarico .riga-check { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+  th.td-scarico .mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-tertiary); vertical-align: middle; }
 
   /* Cluster azioni di riga (search/history) raggruppate */
   .riga-tools { display: inline-flex; align-items: center; gap: 2px; }

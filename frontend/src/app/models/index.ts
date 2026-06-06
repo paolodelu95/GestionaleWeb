@@ -339,6 +339,8 @@ export interface RigaDocumento {
   varianteColore?: string;
   tipo?: 'PRODOTTO' | 'NOTA';
   codiceFornitore?: string;
+  /** Se true (default per le righe prodotto) la riga scarica il prodotto dal magazzino. */
+  scaricaMagazzino?: boolean;
 }
 
 export interface NotaRapida {

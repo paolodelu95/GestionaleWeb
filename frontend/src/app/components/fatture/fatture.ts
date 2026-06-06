@@ -371,6 +371,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                     <th class="td-sconto">Sconto%</th>
                     <th class="td-iva">IVA</th>
                     <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                    <th class="td-scarico" title="Scarica dal magazzino"><mat-icon>inventory_2</mat-icon></th>
                     <th class="td-actions"></th>
                   </tr>
                 </thead>
@@ -379,7 +380,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                     @if (riga.tipo === 'NOTA') {
                       <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                         <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
-                        <td class="td-nota" colspan="9">
+                        <td class="td-nota" colspan="10">
                           <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota…">
                         </td>
                         <td class="td-actions">
@@ -474,6 +475,10 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                       </td>
                       <td class="td-totale" [attr.data-label]="'Totale'">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
+                      </td>
+                      <td class="td-scarico" [attr.data-label]="'Scarica magazzino'">
+                        <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
+                               [disabled]="!riga.prodottoId" title="Scarica questa riga dal magazzino">
                       </td>
                       <td class="td-actions">
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -757,6 +762,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       codiceIva: this.resolveAliquotaCodice(s.iva),
       unitaMisura: s.unitaMisura || 'pz',
       tipo: 'PRODOTTO',
+      scaricaMagazzino: true,
     } as RigaDocumento);
     this.applyListino(this.righe.length - 1);
   }
@@ -1027,7 +1033,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     });
     if (data?.id) {
       this.ds.getFatturaById(data.id).subscribe(f => {
-        this.righe = f.righe ?? [];
+        this.righe = this.normalizeRighe(f.righe ?? []);
         this.riferimenti = f.riferimenti ?? [];
         this.prezziRecenti = new Array(this.righe.length).fill([]);
         this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
@@ -1042,7 +1048,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         }
       });
     } else if (data?.righe?.length) {
-      this.righe = [...data.righe];
+      this.righe = this.normalizeRighe([...data.righe]);
       this.prezziRecenti = new Array(this.righe.length).fill([]);
       this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
       this.tuttiCaricati = new Array(this.righe.length).fill(false);
@@ -1134,6 +1140,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.righe[index].varianteId = v?.id ?? null;
     this.righe[index].varianteTaglia = v?.taglia ?? '';
     this.righe[index].varianteColore = v?.colore ?? '';
+    // Di default una riga prodotto scarica il magazzino (se non già impostato).
+    if (this.righe[index].scaricaMagazzino === undefined) this.righe[index].scaricaMagazzino = true;
     this.applyListino(index);
     this.loadPrezziRecenti(index);
   }
@@ -1272,9 +1280,14 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   }
   removeRiferimento(i: number) { this.riferimenti.splice(i, 1); }
 
+  /** Le righe prodotto senza il flag definito ereditano scaricaMagazzino=true (default storico). */
+  private normalizeRighe(righe: RigaDocumento[]): RigaDocumento[] {
+    return righe.map(r => (r.tipo !== 'NOTA' && r.prodottoId && r.scaricaMagazzino === undefined)
+      ? { ...r, scaricaMagazzino: true } : r);
+  }
   addRiga() {
     const { iva, codiceIva } = this.getClienteDefaultIva();
-    this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva, codiceIva });
+    this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, sconto: 0, iva, codiceIva, scaricaMagazzino: true });
     this.prezziRecenti.push([]);
     this.prezziRecentiTutti.push([]);
     this.tuttiCaricati.push(false);

@@ -302,6 +302,10 @@ function initTenantSchema(db) {
     'ALTER TABLE acquisti_righe ADD COLUMN unita_misura TEXT DEFAULT ""',
     'ALTER TABLE ddt_righe ADD COLUMN sconto REAL DEFAULT 0',
     'ALTER TABLE fatture_righe ADD COLUMN sconto REAL DEFAULT 0',
+    // Flag per-riga: se 1 la riga scarica il prodotto dal magazzino (default 1 =
+    // comportamento storico). Se 0 la riga NON movimenta le scorte.
+    'ALTER TABLE ddt_righe ADD COLUMN scarica_magazzino INTEGER DEFAULT 1',
+    'ALTER TABLE fatture_righe ADD COLUMN scarica_magazzino INTEGER DEFAULT 1',
     'ALTER TABLE note_credito_righe ADD COLUMN sconto REAL DEFAULT 0',
     'ALTER TABLE ordini_righe ADD COLUMN sconto REAL DEFAULT 0',
     'ALTER TABLE preventivi_righe ADD COLUMN sconto REAL DEFAULT 0',

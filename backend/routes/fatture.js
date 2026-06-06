@@ -196,6 +196,7 @@ function aggiornaQuantita(righe, delta, ctx = {}) {
   const oggi = new Date().toISOString().split('T')[0];
   for (const r of righe) {
     if (!r.prodottoId) continue;
+    if (r.scaricaMagazzino === false) continue;   // riga esclusa dal movimento scorte
     stmtQ.run(delta * r.quantita, r.prodottoId);
     if (r.varianteId) stmtV.run(delta * r.quantita, r.varianteId);
     const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
@@ -223,14 +224,14 @@ function getDdtIds(fatturaId) {
 
 function saveRighe(fatturaId, righe) {
   const stmt = db.prepare(`INSERT INTO fatture_righe
-    (fattura_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (fattura_id, prodotto_id, codice_prodotto, descrizione, quantita, prezzo, sconto, iva, codice_iva, unita_misura, variante_id, variante_taglia, variante_colore, tipo, scarica_magazzino)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
     stmt.run(fatturaId, r.prodottoId || null, r.codiceProdotto || '', r.descrizione, r.quantita, r.prezzo,
              r.sconto ?? 0, r.iva, r.codiceIva || '',
              r.unitaMisura || '',
              r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '',
-             r.tipo || 'PRODOTTO');
+             r.tipo || 'PRODOTTO', r.scaricaMagazzino === false ? 0 : 1);
 }
 
 function getDdtRighe(ddtId) {
@@ -256,7 +257,8 @@ function getRighe(fatturaId) {
     descrizione: r.descrizione, quantita: r.quantita, unitaMisura: r.unita_misura,
     prezzo: r.prezzo, sconto: r.sconto ?? 0, iva: r.iva, codiceIva: r.codice_iva || '',
     varianteId: r.variante_id, varianteTaglia: r.variante_taglia || '', varianteColore: r.variante_colore || '',
-    tipo: r.tipo || 'PRODOTTO'
+    tipo: r.tipo || 'PRODOTTO',
+    scaricaMagazzino: r.scarica_magazzino !== 0
   }));
 }
 
