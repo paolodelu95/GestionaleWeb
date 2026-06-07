@@ -29,6 +29,9 @@ export class DataService {
   rettificaGiacenza(id: number, quantita: number, note?: string): Observable<any> {
     return this.api.post(`prodotti/${id}/rettifica`, { quantita, note: note || '' });
   }
+  rettificaBulk(items: { prodottoId: number; varianteId?: number | null; quantita: number }[], note?: string): Observable<{ success: boolean; applied: number; movimenti: number }> {
+    return this.api.post('prodotti/rettifica-bulk', { items, note: note || '' });
+  }
 
   // Riordino scorte
   getProposteRiordino(): Observable<PropostaRiordino[]> { return this.api.get('riordino/proposte'); }

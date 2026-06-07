@@ -18,25 +18,87 @@ router.get('/sotto-soglia', (req, res) => {
   res.json(rows.map(r => toDto(r)));
 });
 
-// Rettifica rapida della giacenza: imposta la quantità reale a magazzino,
-// registra automaticamente un movimento di rettifica con la differenza.
-router.post('/:id/rettifica', (req, res) => {
-  const id = Number(req.params.id);
-  const nuova = Number(req.body?.quantita);
-  if (!Number.isFinite(nuova)) return res.status(400).json({ error: 'Quantità non valida' });
-  const prod = db.prepare('SELECT id, nome, quantita FROM prodotti WHERE id=?').get(id);
-  if (!prod) return res.status(404).json({ error: 'Prodotto non trovato' });
-  const delta = nuova - (prod.quantita ?? 0);
+// Applica una rettifica di giacenza a un prodotto o a una sua variante, registrando
+// il relativo movimento di RETTIFICA con la differenza. Restituisce il delta applicato.
+// Pensata per essere richiamata sia dall'endpoint singolo sia da quello bulk (inventario):
+// NON apre una transazione propria, così può essere composta dal chiamante.
+function applicaRettifica(prodottoId, nuova, note, varianteId) {
+  if (!Number.isFinite(nuova)) throw { status: 400, error: 'Quantità non valida' };
+  const prod = db.prepare('SELECT id, nome FROM prodotti WHERE id=?').get(prodottoId);
+  if (!prod) throw { status: 404, error: 'Prodotto non trovato' };
+  const noteStr = (note || '').toString().slice(0, 500);
+  const data = new Date().toISOString().split('T')[0];
+
+  // Rettifica a livello variante: aggiorna la singola variante e risincronizza
+  // il totale del prodotto dalle varianti (syncQuantita).
+  if (varianteId != null) {
+    const v = db.prepare('SELECT id, prodotto_id, quantita, taglia, colore FROM prodotto_varianti WHERE id=? AND prodotto_id=?')
+      .get(varianteId, prodottoId);
+    if (!v) throw { status: 404, error: 'Variante non trovata' };
+    const delta = nuova - (v.quantita ?? 0);
+    if (delta !== 0) {
+      db.prepare('UPDATE prodotto_varianti SET quantita=? WHERE id=?').run(nuova, varianteId);
+      db.prepare(`INSERT INTO movimenti_magazzino
+        (data, prodotto_id, prodotto_nome, tipo, quantita, causale, note, variante_id, variante_taglia, variante_colore)
+        VALUES (?,?,?,?,?,?,?,?,?,?)`)
+        .run(data, prodottoId, prod.nome || '',
+             delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta), 'RETTIFICA', noteStr,
+             varianteId, v.taglia || '', v.colore || '');
+      syncQuantita(prodottoId);
+    }
+    return delta;
+  }
+
+  // Rettifica a livello prodotto.
+  const cur = db.prepare('SELECT quantita FROM prodotti WHERE id=?').get(prodottoId);
+  const delta = nuova - (cur?.quantita ?? 0);
   if (delta !== 0) {
-    db.prepare('UPDATE prodotti SET quantita=? WHERE id=?').run(nuova, id);
+    db.prepare('UPDATE prodotti SET quantita=? WHERE id=?').run(nuova, prodottoId);
     db.prepare(`INSERT INTO movimenti_magazzino
       (data, prodotto_id, prodotto_nome, tipo, quantita, causale, note)
       VALUES (?,?,?,?,?,?,?)`)
-      .run(new Date().toISOString().split('T')[0], id, prod.nome || '',
-           delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta), 'RETTIFICA',
-           (req.body?.note || '').toString().slice(0, 500));
+      .run(data, prodottoId, prod.nome || '',
+           delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta), 'RETTIFICA', noteStr);
   }
-  res.json({ success: true, delta });
+  return delta;
+}
+
+// Rettifica rapida della giacenza: imposta la quantità reale a magazzino,
+// registra automaticamente un movimento di rettifica con la differenza.
+router.post('/:id/rettifica', (req, res) => {
+  try {
+    const delta = applicaRettifica(Number(req.params.id), Number(req.body?.quantita), req.body?.note, null);
+    res.json({ success: true, delta });
+  } catch (e) {
+    res.status(e?.status || 500).json({ error: e?.error || 'Errore rettifica' });
+  }
+});
+
+// Rettifica in blocco (inventario a scansione): applica più conteggi in un'unica
+// transazione. Tocca SOLO gli articoli passati — gli altri restano invariati
+// (inventario parziale e non distruttivo). Ogni item: { prodottoId, varianteId?, quantita }.
+router.post('/rettifica-bulk', (req, res) => {
+  const items = Array.isArray(req.body?.items) ? req.body.items : null;
+  if (!items || !items.length) return res.status(400).json({ error: 'Nessun articolo da rettificare' });
+  if (items.length > 1000) return res.status(400).json({ error: 'Troppi articoli (max 1000)' });
+  const note = (req.body?.note || 'Inventario').toString().slice(0, 500);
+  try {
+    const run = db.transaction(() => {
+      let movimenti = 0;
+      for (const it of items) {
+        const delta = applicaRettifica(
+          Number(it.prodottoId), Number(it.quantita), note,
+          it.varianteId != null ? Number(it.varianteId) : null
+        );
+        if (delta !== 0) movimenti++;
+      }
+      return movimenti;
+    });
+    const movimenti = run();
+    res.json({ success: true, applied: items.length, movimenti });
+  } catch (e) {
+    res.status(e?.status || 500).json({ error: e?.error || 'Errore rettifica inventario' });
+  }
 });
 
 router.get('/count', (req, res) => {

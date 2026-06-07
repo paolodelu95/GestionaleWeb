@@ -969,6 +969,15 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
   background: var(--bg-surface) !important;
   box-shadow: var(--shadow-xl) !important;
 }
+// Inventario a scansione: dialog a tutta altezza, header/footer del componente
+// gestiscono i bordi → nessun padding del surface, host che riempie l'altezza.
+.inventario-scan-dialog .mat-mdc-dialog-surface {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.inventario-scan-dialog app-inventario-scan { flex: 1; min-height: 0; }
 .mat-mdc-dialog-title {
   color: var(--text-primary) !important;
   font-weight: 700 !important;

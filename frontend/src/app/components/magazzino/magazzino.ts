@@ -14,6 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { InventarioScanComponent } from './inventario-scan';
 import { DataService } from '../../services/data.service';
 import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente, PropostaRiordino } from '../../models';
 
@@ -89,6 +90,7 @@ export class MagazzinoRettificaDialogComponent {
   ],
   templateUrl: './magazzino.html',
   styles: [`
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .card { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); border: 1px solid var(--border-subtle); overflow-x: auto; padding: 0; }
     .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-subtle); align-items: center; }
     .filter-bar mat-select { min-width: 150px; }
@@ -215,6 +217,24 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
           error: e => this.snack.open(e.error?.error || 'Errore rettifica', '', { duration: 3000 })
         });
       });
+  }
+
+  openInventario() {
+    this.dialog.open(InventarioScanComponent, {
+      data: { prodotti: this.prodottiList },
+      panelClass: 'inventario-scan-dialog',
+      maxWidth: '560px', width: '96vw', height: '92vh', maxHeight: '92vh',
+      autoFocus: false,
+    }).afterClosed().subscribe(res => {
+      if (!res) return;
+      const n = res.movimenti;
+      this.snack.open(
+        n ? `Inventario applicato: ${n} giacenz${n === 1 ? 'a aggiornata' : 'e aggiornate'}`
+          : 'Inventario applicato: nessuna differenza rilevata',
+        '', { duration: 3000, panelClass: 'snack-ok' });
+      this.ds.getProdotti().subscribe(p => this.prodottiList = p);
+      this.loadMovimenti();
+    });
   }
 
   ngOnInit() {
