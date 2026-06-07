@@ -281,9 +281,13 @@ export class InventarioScanComponent implements AfterViewInit, OnDestroy {
   rimuovi(r: ConteggioRiga) { this.righe = this.righe.filter(x => x.key !== r.key); }
 
   applica() {
-    if (!this.righe.length) return;
+    // Salta le righe senza un conteggio valido (campo svuotato → null): inventario
+    // non distruttivo, non azzeriamo una giacenza per una riga lasciata in bianco.
+    const items = this.righe
+      .filter(r => r.contato != null && (r.contato as any) !== '' && Number.isFinite(+r.contato))
+      .map(r => ({ prodottoId: r.prodottoId, varianteId: r.varianteId, quantita: +r.contato }));
+    if (!items.length) { this.snack.open('Nessun conteggio valido da applicare', '', { duration: 2500 }); return; }
     this.salvando = true;
-    const items = this.righe.map(r => ({ prodottoId: r.prodottoId, varianteId: r.varianteId, quantita: +r.contato || 0 }));
     const note = 'Inventario ' + new Date().toLocaleDateString('it-IT');
     this.ds.rettificaBulk(items, note).subscribe({
       next: r => { this.salvando = false; this.dialogRef.close({ applied: r.applied, movimenti: r.movimenti }); },

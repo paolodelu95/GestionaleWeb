@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -135,7 +135,7 @@ import { environment } from '../../../environments/environment';
     .sc-full { width: 100%; }
   `]
 })
-export class ScontrinoScanDialogComponent {
+export class ScontrinoScanDialogComponent implements OnDestroy {
   file: File | null = null;
   fileName = '';
   previewUrl: string | null = null;
@@ -230,5 +230,9 @@ export class ScontrinoScanDialogComponent {
   private done() {
     this.snack.open('Scontrino registrato', '', { duration: 2200, panelClass: 'snack-ok' });
     this.dialogRef.close(true);
+  }
+
+  ngOnDestroy() {
+    if (this.previewUrl && this.isImage) URL.revokeObjectURL(this.previewUrl);
   }
 }

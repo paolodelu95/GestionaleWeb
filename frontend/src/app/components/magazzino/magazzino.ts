@@ -90,7 +90,6 @@ export class MagazzinoRettificaDialogComponent {
   ],
   templateUrl: './magazzino.html',
   styles: [`
-    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .card { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); border: 1px solid var(--border-subtle); overflow-x: auto; padding: 0; }
     .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-subtle); align-items: center; }
     .filter-bar mat-select { min-width: 150px; }
