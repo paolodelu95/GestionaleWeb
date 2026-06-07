@@ -173,51 +173,76 @@ function matchCliente(nome) {
 
 function matchProdotto(nome) {
   const n = norm(nome);
+  if (!n) return null;
+  // Priorità: codice esatto → nome esatto → nome che contiene il testo (più corto).
+  // Il codice esatto vince sempre, così "c52" prende il prodotto con codice c52
+  // e non un nome qualsiasi che contiene la lettera.
   return db.prepare(`SELECT id, nome, descrizione, prezzo, iva, unita_misura, codice
-                     FROM prodotti WHERE LOWER(nome) LIKE ? OR LOWER(codice)=?
-                     ORDER BY (LOWER(nome)=? ) DESC, length(nome) LIMIT 1`).get('%' + n + '%', n, n) || null;
+                     FROM prodotti
+                     WHERE LOWER(codice)=? OR LOWER(nome)=? OR LOWER(nome) LIKE ?
+                     ORDER BY (LOWER(codice)=?) DESC, (LOWER(nome)=?) DESC, length(nome) ASC
+                     LIMIT 1`).get(n, n, '%' + n + '%', n, n) || null;
+}
+
+function rigaProdotto(p, qta) {
+  return {
+    prodottoId: p.id, codiceProdotto: p.codice || '',
+    descrizione: p.descrizione || p.nome, quantita: qta,
+    prezzo: p.prezzo || 0, iva: p.iva ?? 22, unitaMisura: p.unita_misura || 'pz',
+    sconto: 0, tipo: 'PRODOTTO',
+  };
 }
 
 // Estrae le righe "<quantità> <prodotto>" da un testo (separatori: virgola / "e").
+// La fine del nome è una virgola, " e ", o uno SPAZIO seguito da una nuova
+// quantità: così i codici con numeri interni (es. "c52", "a12") restano interi.
 function parseRighe(testo) {
   const righe = [];
-  const re = /(\d+(?:[.,]\d+)?)\s*(?:x\s*)?([a-zàèéìòùç][a-zàèéìòùç0-9 '’\-]*?)(?=\s*(?:,|;|\be\b|\d|$))/gi;
+  const re = /(\d+(?:[.,]\d+)?)\s*(?:x\s*)?([a-zàèéìòùç][a-zàèéìòùç0-9 '’\-]*?)(?=\s*[,;]|\s+e\s|\s+\d|\s*$)/gi;
   let m;
   while ((m = re.exec(testo)) !== null) {
     const qta = parseFloat(m[1].replace(',', '.')) || 1;
     const nomeRaw = m[2].trim();
     if (!nomeRaw) continue;
     const p = matchProdotto(nomeRaw);
-    if (p) {
-      righe.push({
-        prodottoId: p.id, codiceProdotto: p.codice || '',
-        descrizione: p.descrizione || p.nome, quantita: qta,
-        prezzo: p.prezzo || 0, iva: p.iva ?? 22, unitaMisura: p.unita_misura || 'pz',
-        sconto: 0, tipo: 'PRODOTTO',
-      });
-    } else {
-      righe.push({ prodottoId: null, descrizione: nomeRaw, quantita: qta, prezzo: 0, iva: 22, unitaMisura: 'pz', sconto: 0, tipo: 'PRODOTTO' });
-    }
+    righe.push(p ? rigaProdotto(p, qta)
+                 : { prodottoId: null, descrizione: nomeRaw, quantita: qta, prezzo: 0, iva: 22, unitaMisura: 'pz', sconto: 0, tipo: 'PRODOTTO' });
   }
   return righe;
 }
 
-function bozzaDocumento(target, q) {
+function bozzaDocumento(target, qIn) {
   // Nome documento per il titolo.
   const nomeDoc = target === 'fattura' ? 'fattura' : target === 'preventivo' ? 'preventivo' : 'DDT';
-  // Cliente: dopo "a/ad/al/per/cliente …" fino a una cifra o fine.
+  // "una/uno/un sedia" → "1 sedia" così la quantità implicita viene letta.
+  const q = qIn.replace(/\b(una|uno|un)\b/gi, '1');
+
+  // Cliente: dopo "a/ad/al/per/cliente …". Il nome si ferma davanti al primo token
+  // che contiene una cifra (una quantità "10" o un codice prodotto "c52"), così il
+  // codice non finisce dentro la ragione sociale.
   let clienteId = null, clienteNome = '';
-  const mc = q.match(/\b(?:a|ad|al|alla|allo|ai|agli|per|cliente)\s+([a-zàèéìòù][\w àèéìòù'’.&-]*?)(?=\s+\d|,|$)/i);
+  const mc = q.match(/\b(?:a|ad|al|alla|allo|ai|agli|per|cliente)\s+([a-zàèéìòù][\w àèéìòù'’.&-]*?)(?=\s+\S*\d|,|$)/i);
   if (mc) {
     const nomeCli = mc[1].replace(/^(?:cliente|il|lo|la|i|gli|le)\s+/i, '').trim();
     const c = matchCliente(nomeCli);
     if (c) { clienteId = c.id; clienteNome = c.ragione_sociale; }
-    else clienteNome = nomeCli;
+    else if (nomeCli) clienteNome = nomeCli;
   }
-  // Righe: dal testo senza la parte cliente.
+
+  // Righe: dal testo senza la parte cliente e senza le parole "di servizio".
   let resto = q;
   if (mc) resto = q.replace(mc[0], ' ');
-  const righe = parseRighe(resto);
+  resto = resto.replace(/\b(fattura|fatturare|preventivo|preventivare|ddt|bolla|trasporto|offerta)\b/gi, ' ')
+               .replace(/\b(crea|creare|nuov[oa]|fai|fammi|genera|emetti|registra)\b/gi, ' ');
+  let righe = parseRighe(resto);
+  // Fallback: nessuna quantità esplicita ma resta un codice/nome isolato → quantità 1.
+  if (!righe.length) {
+    const tok = resto.replace(/[^a-zàèéìòùç0-9 '’\-]/gi, ' ').replace(/\s+/g, ' ').trim();
+    if (tok.length >= 2 && !/^(a|ad|al|per|il|lo|la|i|gli|le)$/.test(tok)) {
+      const p = matchProdotto(tok);
+      if (p) righe = [rigaProdotto(p, 1)];
+    }
+  }
 
   const trovato = clienteId != null;
   let dettaglio;
