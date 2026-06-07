@@ -280,6 +280,13 @@ button:focus:not(:focus-visible) { outline: none; }
   gap: 12px;
 }
 
+// Gruppo di azioni nell'header pagina (più bottoni accanto al titolo).
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .page-title {
   font-size: 24px;
   font-weight: 700;
@@ -946,6 +953,15 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
     flex: 1 1 calc(50% - 4px);
     min-width: 0;
     order: 1;
+  }
+  .page-header > .header-actions {
+    flex: 0 0 100%;
+    order: 1;
+  }
+  .page-header > .header-actions > button[mat-flat-button],
+  .page-header > .header-actions > button[mat-stroked-button] {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
   }
   .page-header > mat-button-toggle-group {
     flex: 0 0 100%;

@@ -261,6 +261,68 @@ router.post('/fattura/conferma', (req, res) => {
   }
 });
 
+// POST /api/ocr/scontrino  (multipart/form-data, campo "file": foto o PDF)
+// OCR di uno scontrino/ricevuta: estrae data, importo e negozio per pre-compilare
+// una registrazione di Prima Nota (USCITA). La registrazione vera e l'allegato della
+// foto vengono creati lato client (POST /api/prima-nota + POST /api/allegati).
+//
+// Usa di default lo stesso modello Mindee delle fatture (`mindee/invoices`), che
+// estrae comunque totale/data anche dagli scontrini; è sovrascrivibile con
+// l'env MINDEE_RECEIPT_MODEL (es. un modello ricevute dedicato del proprio account).
+router.post('/scontrino', ocrLimiter, ocrGate, upload.single('file'), async (req, res) => {
+  const key = process.env.MINDEE_API_KEY;
+  if (!key) return res.status(500).json({ error: 'MINDEE_API_KEY non configurata' });
+  if (!req.file) return res.status(400).json({ error: 'File mancante (campo "file")' });
+
+  try {
+    const form = new FormData();
+    form.append('file', new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' }), req.file.originalname || 'scontrino.jpg');
+    form.append('model_id', process.env.MINDEE_RECEIPT_MODEL || 'mindee/invoices');
+
+    const enqueueResp = await fetch(MINDEE_ENQUEUE, {
+      method: 'POST',
+      headers: { 'Authorization': key },
+      body: form,
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!enqueueResp.ok) {
+      const t = await enqueueResp.text();
+      return res.status(502).json({ error: `Mindee ${enqueueResp.status}: ${t.slice(0, 300)}` });
+    }
+
+    const enqueueData = await enqueueResp.json();
+    const inferenceId = enqueueData.inference?.id;
+    if (!inferenceId) return res.status(502).json({ error: 'Mindee non ha restituito un inference ID' });
+
+    let fields = enqueueData.inference?.result?.fields ?? null;
+    for (let i = 0; i < 15 && !fields; i++) {
+      await sleep(2000);
+      const pollResp = await fetch(`${MINDEE_GET}/${inferenceId}`, {
+        headers: { 'Authorization': key },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!pollResp.ok) continue;
+      const pollData = await pollResp.json();
+      fields = pollData.inference?.result?.fields ?? null;
+    }
+    if (!fields) return res.status(502).json({ error: 'Timeout: Mindee non ha completato l\'analisi (30s)' });
+
+    const negozio  = fields.supplier_name?.value || '';
+    const categoria = fields.category?.value || fields.document_type?.value || '';
+    const data     = fields.date?.value || null;
+    const importo  = parseFloat(fields.total_amount?.value ?? fields.total_incl?.value ?? 0) || 0;
+    const causale  = (negozio || categoria || 'Scontrino').toString().slice(0, 120);
+
+    res.json({ ok: true, suggerito: { data, importo, negozio, categoria, causale }, mindeeRequestId: inferenceId });
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      return res.status(504).json({ error: 'Timeout nella comunicazione con il servizio OCR' });
+    }
+    console.error('[ocr/scontrino]', err.message);
+    res.status(500).json({ error: 'Errore durante l\'analisi OCR' });
+  }
+});
+
 router.get('/status', (req, res) => {
   res.json({ configured: !!process.env.MINDEE_API_KEY });
 });

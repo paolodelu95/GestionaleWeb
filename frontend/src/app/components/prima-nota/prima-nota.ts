@@ -15,13 +15,16 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
+import { AllegatiComponent } from '../shared/allegati/allegati';
+import { ScontrinoScanDialogComponent } from './scontrino-scan-dialog';
 
 // ── Dialog ─────────────────────────────────────────────────────────────────────
 @Component({
   selector: 'app-prima-nota-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule,
+            AllegatiComponent],
   template: `
     <mat-dialog-content style="min-width:560px">
       <div class="dialog-hero">
@@ -75,6 +78,12 @@ import { DataService } from '../../services/data.service';
           <textarea matInput rows="2" formControlName="note" placeholder="Annotazioni opzionali"></textarea>
         </mat-form-field>
       </form>
+      @if (data?.id) {
+        <div style="margin-top:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--text-tertiary);margin-bottom:6px">Scontrino / allegati</div>
+          <app-allegati documentoTipo="primaNota" [documentoId]="data.id"></app-allegati>
+        </div>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
@@ -209,6 +218,11 @@ export class PrimaNotaComponent implements OnInit, AfterViewInit {
         error: err => this.snack.open(err.error?.error || err.message, '', { duration: 3000 }),
       });
     });
+  }
+
+  openScontrino() {
+    this.dialog.open(ScontrinoScanDialogComponent, { width: '600px', maxWidth: '96vw', autoFocus: false })
+      .afterClosed().subscribe(ok => { if (ok) this.load(); });
   }
 
   async delete(entry: any) {
