@@ -26,6 +26,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 
 import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
+import { consumePrefill } from '../../utils/nav-prefill';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
@@ -848,6 +849,8 @@ export class DdtComponent implements OnInit, AfterViewInit {
     this.ds.getAzienda().subscribe(a => {
       this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
     });
+    const bozza = consumePrefill('nuovaBozza');
+    if (bozza) setTimeout(() => this.open(bozza as Ddt), 0);
   }
 
   ngAfterViewInit() {

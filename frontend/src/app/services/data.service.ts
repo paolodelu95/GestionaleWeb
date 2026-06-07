@@ -499,6 +499,9 @@ export class DataService {
     return this.api.post('utenti/login', { username, password });
   }
 
+  // Barra comandi intelligente (parser deterministico lato server)
+  interpretaComando(q: string): Observable<any> { return this.api.post('comandi', { q }); }
+
   // Allegati
   getAllegati(tipo: string, id: number): Observable<any[]> { return this.api.get(`allegati?tipo=${tipo}&id=${id}`); }
   deleteAllegato(id: number): Observable<any> { return this.api.delete(`allegati/${id}`); }

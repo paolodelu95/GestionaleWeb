@@ -29,6 +29,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, ProdottoVariante, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
+import { consumePrefill } from '../../utils/nav-prefill';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { AllegatiComponent } from '../shared/allegati/allegati';
@@ -1370,6 +1371,8 @@ export class FattureComponent implements OnInit, AfterViewInit {
     this.ds.getAzienda().subscribe(a => {
       this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
     });
+    const bozza = consumePrefill('nuovaBozza');
+    if (bozza) setTimeout(() => this.open(bozza as Fattura), 0);
   }
 
   ngAfterViewInit() {

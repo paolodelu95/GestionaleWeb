@@ -679,6 +679,23 @@
     &.highlighted { box-shadow: inset 2px 0 0 var(--primary); }
   }
 
+  // Voce "intelligente" della barra comandi (risposta o bozza), in cima.
+  .smart-result {
+    background: var(--primary-soft);
+    margin-bottom: 4px;
+    align-items: flex-start;
+    .smart-icon { color: var(--primary); }
+    .smart-text { display: flex; flex-direction: column; min-width: 0; }
+    .smart-detail {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    &:hover, &.highlighted { background: var(--primary-soft); filter: brightness(0.97); }
+  }
+
   .search-result-tipo {
     font-size: 10px;
     font-weight: 700;

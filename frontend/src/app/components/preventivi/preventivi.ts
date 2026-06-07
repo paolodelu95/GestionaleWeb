@@ -23,6 +23,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Preventivo, Cliente, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
+import { consumePrefill } from '../../utils/nav-prefill';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
@@ -614,6 +615,8 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   ngOnInit() {
     try { const s = JSON.parse(localStorage.getItem('filtri-preventivi') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroCliente = s.cliente ?? null; } } catch {}
     this.load();
+    const bozza = consumePrefill('nuovaBozza');
+    if (bozza) setTimeout(() => this.open(bozza as Preventivo), 0);
   }
 
   ngAfterViewInit() {

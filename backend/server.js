@@ -704,6 +704,7 @@ app.use('/api/piva',             require('./routes/piva'));
 app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/prima-nota',       require('./routes/primaNota'));
 app.use('/api/scadenzario',      require('./routes/scadenzario'));
+app.use('/api/comandi',          require('./routes/comandi'));
 app.use('/api/fatture-ricorrenti', require('./routes/fattureRicorrenti').router);
 app.use('/api/allegati',          require('./routes/allegati'));
 app.use('/api/note-rapide',       require('./routes/noteRapide'));

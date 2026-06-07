@@ -26,6 +26,7 @@ import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
 import { Cliente, ClienteIndirizzo, TipoPagamento, Listino, AliquotaIva } from '../../models';
+import { consumePrefill } from '../../utils/nav-prefill';
 import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
@@ -785,7 +786,11 @@ export class ClientiComponent implements OnInit, AfterViewInit {
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    const pf = consumePrefill('prefill');
+    if (pf) setTimeout(() => this.open(pf as Cliente), 0);
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;

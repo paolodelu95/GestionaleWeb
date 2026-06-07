@@ -204,15 +204,26 @@
               }
             } @else if (paletteItems.length) {
               @for (it of paletteItems; track it.kind + it.route + it.label; let i = $index) {
-                <div class="search-result" [class.highlighted]="i === highlightedIndex"
-                     (click)="executePalette(it)" (mouseenter)="highlightedIndex = i">
-                  @if (it.kind === 'cmd') {
-                    <mat-icon class="qa-icon">{{ it.icon }}</mat-icon>
-                  } @else {
-                    <span class="search-result-tipo">{{ it.tipo }}</span>
-                  }
-                  <span class="search-result-label">{{ it.label }}</span>
-                </div>
+                @if (it.kind === 'smart') {
+                  <div class="search-result smart-result" [class.highlighted]="i === highlightedIndex"
+                       (click)="executePalette(it)" (mouseenter)="highlightedIndex = i">
+                    <mat-icon class="qa-icon smart-icon">{{ it.icon }}</mat-icon>
+                    <span class="smart-text">
+                      <span class="search-result-label">{{ it.label }}</span>
+                      @if (it.dettaglio) { <small class="smart-detail">{{ it.dettaglio }}</small> }
+                    </span>
+                  </div>
+                } @else {
+                  <div class="search-result" [class.highlighted]="i === highlightedIndex"
+                       (click)="executePalette(it)" (mouseenter)="highlightedIndex = i">
+                    @if (it.kind === 'cmd') {
+                      <mat-icon class="qa-icon">{{ it.icon }}</mat-icon>
+                    } @else {
+                      <span class="search-result-tipo">{{ it.tipo }}</span>
+                    }
+                    <span class="search-result-label">{{ it.label }}</span>
+                  </div>
+                }
               }
             } @else {
               <div class="search-empty">Nessun risultato per "{{ searchQuery }}"</div>

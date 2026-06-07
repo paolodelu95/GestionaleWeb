@@ -21,6 +21,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva, Fornitore, ProdottoFornitore, CodiceAlias } from '../../models';
+import { consumePrefill } from '../../utils/nav-prefill';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
@@ -623,7 +624,11 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    const pf = consumePrefill('prefill');
+    if (pf) setTimeout(() => this.open(pf as Prodotto), 0);
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;

@@ -84,6 +84,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   searchResults: { label: string; tipo: string; route: string; id: number }[] = [];
   /** Comandi di navigazione/azione filtrati (palette ⌘K). */
   commandResults: { label: string; icon: string; route: string }[] = [];
+  /** Risposta/bozza interpretata dalla barra comandi (parser deterministico server). */
+  smartItem: any = null;
   /** Indice evidenziato nella palette (navigazione con ↑/↓). */
   highlightedIndex = 0;
   showSearch = false;
@@ -110,6 +112,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   trialDaysLeft: number | null = null;
   isOffline = false;
   private searchSubject = new Subject<string>();
+  private cmdSubject = new Subject<string>();
   private installPromptEvent: any = null;
 
   constructor(
@@ -214,6 +217,20 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       ];
       this.showSearch = this.searchResults.length > 0;
     });
+
+    // Barra comandi: interpreta la frase lato server (parser deterministico, nessun
+    // costo). Per frasi corte non chiama nulla. Il risultato diventa la prima voce
+    // della palette; se non riconosce nulla, smartItem=null e resta la ricerca.
+    this.cmdSubject.pipe(
+      debounceTime(280), distinctUntilChanged(),
+      switchMap(q => q.trim().length >= 3 ? this.ds.interpretaComando(q) : [{ tipo: 'nessuno' }])
+    ).subscribe({
+      next: r => {
+        this.smartItem = (r && r.tipo && r.tipo !== 'nessuno') ? r : null;
+        if (this.smartItem) this.showSearch = true;
+      },
+      error: () => { this.smartItem = null; },
+    });
   }
 
   onLogin() {
@@ -250,6 +267,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       this.showSearch = false;
       this.searchQuery = '';
       this.searchResults = [];
+      this.smartItem = null;
     }
   }
 
@@ -392,8 +410,10 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       ? this.allCommands.filter(c => c.label.toLowerCase().includes(query)).slice(0, 8)
       : [];
     if (q.length < 2) this.searchResults = [];
+    if (query.length < 3) this.smartItem = null;
     this.showSearch = this.commandResults.length > 0 || q.length >= 2 || !q;
     this.searchSubject.next(q);
+    this.cmdSubject.next(q);
   }
 
   /** Sezioni navigabili (filtrate per ruolo/moduli) + azioni rapide → comandi della palette. */
@@ -405,8 +425,12 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   /** Lista unificata (comandi + risultati dati) per la navigazione da tastiera. */
-  get paletteItems(): { kind: 'cmd' | 'data'; label: string; icon?: string; tipo?: string; route: string }[] {
+  get paletteItems(): { kind: 'cmd' | 'data' | 'smart'; label: string; icon?: string; tipo?: string; route: string; dettaglio?: string; smart?: any }[] {
+    const smart = this.smartItem
+      ? [{ kind: 'smart' as const, label: this.smartItem.titolo, icon: this.smartItem.icona || 'auto_awesome', dettaglio: this.smartItem.dettaglio, route: this.smartItem.route || '#', smart: this.smartItem }]
+      : [];
     return [
+      ...smart,
       ...this.commandResults.map(c => ({ kind: 'cmd' as const, label: c.label, icon: c.icon, route: c.route })),
       ...this.searchResults.map(r => ({ kind: 'data' as const, label: r.label, tipo: r.tipo, route: r.route })),
     ];
@@ -422,12 +446,31 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     if (it) this.executePalette(it);
   }
 
-  executePalette(it: { route: string }) {
+  executePalette(it: { route: string; smart?: any }) {
     this.showSearch = false;
     this.searchQuery = '';
     this.searchResults = [];
     this.commandResults = [];
+    this.smartItem = null;
+    if (it.smart) { this.runSmart(it.smart); return; }
     this.router.navigate([it.route]);
+  }
+
+  /** Esegue la voce "intelligente": apre la pagina con la bozza pre-compilata,
+   *  oppure naviga al dettaglio per le risposte di lettura. */
+  private runSmart(s: any) {
+    if (s.tipo === 'bozza') {
+      const rotte: Record<string, string> = {
+        fattura: '/fatture', preventivo: '/preventivi', ddt: '/ddt',
+        cliente: '/clienti', prodotto: '/prodotti',
+      };
+      const route = rotte[s.target];
+      if (!route) return;
+      const stateKey = (s.target === 'cliente' || s.target === 'prodotto') ? 'prefill' : 'nuovaBozza';
+      this.router.navigate([route], { state: { [stateKey]: s.dati } });
+    } else if (s.tipo === 'risposta' && s.route) {
+      this.router.navigate([s.route]);
+    }
   }
 
   navigateToResult(r: { route: string }) {
