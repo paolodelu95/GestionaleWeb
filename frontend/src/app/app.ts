@@ -438,8 +438,23 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     return [
       ...smart,
       ...this.commandResults.map(c => ({ kind: 'cmd' as const, label: c.label, icon: c.icon, route: c.route })),
-      ...this.searchResults.map(r => ({ kind: 'data' as const, label: r.label, tipo: r.tipo, route: r.route })),
+      ...this.searchResults.map(r => ({ kind: 'data' as const, label: r.label, tipo: r.tipo, route: r.route, id: r.id })),
     ];
+  }
+
+  /** Per cliente/fornitore/prodotto apre direttamente la scheda dell'elemento
+   *  (non la lista). Restituisce true se ha gestito la navigazione. */
+  private openCard(tipo?: string, id?: number): boolean {
+    const rotte: Record<string, string> = { Cliente: '/clienti', Fornitore: '/fornitori', Prodotto: '/prodotti' };
+    const route = tipo ? rotte[tipo] : undefined;
+    if (!route || id == null) return false;
+    const nav = () => this.router.navigate([route], { state: { openId: id } });
+    // Se siamo già su quella pagina, Angular riuserebbe il componente senza
+    // rilanciare ngOnInit: forziamo un rimbalzo così la scheda si apre comunque.
+    if (this.router.url.split('?')[0] === route) {
+      this.router.navigateByUrl('/', { skipLocationChange: true }).then(nav);
+    } else { nav(); }
+    return true;
   }
 
   paletteMove(delta: number) {
@@ -452,13 +467,14 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     if (it) this.executePalette(it);
   }
 
-  executePalette(it: { route: string; smart?: any }) {
+  executePalette(it: { kind?: string; route: string; tipo?: string; id?: number; smart?: any }) {
     this.showSearch = false;
     this.searchQuery = '';
     this.searchResults = [];
     this.commandResults = [];
     this.smartItem = null;
     if (it.smart) { this.runSmart(it.smart); return; }
+    if (it.kind === 'data' && this.openCard(it.tipo, it.id)) return;
     this.router.navigate([it.route]);
   }
 

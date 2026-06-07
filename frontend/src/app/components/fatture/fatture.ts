@@ -1120,7 +1120,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   }
 
   searchProdotto(index: number, lista?: Prodotto[]) {
-    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: lista ?? this.prodotti })
+    const query = (this.righe[index]?.codiceProdotto ?? '').toString().trim();
+    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: { prodotti: lista ?? this.prodotti, query } })
       .afterClosed().subscribe((pick: ProdottoPick) => {
         if (!pick) return;
         this.applyProdottoToRiga(index, pick.prodotto, pick.variante);

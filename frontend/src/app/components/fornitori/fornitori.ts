@@ -25,6 +25,7 @@ import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
 import { Fornitore } from '../../models';
+import { consumePrefill } from '../../utils/nav-prefill';
 import { pIvaValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
@@ -474,7 +475,19 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
-  ngOnInit() { this.load(); }
+  private pendingOpenId: number | null = null;
+
+  ngOnInit() {
+    this.pendingOpenId = consumePrefill<number>('openId');
+    this.load();
+  }
+
+  private openPending(list: Fornitore[]) {
+    if (this.pendingOpenId == null) return;
+    const it = list.find(x => x.id === this.pendingOpenId);
+    this.pendingOpenId = null;
+    if (it) setTimeout(() => this.open(it), 0);
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
@@ -496,7 +509,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     };
   }
 
-  load() { this.ds.getFornitori().subscribe(f => { this.fornitori = f; this.dataSource.data = f; if (this.paginator) this.dataSource.paginator = this.paginator; }); }
+  load() { this.ds.getFornitori().subscribe(f => { this.fornitori = f; this.dataSource.data = f; if (this.paginator) this.dataSource.paginator = this.paginator; this.openPending(f); }); }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();

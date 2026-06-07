@@ -123,11 +123,15 @@ export class ProdottoPickerComponent implements OnInit {
   constructor(
     private ds: DataService,
     public dialogRef: MatDialogRef<ProdottoPickerComponent>,
-    @Inject(MAT_DIALOG_DATA) passedProdotti: Prodotto[]
+    // Accetta sia la lista prodotti diretta (uso legacy) sia un oggetto
+    // { prodotti?, query? } per aprire il picker GIÀ filtrato sul testo digitato.
+    @Inject(MAT_DIALOG_DATA) data: Prodotto[] | { prodotti?: Prodotto[]; query?: string } | null
   ) {
-    if (passedProdotti?.length) {
-      this.prodotti = passedProdotti;
-      this.filtered = [...passedProdotti];
+    const arr = Array.isArray(data) ? data : data?.prodotti;
+    this.query = (Array.isArray(data) ? '' : (data?.query || '')).trim();
+    if (arr?.length) {
+      this.prodotti = arr;
+      this.filtered = this.query ? this.applyQuery(arr) : [...arr];
     }
   }
 

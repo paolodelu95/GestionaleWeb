@@ -786,7 +786,11 @@ export class ClientiComponent implements OnInit, AfterViewInit {
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
+  /** Id elemento da aprire dopo il caricamento (apertura scheda da ricerca globale). */
+  private pendingOpenId: number | null = null;
+
   ngOnInit() {
+    this.pendingOpenId = consumePrefill<number>('openId');
     this.load();
     const pf = consumePrefill('prefill');
     if (pf) setTimeout(() => this.open(pf as Cliente), 0);
@@ -813,7 +817,14 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     };
   }
 
-  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.applyInsightFilter(); }); }
+  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.applyInsightFilter(); this.openPending(c); }); }
+
+  private openPending(list: Cliente[]) {
+    if (this.pendingOpenId == null) return;
+    const it = list.find(x => x.id === this.pendingOpenId);
+    this.pendingOpenId = null;
+    if (it) setTimeout(() => this.open(it), 0);
+  }
 
   applyFilter(event: Event) {
     this.dataSource.filter = (event.target as HTMLInputElement).value.trim();

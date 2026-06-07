@@ -624,10 +624,20 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
 
+  private pendingOpenId: number | null = null;
+
   ngOnInit() {
+    this.pendingOpenId = consumePrefill<number>('openId');
     this.load();
     const pf = consumePrefill('prefill');
     if (pf) setTimeout(() => this.open(pf as Prodotto), 0);
+  }
+
+  private openPending(list: Prodotto[]) {
+    if (this.pendingOpenId == null) return;
+    const it = list.find(x => x.id === this.pendingOpenId);
+    this.pendingOpenId = null;
+    if (it) setTimeout(() => this.open(it), 0);
   }
 
   ngAfterViewInit() {
@@ -654,7 +664,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   }
 
   load() {
-    this.ds.getProdotti().subscribe(p => { this.allProdotti = p; this.applyFilters(); });
+    this.ds.getProdotti().subscribe(p => { this.allProdotti = p; this.applyFilters(); this.openPending(p); });
   }
 
   applyFilters() {
