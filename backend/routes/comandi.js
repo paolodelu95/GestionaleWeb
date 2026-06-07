@@ -20,17 +20,36 @@ const eur = n => '€ ' + (Math.round((n || 0) * 100) / 100).toLocaleString('it-
 const pad2 = n => String(n).padStart(2, '0');
 const lastDay = (y, m) => new Date(y, m, 0).getDate();
 
-// Estrae mese (1-12) e anno da una frase; default anno corrente.
+// Estrae un periodo da una frase. Gestisce mese+anno, anno intero e periodi
+// relativi (oggi, ieri, questa settimana, mese/anno scorso). Default: anno corrente.
 function parsePeriodo(q) {
   const now = new Date();
+  const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+  if (/\boggi\b/.test(q)) { const d = ymd(now); return { da: d, a: d, label: 'oggi' }; }
+  if (/\bieri\b/.test(q)) { const y = new Date(now); y.setDate(now.getDate() - 1); const d = ymd(y); return { da: d, a: d, label: 'ieri' }; }
+  if (/\b(questa settimana|settimana)\b/.test(q)) {
+    const dow = (now.getDay() + 6) % 7; // 0 = lunedì
+    const mon = new Date(now); mon.setDate(now.getDate() - dow);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    return { da: ymd(mon), a: ymd(sun), label: 'questa settimana' };
+  }
+
   let anno = now.getFullYear();
   const ya = q.match(/\b(20\d{2})\b/);
   if (ya) anno = parseInt(ya[1]);
+  else if (/\b(anno scorso|scorso anno|l['’]anno scorso)\b/.test(q)) anno -= 1;
+
   let mese = null;
   for (const [k, v] of Object.entries(MESI)) {
     if (new RegExp(`\\b${k}\\b`).test(q)) { mese = v; break; }
   }
-  if (/\bquest['e]?\s*mese\b|\bquesto mese\b|\bmese corrente\b/.test(q) && !mese) mese = now.getMonth() + 1;
+  if (/\b(mese scorso|scorso mese)\b/.test(q) && !mese) {
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    anno = d.getFullYear(); mese = d.getMonth() + 1;
+  }
+  if (/\b(questo mese|mese corrente)\b/.test(q) && !mese) mese = now.getMonth() + 1;
+
   if (mese) {
     return { da: `${anno}-${pad2(mese)}-01`, a: `${anno}-${pad2(mese)}-${pad2(lastDay(anno, mese))}`, label: `${NOMI_MESE[mese]} ${anno}` };
   }
@@ -98,6 +117,52 @@ function giacenza(nome) {
     titolo: `${p.nome}: ${p.quantita} ${p.unita_misura || 'pz'} a magazzino`,
     route: '/magazzino',
   };
+}
+
+function debitiFornitori() {
+  const rows = db.prepare(`
+    SELECT COALESCE((SELECT SUM(ar.quantita*ar.prezzo*(1-COALESCE(ar.sconto,0)/100)*(1+ar.iva/100))
+                     FROM acquisti_righe ar WHERE ar.acquisto_id=a.id),0) AS totale
+    FROM acquisti a
+    WHERE a.stato NOT IN ('PAGATO','PAGATA','ANNULLATO','ANNULLATA')
+  `).all();
+  const tot = rows.reduce((s, r) => s + (r.totale || 0), 0);
+  return {
+    tipo: 'risposta', icona: 'payments',
+    titolo: `Da pagare ai fornitori: ${eur(tot)}`,
+    dettaglio: `${rows.length} document${rows.length === 1 ? 'o' : 'i'} da saldare · apri scadenzario`,
+    route: '/scadenzario',
+  };
+}
+
+function scaduti() {
+  const r = db.prepare(`
+    SELECT COUNT(*) AS n, COALESCE(SUM(t.totale),0) AS tot FROM (
+      SELECT date(f.data_emissione,'+'||COALESCE(tp.giorni_scadenza,30)||' days') AS ds,
+             COALESCE((SELECT SUM(fr.quantita*fr.prezzo*(1-COALESCE(fr.sconto,0)/100)*(1+fr.iva/100))
+                       FROM fatture_righe fr WHERE fr.fattura_id=f.id),0) AS totale
+      FROM fatture f LEFT JOIN tipi_pagamento tp ON f.tipo_pagamento_id=tp.id
+      WHERE f.stato NOT IN ('PAGATA','ANNULLATA','STORNATA')
+    ) t WHERE t.ds < date('now')
+  `).get();
+  return {
+    tipo: 'risposta', icona: 'event_busy',
+    titolo: `Fatture scadute: ${r.n} (${eur(r.tot)})`,
+    dettaglio: r.n ? 'già oltre la scadenza · apri scadenzario' : 'nessuna scaduta, bene così',
+    route: '/scadenzario',
+  };
+}
+
+function conteggio(q) {
+  let tabella, label, route, icona;
+  if (/\bfornitor/.test(q)) { tabella = 'fornitori'; label = 'fornitori'; route = '/fornitori'; icona = 'local_shipping'; }
+  else if (/\bclient/.test(q)) { tabella = 'clienti'; label = 'clienti'; route = '/clienti'; icona = 'group'; }
+  else if (/\b(prodott|articol)/.test(q)) { tabella = 'prodotti'; label = 'prodotti'; route = '/prodotti'; icona = 'inventory_2'; }
+  else if (/\b(fattur)/.test(q)) { tabella = 'fatture'; label = 'fatture'; route = '/fatture'; icona = 'receipt_long'; }
+  else if (/\b(preventiv)/.test(q)) { tabella = 'preventivi'; label = 'preventivi'; route = '/preventivi'; icona = 'description'; }
+  else return { tipo: 'nessuno' };
+  const r = db.prepare(`SELECT COUNT(*) AS n FROM ${tabella}`).get();
+  return { tipo: 'risposta', icona, titolo: `Hai ${r.n} ${label}`, dettaglio: `apri ${label}`, route };
 }
 
 // ── Bozze ────────────────────────────────────────────────────────────────────
@@ -207,10 +272,17 @@ function interpreta(qRaw) {
   if (q.length < 3) return { tipo: 'nessuno' };
 
   // LETTURE (lemmi distinti, non confondibili con "crea fattura").
-  if (/\b(fatturat|incass|venduto|vendite|ricav)/.test(q)) return fatturato(q);
+  if (/\b(fatturat|incass|venduto|vendite|ricav|giro d['’ ]?affari|guadagn|entrate)/.test(q)) return fatturato(q);
+  if (/\bdebit[oi]\b/.test(q) || (/\bda pagare\b/.test(q) && !/\bclient/.test(q))) return debitiFornitori();
+  if (/\bscadut[ei]\b/.test(q)) return scaduti();
   if (/\b(insolut|da incassare|da riscuotere|crediti|chi.*(deve|pagat)|non.*pagat)/.test(q)) return insoluti(q);
   if (/\b(sotto scorta|sotto soglia|scorte|da riordinare|esaurit|in esaurimento)\b/.test(q)) return sottoScorta();
-  const mg = q.match(/\b(?:giacenza|quante|quanti|scorta di|disponibilit[aà])\s+(?:di\s+)?([a-zàèéìòù][\w àèéìòù'’-]*?)(?:\s+(?:ho|in magazzino|disponibili))?\s*$/i);
+  // Conteggi: "quanti clienti/prodotti/fornitori/fatture ho".
+  if (/\bquant[ie]\b/.test(q) && /\b(client|fornitor|prodott|articol|fattur|preventiv)/.test(q) && !/\bfatturat/.test(q)) {
+    const c = conteggio(q);
+    if (c.tipo !== 'nessuno') return c;
+  }
+  const mg = q.match(/\b(?:giacenza|quante|quanti|scorta di|disponibilit[aà])\s+(?:di\s+)?([a-zàèéìòù][\w àèéìòù'’-]*?)(?:\s+(?:ho|in magazzino|disponibili|rimast[ei]))?\s*$/i);
   if (mg) return giacenza(mg[1]);
 
   // BOZZE documento.

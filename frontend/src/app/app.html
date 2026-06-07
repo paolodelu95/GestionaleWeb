@@ -188,7 +188,7 @@
         <input #searchInput class="search-input" type="text"
                placeholder="Cerca o vai a... (⌘K)"
                [(ngModel)]="searchQuery" (input)="onSearchInput(searchQuery)"
-               (focus)="onSearchFocus()" autocomplete="off"
+               (focus)="onSearchFocus()" (click)="onSearchFocus()" autocomplete="off"
                (keydown.arrowdown)="$event.preventDefault(); paletteMove(1)"
                (keydown.arrowup)="$event.preventDefault(); paletteMove(-1)"
                (keydown.enter)="paletteEnter()">

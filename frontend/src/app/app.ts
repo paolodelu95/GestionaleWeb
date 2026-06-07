@@ -272,7 +272,13 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   onSearchFocus() {
-    if (!this.searchQuery) this.showSearch = true;
+    // Apri SEMPRE il pannello al focus/click (anche con testo residuo nella casella,
+    // altrimenti dopo un click-fuori non si riaprirebbe). Se c'è già del testo ma i
+    // risultati erano stati svuotati, li ricalcola.
+    this.showSearch = true;
+    const q = (this.searchQuery || '').trim();
+    if (q.length >= 2 && !this.searchResults.length) this.searchSubject.next(this.searchQuery);
+    if (q.length >= 3 && !this.smartItem) this.cmdSubject.next(this.searchQuery);
   }
 
   navigateToAction(a: { route: string }) {
