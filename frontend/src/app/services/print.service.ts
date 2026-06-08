@@ -325,7 +325,7 @@ export class PrintService {
         { lbl: 'VENDITORE', name: az.ragioneSociale || '', lines: this.azLines(az) },
         { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }),
       tabella: (yy) => this.table(pdf, yy, doc.righe || []),
-      totali: (yy) => this.totals(pdf, yy, doc.righe || []),
+      totali: (yy) => this.totals(pdf, yy, doc),
       pagamento: (yy) => this.payment(pdf, yy, doc, az),
       riferimenti: (yy) => (this.resolved.visibility.showRiferimenti && doc.riferimenti?.length) ? this.riferimentiBox(pdf, yy, doc.riferimenti) : yy,
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
@@ -345,7 +345,7 @@ export class PrintService {
         { lbl: 'DESTINATARIO', name: doc.cliente?.ragioneSociale || '—', lines: this.ddtDestLines(doc) }),
       trasporto: (yy) => this.trasporto(pdf, yy, doc),
       tabella: (yy) => this.table(pdf, yy, doc.righe || []),
-      totali: (yy) => this.totals(pdf, yy, doc.righe || []),
+      totali: (yy) => this.totals(pdf, yy, doc),
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
       firme: (yy) => this.signatures(pdf, yy),
     });
@@ -363,7 +363,7 @@ export class PrintService {
         { lbl: 'EMITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
         { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }),
       tabella: (yy) => this.table(pdf, yy, doc.righe || []),
-      totali: (yy) => this.totals(pdf, yy, doc.righe || []),
+      totali: (yy) => this.totals(pdf, yy, doc),
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
     });
     this.footer(pdf, az);
@@ -381,7 +381,7 @@ export class PrintService {
         { lbl: isCliente ? 'VENDITORE' : 'ACQUIRENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
         { lbl: isCliente ? 'CLIENTE' : 'FORNITORE', name: (isCliente ? doc.cliente?.ragioneSociale : doc.fornitore?.ragioneSociale) || '—', lines: this.contactLines(isCliente ? doc.cliente : doc.fornitore) }),
       tabella: (yy) => isCliente ? this.table(pdf, yy, doc.righe || []) : this.tableOrdineFornitore(pdf, yy, doc.righe || []),
-      totali: (yy) => isCliente ? this.totals(pdf, yy, doc.righe || []) : yy,
+      totali: (yy) => isCliente ? this.totals(pdf, yy, doc) : yy,
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
     });
     this.footer(pdf, az);
@@ -398,7 +398,7 @@ export class PrintService {
         { lbl: 'EMITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
         { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }),
       tabella: (yy) => this.table(pdf, yy, doc.righe || []),
-      totali: (yy) => this.totals(pdf, yy, doc.righe || []),
+      totali: (yy) => this.totals(pdf, yy, doc),
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
     });
     this.footer(pdf, az);
@@ -415,7 +415,7 @@ export class PrintService {
         { lbl: 'VENDITORE', name: az.ragioneSociale || '', lines: this.azLines(az) },
         { lbl: 'CLIENTE', name: doc.clienteNome || 'Cliente al banco', lines: [] }),
       tabella: (yy) => this.table(pdf, yy, doc.righe || []),
-      totali: (yy) => this.totals(pdf, yy, doc.righe || []),
+      totali: (yy) => this.totals(pdf, yy, doc),
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
     });
     this.footer(pdf, az);
@@ -432,7 +432,7 @@ export class PrintService {
         { lbl: 'ACQUIRENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
         { lbl: 'FORNITORE', name: doc.fornitore?.ragioneSociale || '—', lines: this.contactLines(doc.fornitore) }),
       tabella: (yy) => this.table(pdf, yy, doc.righe || []),
-      totali: (yy) => this.totals(pdf, yy, doc.righe || []),
+      totali: (yy) => this.totals(pdf, yy, doc),
       pagamento: (yy) => this.payment(pdf, yy, doc, az),
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
     });
@@ -805,19 +805,32 @@ export class PrintService {
     return (doc as any).lastAutoTable.finalY + 4;
   }
 
-  private totals(doc: jsPDF, y: number, righe: any[]): number {
+  private totals(doc: jsPDF, y: number, docData: any): number {
     const C = this.resolved.colors;
     const fs = this.resolved.fontScale;
+    const righe = docData?.righe || [];
     const ivaMap = new Map<number, { imp: number; iva: number }>();
-    let imponibile = 0, ivaTotal = 0;
+    let imponibile = 0, ivaRighe = 0;
     for (const r of righe) {
       if (r.tipo === 'NOTA') continue;
       const imp = (r.quantita || 0) * (r.prezzo || 0) * (1 - (r.sconto || 0) / 100);
       const ivaAmt = imp * ((r.iva || 0) / 100);
-      imponibile += imp; ivaTotal += ivaAmt;
+      imponibile += imp; ivaRighe += ivaAmt;
       const ex = ivaMap.get(r.iva) || { imp: 0, iva: 0 };
       ivaMap.set(r.iva, { imp: ex.imp + imp, iva: ex.iva + ivaAmt });
     }
+
+    // ── Dati fiscali (ritenuta / cassa / bollo): 0 sui documenti che non li hanno
+    const r2 = (n: number) => Math.round((n || 0) * 100) / 100;
+    const cassaAliq = Number(docData?.cassaAliquota) || 0;
+    const cassaImporto = cassaAliq ? r2(imponibile * cassaAliq / 100) : 0;
+    const ivaCassa = cassaImporto ? r2(cassaImporto * (Number(docData?.cassaIva) || 0) / 100) : 0;
+    const ivaTotal = r2(ivaRighe + ivaCassa);
+    const ritAliq = Number(docData?.ritenutaAliquota) || 0;
+    const ritenuta = ritAliq ? r2(imponibile * ritAliq / 100) : 0;
+    const bollo = docData?.bollo ? 2 : 0;
+    const totaleDoc = r2(imponibile + cassaImporto + ivaTotal + bollo);
+    const netto = r2(totaleDoc - ritenuta);
 
     if (ivaMap.size > 1) {
       autoTable(doc, {
@@ -835,7 +848,15 @@ export class PrintService {
     }
 
     const tx = PW - this.ML - 70;
-    for (const [lbl, val] of [['Imponibile', this.fe(imponibile)], ['IVA', this.fe(ivaTotal)]]) {
+    const rows: [string, string][] = [['Imponibile', this.fe(imponibile)]];
+    if (cassaImporto > 0) rows.push(['Contributo cassa', this.fe(cassaImporto)]);
+    rows.push(['IVA', this.fe(ivaTotal)]);
+    if (bollo > 0) rows.push(['Bollo', this.fe(bollo)]);
+    if (ritenuta > 0) {
+      rows.push(['Totale documento', this.fe(totaleDoc)]);
+      rows.push(["Ritenuta d'acconto", '-' + this.fe(ritenuta)]);
+    }
+    for (const [lbl, val] of rows) {
       this.F(doc, 9, 'normal'); doc.setTextColor(...C.muted); doc.text(lbl, tx, y);
       doc.setTextColor(...C.text); doc.text(val, PW - this.ML, y, { align: 'right' });
       doc.setDrawColor(...C.divider); doc.setLineWidth(0.2);
@@ -846,8 +867,8 @@ export class PrintService {
     doc.setFillColor(...this.totalBarColor());
     doc.rect(tx - 2, y - 3, PW - this.ML - tx + 2, 8, 'F');
     this.F(doc, 11, 'bold'); doc.setTextColor(...C.totalBarText);
-    doc.text('TOTALE', tx, y + 2);
-    doc.text(this.fe(imponibile + ivaTotal), PW - this.ML, y + 2, { align: 'right' });
+    doc.text(ritenuta > 0 ? 'NETTO A PAGARE' : 'TOTALE', tx, y + 2);
+    doc.text(this.fe(ritenuta > 0 ? netto : totaleDoc), PW - this.ML, y + 2, { align: 'right' });
     return y + 12;
   }
 

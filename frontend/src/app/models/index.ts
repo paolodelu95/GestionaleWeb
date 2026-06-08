@@ -146,6 +146,14 @@ export interface Azienda {
    * Default: true.
    */
   lockDocumentiDefault?: boolean;
+  // Regime fiscale (RF01..RF19; RF19 = forfettario) + default fiscali precompilati
+  regimeFiscale?: string;
+  ritenutaAliquotaDefault?: number;
+  ritenutaCausaleDefault?: string;
+  ritenutaTipoDefault?: string;
+  cassaTipoDefault?: string;
+  cassaAliquotaDefault?: number;
+  cassaIvaDefault?: number;
 }
 
 export interface Prodotto {
@@ -415,6 +423,20 @@ export interface Fattura {
   statoSdi?: string;
   dataInvioSdi?: string;
   idTrasmissioneSdi?: string;
+  // Dati fiscali (ritenuta d'acconto / cassa previdenziale / bollo)
+  ritenutaAliquota?: number;
+  ritenutaCausale?: string;
+  ritenutaTipo?: string;
+  ritenutaSuCassa?: boolean;
+  cassaTipo?: string;
+  cassaAliquota?: number;
+  cassaIva?: number;
+  bollo?: boolean;
+  cassaImporto?: number;
+  iva?: number;
+  ritenutaImporto?: number;
+  bolloImporto?: number;
+  nettoAPagare?: number;
 }
 
 export interface NotaCredito {
@@ -429,6 +451,19 @@ export interface NotaCredito {
   totale?: number;
   imponibile?: number;
   righe?: RigaDocumento[];
+  // Dati fiscali (ritenuta d'acconto / cassa previdenziale / bollo)
+  ritenutaAliquota?: number;
+  ritenutaCausale?: string;
+  ritenutaTipo?: string;
+  cassaTipo?: string;
+  cassaAliquota?: number;
+  cassaIva?: number;
+  bollo?: boolean;
+  cassaImporto?: number;
+  iva?: number;
+  ritenutaImporto?: number;
+  bolloImporto?: number;
+  nettoAPagare?: number;
 }
 
 export interface Ordine {

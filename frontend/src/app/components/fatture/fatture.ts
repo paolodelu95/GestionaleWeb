@@ -221,7 +221,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
             MatButtonToggleModule, MatSnackBarModule, MatMenuModule, MatTooltipModule,
-            AllegatiComponent, DragDropModule],
+            MatCheckboxModule, AllegatiComponent, DragDropModule],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -494,11 +494,72 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
               </div>
             </div>
 
+            <div class="form-section is-flat">
+              <div class="form-section-header" style="cursor:pointer" (click)="showFiscale = !showFiscale">
+                <mat-icon>receipt_long</mat-icon>
+                <span>Ritenuta, cassa e bollo</span>
+                @if (hasFiscaleAttivo) {
+                  <span style="margin-left:8px;font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:999px">attivo</span>
+                }
+                <span style="flex:1"></span>
+                <mat-icon>{{ showFiscale ? 'expand_less' : 'expand_more' }}</mat-icon>
+              </div>
+              @if (showFiscale) {
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 14px;align-items:center;padding-top:6px">
+                  <mat-form-field>
+                    <mat-label>Cassa previdenziale</mat-label>
+                    <mat-select [(ngModel)]="fisc.cassaTipo" [ngModelOptions]="{standalone:true}">
+                      <mat-option [value]="''">Nessuna</mat-option>
+                      @for (t of CASSA_TIPI; track t.v) { <mat-option [value]="t.v">{{ t.l }}</mat-option> }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>% Cassa</mat-label>
+                    <input matInput type="number" min="0" step="0.01" [(ngModel)]="fisc.cassaAliquota" [ngModelOptions]="{standalone:true}" (ngModelChange)="onCassaAttiva()">
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>IVA su cassa %</mat-label>
+                    <input matInput type="number" min="0" step="0.01" [(ngModel)]="fisc.cassaIva" [ngModelOptions]="{standalone:true}">
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>% Ritenuta d'acconto</mat-label>
+                    <input matInput type="number" min="0" step="0.01" [(ngModel)]="fisc.ritenutaAliquota" [ngModelOptions]="{standalone:true}">
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Tipo ritenuta</mat-label>
+                    <mat-select [(ngModel)]="fisc.ritenutaTipo" [ngModelOptions]="{standalone:true}">
+                      @for (t of RITENUTA_TIPI; track t.v) { <mat-option [value]="t.v">{{ t.l }}</mat-option> }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Causale ritenuta</mat-label>
+                    <mat-select [(ngModel)]="fisc.ritenutaCausale" [ngModelOptions]="{standalone:true}">
+                      <mat-option [value]="''">—</mat-option>
+                      @for (c of RITENUTA_CAUSALI; track c.v) { <mat-option [value]="c.v">{{ c.l }}</mat-option> }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-checkbox [(ngModel)]="fisc.bollo" [ngModelOptions]="{standalone:true}">Bollo 2,00 €</mat-checkbox>
+                </div>
+              }
+            </div>
+
             <div class="doc-totals-strip">
               <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              @if (cassaImporto > 0) {
+                <div class="totals-item"><span class="totals-label">Cassa</span><span class="totals-value">{{ cassaImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              }
               <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              @if (bolloImporto > 0) {
+                <div class="totals-item"><span class="totals-label">Bollo</span><span class="totals-value">{{ bolloImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              }
               <span class="totals-spacer"></span>
-              <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              @if (ritenutaImporto > 0) {
+                <div class="totals-item"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-item"><span class="totals-label">Ritenuta</span><span class="totals-value">−{{ ritenutaImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-grand"><span class="totals-label">Netto a pagare</span><span class="totals-value">{{ nettoAPagare | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              } @else {
+                <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              }
             </div>
 
             <div class="form-section is-flat" [formGroup]="form">
@@ -851,9 +912,68 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   }
 
   showNetto = false;
+
+  // ── Dati fiscali (ritenuta d'acconto / cassa previdenziale / bollo) ──────────
+  fisc = {
+    ritenutaAliquota: 0, ritenutaCausale: '', ritenutaTipo: 'RT02',
+    cassaTipo: '', cassaAliquota: 0, cassaIva: 0, bollo: false,
+  };
+  showFiscale = false;
+  readonly RITENUTA_TIPI = [
+    { v: 'RT02', l: 'Persona fisica (RT02)' },
+    { v: 'RT01', l: 'Persona giuridica (RT01)' },
+  ];
+  readonly RITENUTA_CAUSALI = [
+    { v: 'A', l: 'A — prestazioni di lavoro autonomo' },
+    { v: 'B', l: 'B — utilizzazione opere dell\'ingegno' },
+    { v: 'V', l: 'V — provvigioni' },
+    { v: 'W', l: 'W — prestazioni autonome non abituali' },
+  ];
+  readonly CASSA_TIPI = [
+    { v: 'TC22', l: 'INPS Gestione Separata (TC22)' },
+    { v: 'TC01', l: 'Cassa Forense (TC01)' },
+    { v: 'TC02', l: 'Cassa Dottori Commercialisti (TC02)' },
+    { v: 'TC04', l: 'ENPACL — Consulenti lavoro (TC04)' },
+    { v: 'TC07', l: 'ENASARCO (TC07)' },
+    { v: 'TC18', l: 'INPGI — Giornalisti (TC18)' },
+  ];
+
+  private r2(n: number) { return Math.round((n || 0) * 100) / 100; }
+
+  applyFiscFrom(src: any) {
+    if (!src) return;
+    this.fisc = {
+      ritenutaAliquota: Number(src.ritenutaAliquota) || 0,
+      ritenutaCausale: src.ritenutaCausale || '',
+      ritenutaTipo: src.ritenutaTipo || 'RT02',
+      cassaTipo: src.cassaTipo || '',
+      cassaAliquota: Number(src.cassaAliquota) || 0,
+      cassaIva: Number(src.cassaIva) || 0,
+      bollo: !!src.bollo,
+    };
+    if (this.r2(this.fisc.ritenutaAliquota) > 0 || this.fisc.cassaAliquota > 0 || this.fisc.bollo) {
+      this.showFiscale = true;
+    }
+  }
+
   get imponibile() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0); }
-  get ivaTotal() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
-  get totale() { return this.imponibile + this.ivaTotal; }
+  get ivaRighe() { return this.righe.reduce((s, r) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0); }
+  get cassaImporto() { return this.fisc.cassaAliquota ? this.r2(this.imponibile * this.fisc.cassaAliquota / 100) : 0; }
+  get ivaCassa() { return this.cassaImporto ? this.r2(this.cassaImporto * (this.fisc.cassaIva || 0) / 100) : 0; }
+  /** IVA totale mostrata (righe + cassa). */
+  get ivaTotal() { return this.r2(this.ivaRighe + this.ivaCassa); }
+  get ritenutaImporto() { return this.fisc.ritenutaAliquota ? this.r2(this.imponibile * this.fisc.ritenutaAliquota / 100) : 0; }
+  get bolloImporto() { return this.fisc.bollo ? 2 : 0; }
+  get totale() { return this.r2(this.imponibile + this.cassaImporto + this.ivaTotal + this.bolloImporto); }
+  get nettoAPagare() { return this.r2(this.totale - this.ritenutaImporto); }
+  get hasFiscaleAttivo() { return this.ritenutaImporto > 0 || this.cassaImporto > 0 || this.bolloImporto > 0; }
+
+  /** Quando si attiva la cassa, propone l'IVA della prima riga come default. */
+  onCassaAttiva() {
+    if (this.fisc.cassaAliquota && !this.fisc.cassaIva) {
+      this.fisc.cassaIva = this.righe.find(r => r.iva > 0)?.iva ?? 22;
+    }
+  }
   rigaTotale(riga: RigaDocumento) {
     return docRigaTotale(riga, this.showNetto);
   }
@@ -865,7 +985,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     return this.tipiPagamento.find(t => t.id === this.selectedTipoPagamentoId) ?? null;
   }
   get totalePagato() { return this.pagamenti.reduce((s, p) => s + p.importo, 0); }
-  get rimanente() { return this.totale - this.totalePagato; }
+  get rimanente() { return this.r2(this.nettoAPagare - this.totalePagato); }
 
   onTipoPagamentoChange() { /* handled by ngModel */ }
 
@@ -1027,6 +1147,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.isNew = !data?.id;
     this.locked = !!data?.id && this.docLockSvc.enabled;
     this.selectedTipoPagamentoId = data?.tipoPagamentoId ?? null;
+    this.applyFiscFrom(data);
     this.form = this.fb.group({
       numero: [data?.numero ?? '', Validators.required],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
@@ -1035,6 +1156,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     if (data?.id) {
       this.ds.getFatturaById(data.id).subscribe(f => {
         this.righe = this.normalizeRighe(f.righe ?? []);
+        this.applyFiscFrom(f);
         this.riferimenti = f.riferimenti ?? [];
         this.prezziRecenti = new Array(this.righe.length).fill([]);
         this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
@@ -1085,6 +1207,21 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
         this.suggerimenti = [];
       }
     });
+
+    // Nuovo documento: precompila i dati fiscali dai default azienda (se l'utente
+    // non li ha già toccati).
+    if (this.isNew) {
+      this.ds.getAzienda().subscribe(az => {
+        if (!az || this.fisc.ritenutaAliquota || this.fisc.cassaAliquota || this.fisc.bollo) return;
+        this.fisc.ritenutaAliquota = Number(az.ritenutaAliquotaDefault) || 0;
+        this.fisc.ritenutaCausale = az.ritenutaCausaleDefault || '';
+        this.fisc.ritenutaTipo = az.ritenutaTipoDefault || 'RT02';
+        this.fisc.cassaTipo = az.cassaTipoDefault || '';
+        this.fisc.cassaAliquota = Number(az.cassaAliquotaDefault) || 0;
+        this.fisc.cassaIva = Number(az.cassaIvaDefault) || 0;
+        if (this.fisc.ritenutaAliquota || this.fisc.cassaAliquota) this.showFiscale = true;
+      });
+    }
 
     this.ds.getClienti().subscribe(c => {
       this.clienti = c;
@@ -1322,7 +1459,15 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       tipoPagamentoId: this.selectedTipoPagamentoId,
       ddtIds: this.linkedDdts.map(d => d.id).filter(Boolean),
       righe: this.righe,
-      riferimenti: this.riferimenti.filter(r => r.numero.trim())
+      riferimenti: this.riferimenti.filter(r => r.numero.trim()),
+      // Dati fiscali (ritenuta / cassa / bollo)
+      ritenutaAliquota: this.fisc.ritenutaAliquota || 0,
+      ritenutaCausale: this.fisc.ritenutaCausale || '',
+      ritenutaTipo: this.fisc.ritenutaTipo || 'RT02',
+      cassaTipo: this.fisc.cassaTipo || '',
+      cassaAliquota: this.fisc.cassaAliquota || 0,
+      cassaIva: this.fisc.cassaIva || 0,
+      bollo: this.fisc.bollo,
     });
   }
 }

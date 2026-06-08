@@ -508,6 +508,10 @@ export class ImpostazioniComponent implements OnInit {
       riordinoAutomatico: [false], multiUtenteAttivo: [false],
       numerazioneAnnuale: [true],
       lockDocumentiDefault: [true],
+      // Fiscale: regime + default precompilati nei nuovi documenti
+      regimeFiscale: ['RF01'],
+      ritenutaAliquotaDefault: [0], ritenutaCausaleDefault: [''], ritenutaTipoDefault: ['RT02'],
+      cassaTipoDefault: [''], cassaAliquotaDefault: [0], cassaIvaDefault: [0],
       prefissoDdt: [''], prefissoFatture: [''], prefissoOrdini: [''],
       prefissoPreventivi: [''], prefissoNoteCredito: [''], prefissoAcquisti: [''],
       prefissoVenditeBanco: [''], prefissoArriviMerce: [''],
