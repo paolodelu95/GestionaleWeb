@@ -19,6 +19,7 @@ import { FormsModule } from '@angular/forms';
 import { DataService } from './services/data.service';
 import { AuthService } from './services/auth.service';
 import { NotificationService, NotificationBadges } from './services/notifications.service';
+import { RemindersService, Reminder } from './services/reminders.service';
 import { OfflineService } from './services/offline.service';
 import { ModuliService } from './services/moduli.service';
 import { DocLockService } from './services/doc-lock.service';
@@ -121,6 +122,9 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   showNotif = false;
   notifItems: any[] = [];
   loadingNotif = false;
+  /** Promemoria agenda scattati (campanella in topbar). */
+  reminders: Reminder[] = [];
+  showReminders = false;
   readonly quickActions: { label: string; icon: string; route: string }[] = [
     { label: 'Nuova fattura',     icon: 'receipt_long',   route: '/fatture' },
     { label: 'Nuovo cliente',     icon: 'person_add',     route: '/clienti' },
@@ -148,6 +152,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     private ds: DataService,
     private authSvc: AuthService,
     private notifSvc: NotificationService,
+    private remindersSvc: RemindersService,
     private router: Router,
     private elRef: ElementRef,
     private swUpdate: SwUpdate,
@@ -242,6 +247,11 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.notifSvc.start();
     this.notifSvc.badges.subscribe(b => this.badges = b);
 
+    // Promemoria agenda: avvio la sorveglianza e mostro un toast quando scattano.
+    this.remindersSvc.start();
+    this.remindersSvc.attivi.subscribe(list => this.reminders = list);
+    this.remindersSvc.scattato.subscribe(r => this.onReminderScattato(r));
+
     this.searchSubject.pipe(
       debounceTime(250), distinctUntilChanged(),
       switchMap(q => q.length >= 2 ? this.ds.searchGlobal(q) : [{ clienti: [], fornitori: [], prodotti: [], fatture: [], ddt: [], ordini: [], preventivi: [] }])
@@ -279,6 +289,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.moduli.load(true).subscribe();
     if (window.innerWidth < 768) this.collapsed = true;
     this.notifSvc.start();
+    this.remindersSvc.start();
   }
 
   logout() {
@@ -286,8 +297,49 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.loggedIn = false;
     this.azienda = null;
     this.notifSvc.stop();
+    this.remindersSvc.stop();
+    this.reminders = [];
     this.moduli.reset();
     this.ds.invalidateModuli();
+  }
+
+  // ── Promemoria agenda (campanella) ───────────────────────────────────────────
+  toggleReminders(e: Event) {
+    e.stopPropagation();
+    this.showReminders = !this.showReminders;
+    this.showSearch = false;
+  }
+  /** Apre l'agenda sul promemoria e lo ignora (così non resta a campanella). */
+  openReminder(r: Reminder) {
+    this.showReminders = false;
+    this.router.navigate(['/agenda']);
+  }
+  dismissReminder(r: Reminder, e: Event) {
+    e.stopPropagation();
+    this.remindersSvc.dismiss(r);
+  }
+  async enableDesktopNotifications() {
+    await this.remindersSvc.requestDesktop();
+  }
+  get desktopPermission(): string { return this.remindersSvc.desktopPermission(); }
+
+  /** Etichetta "Alle HH:MM · tra N min" per un promemoria. */
+  reminderWhen(r: Reminder): string {
+    const d = new Date(r.inizio);
+    if (isNaN(d.getTime())) return '';
+    const ora = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const minuti = Math.round((d.getTime() - Date.now()) / 60000);
+    if (minuti <= 0) return `Alle ${ora} · ora`;
+    if (minuti < 60) return `Alle ${ora} · tra ${minuti} min`;
+    const h = Math.floor(minuti / 60), m = minuti % 60;
+    return `Alle ${ora} · tra ${h}h${m ? ' ' + m + 'm' : ''}`;
+  }
+
+  /** Toast in-app quando un promemoria scatta (con azione "Apri"). */
+  private onReminderScattato(r: Reminder) {
+    const ora = new Date(r.inizio).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const ref = this.snack.open(`Promemoria: ${r.titolo} — alle ${ora}`, 'Apri', { duration: 8000 });
+    ref.onAction().subscribe(() => this.router.navigate(['/agenda']));
   }
 
   @HostListener('window:resize')
@@ -649,6 +701,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     }
     if (!this.elRef.nativeElement.querySelector('.notif-wrap')?.contains(e.target)) {
       this.showNotif = false;
+      this.showReminders = false;
     }
   }
 

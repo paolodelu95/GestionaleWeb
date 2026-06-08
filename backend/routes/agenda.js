@@ -393,6 +393,29 @@ router.get('/imminenti', (req, res) => {
   res.json({ da, a, eventi });
 });
 
+// GET /api/agenda/promemoria — appuntamenti con un promemoria impostato la cui
+// finestra di notifica è (o sta per essere) attiva. Restituiamo una finestra
+// AMPIA di candidati: il momento esatto di "scatto" lo decide il client usando
+// l'ora locale del browser, perché `inizio` è salvato in ora locale senza fuso
+// mentre il server gira in UTC. La slack (-2h / +30h) assorbe lo scarto di fuso
+// e copre il promemoria massimo (1 giorno prima).
+router.get('/promemoria', (req, res) => {
+  const da = new Date(Date.now() - 2 * 3600e3).toISOString().slice(0, 19);
+  const a  = new Date(Date.now() + 30 * 3600e3).toISOString().slice(0, 19);
+  const vis = visibilityFilter(req, 'app');
+  const rows = db.prepare(`
+    SELECT app.*, c.ragione_sociale AS cliente_nome, f.ragione_sociale AS fornitore_nome
+    FROM appuntamenti app
+    LEFT JOIN clienti c ON c.id=app.cliente_id
+    LEFT JOIN fornitori f ON f.id=app.fornitore_id
+    WHERE app.promemoria_min IS NOT NULL
+      AND app.stato = 'PIANIFICATO'
+      AND app.inizio BETWEEN ? AND ?
+      AND ${vis.sql}
+    ORDER BY app.inizio`).all(da, a, ...vis.params);
+  res.json(attachAutori(rows).map(appDto));
+});
+
 // ── ICS export ─────────────────────────────────────────────────────────────
 function escIcs(s) {
   return String(s ?? '')

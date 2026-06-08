@@ -144,6 +144,44 @@
         }
       </div>
 
+      <!-- Promemoria agenda: campanella con i promemoria scattati -->
+      <div class="notif-wrap">
+        <button mat-icon-button type="button" title="Promemoria" (click)="toggleReminders($event)">
+          <mat-icon>{{ reminders.length ? 'notifications_active' : 'notifications' }}</mat-icon>
+          @if (reminders.length) {
+            <span class="notif-dot">{{ reminders.length > 9 ? '9+' : reminders.length }}</span>
+          }
+        </button>
+        @if (showReminders) {
+          <div class="notif-dropdown">
+            <div class="notif-header">
+              <span>Promemoria</span>
+              @if (desktopPermission === 'default') {
+                <button class="notif-enable" type="button" (click)="enableDesktopNotifications()">
+                  Abilita desktop
+                </button>
+              }
+            </div>
+            @if (!reminders.length) {
+              <div class="notif-empty">Nessun promemoria attivo</div>
+            } @else {
+              @for (r of reminders; track r.id + '@' + r.inizio) {
+                <div class="notif-item rem-item" (click)="openReminder(r)">
+                  <span class="rem-dot" [style.background]="r.colore || '#3b82f6'"></span>
+                  <div class="rem-body">
+                    <span class="rem-title">{{ r.titolo }}</span>
+                    <small class="rem-meta">{{ reminderWhen(r) }}@if (r.luogo) { · {{ r.luogo }}}</small>
+                  </div>
+                  <button class="rem-x" type="button" title="Ignora" (click)="dismissReminder(r, $event)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+
       <button mat-icon-button type="button" [title]="darkMode ? 'Modalità chiara' : 'Modalità scura'" (click)="toggleDark()">
         <mat-icon>{{ darkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
       </button>
