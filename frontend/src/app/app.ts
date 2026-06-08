@@ -415,15 +415,26 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.navLastTotal = total;
     if (!items.length) return;
 
-    const gap = 4;
-    const itemW = items[0].offsetWidth + gap;
-    // Capienza disponibile: il dock-inner fa "shrink-to-fit" (width:max-content),
-    // quindi clientWidth riflette le voci ATTUALI, non lo spazio disponibile →
-    // userei una misura che si auto-restringe (loop). Uso quindi il max-width
-    // risolto (px) come capienza reale, ricadendo su clientWidth se non impostato.
-    let containerW = el.clientWidth;
-    const maxW = parseFloat(getComputedStyle(el).maxWidth);
-    if (isFinite(maxW) && maxW > containerW) containerW = maxW;
+    const style = getComputedStyle(el);
+    const gap = parseFloat(style.columnGap || style.gap) || 2;
+    // Larghezza voce: uso la PIÙ larga tra quelle visibili (le etichette desktop
+    // hanno lunghezze diverse), così non sottostimo e non taglio l'ultima voce.
+    const itemW = Math.max(...items.map(i => i.offsetWidth)) + gap;
+    // Capienza reale del dock: NON uso el.clientWidth perché il dock-inner fa
+    // shrink-to-fit (width:max-content), quindi da "pieno" è già tagliato da
+    // overflow:hidden e da "vuoto" misurerebbe troppo poco. Prendo il MINORE tra
+    // il max-width risolto e lo spazio utile del contenitore padre (.dock), meno
+    // il padding interno. Così non dipende dalla larghezza istantanea della barra.
+    let cap = parseFloat(style.maxWidth);
+    const parent = el.parentElement;
+    if (parent) {
+      const ps = getComputedStyle(parent);
+      const parentInner = parent.clientWidth
+        - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight);
+      cap = Number.isFinite(cap) ? Math.min(cap, parentInner) : parentInner;
+    }
+    if (!Number.isFinite(cap)) cap = el.clientWidth;
+    const containerW = cap - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
     if (itemW <= 0 || containerW <= 0) return;
 
     let next: number;
