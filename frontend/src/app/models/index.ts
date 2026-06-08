@@ -466,6 +466,42 @@ export interface NotaCredito {
   nettoAPagare?: number;
 }
 
+export interface Magazzino {
+  id?: number;
+  codice?: string;
+  nome: string;
+  indirizzo?: string;
+  predefinito?: boolean;
+  attivo?: boolean;
+}
+
+export interface Giacenza {
+  id?: number;
+  prodottoId: number;
+  prodottoNome?: string;
+  prodottoCodice?: string;
+  unitaMisura?: string;
+  varianteId?: number | null;
+  varianteTaglia?: string;
+  varianteColore?: string;
+  magazzinoId: number;
+  magazzinoNome?: string;
+  lotto?: string;
+  scadenza?: string;
+  quantita: number;
+}
+
+export interface ScadenzaLotto {
+  prodottoId: number;
+  prodottoNome: string;
+  unitaMisura?: string;
+  magazzinoId: number;
+  magazzinoNome: string;
+  lotto?: string;
+  scadenza: string;
+  quantita: number;
+}
+
 export interface Ordine {
   id?: number;
   numero: string;

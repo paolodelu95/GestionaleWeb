@@ -9,6 +9,7 @@ import {
   CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
   ListinoRigaNonTrovata, ListinoMatchRisultato, CodiceAlias, VariazionePrezzo,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
+  Magazzino, Giacenza, ScadenzaLotto,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
   NotaRapida
@@ -278,6 +279,23 @@ export class DataService {
   getMagazzinoStorico(data: string): Observable<GiacenzaStorica[]> {
     return this.api.get(`movimenti-magazzino/storico?data=${data}`);
   }
+
+  // Magazzino avanzato: depositi, giacenze per deposito, trasferimenti, scadenze
+  getMagazzini(): Observable<Magazzino[]> { return this.api.get('magazzini'); }
+  createMagazzino(m: Partial<Magazzino>): Observable<{ id: number }> { return this.api.post('magazzini', m); }
+  updateMagazzino(id: number, m: Partial<Magazzino>): Observable<any> { return this.api.put(`magazzini/${id}`, m); }
+  deleteMagazzino(id: number): Observable<any> { return this.api.delete(`magazzini/${id}`); }
+  getGiacenze(filters: Record<string, any> = {}): Observable<Giacenza[]> {
+    const qs = Object.entries(filters)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+    return this.api.get(`magazzini/giacenze${qs ? '?' + qs : ''}`);
+  }
+  getGiacenzeProdotto(prodottoId: number): Observable<Giacenza[]> {
+    return this.api.get(`magazzini/giacenze/prodotto/${prodottoId}`);
+  }
+  trasferimentoMagazzino(payload: any): Observable<any> { return this.api.post('magazzini/trasferimento', payload); }
+  getScadenze(giorni = 30): Observable<ScadenzaLotto[]> { return this.api.get(`magazzini/scadenze?giorni=${giorni}`); }
 
   // Stats / Dashboard
   getVenditeMensili(): Observable<StatsVenditeMensili[]> { return this.api.get('stats/vendite-mensili'); }

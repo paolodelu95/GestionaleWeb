@@ -16,7 +16,7 @@ import { ActivatedRoute } from '@angular/router';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { InventarioScanComponent } from './inventario-scan';
 import { DataService } from '../../services/data.service';
-import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente, PropostaRiordino } from '../../models';
+import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente, PropostaRiordino, Magazzino, Giacenza, ScadenzaLotto } from '../../models';
 
 // ── Rettifica giacenza con scelta prodotto (dal Magazzino) ───────────────────
 @Component({
@@ -176,6 +176,39 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
   generando = false;
   selectedTab = 0;
 
+  // ── Depositi & giacenze ──────────────────────────────────────────────────
+  magazzini: Magazzino[] = [];
+  depositoSel: number | null = null;
+  giacenzeDeposito: Giacenza[] = [];
+  dsGiacenze = new MatTableDataSource<Giacenza>([]);
+  colGiacenze = ['prodotto', 'variante', 'lotto', 'scadenza', 'quantita'];
+  scadenze: ScadenzaLotto[] = [];
+
+  loadDepositi() {
+    this.ds.getMagazzini().subscribe(m => {
+      this.magazzini = m;
+      if (this.depositoSel == null) this.depositoSel = m.find(x => x.predefinito)?.id ?? m[0]?.id ?? null;
+      this.loadGiacenze();
+    });
+  }
+  loadGiacenze() {
+    if (this.depositoSel == null) { this.giacenzeDeposito = []; this.dsGiacenze.data = []; return; }
+    this.ds.getGiacenze({ magazzinoId: this.depositoSel, soloDisponibili: 1 }).subscribe(g => {
+      this.giacenzeDeposito = g; this.dsGiacenze.data = g;
+    });
+  }
+  loadScadenze() { this.ds.getScadenze(30).subscribe(s => this.scadenze = s); }
+
+  openDepositi() {
+    this.dialog.open(DepositiDialogComponent, { width: '560px', data: { magazzini: this.magazzini } })
+      .afterClosed().subscribe(changed => { if (changed) this.loadDepositi(); });
+  }
+  openTrasferimento() {
+    this.dialog.open(TrasferimentoDialogComponent, { width: '520px', data: { magazzini: this.magazzini, prodotti: this.prodottiList } })
+      .afterClosed().subscribe(done => { if (done) { this.loadGiacenze(); this.loadScadenze(); } });
+  }
+  giorniAScadenza(s: ScadenzaLotto): number { return Math.ceil((new Date(s.scadenza).getTime() - Date.now()) / 86400000); }
+
   loadProposte() {
     this.ds.getProposteRiordino().subscribe(p => {
       this.proposte = p.map(x => ({ ...x, selected: x.fornitoreId != null }));
@@ -243,6 +276,8 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
     this.ds.getClienti().subscribe(c => this.clientiList = c);
     this.loadMovimenti();
     this.loadProposte();
+    this.loadDepositi();
+    this.loadScadenze();
     this.route.queryParams.subscribe(q => { if (q['tab'] === 'riordino') this.selectedTab = 2; });
   }
 
@@ -314,5 +349,156 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
     if (!s) return '—';
     const p = s.substring(0, 10).split('-');
     return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : s;
+  }
+}
+
+// ── Gestione depositi (CRUD) ─────────────────────────────────────────────────
+@Component({
+  selector: 'app-depositi-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  template: `
+    <h2 mat-dialog-title>Depositi</h2>
+    <mat-dialog-content style="min-width:480px">
+      @for (m of lista; track m.id) {
+        <div class="dep-row">
+          <input class="dep-in dep-nome" [(ngModel)]="m.nome" placeholder="Nome deposito" (blur)="salva(m)">
+          <input class="dep-in dep-cod" [(ngModel)]="m.codice" placeholder="Cod." (blur)="salva(m)">
+          @if (m.predefinito) {
+            <span class="dep-badge">predefinito</span>
+          } @else {
+            <button mat-button type="button" (click)="rendiPredefinito(m)" matTooltip="Imposta come predefinito">Predef.</button>
+          }
+          <button mat-icon-button type="button" color="warn" (click)="elimina(m)" [disabled]="m.predefinito" matTooltip="Elimina">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      }
+      <div class="dep-row dep-new">
+        <input class="dep-in dep-nome" [(ngModel)]="nuovo.nome" placeholder="Nuovo deposito…" (keyup.enter)="aggiungi()">
+        <input class="dep-in dep-cod" [(ngModel)]="nuovo.codice" placeholder="Cod.">
+        <button mat-flat-button color="primary" type="button" (click)="aggiungi()" [disabled]="!nuovo.nome.trim()">
+          <mat-icon>add</mat-icon> Aggiungi
+        </button>
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-flat-button [mat-dialog-close]="changed">Chiudi</button>
+    </mat-dialog-actions>`,
+  styles: [`
+    .dep-row { display:flex; align-items:center; gap:8px; padding:6px 0; }
+    .dep-in { border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:7px 10px; font:inherit; background:var(--bg-surface,#fff); }
+    .dep-nome { flex:1; } .dep-cod { width:80px; }
+    .dep-badge { font-size:11px; font-weight:700; color:var(--primary,#11769b); background:var(--primary-soft,#e0f2fe); padding:3px 8px; border-radius:999px; }
+    .dep-new { margin-top:8px; border-top:1px solid var(--border-subtle,#e2e8f0); padding-top:12px; }
+  `]
+})
+export class DepositiDialogComponent {
+  lista: Magazzino[] = [];
+  nuovo: Magazzino = { nome: '', codice: '', indirizzo: '' };
+  changed = false;
+  constructor(@Inject(MAT_DIALOG_DATA) public data: { magazzini: Magazzino[] }, private ds: DataService, private snack: MatSnackBar) {
+    this.lista = (data.magazzini || []).map(m => ({ ...m }));
+  }
+  private reload() { this.ds.getMagazzini().subscribe(m => this.lista = m.map(x => ({ ...x }))); }
+  aggiungi() {
+    if (!this.nuovo.nome.trim()) return;
+    this.ds.createMagazzino(this.nuovo).subscribe(() => { this.changed = true; this.nuovo = { nome: '', codice: '', indirizzo: '' }; this.reload(); });
+  }
+  salva(m: Magazzino) { if (!m.nome?.trim()) return; this.ds.updateMagazzino(m.id!, m).subscribe(() => { this.changed = true; }); }
+  rendiPredefinito(m: Magazzino) { this.ds.updateMagazzino(m.id!, { predefinito: true }).subscribe(() => { this.changed = true; this.reload(); }); }
+  elimina(m: Magazzino) {
+    this.ds.deleteMagazzino(m.id!).subscribe({
+      next: () => { this.changed = true; this.reload(); },
+      error: e => this.snack.open(e.error?.error || 'Impossibile eliminare', 'OK', { duration: 3500, panelClass: 'snack-error' }),
+    });
+  }
+}
+
+// ── Trasferimento tra depositi ───────────────────────────────────────────────
+@Component({
+  selector: 'app-trasferimento-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title>Trasferisci tra depositi</h2>
+    <mat-dialog-content style="min-width:440px">
+      <mat-form-field appearance="outline" style="width:100%">
+        <mat-label>Prodotto *</mat-label>
+        <mat-select [(ngModel)]="prodottoId" (ngModelChange)="onProdotto()">
+          @for (p of data.prodotti; track p.id) { <mat-option [value]="p.id">{{ p.nome }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      @if (prodottoId) {
+        @if (!giac.length) {
+          <p style="font-size:13px;color:var(--text-tertiary,#94a3b8)">Nessuna giacenza per questo prodotto.</p>
+        } @else {
+          <div style="display:flex;gap:10px">
+            <mat-form-field appearance="outline" style="flex:1">
+              <mat-label>Da deposito *</mat-label>
+              <mat-select [(ngModel)]="daMag" (ngModelChange)="onDa()">
+                @for (g of depositiOrigine; track g.key) { <mat-option [value]="g.magazzinoId">{{ g.magazzinoNome }} ({{ g.quantita }})</mat-option> }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" style="flex:1">
+              <mat-label>A deposito *</mat-label>
+              <mat-select [(ngModel)]="aMag">
+                @for (m of data.magazzini; track m.id) {
+                  @if (m.id !== daMag) { <mat-option [value]="m.id">{{ m.nome }}</mat-option> }
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <mat-form-field appearance="outline" style="width:100%">
+            <mat-label>Quantità * (max {{ maxQty }})</mat-label>
+            <input matInput type="number" min="0" [max]="maxQty" step="0.001" [(ngModel)]="qty" (keyup.enter)="salva()">
+          </mat-form-field>
+        }
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-flat-button color="primary" (click)="salva()" [disabled]="!canSave">Trasferisci</button>
+    </mat-dialog-actions>`
+})
+export class TrasferimentoDialogComponent {
+  prodottoId: number | null = null;
+  giac: Giacenza[] = [];
+  daMag: number | null = null;
+  aMag: number | null = null;
+  qty: number | null = null;
+  lotto = ''; scadenza = '';
+  constructor(public dialogRef: MatDialogRef<TrasferimentoDialogComponent>,
+              @Inject(MAT_DIALOG_DATA) public data: { magazzini: Magazzino[]; prodotti: Prodotto[] },
+              private ds: DataService, private snack: MatSnackBar) {}
+  onProdotto() {
+    this.giac = []; this.daMag = null; this.aMag = null; this.qty = null;
+    if (!this.prodottoId) return;
+    this.ds.getGiacenzeProdotto(this.prodottoId).subscribe(g => {
+      this.giac = g; this.daMag = g[0]?.magazzinoId ?? null; this.onDa();
+    });
+  }
+  /** Depositi che hanno giacenza (chiave include lotto/scadenza). */
+  get depositiOrigine() {
+    return this.giac.map(g => ({ ...g, key: `${g.magazzinoId}|${g.lotto}|${g.scadenza}` }));
+  }
+  onDa() {
+    const g = this.giac.find(x => x.magazzinoId === this.daMag);
+    this.lotto = g?.lotto || ''; this.scadenza = g?.scadenza || '';
+  }
+  get maxQty(): number {
+    const g = this.giac.find(x => x.magazzinoId === this.daMag && (x.lotto || '') === this.lotto && (x.scadenza || '') === this.scadenza);
+    return g?.quantita ?? 0;
+  }
+  get canSave(): boolean { return !!(this.prodottoId && this.daMag && this.aMag && this.daMag !== this.aMag && this.qty && this.qty > 0 && this.qty <= this.maxQty); }
+  salva() {
+    if (!this.canSave) return;
+    this.ds.trasferimentoMagazzino({
+      prodottoId: this.prodottoId, daMagazzinoId: this.daMag, aMagazzinoId: this.aMag,
+      quantita: this.qty, lotto: this.lotto, scadenza: this.scadenza,
+    }).subscribe({
+      next: () => { this.snack.open('Trasferimento eseguito', '', { duration: 2000, panelClass: 'snack-ok' }); this.dialogRef.close(true); },
+      error: e => this.snack.open(e.error?.error || 'Errore trasferimento', 'OK', { duration: 3500, panelClass: 'snack-error' }),
+    });
   }
 }

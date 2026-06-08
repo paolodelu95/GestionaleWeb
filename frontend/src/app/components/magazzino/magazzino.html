@@ -286,5 +286,77 @@
       </div>
     </mat-tab>
 
+    <!-- ── Tab Depositi & giacenze ───────────────────────────────────────── -->
+    <mat-tab label="Depositi">
+      <div class="card" style="margin-top:16px">
+        <div class="storico-bar" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <mat-form-field appearance="outline" style="min-width:220px">
+              <mat-label>Deposito</mat-label>
+              <mat-select [(ngModel)]="depositoSel" (ngModelChange)="loadGiacenze()">
+                @for (m of magazzini; track m.id) {
+                  <mat-option [value]="m.id">{{ m.nome }}@if (m.predefinito) { · predefinito }</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button mat-stroked-button type="button" (click)="openTrasferimento()">
+              <mat-icon>swap_horiz</mat-icon> Trasferisci
+            </button>
+            <button mat-stroked-button type="button" (click)="openDepositi()">
+              <mat-icon>warehouse</mat-icon> Gestisci depositi
+            </button>
+          </div>
+        </div>
+
+        @if (scadenze.length) {
+          <div class="pwa-banner" style="background:var(--warning-soft,#fef3c7);color:var(--warning-on,#92400e);margin:0 0 12px">
+            <mat-icon>event_busy</mat-icon>
+            <span>
+              {{ scadenze.length }} lott{{ scadenze.length === 1 ? 'o' : 'i' }} in scadenza entro 30 giorni:
+              @for (s of scadenze.slice(0, 3); track $index) {
+                {{ s.prodottoNome }} ({{ fd(s.scadenza) }}, {{ s.quantita }} {{ s.unitaMisura }}){{ $index < (scadenze.length > 3 ? 2 : scadenze.length - 1) ? ', ' : '' }}
+              }
+              @if (scadenze.length > 3) { e altri… }
+            </span>
+          </div>
+        }
+
+        @if (!giacenzeDeposito.length) {
+          <app-empty-state compact icon="inventory_2" title="Deposito vuoto"
+            message="Nessuna giacenza in questo deposito." />
+        } @else {
+          <table mat-table [dataSource]="dsGiacenze" class="mat-elevation-z0" style="width:100%">
+            <ng-container matColumnDef="prodotto">
+              <th mat-header-cell *matHeaderCellDef>Prodotto</th>
+              <td mat-cell *matCellDef="let g">
+                <div style="font-weight:600">{{ g.prodottoNome }}</div>
+                @if (g.prodottoCodice) { <div style="font-size:11px;color:var(--text-tertiary)">{{ g.prodottoCodice }}</div> }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="variante">
+              <th mat-header-cell *matHeaderCellDef>Variante</th>
+              <td mat-cell *matCellDef="let g">{{ g.varianteTaglia || g.varianteColore ? (g.varianteTaglia + ' ' + g.varianteColore) : '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="lotto">
+              <th mat-header-cell *matHeaderCellDef>Lotto</th>
+              <td mat-cell *matCellDef="let g">{{ g.lotto || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="scadenza">
+              <th mat-header-cell *matHeaderCellDef>Scadenza</th>
+              <td mat-cell *matCellDef="let g">{{ g.scadenza ? fd(g.scadenza) : '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="quantita">
+              <th mat-header-cell *matHeaderCellDef style="text-align:right">Giacenza</th>
+              <td mat-cell *matCellDef="let g" style="text-align:right;font-weight:700">{{ g.quantita }} {{ g.unitaMisura }}</td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="colGiacenze"></tr>
+            <tr mat-row *matRowDef="let row; columns: colGiacenze"></tr>
+          </table>
+        }
+      </div>
+    </mat-tab>
+
   </mat-tab-group>
 </div>
