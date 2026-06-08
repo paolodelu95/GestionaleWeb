@@ -458,8 +458,6 @@
     -webkit-user-select: none;
     user-select: none;
   }
-  // Solo desktop: su tablet/mobile lo spazio è poco e si sovrapporrebbe.
-  @media (max-width: 1024px) { .topbar-date { display: none; } }
   padding: 0 18px;
 
   .toggle-btn {

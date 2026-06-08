@@ -92,8 +92,8 @@
       </div>
       <span class="topbar-spacer"></span>
 
-      <!-- Data odierna centrata nello schermo (solo desktop, vedi scss). -->
-      <span class="topbar-date">{{ oggiLabel }}</span>
+      <!-- Data odierna centrata; il formato si accorcia se lo spazio è poco (updateDateLabel). -->
+      <span class="topbar-date" #topbarDate>{{ oggiLabel }}</span>
 
       <div class="search-box">
         <mat-icon class="search-icon">search</mat-icon>

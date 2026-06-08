@@ -57,17 +57,37 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
   /** Container della barra superiore: serve a calcolare quante voci entrano. */
   @ViewChild('topNavEl') topNavEl?: ElementRef<HTMLElement>;
+  /** Data nella topbar: serve a misurarne lo spazio e scegliere il formato. */
+  @ViewChild('topbarDate') topbarDateRef?: ElementRef<HTMLElement>;
 
   azienda: Azienda | null = null;
   collapsed = false;
   loggedIn = false;
 
-  /** Data odierna in italiano per la topbar (es. "Lunedì 8 giugno 2026"). */
-  readonly oggiLabel = (() => {
-    const s = new Date().toLocaleDateString('it-IT',
-      { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  })();
+  /**
+   * Data odierna nella topbar, dal formato più lungo al più corto. Lo spazio al
+   * centro dipende dalla larghezza schermo E dalla lunghezza della ragione
+   * sociale, quindi scegliamo via misura (updateDateLabel) il formato che entra.
+   */
+  private readonly dateFormats: string[] = App.buildDateFormats();
+  /** Formato attualmente mostrato (stringa vuota = non c'è spazio, nascosta). */
+  oggiLabel = this.dateFormats[0];
+  private dateMeasureCtx: CanvasRenderingContext2D | null = null;
+
+  private static buildDateFormats(): string[] {
+    const d = new Date();
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    const fmt = (o: Intl.DateTimeFormatOptions) =>
+      cap(d.toLocaleDateString('it-IT', o).replace(/\./g, '').replace(/,/g, ''));
+    const p = (n: number) => String(n).padStart(2, '0');
+    const dmy = `${p(d.getDate())}/${p(d.getMonth() + 1)}`;
+    return [
+      fmt({ weekday: 'long',  day: 'numeric', month: 'long',  year: 'numeric' }), // Lunedì 8 giugno 2026
+      fmt({ weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }), // Lun 8 giu 2026
+      `${dmy}/${d.getFullYear()}`,                                                // 08/06/2026
+      `${dmy}/${String(d.getFullYear()).slice(2)}`,                              // 08/06/26
+    ];
+  }
 
   // ── Barra superiore: priority-nav ("⋯ Altro") ───────────────────────────────
   /** Quante voci mostrare in barra; le restanti finiscono nel menu "Altro". */
@@ -144,7 +164,12 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     });
     // Tema "liquid glass" attivo col layout fluttuante: classe sul <body> così
     // coprono anche gli overlay (dialog/menu) renderizzati fuori dalla shell.
-    effect(() => document.body.classList.toggle('glass-ui', this.layout.navLayout() === 'floating'));
+    effect(() => {
+      const floating = this.layout.navLayout() === 'floating';
+      document.body.classList.toggle('glass-ui', floating);
+      // Il layout cambia la larghezza della topbar → rivaluto il formato data.
+      requestAnimationFrame(() => this.zone.run(() => this.updateDateLabel()));
+    });
   }
 
   private updatePublicRoute(url: string) {
@@ -183,6 +208,9 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.ds.getAzienda().subscribe({
       next: a => {
         this.azienda = a;
+        // La ragione sociale cambia la larghezza occupata a sinistra: ricalcolo
+        // il formato della data (dopo il render del nuovo nome).
+        requestAnimationFrame(() => this.zone.run(() => this.updateDateLabel()));
         // Inizializza il flag globale "blocca documenti salvati" dal valore
         // persistito sull'azienda; default true se non impostato.
         this.docLockSvc.setEnabled(a?.lockDocumentiDefault !== false);
@@ -263,6 +291,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   @HostListener('window:resize')
   onResize() {
     if (window.innerWidth < 768) this.collapsed = true;
+    this.updateDateLabel();
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -370,7 +399,10 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     return this.overflowNavItems.some(it => this.isGroupActive(it));
   }
 
-  ngAfterViewInit() { this.syncNavObserver(); }
+  ngAfterViewInit() {
+    this.syncNavObserver();
+    requestAnimationFrame(() => this.zone.run(() => this.updateDateLabel()));
+  }
 
   ngAfterViewChecked() {
     this.syncNavObserver();
@@ -452,6 +484,42 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       next = Math.max(1, Math.floor((containerW - moreW) / itemW));
     }
     if (next !== this.navMaxVisible) this.navMaxVisible = next;
+  }
+
+  /**
+   * Sceglie il formato della data più lungo che entra nello spazio centrale
+   * della topbar, senza sovrapporsi al nome azienda (a sinistra) né alla ricerca
+   * (a destra). Lo spazio è simmetrico perché la data è centrata in assoluto:
+   * disponibile = 2 × (distanza minore tra centro e i due bordi). Se non entra
+   * nemmeno "dd/mm/yy" la nasconde (stringa vuota).
+   */
+  updateDateLabel() {
+    const el = this.topbarDateRef?.nativeElement;
+    const bar = el?.parentElement;
+    if (!el || !bar) return;
+    const company = bar.querySelector<HTMLElement>('.company-info');
+    const search = bar.querySelector<HTMLElement>('.search-box');
+    const barRect = bar.getBoundingClientRect();
+    const center = barRect.left + barRect.width / 2;
+    const leftEdge = company ? company.getBoundingClientRect().right : barRect.left;
+    const rightEdge = search ? search.getBoundingClientRect().left : barRect.right;
+    const GAP = 16;                                   // respiro minimo dai vicini
+    const avail = Math.max(0, Math.min(center - leftEdge, rightEdge - center) - GAP) * 2;
+
+    const cs = getComputedStyle(el);
+    const font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const next = this.dateFormats.find(f => this.measureText(f, font) <= avail) ?? '';
+    if (next !== this.oggiLabel) this.oggiLabel = next;
+  }
+
+  /** Larghezza in px di un testo per un dato font, via canvas (niente reflow). */
+  private measureText(text: string, font: string): number {
+    if (!this.dateMeasureCtx) {
+      this.dateMeasureCtx = document.createElement('canvas').getContext('2d');
+    }
+    if (!this.dateMeasureCtx) return text.length * 8;   // fallback grezzo
+    this.dateMeasureCtx.font = font;
+    return this.dateMeasureCtx.measureText(text).width;
   }
 
   onSearchInput(q: string) {
