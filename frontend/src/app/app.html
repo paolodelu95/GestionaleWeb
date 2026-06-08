@@ -214,6 +214,7 @@
             </a>
           } @else {
             <button class="dock-btn top-nav-item" type="button" [matMenuTriggerFor]="grpMenu"
+                    [class.active]="isGroupActive(item)"
                     [matTooltip]="item.label" matTooltipPosition="above">
               <mat-icon>{{ item.icon }}</mat-icon>
               <span class="dock-label">{{ item.label }}</span>
@@ -229,7 +230,8 @@
           }
         }
         @if (hasNavOverflow) {
-          <button class="dock-btn dock-more top-nav-more" type="button" [matMenuTriggerFor]="altroMenu" aria-label="Altre sezioni">
+          <button class="dock-btn dock-more top-nav-more" type="button" [matMenuTriggerFor]="altroMenu"
+                  [class.active]="overflowActive" aria-label="Altre sezioni">
             <mat-icon>apps</mat-icon>
             <span class="dock-label">Altro</span>
           </button>

@@ -343,6 +343,26 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       o.route === '/pagamenti' && this.badges.scadenzeScadute > 0);
   }
 
+  /** True se `route` corrisponde alla rotta corrente (anche come prefisso, es. /prodotti/123). */
+  private isRouteActive(route?: string): boolean {
+    if (!route) return false;
+    const url = this.router.url.split(/[?#]/)[0];
+    return url === route || url.startsWith(route + '/');
+  }
+  /**
+   * True se la voce è quella attiva: per un gruppo controlla i figli. Serve a
+   * colorare il pulsante-gruppo del dock (che usa matMenuTriggerFor e non ha
+   * routerLink, quindi routerLinkActive non lo evidenzierebbe mai).
+   */
+  isGroupActive(item: NavItem): boolean {
+    if (item.children) return item.children.some(c => this.isRouteActive(c.route));
+    return this.isRouteActive(item.route);
+  }
+  /** True se una qualsiasi voce in overflow ("Altro") è quella attiva. */
+  get overflowActive(): boolean {
+    return this.overflowNavItems.some(it => this.isGroupActive(it));
+  }
+
   ngAfterViewInit() { this.syncNavObserver(); }
 
   ngAfterViewChecked() {
@@ -639,7 +659,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       ]
     },
     {
-      label: 'Sistema', icon: 'settings',
+      label: 'Sistema', icon: 'tune',
       children: [
         { label: 'Account',      icon: 'person',   route: '/account' },
         { label: 'Abbonamento',  icon: 'credit_card', route: '/billing' },
