@@ -2323,6 +2323,53 @@ body.glass-ui {
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg) !important;
   }
+
+  // ── Pulsanti: angoli "pill", primario a gradiente brand, secondari vetrosi ──
+  .mat-mdc-button-base { border-radius: var(--radius-full) !important; }
+
+  // Filled / raised (azione principale) → gradiente del brand.
+  // Esclusi warn (rosso, es. elimina) e accent, che mantengono il loro colore.
+  .mat-mdc-unelevated-button:not(.mat-warn):not(.mat-accent),
+  .mat-mdc-raised-button:not(.mat-warn):not(.mat-accent) {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--brand-teal) 100%) !important;
+    color: #fff !important;
+    --mdc-filled-button-label-text-color: #fff;
+    --mat-mdc-button-persistent-ripple-color: #fff;
+    box-shadow: 0 6px 16px -6px rgba(17, 118, 155, 0.5) !important;
+    &:hover { box-shadow: 0 10px 22px -8px rgba(17, 118, 155, 0.6) !important; }
+  }
+
+  // Outlined / stroked → vetro morbido
+  .mat-mdc-outlined-button {
+    background: var(--glass-card-bg) !important;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    --mdc-outlined-button-outline-color: var(--glass-border);
+  }
+
+  // Icon button: hover vetroso, tondo
+  .mat-mdc-icon-button:hover { background: var(--glass-hover) !important; }
+
+  // ── Toggle group (es. Ivato/Netto): pill vetroso, selezione a gradiente ──
+  .mat-button-toggle-group {
+    border-radius: var(--radius-full) !important;
+    overflow: hidden;
+    border: 1px solid var(--glass-border) !important;
+    background: var(--glass-card-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+  .mat-button-toggle-checked {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--brand-teal) 100%) !important;
+    .mat-button-toggle-label-content { color: #fff !important; }
+  }
+
+  // ── Campi: angoli morbidi coerenti col vetro ──
+  .mat-mdc-text-field-wrapper { border-radius: var(--radius-lg) !important; }
+
+  // ── Tabelle dentro le card: hover riga e header trasparente sul vetro ──
+  .mat-mdc-header-row { background: transparent !important; }
+  tbody tr.mat-mdc-row:hover { background: var(--glass-hover) !important; }
 }
 
 // I browser che non supportano backdrop-filter ricevono comunque uno sfondo opaco
