@@ -2402,6 +2402,14 @@ body.glass-ui {
   pointer-events: none;            // solo il dock-inner è interattivo
   animation: dock-rise 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+// Gli overlay Material (menu, select, autocomplete, snackbar, tooltip, dialog)
+// devono stare SOPRA il dock flottante (z-index 1100), altrimenti menu e
+// notifiche finiscono sotto i pulsanti e non si vedono.
+.cdk-overlay-container { z-index: 1200; }
+// Nel layout flottante i toast non devono finire dietro/sotto il dock in basso:
+// li solleviamo sopra la barra.
+body.glass-ui .mat-mdc-snack-bar-container { margin-bottom: 92px; }
 .dock-inner {
   pointer-events: auto;
   display: flex;
