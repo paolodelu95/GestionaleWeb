@@ -1252,6 +1252,11 @@ function initTenantSchema(db) {
       'ALTER TABLE movimenti_magazzino ADD COLUMN magazzino_dest_id INTEGER',
       'ALTER TABLE movimenti_magazzino ADD COLUMN lotto TEXT DEFAULT ""',
       'ALTER TABLE movimenti_magazzino ADD COLUMN scadenza TEXT DEFAULT ""',
+      // Arrivi merce: lotto/scadenza per riga + deposito di destinazione.
+      'ALTER TABLE arrivi_merce_righe ADD COLUMN lotto TEXT DEFAULT ""',
+      'ALTER TABLE arrivi_merce_righe ADD COLUMN scadenza TEXT DEFAULT ""',
+      'ALTER TABLE arrivi_merce_righe ADD COLUMN magazzino_id INTEGER',
+      'ALTER TABLE arrivi_merce ADD COLUMN magazzino_id INTEGER',
     ]) { try { db.exec(sql); } catch(_) {} }
 
     // Deposito predefinito "Principale" (idempotente).

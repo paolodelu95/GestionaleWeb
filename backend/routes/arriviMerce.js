@@ -33,11 +33,11 @@ router.post('/', (req, res) => {
   if (dup) return res.status(409).json({ error: `Il numero ${d.numero} è già utilizzato da un altro documento` });
   const tx = db.transaction(() => {
     const result = db.prepare(`
-      INSERT INTO arrivi_merce (numero, data, fornitore_id, acquisto_id, numero_documento_fornitore, note, stato)
-      VALUES (?,?,?,?,?,?,?)`)
+      INSERT INTO arrivi_merce (numero, data, fornitore_id, acquisto_id, numero_documento_fornitore, note, stato, magazzino_id)
+      VALUES (?,?,?,?,?,?,?,?)`)
       .run(
         d.numero, d.data, d.fornitoreId || null, d.acquistoId || null,
-        d.numeroDocumentoFornitore || '', d.note || '', d.stato || 'RICEVUTO'
+        d.numeroDocumentoFornitore || '', d.note || '', d.stato || 'RICEVUTO', d.magazzinoId || null
       );
     const arrivoId = result.lastInsertRowid;
     if (d.righe?.length) {
@@ -46,7 +46,7 @@ router.post('/', (req, res) => {
         const forn = d.fornitoreId ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(d.fornitoreId) : null;
         aggiornaQuantita(d.righe, +1, {
           data: d.data, causale: 'ARRIVO_MERCE', documentoTipo: 'ARRIVO_MERCE',
-          documentoId: arrivoId, documentoNumero: d.numero,
+          documentoId: arrivoId, documentoNumero: d.numero, magazzinoId: d.magazzinoId || null,
           fornitoreId: d.fornitoreId || null, fornitoreNome: forn?.ragione_sociale || ''
         });
       }
@@ -77,10 +77,10 @@ router.put('/:id', (req, res) => {
 
     db.prepare(`
       UPDATE arrivi_merce SET numero=?, data=?, fornitore_id=?, acquisto_id=?,
-        numero_documento_fornitore=?, note=?, stato=? WHERE id=?`)
+        numero_documento_fornitore=?, note=?, stato=?, magazzino_id=? WHERE id=?`)
       .run(
         d.numero, d.data, d.fornitoreId || null, d.acquistoId || null,
-        d.numeroDocumentoFornitore || '', d.note || '', d.stato, req.params.id
+        d.numeroDocumentoFornitore || '', d.note || '', d.stato, d.magazzinoId || null, req.params.id
       );
 
     db.prepare('DELETE FROM arrivi_merce_righe WHERE arrivo_merce_id=?').run(req.params.id);
@@ -90,7 +90,7 @@ router.put('/:id', (req, res) => {
         const forn = d.fornitoreId ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(d.fornitoreId) : null;
         aggiornaQuantita(d.righe, +1, {
           data: d.data, causale: 'ARRIVO_MERCE', documentoTipo: 'ARRIVO_MERCE',
-          documentoId: req.params.id, documentoNumero: d.numero,
+          documentoId: req.params.id, documentoNumero: d.numero, magazzinoId: d.magazzinoId || null,
           fornitoreId: d.fornitoreId || null, fornitoreNome: forn?.ragione_sociale || ''
         });
       }
@@ -213,14 +213,16 @@ const aggiornaQuantita = applicaRigheStock;
 function saveRighe(arrivoId, righe) {
   const stmt = db.prepare(`INSERT INTO arrivi_merce_righe
     (arrivo_merce_id, prodotto_id, variante_id, descrizione, codice_fornitore,
-     quantita, unita_misura, prezzo_acquisto, variante_taglia, variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`);
+     quantita, unita_misura, prezzo_acquisto, variante_taglia, variante_colore,
+     lotto, scadenza, magazzino_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const r of righe)
     stmt.run(
       arrivoId, r.prodottoId || null, r.varianteId || null,
       r.descrizione || '', r.codiceFornitore || '',
       r.quantita, r.unitaMisura || '', r.prezzoAcquisto || 0,
-      r.varianteTaglia || '', r.varianteColore || ''
+      r.varianteTaglia || '', r.varianteColore || '',
+      r.lotto || '', r.scadenza || '', r.magazzinoId || null
     );
 }
 
@@ -242,6 +244,9 @@ function getRighe(arrivoId) {
     prezzoAcquisto: r.prezzo_acquisto || 0,
     varianteTaglia: r.variante_taglia || '',
     varianteColore: r.variante_colore || '',
+    lotto: r.lotto || '',
+    scadenza: r.scadenza || '',
+    magazzinoId: r.magazzino_id || null,
   }));
 }
 
@@ -255,6 +260,7 @@ function toDto(r) {
     acquistoId: r.acquisto_id,
     numeroDocumentoFornitore: r.numero_documento_fornitore || '',
     note: r.note, stato: r.stato, totale,
+    magazzinoId: r.magazzino_id || null,
   };
 }
 

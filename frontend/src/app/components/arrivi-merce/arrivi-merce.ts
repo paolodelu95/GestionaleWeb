@@ -17,7 +17,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
-import { ArrivoMerce, Acquisto, Fornitore, Prodotto, RigaArrivoMerce, UnitaMisura } from '../../models';
+import { ArrivoMerce, Acquisto, Fornitore, Prodotto, RigaArrivoMerce, UnitaMisura, Magazzino } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 
@@ -245,6 +245,14 @@ export class QuickProdottoDialogComponent {
             <mat-label>N° documento fornitore</mat-label>
             <input matInput formControlName="numeroDocumentoFornitore" placeholder="es. FT 2025/123">
           </mat-form-field>
+          <mat-form-field style="flex:1">
+            <mat-label>Deposito di destinazione</mat-label>
+            <mat-select formControlName="magazzinoId">
+              @for (m of magazzini; track m.id) {
+                <mat-option [value]="m.id">{{ m.nome }}@if (m.predefinito) { · predefinito }</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
       </form>
 
@@ -264,6 +272,8 @@ export class QuickProdottoDialogComponent {
               <th>Cod. Fornitore</th>
               <th>Qtà</th>
               <th>UM</th>
+              <th>Lotto</th>
+              <th>Scadenza</th>
               <th>Prezzo acquisto</th>
               <th>Totale</th>
               <th></th>
@@ -297,6 +307,12 @@ export class QuickProdottoDialogComponent {
                       <option [value]="u.simbolo">{{ u.simbolo }}</option>
                     }
                   </select>
+                </td>
+                <td>
+                  <input class="riga-input cod" [(ngModel)]="riga.lotto" placeholder="—">
+                </td>
+                <td>
+                  <input class="riga-input num" type="date" [(ngModel)]="riga.scadenza">
                 </td>
                 <td>
                   <input class="riga-input num" type="number" min="0" step="0.01" [(ngModel)]="riga.prezzoAcquisto">
@@ -351,6 +367,7 @@ export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
   righe: RigaArrivoMerce[] = [];
   unitaMisura: UnitaMisura[] = [];
   prodotti: Prodotto[] = [];
+  magazzini: Magazzino[] = [];
 
   get totale() {
     return this.righe.reduce((s, r) => s + r.quantita * (r.prezzoAcquisto || 0), 0);
@@ -368,6 +385,7 @@ export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
       data: [data?.data ?? new Date().toISOString().substring(0, 10), Validators.required],
       numeroDocumentoFornitore: [data?.numeroDocumentoFornitore ?? ''],
       note: [data?.note ?? ''],
+      magazzinoId: [data?.magazzinoId ?? null],
     });
 
     if (data?.id) {
@@ -396,6 +414,12 @@ export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
     });
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
     this.ds.getProdotti().subscribe(p => this.prodotti = p);
+    this.ds.getMagazzini().subscribe(m => {
+      this.magazzini = m;
+      if (this.form.value.magazzinoId == null) {
+        this.form.patchValue({ magazzinoId: m.find(x => x.predefinito)?.id ?? m[0]?.id ?? null });
+      }
+    });
 
     if (!this.data?.id) {
       this.ds.getNextNumero('arrivi-merce').subscribe(n => this.form.patchValue({ numero: String(n.numero) }));

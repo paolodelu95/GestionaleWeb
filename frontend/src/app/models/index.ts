@@ -682,6 +682,9 @@ export interface RigaArrivoMerce {
   prezzoAcquisto?: number;
   varianteTaglia?: string;
   varianteColore?: string;
+  lotto?: string;
+  scadenza?: string;
+  magazzinoId?: number | null;
 }
 
 export interface ArrivoMerce {
@@ -696,6 +699,7 @@ export interface ArrivoMerce {
   stato: string;
   totale?: number;
   righe?: RigaArrivoMerce[];
+  magazzinoId?: number | null;
 }
 
 export interface ScadenzarioEntry {
