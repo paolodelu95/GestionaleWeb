@@ -433,6 +433,7 @@
 
 // ── Topbar ────────────────────────────────────────────────────────────────────
 .topbar {
+  position: relative;                 // riferimento per la data centrata in assoluto
   background: var(--bg-surface) !important;
   color: var(--text-primary) !important;
   height: var(--topbar-height);
@@ -441,6 +442,24 @@
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   gap: 8px;
+
+  // Data odierna: centrata rispetto allo schermo (la topbar occupa tutta la
+  // larghezza). pointer-events:none così non intercetta i click sotto di sé.
+  .topbar-date {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  // Solo desktop: su tablet/mobile lo spazio è poco e si sovrapporrebbe.
+  @media (max-width: 1024px) { .topbar-date { display: none; } }
   padding: 0 18px;
 
   .toggle-btn {

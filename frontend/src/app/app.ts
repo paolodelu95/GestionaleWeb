@@ -62,6 +62,13 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   collapsed = false;
   loggedIn = false;
 
+  /** Data odierna in italiano per la topbar (es. "Lunedì 8 giugno 2026"). */
+  readonly oggiLabel = (() => {
+    const s = new Date().toLocaleDateString('it-IT',
+      { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  })();
+
   // ── Barra superiore: priority-nav ("⋯ Altro") ───────────────────────────────
   /** Quante voci mostrare in barra; le restanti finiscono nel menu "Altro". */
   navMaxVisible = 99;
