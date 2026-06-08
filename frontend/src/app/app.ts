@@ -465,8 +465,11 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       this.navItemWidths = items.map(i => i.offsetWidth);
     } else if (this.navItemWidths.length !== total) {
       // Cache non valida e non tutte in DOM (es. dopo un cambio di moduli): forzo
-      // il render di tutte e ricalcolo al giro successivo.
+      // il render di TUTTE e ricalcolo al frame dopo. NB: devo schedularlo io —
+      // su mobile il dock-inner è width:100% fisso, quindi il ResizeObserver non
+      // scatta, e navLastTotal è già aggiornato: nessun altro trigger arriverebbe.
       this.navMaxVisible = 99;
+      requestAnimationFrame(() => this.zone.run(() => this.computeNavOverflow()));
       return;
     }
     const widths = this.navItemWidths;
