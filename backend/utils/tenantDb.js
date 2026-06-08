@@ -1221,6 +1221,65 @@ function initTenantSchema(db) {
   } catch (err) {
     console.warn('[migrate] audit_log non creata:', err.message);
   }
+
+  // ── Magazzino avanzato: depositi multipli + giacenze (con lotto/scadenza) ────
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS magazzini (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        codice TEXT DEFAULT '',
+        nome TEXT NOT NULL,
+        indirizzo TEXT DEFAULT '',
+        predefinito INTEGER DEFAULT 0,
+        attivo INTEGER DEFAULT 1
+      );
+      CREATE TABLE IF NOT EXISTS giacenze (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prodotto_id INTEGER NOT NULL REFERENCES prodotti(id) ON DELETE CASCADE,
+        variante_id INTEGER REFERENCES prodotto_varianti(id) ON DELETE CASCADE,
+        magazzino_id INTEGER NOT NULL REFERENCES magazzini(id) ON DELETE CASCADE,
+        lotto TEXT DEFAULT '',
+        scadenza TEXT DEFAULT '',
+        quantita REAL DEFAULT 0
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_giac_chiave
+        ON giacenze(prodotto_id, IFNULL(variante_id,0), magazzino_id, lotto, scadenza);
+      CREATE INDEX IF NOT EXISTS idx_giac_prodotto ON giacenze(prodotto_id);
+      CREATE INDEX IF NOT EXISTS idx_giac_magazzino ON giacenze(magazzino_id);
+    `);
+    for (const sql of [
+      'ALTER TABLE movimenti_magazzino ADD COLUMN magazzino_id INTEGER',
+      'ALTER TABLE movimenti_magazzino ADD COLUMN magazzino_dest_id INTEGER',
+      'ALTER TABLE movimenti_magazzino ADD COLUMN lotto TEXT DEFAULT ""',
+      'ALTER TABLE movimenti_magazzino ADD COLUMN scadenza TEXT DEFAULT ""',
+    ]) { try { db.exec(sql); } catch(_) {} }
+
+    // Deposito predefinito "Principale" (idempotente).
+    let def = db.prepare('SELECT id FROM magazzini WHERE predefinito=1').get();
+    if (!def) {
+      const any = db.prepare('SELECT id FROM magazzini ORDER BY id LIMIT 1').get();
+      if (any) { db.prepare('UPDATE magazzini SET predefinito=1 WHERE id=?').run(any.id); def = any; }
+      else def = { id: db.prepare("INSERT INTO magazzini (codice, nome, predefinito, attivo) VALUES ('PRINC','Principale',1,1)").run().lastInsertRowid };
+    }
+    const defId = def.id;
+
+    // Backfill una-tantum: porta le giacenze attuali nel deposito predefinito.
+    if (db.prepare('SELECT COUNT(*) AS n FROM giacenze').get().n === 0) {
+      const insG = db.prepare(`INSERT INTO giacenze (prodotto_id, variante_id, magazzino_id, lotto, scadenza, quantita)
+        VALUES (?,?,?,'','',?)`);
+      const varianti = db.prepare('SELECT id, prodotto_id, quantita FROM prodotto_varianti').all();
+      const conVarianti = new Set(varianti.map(v => v.prodotto_id));
+      for (const v of varianti) if ((v.quantita || 0) !== 0) insG.run(v.prodotto_id, v.id, defId, v.quantita);
+      for (const p of db.prepare('SELECT id, quantita FROM prodotti').all()) {
+        if (conVarianti.has(p.id)) continue;               // coperto dalle varianti
+        if ((p.quantita || 0) !== 0) insG.run(p.id, null, defId, p.quantita);
+      }
+    }
+    // Stampa il deposito predefinito sui movimenti storici privi (coerenza storico).
+    db.prepare('UPDATE movimenti_magazzino SET magazzino_id=? WHERE magazzino_id IS NULL').run(defId);
+  } catch (err) {
+    console.warn('[migrate] magazzino avanzato non inizializzato:', err.message);
+  }
 }
 
 module.exports = { openTenantDb, getCachedTenantDb, initTenantSchema, closeAll };

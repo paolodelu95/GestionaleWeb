@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { applicaRigheStock } = require('../utils/stock');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -269,11 +270,6 @@ router.post('/:id/genera-arrivo-merce', (req, res) => {
       (arrivo_merce_id, prodotto_id, variante_id, descrizione, codice_fornitore,
        quantita, unita_misura, prezzo_acquisto, variante_taglia, variante_colore)
       VALUES (?,?,?,?,?,?,?,?,?,?)`);
-    const qtyUp = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id=?');
-    const movIns = db.prepare(`INSERT INTO movimenti_magazzino
-      (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,
-       cliente_id,cliente_nome,fornitore_id,fornitore_nome,note,variante_id,variante_taglia,variante_colore)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     const fornitoreNome = fornitoreId
       ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(fornitoreId)?.ragione_sociale || ''
       : '';
@@ -284,19 +280,13 @@ router.post('/:id/genera-arrivo-merce', (req, res) => {
         r.codiceFornitore, r.quantita, r.unitaMisura,
         r.prezzoAcquisto || 0, '', '',
       );
-      if (r.prodottoId) {
-        qtyUp.run(r.quantita, r.prodottoId);
-        const pNome = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId)?.nome || r.descrizione;
-        movIns.run(
-          today, r.prodottoId, pNome,
-          'CARICO', r.quantita,
-          'ARRIVO_MERCE', 'ARRIVO_MERCE', arrivoId, numero,
-          null, '', fornitoreId, fornitoreNome,
-          'Generato da acquisto #' + id,
-          null, '', '',
-        );
-      }
     }
+    // Carico in magazzino (deposito predefinito) tramite l'helper centralizzato.
+    applicaRigheStock(righeArrivo, +1, {
+      data: today, causale: 'ARRIVO_MERCE', documentoTipo: 'ARRIVO_MERCE',
+      documentoId: arrivoId, documentoNumero: numero,
+      fornitoreId, fornitoreNome, note: 'Generato da acquisto #' + id,
+    });
 
     return { arrivoId, numero, prodottiCreati, righeTotali: righeArrivo.length };
   });

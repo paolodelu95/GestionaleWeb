@@ -4,6 +4,7 @@ const db = require('../database');
 const { checkRiordino } = require('../utils/riordino');
 const { audit } = require('../utils/audit');
 const { getNextNumero } = require('../utils/nextNumero');
+const { applicaRigheStock } = require('../utils/stock');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -136,29 +137,8 @@ router.delete('/:id', (req, res) => {
   res.json({ success: true });
 });
 
-function aggiornaQuantita(righe, delta, ctx = {}) {
-  const stmtQ = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
-  const stmtV = db.prepare('UPDATE prodotto_varianti SET quantita = quantita + ? WHERE id = ?');
-  const stmtM = db.prepare(`INSERT INTO movimenti_magazzino
-    (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,cliente_id,cliente_nome,fornitore_id,fornitore_nome,note,variante_id,variante_taglia,variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  const oggi = new Date().toISOString().split('T')[0];
-  for (const r of righe) {
-    if (!r.prodottoId) continue;
-    if (r.scaricaMagazzino === false) continue;   // riga esclusa dal movimento scorte
-    stmtQ.run(delta * r.quantita, r.prodottoId);
-    if (r.varianteId) stmtV.run(delta * r.quantita, r.varianteId);
-    const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
-    stmtM.run(
-      ctx.data || oggi, r.prodottoId, prod?.nome || r.descrizione || '',
-      delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta * r.quantita),
-      ctx.causale || '', ctx.documentoTipo || '', ctx.documentoId || null,
-      ctx.documentoNumero || '', ctx.clienteId || null, ctx.clienteNome || '',
-      ctx.fornitoreId || null, ctx.fornitoreNome || '', ctx.note || '',
-      r.varianteId || null, r.varianteTaglia || '', r.varianteColore || ''
-    );
-  }
-}
+// Movimentazione scorte centralizzata (utils/stock.js).
+const aggiornaQuantita = applicaRigheStock;
 
 function saveRighe(ddtId, righe) {
   const stmt = db.prepare(`INSERT INTO ddt_righe

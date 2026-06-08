@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { scoreCandidati } = require('../utils/matchProdotti');
+const { adjGiacenza, magazzinoDefaultId, riallineaGiacenze } = require('../utils/stock');
 
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM prodotti ORDER BY nome').all();
@@ -22,12 +23,13 @@ router.get('/sotto-soglia', (req, res) => {
 // il relativo movimento di RETTIFICA con la differenza. Restituisce il delta applicato.
 // Pensata per essere richiamata sia dall'endpoint singolo sia da quello bulk (inventario):
 // NON apre una transazione propria, così può essere composta dal chiamante.
-function applicaRettifica(prodottoId, nuova, note, varianteId) {
+function applicaRettifica(prodottoId, nuova, note, varianteId, magazzinoId) {
   if (!Number.isFinite(nuova)) throw { status: 400, error: 'Quantità non valida' };
   const prod = db.prepare('SELECT id, nome FROM prodotti WHERE id=?').get(prodottoId);
   if (!prod) throw { status: 404, error: 'Prodotto non trovato' };
   const noteStr = (note || '').toString().slice(0, 500);
   const data = new Date().toISOString().split('T')[0];
+  const mag = magazzinoId || magazzinoDefaultId();
 
   // Rettifica a livello variante: aggiorna la singola variante e risincronizza
   // il totale del prodotto dalle varianti (syncQuantita).
@@ -39,11 +41,12 @@ function applicaRettifica(prodottoId, nuova, note, varianteId) {
     if (delta !== 0) {
       db.prepare('UPDATE prodotto_varianti SET quantita=? WHERE id=?').run(nuova, varianteId);
       db.prepare(`INSERT INTO movimenti_magazzino
-        (data, prodotto_id, prodotto_nome, tipo, quantita, causale, note, variante_id, variante_taglia, variante_colore)
-        VALUES (?,?,?,?,?,?,?,?,?,?)`)
+        (data, prodotto_id, prodotto_nome, tipo, quantita, causale, note, variante_id, variante_taglia, variante_colore, magazzino_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
         .run(data, prodottoId, prod.nome || '',
              delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta), 'RETTIFICA', noteStr,
-             varianteId, v.taglia || '', v.colore || '');
+             varianteId, v.taglia || '', v.colore || '', mag);
+      adjGiacenza(prodottoId, varianteId, mag, '', '', delta);
       syncQuantita(prodottoId);
     }
     return delta;
@@ -55,10 +58,11 @@ function applicaRettifica(prodottoId, nuova, note, varianteId) {
   if (delta !== 0) {
     db.prepare('UPDATE prodotti SET quantita=? WHERE id=?').run(nuova, prodottoId);
     db.prepare(`INSERT INTO movimenti_magazzino
-      (data, prodotto_id, prodotto_nome, tipo, quantita, causale, note)
-      VALUES (?,?,?,?,?,?,?)`)
+      (data, prodotto_id, prodotto_nome, tipo, quantita, causale, note, magazzino_id)
+      VALUES (?,?,?,?,?,?,?,?)`)
       .run(data, prodottoId, prod.nome || '',
-           delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta), 'RETTIFICA', noteStr);
+           delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta), 'RETTIFICA', noteStr, mag);
+    adjGiacenza(prodottoId, null, mag, '', '', delta);
   }
   return delta;
 }
@@ -67,7 +71,8 @@ function applicaRettifica(prodottoId, nuova, note, varianteId) {
 // registra automaticamente un movimento di rettifica con la differenza.
 router.post('/:id/rettifica', (req, res) => {
   try {
-    const delta = applicaRettifica(Number(req.params.id), Number(req.body?.quantita), req.body?.note, null);
+    const mag = req.body?.magazzinoId != null ? Number(req.body.magazzinoId) : null;
+    const delta = applicaRettifica(Number(req.params.id), Number(req.body?.quantita), req.body?.note, null, mag);
     res.json({ success: true, delta });
   } catch (e) {
     res.status(e?.status || 500).json({ error: e?.error || 'Errore rettifica' });
@@ -88,7 +93,8 @@ router.post('/rettifica-bulk', (req, res) => {
       for (const it of items) {
         const delta = applicaRettifica(
           Number(it.prodottoId), Number(it.quantita), note,
-          it.varianteId != null ? Number(it.varianteId) : null
+          it.varianteId != null ? Number(it.varianteId) : null,
+          it.magazzinoId != null ? Number(it.magazzinoId) : (req.body?.magazzinoId != null ? Number(req.body.magazzinoId) : null)
         );
         if (delta !== 0) movimenti++;
       }
@@ -126,6 +132,7 @@ router.post('/', (req, res) => {
     syncQuantita(id);
   }
   if (p.fornitori) saveFornitori(id, p.fornitori);
+  riallineaGiacenze(id);
   res.json({ id });
 });
 
@@ -426,6 +433,7 @@ router.put('/:id', (req, res) => {
     db.prepare('DELETE FROM prodotto_varianti WHERE prodotto_id=?').run(req.params.id);
   }
   if (p.fornitori) saveFornitori(req.params.id, p.fornitori);
+  riallineaGiacenze(Number(req.params.id));
   res.json({ success: true });
 });
 

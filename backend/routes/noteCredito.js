@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../database');
 const { audit } = require('../utils/audit');
 const { calcolaTotaliFiscali, fiscFromRow } = require('../utils/fiscale');
+const { applicaRigheStock } = require('../utils/stock');
 
 const FISC_COLS = ['ritenuta_aliquota', 'ritenuta_causale', 'ritenuta_tipo', 'ritenuta_su_cassa',
   'cassa_tipo', 'cassa_aliquota', 'cassa_iva', 'bollo'];
@@ -33,31 +34,8 @@ router.get('/:id', (req, res) => {
 // Helper magazzino: una nota di credito tipicamente RIENTRA merce
 // (delta +1: la merce torna dal cliente al magazzino del fornitore).
 // L'eliminazione/storno della nota di credito SCARICA di nuovo (delta -1).
-function aggiornaQuantita(righe, delta, ctx = {}) {
-  const stmtQ = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
-  const stmtV = db.prepare('UPDATE prodotto_varianti SET quantita = quantita + ? WHERE id = ?');
-  const stmtM = db.prepare(`INSERT INTO movimenti_magazzino
-    (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,cliente_id,cliente_nome,note,variante_id,variante_taglia,variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  const oggi = new Date().toISOString().split('T')[0];
-  for (const r of righe) {
-    if (!r.prodottoId) continue;
-    const qty = +r.quantita || 0;
-    if (!qty) continue;
-    stmtQ.run(delta * qty, r.prodottoId);
-    if (r.varianteId) stmtV.run(delta * qty, r.varianteId);
-    const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
-    stmtM.run(
-      ctx.data || oggi, r.prodottoId, prod?.nome || r.descrizione || '',
-      delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta * qty),
-      ctx.causale || '', ctx.documentoTipo || 'NOTA_CREDITO',
-      ctx.documentoId || null, ctx.documentoNumero || '',
-      ctx.clienteId || null, ctx.clienteNome || '',
-      ctx.note || '',
-      r.varianteId || null, r.varianteTaglia || '', r.varianteColore || ''
-    );
-  }
-}
+// Movimentazione scorte centralizzata (utils/stock.js).
+const aggiornaQuantita = applicaRigheStock;
 
 router.post('/', (req, res) => {
   const n = req.body;

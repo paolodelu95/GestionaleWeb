@@ -673,6 +673,7 @@ app.use('/api/preventivi',       require('./routes/preventivi'));
 app.use('/api/pagamenti',        require('./routes/pagamenti'));
 app.use('/api/acquisti',         require('./routes/acquisti'));
 app.use('/api/movimenti-magazzino', require('./routes/movimentiMagazzino'));
+app.use('/api/magazzini',        require('./routes/magazzini'));
 app.use('/api/vendite-banco',      require('./routes/venditeBanco'));
 app.use('/api/prodotto-varianti',  require('./routes/prodottoVarianti'));
 app.use('/api/tipi-pagamento',   require('./routes/tipiPagamento'));

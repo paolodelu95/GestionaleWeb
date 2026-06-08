@@ -4,6 +4,7 @@ const db = require('../database');
 const { getNextNumero } = require('../utils/nextNumero');
 const { audit } = require('../utils/audit');
 const { calcolaTotaliFiscali, fiscFromRow } = require('../utils/fiscale');
+const { applicaRigheStock } = require('../utils/stock');
 
 // Colonne e valori dei campi fiscali (ritenuta / cassa / bollo) per INSERT/UPDATE.
 const FISC_COLS = ['ritenuta_aliquota', 'ritenuta_causale', 'ritenuta_tipo', 'ritenuta_su_cassa',
@@ -199,29 +200,9 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-function aggiornaQuantita(righe, delta, ctx = {}) {
-  const stmtQ = db.prepare('UPDATE prodotti SET quantita = quantita + ? WHERE id = ?');
-  const stmtV = db.prepare('UPDATE prodotto_varianti SET quantita = quantita + ? WHERE id = ?');
-  const stmtM = db.prepare(`INSERT INTO movimenti_magazzino
-    (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,cliente_id,cliente_nome,fornitore_id,fornitore_nome,note,variante_id,variante_taglia,variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  const oggi = new Date().toISOString().split('T')[0];
-  for (const r of righe) {
-    if (!r.prodottoId) continue;
-    if (r.scaricaMagazzino === false) continue;   // riga esclusa dal movimento scorte
-    stmtQ.run(delta * r.quantita, r.prodottoId);
-    if (r.varianteId) stmtV.run(delta * r.quantita, r.varianteId);
-    const prod = db.prepare('SELECT nome FROM prodotti WHERE id=?').get(r.prodottoId);
-    stmtM.run(
-      ctx.data || oggi, r.prodottoId, prod?.nome || r.descrizione || '',
-      delta > 0 ? 'CARICO' : 'SCARICO', Math.abs(delta * r.quantita),
-      ctx.causale || '', ctx.documentoTipo || '', ctx.documentoId || null,
-      ctx.documentoNumero || '', ctx.clienteId || null, ctx.clienteNome || '',
-      ctx.fornitoreId || null, ctx.fornitoreNome || '', ctx.note || '',
-      r.varianteId || null, r.varianteTaglia || '', r.varianteColore || ''
-    );
-  }
-}
+// Movimentazione scorte centralizzata (vedi utils/stock.js): aggiorna giacenze
+// per deposito + totali + registro. Mantiene la stessa firma del vecchio helper.
+const aggiornaQuantita = applicaRigheStock;
 
 function saveDdtLinks(fatturaId, ddtIds) {
   db.prepare('DELETE FROM fatture_ddt WHERE fattura_id=?').run(fatturaId);
