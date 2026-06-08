@@ -339,7 +339,14 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   /** Toast in-app quando un promemoria scatta (con azione "Apri"). */
   private onReminderScattato(r: Reminder) {
     const ora = new Date(r.inizio).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-    const ref = this.snack.open(`Promemoria: ${r.titolo} — alle ${ora}`, 'Apri', { duration: 8000 });
+    // Nel layout flottante il dock è in basso al centro: mostro il promemoria in
+    // ALTO (come una notifica del telefono), così non finisce mai dietro la barra.
+    const inAlto = this.layout.navLayout() === 'floating';
+    const ref = this.snack.open(`Promemoria: ${r.titolo} — alle ${ora}`, 'Apri', {
+      duration: 8000,
+      verticalPosition: inAlto ? 'top' : 'bottom',
+      panelClass: 'snack-reminder',
+    });
     ref.onAction().subscribe(() => this.router.navigate(['/agenda']));
   }
 

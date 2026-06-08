@@ -2410,6 +2410,10 @@ body.glass-ui {
 // Nel layout flottante i toast non devono finire dietro/sotto il dock in basso:
 // li solleviamo sopra la barra.
 body.glass-ui .mat-mdc-snack-bar-container { margin-bottom: 92px; }
+// Il promemoria agenda è mostrato in alto (notifica stile telefono): lo collochiamo
+// sotto la topbar così non la copre, e resta in primo piano (overlay z-index 1200).
+.snack-reminder.mat-mdc-snack-bar-container,
+.snack-reminder .mat-mdc-snack-bar-container { margin-top: 72px !important; }
 .dock-inner {
   pointer-events: auto;
   display: flex;
