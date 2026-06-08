@@ -23,8 +23,6 @@
             <span class="top-nav-label">{{ item.label }}</span>
             @if (item.route === '/pagamenti' && badges.scadenzeScadute > 0) {
               <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-            } @else if (item.route === '/prodotti' && badges.prodottiSottoSoglia > 0) {
-              <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
             }
           </a>
         } @else {
@@ -41,8 +39,6 @@
                 <span>{{ child.label }}</span>
                 @if (child.route === '/pagamenti' && badges.scadenzeScadute > 0) {
                   <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-                } @else if (child.route === '/prodotti' && badges.prodottiSottoSoglia > 0) {
-                  <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
                 }
               </a>
             }
@@ -64,8 +60,6 @@
               <span>{{ o.label }}</span>
               @if (o.route === '/pagamenti' && badges.scadenzeScadute > 0) {
                 <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-              } @else if (o.route === '/prodotti' && badges.prodottiSottoSoglia > 0) {
-                <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
               }
             </a>
           }
@@ -116,13 +110,6 @@
                   Pagamenti
                   @if (badges.scadenzeScadute > 0) {
                     <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-                  }
-                </span>
-              } @else if (item.route === '/prodotti') {
-                <span matListItemTitle class="nav-item-with-badge">
-                  Prodotti
-                  @if (badges.prodottiSottoSoglia > 0) {
-                    <span class="nav-badge warn">{{ badges.prodottiSottoSoglia }}</span>
                   }
                 </span>
               } @else {

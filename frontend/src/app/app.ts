@@ -337,8 +337,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   /** True se una voce in overflow ha un badge: lo segnaliamo sul bottone "Altro". */
   get overflowHasBadge(): boolean {
     return this.overflowFlatNavItems.some(o =>
-      (o.route === '/pagamenti' && this.badges.scadenzeScadute > 0) ||
-      (o.route === '/prodotti' && this.badges.prodottiSottoSoglia > 0));
+      o.route === '/pagamenti' && this.badges.scadenzeScadute > 0);
   }
 
   ngAfterViewInit() { this.syncNavObserver(); }
