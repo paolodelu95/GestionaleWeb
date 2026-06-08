@@ -29,6 +29,7 @@ import { CookieConsentComponent } from './components/shared/cookie-consent';
 import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
 import { Azienda } from './models';
 import { SwUpdate } from '@angular/service-worker';
+import { lsGet, lsSet } from './utils/safe-storage';
 
 interface NavItem {
   label: string;
@@ -185,7 +186,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   ngOnInit() {
-    this.darkMode = localStorage.getItem('dark-mode') === '1';
+    this.darkMode = lsGet('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
 
     // Quando cambiano i moduli attivi (login, caricamento, modifiche in Impostazioni)
@@ -200,7 +201,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     window.addEventListener('beforeinstallprompt', (e: Event) => {
       e.preventDefault();
       this.installPromptEvent = e;
-      if (localStorage.getItem('pwa-install-dismissed') !== '1') {
+      if (lsGet('pwa-install-dismissed') !== '1') {
         this.showInstallBanner = true;
       }
     });
@@ -708,7 +709,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   toggleDark() {
     this.darkMode = !this.darkMode;
     document.body.classList.toggle('dark-mode', this.darkMode);
-    localStorage.setItem('dark-mode', this.darkMode ? '1' : '0');
+    lsSet('dark-mode', this.darkMode ? '1' : '0');
   }
 
   installApp() {
@@ -721,7 +722,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   dismissInstall() {
     this.showInstallBanner = false;
-    localStorage.setItem('pwa-install-dismissed', '1');
+    lsSet('pwa-install-dismissed', '1');
   }
 
   reloadForUpdate() {

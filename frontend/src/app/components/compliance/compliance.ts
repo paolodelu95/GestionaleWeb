@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { retry, timer, throwError } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
 
@@ -182,9 +183,17 @@ export class ComplianceComponent implements OnInit {
   ngOnInit() { this.loadIva(); }
 
   loadIva() {
-    this.ds.getIvaTrimestre(this.anno, this.trimestre).subscribe({
+    // Ritenta in caso di rate-limit transitorio (429) prima di disturbare l'utente.
+    this.ds.getIvaTrimestre(this.anno, this.trimestre).pipe(
+      retry({ count: 2, delay: (err, n) => err?.status === 429 ? timer(800 * n) : throwError(() => err) }),
+    ).subscribe({
       next: r => this.iva = r,
-      error: () => this.snack.open('Errore caricamento liquidazione', 'OK', { duration: 3000, panelClass: 'snack-error' })
+      error: (e) => {
+        // 429 dopo i retry o errori reali: messaggio non bloccante (la pagina resta usabile).
+        if (e?.status !== 429) {
+          this.snack.open('Liquidazione non disponibile al momento', '', { duration: 2500 });
+        }
+      }
     });
   }
 

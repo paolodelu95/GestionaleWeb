@@ -93,7 +93,7 @@ export class MagazzinoRettificaDialogComponent {
     .card { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); border: 1px solid var(--border-subtle); overflow-x: auto; padding: 0; }
     .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-subtle); align-items: center; }
     .filter-bar mat-select { min-width: 150px; }
-    .filter-bar input[type=date] { border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--text-primary); background: var(--bg-surface); height: 36px; }
+    .filter-bar input[type=date] { border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--text-primary); background: var(--bg-surface); height: 36px; accent-color: var(--brand-teal, #15a4a2); }
     .filter-label { font-size: 12px; color: var(--text-tertiary); font-weight: 600; letter-spacing:.5px; }
     .filter-group { display: flex; align-items: center; gap: 6px; }
     mat-table { width: 100%; }
@@ -106,7 +106,7 @@ export class MagazzinoRettificaDialogComponent {
     .doc-link { font-weight: 600; color: var(--primary); }
     .empty-msg { text-align: center; padding: 40px; color: var(--text-tertiary); }
     .storico-bar { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; }
-    .storico-bar input[type=date] { border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; font-size: 14px; color: var(--text-primary); background: var(--bg-surface); }
+    .storico-bar input[type=date] { border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; font-size: 14px; color: var(--text-primary); background: var(--bg-surface); accent-color: var(--brand-teal, #15a4a2); }
     .qty-low { color: var(--danger-on); font-weight: 700; }
     .qty-ok  { color: var(--success-on); font-weight: 700; }
     .summary-bar { display: flex; gap: 20px; padding: 12px 16px; background: var(--bg-surface-2); border-bottom: 1px solid var(--border-subtle); }

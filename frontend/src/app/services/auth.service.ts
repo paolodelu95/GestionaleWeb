@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { lsGet, lsSet, lsRemove } from '../utils/safe-storage';
 
 interface AuthUser {
   id: number;
@@ -42,17 +43,17 @@ export class AuthService {
   constructor(private http: HttpClient) {
     // Migrazione storage dalle chiavi precedenti per non sloggare gli utenti esistenti.
     for (const legacy of this.LEGACY_KEYS) {
-      const lt = localStorage.getItem(legacy.token);
-      if (lt && !localStorage.getItem(this.KEY)) {
-        localStorage.setItem(this.KEY, lt);
+      const lt = lsGet(legacy.token);
+      if (lt && !lsGet(this.KEY)) {
+        lsSet(this.KEY, lt);
       }
-      if (lt) localStorage.removeItem(legacy.token);
+      if (lt) lsRemove(legacy.token);
 
-      const lu = localStorage.getItem(legacy.user);
-      if (lu && !localStorage.getItem(this.USER_KEY)) {
-        localStorage.setItem(this.USER_KEY, lu);
+      const lu = lsGet(legacy.user);
+      if (lu && !lsGet(this.USER_KEY)) {
+        lsSet(this.USER_KEY, lu);
       }
-      if (lu) localStorage.removeItem(legacy.user);
+      if (lu) lsRemove(legacy.user);
     }
   }
 
@@ -60,8 +61,8 @@ export class AuthService {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, { username, password })
       .pipe(tap(res => {
-        localStorage.setItem(this.KEY, res.token);
-        if (res.user) localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
+        lsSet(this.KEY, res.token);
+        if (res.user) lsSet(this.USER_KEY, JSON.stringify(res.user));
       }));
   }
 
@@ -69,14 +70,14 @@ export class AuthService {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/register`, { ...payload, website: honeypot })
       .pipe(tap(res => {
-        if (res.token) localStorage.setItem(this.KEY, res.token);
-        if (res.user) localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
+        if (res.token) lsSet(this.KEY, res.token);
+        if (res.user) lsSet(this.USER_KEY, JSON.stringify(res.user));
       }));
   }
 
   logout() {
-    localStorage.removeItem(this.KEY);
-    localStorage.removeItem(this.USER_KEY);
+    lsRemove(this.KEY);
+    lsRemove(this.USER_KEY);
   }
 
   forgotPassword(email: string, honeypot = '') {
@@ -116,17 +117,17 @@ export class AuthService {
   /** Refresh dei dati utente dal server (utile dopo verifica email). */
   refreshUser() {
     return this.http.get<AuthUser>(`${environment.apiUrl}/me`).pipe(tap(u => {
-      if (u) localStorage.setItem(this.USER_KEY, JSON.stringify(u));
+      if (u) lsSet(this.USER_KEY, JSON.stringify(u));
     }));
   }
 
-  getToken(): string | null { return localStorage.getItem(this.KEY); }
+  getToken(): string | null { return lsGet(this.KEY); }
 
   getUser(): AuthUser | null {
-    const raw = localStorage.getItem(this.USER_KEY);
+    const raw = lsGet(this.USER_KEY);
     if (!raw) return null;
     try { return JSON.parse(raw); }
-    catch { localStorage.removeItem(this.USER_KEY); return null; }
+    catch { lsRemove(this.USER_KEY); return null; }
   }
 
   getTenant(): string | null { return this.getUser()?.tenant ?? null; }

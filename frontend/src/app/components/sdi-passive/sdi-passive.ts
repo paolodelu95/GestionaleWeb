@@ -90,9 +90,9 @@ interface Ricevuta {
         }
         <p class="config-note">
           <mat-icon>info_outline</mat-icon>
-          Per scaricare automaticamente le fatture passive serve un intermediario SDI configurato
+          <span class="config-note__text">Per scaricare automaticamente le fatture passive serve un intermediario SDI configurato
           (es. Aruba: variabili <code>ARUBA_USER</code> / <code>ARUBA_PASS</code>). In assenza di
-          credenziali puoi comunque <b>importare il singolo XML</b> ricevuto dal tuo intermediario.
+          credenziali puoi comunque <b>importare il singolo XML</b> ricevuto dal tuo intermediario.</span>
         </p>
       </div>
 
@@ -161,7 +161,8 @@ interface Ricevuta {
     .poll-result .hint { font-size: 12px; font-weight: 400; margin-top: 2px; opacity: 0.9; }
     .config-note { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-tertiary, #64748b); margin: 12px 0 0; line-height: 1.5; }
     .config-note mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
-    .config-note code { background: var(--bg-surface-2, #f1f5f9); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+    .config-note__text { min-width: 0; flex: 1 1 auto; }
+    .config-note code { background: var(--bg-surface-2, #f1f5f9); padding: 1px 5px; border-radius: 4px; font-size: 11px; overflow-wrap: anywhere; word-break: break-word; }
     .card-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .empty { text-align: center; padding: 32px 16px; color: var(--text-tertiary, #94a3b8); }
     .empty mat-icon { font-size: 40px; width: 40px; height: 40px; opacity: 0.5; }

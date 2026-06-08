@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { lsGet, lsSet } from '../utils/safe-storage';
 
 export type NavLayout = 'side' | 'floating';
 
@@ -15,12 +16,12 @@ export class LayoutService {
   readonly navLayout = signal<NavLayout>(this.read());
 
   private read(): NavLayout {
-    return localStorage.getItem(this.KEY) === 'side' ? 'side' : 'floating';
+    return lsGet(this.KEY) === 'side' ? 'side' : 'floating';
   }
 
   setNavLayout(v: NavLayout) {
     const norm: NavLayout = v === 'side' ? 'side' : 'floating';
-    localStorage.setItem(this.KEY, norm);
+    lsSet(this.KEY, norm);
     this.navLayout.set(norm);
   }
 }
