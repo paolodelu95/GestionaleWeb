@@ -444,12 +444,18 @@
   gap: 8px;
 
   // Data odierna: centrata rispetto allo schermo (la topbar occupa tutta la
-  // larghezza). pointer-events:none così non intercetta i click sotto di sé.
+  // larghezza). Centratura orizzontale con left:50% + translateX; verticale
+  // occupando tutta l'altezza con flex (più robusta di top:50%+translateY).
+  // pointer-events:none così non intercetta i click sotto di sé.
   .topbar-date {
     position: absolute;
     left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    bottom: 0;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    z-index: 1;
     font-size: 13px;
     font-weight: 600;
     color: var(--text-secondary);

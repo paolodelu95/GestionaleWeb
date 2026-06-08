@@ -92,6 +92,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   // ── Barra superiore: priority-nav ("⋯ Altro") ───────────────────────────────
   /** Quante voci mostrare in barra; le restanti finiscono nel menu "Altro". */
   navMaxVisible = 99;
+  /** Larghezze reali (px) delle voci dock, misurate quando sono tutte renderizzate. */
+  private navItemWidths: number[] = [];
   private navLastTotal = -1;
   private navRecomputePending = false;
   private navRO?: ResizeObserver;
@@ -441,9 +443,11 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Calcola quante voci entrano in UNA riga; le altre vanno nel menu "Altro".
-   * Su mobile i bottoni sono a sola icona (larghezza uniforme), quindi basta
-   * misurarne uno. Niente scroll, niente righe multiple: una riga + "⋯".
+   * Decide quante voci mostrare in barra (le altre vanno nel menu "Altro"),
+   * sommando le larghezze REALI di ogni voce — così entra il massimo possibile
+   * senza tagliare nulla. Le larghezze (che dipendono dall'etichetta, non dallo
+   * spazio) le misuro/cachenano quando sono tutte renderizzate (navMaxVisible
+   * alto al primo giro), poi riuso la cache anche quando alcune sono in overflow.
    */
   computeNavOverflow() {
     if (this.layout.navLayout() !== 'floating') return;
@@ -456,32 +460,51 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
     const style = getComputedStyle(el);
     const gap = parseFloat(style.columnGap || style.gap) || 2;
-    // Larghezza voce: uso la PIÙ larga tra quelle visibili (le etichette desktop
-    // hanno lunghezze diverse), così non sottostimo e non taglio l'ultima voce.
-    const itemW = Math.max(...items.map(i => i.offsetWidth)) + gap;
-    // Capienza reale del dock: NON uso el.clientWidth perché il dock-inner fa
-    // shrink-to-fit (width:max-content), quindi da "pieno" è già tagliato da
-    // overflow:hidden e da "vuoto" misurerebbe troppo poco. Prendo il MINORE tra
-    // il max-width risolto e lo spazio utile del contenitore padre (.dock), meno
-    // il padding interno. Così non dipende dalla larghezza istantanea della barra.
-    let cap = parseFloat(style.maxWidth);
+    // Cache delle larghezze per voce: valida solo quando sono TUTTE renderizzate.
+    if (items.length === total) {
+      this.navItemWidths = items.map(i => i.offsetWidth);
+    } else if (this.navItemWidths.length !== total) {
+      // Cache non valida e non tutte in DOM (es. dopo un cambio di moduli): forzo
+      // il render di tutte e ricalcolo al giro successivo.
+      this.navMaxVisible = 99;
+      return;
+    }
+    const widths = this.navItemWidths;
+
+    // Capienza (border-box) disponibile per il dock-inner:
+    // - lo spazio utile del contenitore padre (.dock), sempre affidabile;
+    // - eventuale max-width ASSOLUTO in px (NON percentuali: "100%" non è 100px!);
+    // - se la barra è già in overflow, il suo clientWidth È il cap reale.
+    let capBox = Infinity;
     const parent = el.parentElement;
     if (parent) {
       const ps = getComputedStyle(parent);
-      const parentInner = parent.clientWidth
-        - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight);
-      cap = Number.isFinite(cap) ? Math.min(cap, parentInner) : parentInner;
+      capBox = parent.clientWidth - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight);
     }
-    if (!Number.isFinite(cap)) cap = el.clientWidth;
-    const containerW = cap - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    if (itemW <= 0 || containerW <= 0) return;
+    if (style.maxWidth.endsWith('px')) {
+      const px = parseFloat(style.maxWidth);
+      if (px > 0) capBox = Math.min(capBox, px);
+    }
+    if (el.scrollWidth > el.clientWidth + 1) capBox = Math.min(capBox, el.clientWidth);
+    if (!Number.isFinite(capBox)) capBox = el.clientWidth;
+    const avail = capBox - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    if (avail <= 0 || !widths.length) return;
 
+    // Tutte entrano? Niente "Altro".
+    const sumAll = widths.reduce((s, w) => s + w, 0) + gap * (total - 1);
     let next: number;
-    if (total * itemW <= containerW) {
-      next = total;                                   // entrano tutte: niente "Altro"
+    if (sumAll <= avail) {
+      next = total;
     } else {
-      const moreW = itemW;                            // spazio per il bottone "⋯"
-      next = Math.max(1, Math.floor((containerW - moreW) / itemW));
+      // Riservo lo spazio del bottone "Altro" (≈ una voce) e impacchetto dalla prima.
+      const budget = avail - ((widths[0] || 56) + gap);
+      let used = 0;
+      next = 0;
+      for (let i = 0; i < total; i++) {
+        used += widths[i] + (i > 0 ? gap : 0);
+        if (used <= budget) next = i + 1; else break;
+      }
+      next = Math.max(1, next);
     }
     if (next !== this.navMaxVisible) this.navMaxVisible = next;
   }
