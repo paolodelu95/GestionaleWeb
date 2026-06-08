@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { XMLValidator, XMLParser } = require('fast-xml-parser');
+const { calcolaTotaliFiscali, fiscFromRow } = require('../utils/fiscale');
 
 // ── helpers di validazione ────────────────────────────────────────────────────
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -242,6 +243,58 @@ router.get('/:id', (req, res) => {
   }
 });
 
+// ── Note di credito elettroniche (TD04) ──────────────────────────────────────
+// GET /nota-credito/:id — scarica l'XML TD04
+router.get('/nota-credito/:id', (req, res) => {
+  try {
+    const nc = db.prepare('SELECT numero FROM note_credito WHERE id=?').get(req.params.id);
+    if (!nc) return res.status(404).json({ error: 'Not found' });
+    const xml = buildFatturaPA(req.params.id, { source: 'nota' });
+    const safeName = String(nc.numero).replace(/[^A-Za-z0-9_\-]/g, '_');
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="NotaCredito_${safeName}.xml"`);
+    res.send(xml);
+  } catch (e) {
+    console.error('NotaCredito XML error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /nota-credito/:id/invia-sdi — invia la nota di credito TD04 all'API SDI configurata
+router.post('/nota-credito/:id/invia-sdi', async (req, res) => {
+  const az = db.prepare('SELECT * FROM azienda WHERE id=1').get();
+  if (!az?.sdi_api_url || !az?.sdi_api_key)
+    return res.status(400).json({ error: 'API SDI non configurata. Vai in Impostazioni → SDI.' });
+  try {
+    const nc = db.prepare('SELECT numero FROM note_credito WHERE id=?').get(req.params.id);
+    if (!nc) return res.status(404).json({ error: 'Nota di credito non trovata' });
+    const xml = buildFatturaPA(req.params.id, { source: 'nota' });
+    const pIva = String(az.p_iva || '').replace(/^IT/i, '').replace(/\s/g, '');
+    const safeName = String(nc.numero).replace(/[^A-Za-z0-9_\-]/g, '_');
+    const response = await fetch(az.sdi_api_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Authorization': `Bearer ${az.sdi_api_key}`,
+        'X-Filename': `IT${pIva}_${safeName}.xml`,
+      },
+      body: xml,
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(502).json({ error: `Errore API SDI: ${errText}` });
+    }
+    const data = await response.json().catch(() => ({}));
+    const idTrasmissione = data.id || data.identifier || data.progressivo || String(Date.now());
+    db.prepare(`UPDATE note_credito SET stato_sdi='INVIATA', data_invio_sdi=?, id_trasmissione_sdi=? WHERE id=?`)
+      .run(new Date().toISOString().split('T')[0], idTrasmissione, req.params.id);
+    res.json({ ok: true, idTrasmissione });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function esc(s) {
@@ -320,26 +373,48 @@ function resolveEsigibilita(isSplitPayment, codiceIva) {
 
 // ── builder ──────────────────────────────────────────────────────────────────
 
-function buildFatturaPA(id) {
+function buildFatturaPA(id, opts = {}) {
+  const isNota = opts.source === 'nota';     // nota di credito → TD04
   const az = db.prepare('SELECT * FROM azienda WHERE id=1').get() || {};
-  const row = db.prepare(`
-    SELECT f.*, c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap,
-           c.citta as c_citta, c.provincia as c_provincia, c.stato as c_stato,
-           c.p_iva as c_piva, c.codice_fiscale as c_cf,
-           c.sdi as c_sdi, c.pec as c_pec,
-           c.tipo_soggetto as c_tipo_soggetto,
-           c.cig as c_cig, c.cup as c_cup,
-           tp.nome as tp_nome, tp.giorni_scadenza as tp_giorni,
-           tp.fine_mese as tp_fine_mese, tp.immediato as tp_immediato
-    FROM fatture f
-    LEFT JOIN clienti c ON f.cliente_id = c.id
-    LEFT JOIN tipi_pagamento tp ON f.tipo_pagamento_id = tp.id
-    WHERE f.id=?
-  `).get(id);
-  if (!row) throw new Error('Fattura non trovata');
-
-  const righe = db.prepare('SELECT * FROM fatture_righe WHERE fattura_id=? ORDER BY id').all(id);
-  const riferimenti = db.prepare('SELECT * FROM fatture_riferimenti WHERE fattura_id=? ORDER BY ordine, id').all(id);
+  let row, righe, riferimenti;
+  if (isNota) {
+    row = db.prepare(`
+      SELECT n.*, c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap,
+             c.citta as c_citta, c.provincia as c_provincia, c.stato as c_stato,
+             c.p_iva as c_piva, c.codice_fiscale as c_cf,
+             c.sdi as c_sdi, c.pec as c_pec, c.tipo_soggetto as c_tipo_soggetto,
+             c.cig as c_cig, c.cup as c_cup,
+             f.numero as coll_numero, f.data_emissione as coll_data
+      FROM note_credito n
+      LEFT JOIN clienti c ON n.cliente_id = c.id
+      LEFT JOIN fatture f ON n.fattura_id = f.id
+      WHERE n.id=?
+    `).get(id);
+    if (!row) throw new Error('Nota di credito non trovata');
+    righe = db.prepare('SELECT * FROM note_credito_righe WHERE nota_credito_id=? ORDER BY id').all(id);
+    // La fattura collegata diventa un riferimento DatiFattureCollegate.
+    riferimenti = row.coll_numero
+      ? [{ tipo: 'FATTURA_COLLEGATA', numero: row.coll_numero, data: row.coll_data }]
+      : [];
+  } else {
+    row = db.prepare(`
+      SELECT f.*, c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap,
+             c.citta as c_citta, c.provincia as c_provincia, c.stato as c_stato,
+             c.p_iva as c_piva, c.codice_fiscale as c_cf,
+             c.sdi as c_sdi, c.pec as c_pec,
+             c.tipo_soggetto as c_tipo_soggetto,
+             c.cig as c_cig, c.cup as c_cup,
+             tp.nome as tp_nome, tp.giorni_scadenza as tp_giorni,
+             tp.fine_mese as tp_fine_mese, tp.immediato as tp_immediato
+      FROM fatture f
+      LEFT JOIN clienti c ON f.cliente_id = c.id
+      LEFT JOIN tipi_pagamento tp ON f.tipo_pagamento_id = tp.id
+      WHERE f.id=?
+    `).get(id);
+    if (!row) throw new Error('Fattura non trovata');
+    righe = db.prepare('SELECT * FROM fatture_righe WHERE fattura_id=? ORDER BY id').all(id);
+    riferimenti = db.prepare('SELECT * FROM fatture_riferimenti WHERE fattura_id=? ORDER BY ordine, id').all(id);
+  }
 
   const isPA = row.c_tipo_soggetto === 'PA' || detectFormato(row.c_sdi).formato === 'FPA12';
   // CIG/CUP: prima guarda la fattura, poi il cliente
@@ -360,7 +435,48 @@ function buildFatturaPA(id) {
     ivaMap[key].iva += base * aliq / 100;
   }
 
-  const totale = Object.values(ivaMap).reduce((s, v) => s + v.imp + v.iva, 0);
+  // ── Calcoli fiscali (ritenuta d'acconto / cassa previdenziale / bollo) ─────
+  const fisc = fiscFromRow(row);
+  const tot = calcolaTotaliFiscali(righe, fisc);
+
+  // La cassa previdenziale concorre alla base IVA: la sommo al riepilogo del
+  // gruppo con la sua stessa AliquotaIVA (creandolo se non esiste già).
+  if (tot.cassaImporto > 0) {
+    const aliq = Number(fisc.cassaIva) || 0;
+    const natura = resolveNatura('', aliq);
+    const esig = resolveEsigibilita(isPA && aliq > 0, '');
+    const key = `${aliq}|${natura ?? ''}|${esig}`;
+    if (!ivaMap[key]) ivaMap[key] = { aliq, natura, esig, imp: 0, iva: 0 };
+    ivaMap[key].imp += tot.cassaImporto;
+    ivaMap[key].iva += tot.ivaCassa;
+  }
+
+  const totale = tot.totale;
+
+  // Blocchi fiscali, nell'ordine imposto da SDI dentro DatiGeneraliDocumento:
+  // DatiRitenuta* → DatiBollo? → DatiCassaPrevidenziale* (prima di ImportoTotaleDocumento).
+  const ritenutaBlock = tot.ritenutaImporto > 0 ? `
+        <DatiRitenuta>
+          <TipoRitenuta>${esc(fisc.ritenutaTipo || 'RT02')}</TipoRitenuta>
+          <ImportoRitenuta>${fmt2(tot.ritenutaImporto)}</ImportoRitenuta>
+          <AliquotaRitenuta>${fmt2(fisc.ritenutaAliquota)}</AliquotaRitenuta>
+          <CausalePagamento>${esc(fisc.ritenutaCausale || 'A')}</CausalePagamento>
+        </DatiRitenuta>` : '';
+  const bolloBlock = tot.bolloImporto > 0 ? `
+        <DatiBollo>
+          <BolloVirtuale>SI</BolloVirtuale>
+          <ImportoBollo>${fmt2(tot.bolloImporto)}</ImportoBollo>
+        </DatiBollo>` : '';
+  const cassaNatura = resolveNatura('', Number(fisc.cassaIva) || 0);
+  const cassaBlock = tot.cassaImporto > 0 ? `
+        <DatiCassaPrevidenziale>
+          <TipoCassa>${esc(fisc.cassaTipo || 'TC22')}</TipoCassa>
+          <AlCassa>${fmt2(fisc.cassaAliquota)}</AlCassa>
+          <ImportoContributoCassa>${fmt2(tot.cassaImporto)}</ImportoContributoCassa>
+          <ImponibileCassa>${fmt2(tot.imponibile)}</ImponibileCassa>
+          <AliquotaIVA>${fmt2(fisc.cassaIva)}</AliquotaIVA>${cassaNatura ? `\n          <Natura>${esc(cassaNatura)}</Natura>` : ''}
+        </DatiCassaPrevidenziale>` : '';
+  const fiscaliBlock = `${ritenutaBlock}${bolloBlock}${cassaBlock}`;
 
   const pIvaAz = cleanPIva(az.p_iva || '00000000000');
   const { formato, codice: codDest } = detectFormato(row.c_sdi);
@@ -368,8 +484,8 @@ function buildFatturaPA(id) {
   const progressivo = sanitizeProgressivo(row.numero);
   const scadenza = calcScadenza(row.data_emissione, row.tp_giorni || 0, row.tp_fine_mese || 0);
 
-  // Tipo documento: TD01 fattura, TD04 nota credito (non usato qui ma per completezza)
-  const tipoDoc = 'TD01';
+  // Tipo documento: TD01 fattura, TD04 nota di credito
+  const tipoDoc = isNota ? 'TD04' : 'TD01';
 
   // ── Blocchi opzionali cedente
   const cfAzBlock = az.cod_fiscale && az.cod_fiscale !== az.p_iva
@@ -436,7 +552,7 @@ function buildFatturaPA(id) {
       <DettaglioPagamento>
         <ModalitaPagamento>${mapModalita(row.tp_nome)}</ModalitaPagamento>
         <DataScadenzaPagamento>${scadenza}</DataScadenzaPagamento>
-        <ImportoPagamento>${fmt2(totale)}</ImportoPagamento>
+        <ImportoPagamento>${fmt2(tot.nettoAPagare)}</ImportoPagamento>
       </DettaglioPagamento>
     </DatiPagamento>` : '';
 
@@ -514,7 +630,7 @@ function buildFatturaPA(id) {
         <TipoDocumento>${tipoDoc}</TipoDocumento>
         <Divisa>EUR</Divisa>
         <Data>${fmtDate(row.data_emissione)}</Data>
-        <Numero>${esc(row.numero)}</Numero>
+        <Numero>${esc(row.numero)}</Numero>${fiscaliBlock}
         <ImportoTotaleDocumento>${fmt2(totale)}</ImportoTotaleDocumento>${cigBlock}${cupBlock}${causaleBlocks(row.note)}
       </DatiGeneraliDocumento>${riferimentiXml ? '\n' + riferimentiXml : ''}
     </DatiGenerali>

@@ -21,7 +21,9 @@ router.put('/', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
     riordino_automatico=?, multi_utente_attivo=?,
     numerazione_annuale=?, numero_prefissi=?,
     template_config=?, notifiche_config=?, email_corpo_documento=?, email_mode=?,
-    lock_documenti_default=?
+    lock_documenti_default=?,
+    regime_fiscale=?, ritenuta_aliquota_default=?, ritenuta_causale_default=?, ritenuta_tipo_default=?,
+    cassa_tipo_default=?, cassa_aliquota_default=?, cassa_iva_default=?
     WHERE id=1`)
     .run(a.ragioneSociale, a.indirizzo, a.cap, a.citta, a.provincia, a.stato,
          a.pIva, a.codFiscale, a.email, a.telefono, a.pec, a.sdi, a.banca, a.iban, a.logo || '',
@@ -33,7 +35,10 @@ router.put('/', requireRole('SUPERADMIN', 'OWNER', 'ADMIN'), (req, res) => {
          a.notificheConfig ? JSON.stringify(a.notificheConfig) : null,
          a.emailCorpoDocumento ?? null,
          ['SMTP','MAILTO','WEBMAIL_GMAIL','WEBMAIL_OUTLOOK'].includes(a.emailMode) ? a.emailMode : 'SMTP',
-         a.lockDocumentiDefault === false ? 0 : 1);
+         a.lockDocumentiDefault === false ? 0 : 1,
+         a.regimeFiscale || 'RF01', Number(a.ritenutaAliquotaDefault) || 0, a.ritenutaCausaleDefault || '',
+         a.ritenutaTipoDefault || 'RT02', a.cassaTipoDefault || '', Number(a.cassaAliquotaDefault) || 0,
+         Number(a.cassaIvaDefault) || 0);
   res.json({ success: true });
 });
 
@@ -59,6 +64,13 @@ function toDto(r, includeSecrets = false) {
     emailCorpoDocumento: r.email_corpo_documento || '',
     emailMode: ['SMTP','MAILTO','WEBMAIL_GMAIL','WEBMAIL_OUTLOOK'].includes(r.email_mode) ? r.email_mode : 'SMTP',
     lockDocumentiDefault: (r.lock_documenti_default ?? 1) !== 0,
+    regimeFiscale: r.regime_fiscale || 'RF01',
+    ritenutaAliquotaDefault: r.ritenuta_aliquota_default || 0,
+    ritenutaCausaleDefault: r.ritenuta_causale_default || '',
+    ritenutaTipoDefault: r.ritenuta_tipo_default || 'RT02',
+    cassaTipoDefault: r.cassa_tipo_default || '',
+    cassaAliquotaDefault: r.cassa_aliquota_default || 0,
+    cassaIvaDefault: r.cassa_iva_default || 0,
   };
 }
 

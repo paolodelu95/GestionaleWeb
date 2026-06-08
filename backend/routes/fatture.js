@@ -3,6 +3,18 @@ const router = express.Router();
 const db = require('../database');
 const { getNextNumero } = require('../utils/nextNumero');
 const { audit } = require('../utils/audit');
+const { calcolaTotaliFiscali, fiscFromRow } = require('../utils/fiscale');
+
+// Colonne e valori dei campi fiscali (ritenuta / cassa / bollo) per INSERT/UPDATE.
+const FISC_COLS = ['ritenuta_aliquota', 'ritenuta_causale', 'ritenuta_tipo', 'ritenuta_su_cassa',
+  'cassa_tipo', 'cassa_aliquota', 'cassa_iva', 'bollo'];
+function fiscValues(f) {
+  return [
+    Number(f.ritenutaAliquota) || 0, f.ritenutaCausale || '', f.ritenutaTipo || '',
+    f.ritenutaSuCassa ? 1 : 0, f.cassaTipo || '', Number(f.cassaAliquota) || 0,
+    Number(f.cassaIva) || 0, f.bollo ? 1 : 0,
+  ];
+}
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -78,9 +90,9 @@ router.get('/:id', (req, res) => {
 });
 
 const createFatturaTxBody = (f, ddtIds) => {
-  const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
-    VALUES (?,?,?,?,?,?,?)`)
-    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'EMESSA', f.tipoPagamentoId || null);
+  const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id, ${FISC_COLS.join(', ')})
+    VALUES (?,?,?,?,?,?,?,${FISC_COLS.map(() => '?').join(',')})`)
+    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato || 'EMESSA', f.tipoPagamentoId || null, ...fiscValues(f));
   const fatturaId = result.lastInsertRowid;
   if (f.righe?.length) {
     saveRighe(fatturaId, f.righe);
@@ -125,8 +137,8 @@ const updateFatturaTxBody = (id, f, ddtIds) => {
       documentoNumero: oldF?.numero || '', clienteId: oldF?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || ''
     });
   }
-  db.prepare(`UPDATE fatture SET numero=?, data_emissione=?, cliente_id=?, ddt_id=?, note=?, stato=?, tipo_pagamento_id=? WHERE id=?`)
-    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato, f.tipoPagamentoId || null, id);
+  db.prepare(`UPDATE fatture SET numero=?, data_emissione=?, cliente_id=?, ddt_id=?, note=?, stato=?, tipo_pagamento_id=?, ${FISC_COLS.map(c => c + '=?').join(', ')} WHERE id=?`)
+    .run(f.numero, f.dataEmissione, f.clienteId || null, ddtIds[0] || null, f.note, f.stato, f.tipoPagamentoId || null, ...fiscValues(f), id);
   db.prepare('DELETE FROM fatture_righe WHERE fattura_id=?').run(id);
   if (f.righe?.length) {
     saveRighe(id, f.righe);
@@ -278,13 +290,22 @@ function getRiferimenti(fatturaId) {
 }
 
 function toDto(r) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t FROM fatture_righe WHERE fattura_id=?`).get(r.id)?.t || 0;
-  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM fatture_righe WHERE fattura_id=?`).get(r.id)?.t || 0;
+  const righe = db.prepare('SELECT quantita, prezzo, sconto, iva FROM fatture_righe WHERE fattura_id=?').all(r.id);
+  const fisc = fiscFromRow(r);
+  const t = calcolaTotaliFiscali(righe, fisc);
   return {
     id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
-    ddtId: r.ddt_id, note: r.note, stato: r.stato, totale, imponibile,
+    ddtId: r.ddt_id, note: r.note, stato: r.stato,
+    imponibile: t.imponibile, totale: t.totale,
     tipoPagamentoId: r.tipo_pagamento_id,
+    // Parametri fiscali (per il form) + importi calcolati (per stampa/elenco)
+    ritenutaAliquota: fisc.ritenutaAliquota, ritenutaCausale: fisc.ritenutaCausale,
+    ritenutaTipo: fisc.ritenutaTipo, ritenutaSuCassa: fisc.ritenutaSuCassa,
+    cassaTipo: fisc.cassaTipo, cassaAliquota: fisc.cassaAliquota, cassaIva: fisc.cassaIva,
+    bollo: fisc.bollo,
+    cassaImporto: t.cassaImporto, iva: t.iva, ritenutaImporto: t.ritenutaImporto,
+    bolloImporto: t.bolloImporto, nettoAPagare: t.nettoAPagare,
     statoSdi: r.stato_sdi || '', dataInvioSdi: r.data_invio_sdi || '',
     idTrasmissioneSdi: r.id_trasmissione_sdi || ''
   };
@@ -365,8 +386,9 @@ function creaPagamentoImmediato(fatturaId) {
   if (!fattura?.tipo_pagamento_id) return;
   const tp = db.prepare('SELECT * FROM tipi_pagamento WHERE id=?').get(fattura.tipo_pagamento_id);
   if (tp?.immediato !== 1) return;
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100.0) * (1 + COALESCE(iva,0)/100.0)), 0) as t
-    FROM fatture_righe WHERE fattura_id=?`).get(fatturaId)?.t || 0;
+  // Si incassa il NETTO A PAGARE (totale documento meno l'eventuale ritenuta d'acconto).
+  const righe = db.prepare('SELECT quantita, prezzo, sconto, iva FROM fatture_righe WHERE fattura_id=?').all(fatturaId);
+  const totale = calcolaTotaliFiscali(righe, fiscFromRow(fattura)).nettoAPagare;
   if (totale <= 0) return;
   db.prepare(`INSERT INTO pagamenti (fattura_id, data_pagamento, importo, metodo, note, tipo, tipo_pagamento_id, conto)
     VALUES (?,?,?,?,?,?,?,?)`)

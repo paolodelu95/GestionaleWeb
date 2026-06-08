@@ -2,6 +2,17 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { audit } = require('../utils/audit');
+const { calcolaTotaliFiscali, fiscFromRow } = require('../utils/fiscale');
+
+const FISC_COLS = ['ritenuta_aliquota', 'ritenuta_causale', 'ritenuta_tipo', 'ritenuta_su_cassa',
+  'cassa_tipo', 'cassa_aliquota', 'cassa_iva', 'bollo'];
+function fiscValues(n) {
+  return [
+    Number(n.ritenutaAliquota) || 0, n.ritenutaCausale || '', n.ritenutaTipo || '',
+    n.ritenutaSuCassa ? 1 : 0, n.cassaTipo || '', Number(n.cassaAliquota) || 0,
+    Number(n.cassaIva) || 0, n.bollo ? 1 : 0,
+  ];
+}
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`SELECT n.*, c.ragione_sociale as cliente_nome
@@ -54,9 +65,9 @@ router.post('/', (req, res) => {
   if (dup) return res.status(409).json({ error: `Il numero ${n.numero} è già utilizzato da un altro documento` });
   try {
     const id = db.transaction(() => {
-      const result = db.prepare(`INSERT INTO note_credito (numero, data_emissione, cliente_id, fattura_id, note, stato)
-        VALUES (?,?,?,?,?,?)`)
-        .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato || 'EMESSA');
+      const result = db.prepare(`INSERT INTO note_credito (numero, data_emissione, cliente_id, fattura_id, note, stato, ${FISC_COLS.join(', ')})
+        VALUES (?,?,?,?,?,?,${FISC_COLS.map(() => '?').join(',')})`)
+        .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato || 'EMESSA', ...fiscValues(n));
       const id = result.lastInsertRowid;
       if (n.righe?.length) {
         saveRighe(id, n.righe);
@@ -97,8 +108,8 @@ router.put('/:id', (req, res) => {
           clienteId: oldNC?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || '',
         });
       }
-      db.prepare(`UPDATE note_credito SET numero=?, data_emissione=?, cliente_id=?, fattura_id=?, note=?, stato=? WHERE id=?`)
-        .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato, req.params.id);
+      db.prepare(`UPDATE note_credito SET numero=?, data_emissione=?, cliente_id=?, fattura_id=?, note=?, stato=?, ${FISC_COLS.map(c => c + '=?').join(', ')} WHERE id=?`)
+        .run(n.numero, n.dataEmissione, n.clienteId || null, n.fatturaId || null, n.note, n.stato, ...fiscValues(n), req.params.id);
       db.prepare('DELETE FROM note_credito_righe WHERE nota_credito_id=?').run(req.params.id);
       if (n.righe?.length) {
         saveRighe(req.params.id, n.righe);
@@ -186,11 +197,19 @@ function ricalcolaStatoFattura(fatturaId) {
 }
 
 function toDto(r) {
-  const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t FROM note_credito_righe WHERE nota_credito_id=?`).get(r.id)?.t || 0;
-  const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM note_credito_righe WHERE nota_credito_id=?`).get(r.id)?.t || 0;
+  const righe = db.prepare('SELECT quantita, prezzo, sconto, iva FROM note_credito_righe WHERE nota_credito_id=?').all(r.id);
+  const fisc = fiscFromRow(r);
+  const t = calcolaTotaliFiscali(righe, fisc);
   return { id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
-    fatturaId: r.fattura_id, note: r.note, stato: r.stato, totale, imponibile };
+    fatturaId: r.fattura_id, note: r.note, stato: r.stato,
+    imponibile: t.imponibile, totale: t.totale,
+    ritenutaAliquota: fisc.ritenutaAliquota, ritenutaCausale: fisc.ritenutaCausale,
+    ritenutaTipo: fisc.ritenutaTipo, ritenutaSuCassa: fisc.ritenutaSuCassa,
+    cassaTipo: fisc.cassaTipo, cassaAliquota: fisc.cassaAliquota, cassaIva: fisc.cassaIva,
+    bollo: fisc.bollo,
+    cassaImporto: t.cassaImporto, iva: t.iva, ritenutaImporto: t.ritenutaImporto,
+    bolloImporto: t.bolloImporto, nettoAPagare: t.nettoAPagare };
 }
 
 router.get('/:id/print', (req, res) => {

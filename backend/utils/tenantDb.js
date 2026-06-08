@@ -285,6 +285,13 @@ function initTenantSchema(db) {
     'ALTER TABLE azienda ADD COLUMN pec TEXT DEFAULT ""',
     'ALTER TABLE azienda ADD COLUMN sdi TEXT DEFAULT ""',
     'ALTER TABLE azienda ADD COLUMN regime_fiscale TEXT DEFAULT "RF01"',
+    // Default fiscali precompilati nei nuovi documenti (ritenuta / cassa).
+    'ALTER TABLE azienda ADD COLUMN ritenuta_aliquota_default REAL DEFAULT 0',
+    'ALTER TABLE azienda ADD COLUMN ritenuta_causale_default TEXT DEFAULT ""',
+    'ALTER TABLE azienda ADD COLUMN ritenuta_tipo_default TEXT DEFAULT "RT02"',
+    'ALTER TABLE azienda ADD COLUMN cassa_tipo_default TEXT DEFAULT ""',
+    'ALTER TABLE azienda ADD COLUMN cassa_aliquota_default REAL DEFAULT 0',
+    'ALTER TABLE azienda ADD COLUMN cassa_iva_default REAL DEFAULT 0',
   ];
   for (const sql of aziendaExtras) { try { db.exec(sql); } catch(_) {} }
 
@@ -294,6 +301,27 @@ function initTenantSchema(db) {
     'ALTER TABLE pagamenti ADD COLUMN acquisto_id INTEGER',
     'ALTER TABLE pagamenti ADD COLUMN conto TEXT DEFAULT "BANCA"',
     'ALTER TABLE fatture ADD COLUMN tipo_pagamento_id INTEGER',
+    // Campi fiscali (ritenuta d'acconto / cassa previdenziale / bollo) su fatture e note di credito.
+    'ALTER TABLE fatture ADD COLUMN ritenuta_aliquota REAL DEFAULT 0',
+    'ALTER TABLE fatture ADD COLUMN ritenuta_causale TEXT DEFAULT ""',
+    'ALTER TABLE fatture ADD COLUMN ritenuta_tipo TEXT DEFAULT ""',
+    'ALTER TABLE fatture ADD COLUMN ritenuta_su_cassa INTEGER DEFAULT 0',
+    'ALTER TABLE fatture ADD COLUMN cassa_tipo TEXT DEFAULT ""',
+    'ALTER TABLE fatture ADD COLUMN cassa_aliquota REAL DEFAULT 0',
+    'ALTER TABLE fatture ADD COLUMN cassa_iva REAL DEFAULT 0',
+    'ALTER TABLE fatture ADD COLUMN bollo INTEGER DEFAULT 0',
+    'ALTER TABLE note_credito ADD COLUMN ritenuta_aliquota REAL DEFAULT 0',
+    'ALTER TABLE note_credito ADD COLUMN ritenuta_causale TEXT DEFAULT ""',
+    'ALTER TABLE note_credito ADD COLUMN ritenuta_tipo TEXT DEFAULT ""',
+    'ALTER TABLE note_credito ADD COLUMN ritenuta_su_cassa INTEGER DEFAULT 0',
+    'ALTER TABLE note_credito ADD COLUMN cassa_tipo TEXT DEFAULT ""',
+    'ALTER TABLE note_credito ADD COLUMN cassa_aliquota REAL DEFAULT 0',
+    'ALTER TABLE note_credito ADD COLUMN cassa_iva REAL DEFAULT 0',
+    'ALTER TABLE note_credito ADD COLUMN bollo INTEGER DEFAULT 0',
+    // Stato invio SDI per le note di credito elettroniche (TD04), come per le fatture.
+    'ALTER TABLE note_credito ADD COLUMN stato_sdi TEXT DEFAULT ""',
+    'ALTER TABLE note_credito ADD COLUMN data_invio_sdi TEXT DEFAULT ""',
+    'ALTER TABLE note_credito ADD COLUMN id_trasmissione_sdi TEXT DEFAULT ""',
     'ALTER TABLE ddt_righe ADD COLUMN unita_misura TEXT DEFAULT ""',
     'ALTER TABLE fatture_righe ADD COLUMN unita_misura TEXT DEFAULT ""',
     'ALTER TABLE note_credito_righe ADD COLUMN unita_misura TEXT DEFAULT ""',
