@@ -284,14 +284,32 @@
             @if (overflowHasBadge) { <span class="nav-badge warn nav-badge-dot"></span> }
           </button>
           <mat-menu #altroMenu="matMenu" class="dock-menu">
-            @for (o of overflowFlatNavItems; track o.label) {
-              <a mat-menu-item [routerLink]="o.route" routerLinkActive="active-link" (click)="closeOnMobile()">
-                <mat-icon>{{ o.icon }}</mat-icon>
-                <span>{{ o.label }}</span>
-                @if (o.route === '/pagamenti' && badges.scadenzeScadute > 0) {
-                  <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-                }
-              </a>
+            @for (o of overflowNavItems; track o.label) {
+              @if (!o.children) {
+                <a mat-menu-item [routerLink]="o.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+                  <mat-icon>{{ o.icon }}</mat-icon>
+                  <span>{{ o.label }}</span>
+                  @if (o.route === '/pagamenti' && badges.scadenzeScadute > 0) {
+                    <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
+                  }
+                </a>
+              } @else {
+                <button mat-menu-item type="button" [matMenuTriggerFor]="subMenu">
+                  <mat-icon>{{ o.icon }}</mat-icon>
+                  <span>{{ o.label }}</span>
+                </button>
+                <mat-menu #subMenu="matMenu" class="dock-menu">
+                  @for (c of o.children; track c.label) {
+                    <a mat-menu-item [routerLink]="c.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+                      <mat-icon>{{ c.icon }}</mat-icon>
+                      <span>{{ c.label }}</span>
+                      @if (c.route === '/pagamenti' && badges.scadenzeScadute > 0) {
+                        <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
+                      }
+                    </a>
+                  }
+                </mat-menu>
+              }
             }
           </mat-menu>
         }
