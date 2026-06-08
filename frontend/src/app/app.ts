@@ -645,7 +645,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Abbonamento',  icon: 'credit_card', route: '/billing' },
         { label: 'Aiuto',        icon: 'menu_book', route: '/aiuto' },
         { label: 'Storico',      icon: 'history',  route: '/storico' },
-        { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },
+        // Impostazioni è ora accessibile dall'icona ingranaggio nella topbar (vicino a Esci).
       ]
     },
     // Amministrazione e Console SaaS ora sono schede dentro Impostazioni (gated per ruolo),
