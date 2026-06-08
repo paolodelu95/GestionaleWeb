@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, ElementRef, ViewChild, NgZone } from '@angular/core';
+import { Component, OnInit, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, ElementRef, ViewChild, NgZone, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -135,6 +135,9 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.router.events.subscribe(e => {
       if (e instanceof NavigationEnd) this.updatePublicRoute(e.urlAfterRedirects);
     });
+    // Tema "liquid glass" attivo col layout fluttuante: classe sul <body> così
+    // coprono anche gli overlay (dialog/menu) renderizzati fuori dalla shell.
+    effect(() => document.body.classList.toggle('glass-ui', this.layout.navLayout() === 'floating'));
   }
 
   private updatePublicRoute(url: string) {
@@ -321,12 +324,12 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   // ── Barra superiore: priority-nav ("⋯ Altro") ───────────────────────────────
   /** Voci mostrate direttamente in barra. */
   get priorityNavItems(): NavItem[] {
-    if (this.layout.navLayout() !== 'top') return this.visibleNavItems;
+    if (this.layout.navLayout() !== 'floating') return this.visibleNavItems;
     return this.visibleNavItems.slice(0, this.navMaxVisible);
   }
   /** Voci che non entrano → finiscono nel menu "Altro". */
   get overflowNavItems(): NavItem[] {
-    if (this.layout.navLayout() !== 'top') return [];
+    if (this.layout.navLayout() !== 'floating') return [];
     return this.visibleNavItems.slice(this.navMaxVisible);
   }
   get hasNavOverflow(): boolean { return this.overflowNavItems.length > 0; }
@@ -344,7 +347,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   ngAfterViewChecked() {
     this.syncNavObserver();
-    if (this.layout.navLayout() !== 'top') return;
+    if (this.layout.navLayout() !== 'floating') return;
     // Ricalcola se cambia il numero di voci (login/moduli/ruolo) senza un resize.
     const total = this.visibleNavItems.length;
     if (total !== this.navLastTotal && !this.navRecomputePending) {
@@ -360,7 +363,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   /** Collega il ResizeObserver alla barra solo quando la top-nav è montata. */
   private syncNavObserver() {
-    const el = this.layout.navLayout() === 'top' ? this.topNavEl?.nativeElement : undefined;
+    const el = this.layout.navLayout() === 'floating' ? this.topNavEl?.nativeElement : undefined;
     if (el) {
       if (this.navObservedEl !== el) {
         this.navRO?.disconnect();
@@ -384,7 +387,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
    * misurarne uno. Niente scroll, niente righe multiple: una riga + "⋯".
    */
   computeNavOverflow() {
-    if (this.layout.navLayout() !== 'top') return;
+    if (this.layout.navLayout() !== 'floating') return;
     const el = this.topNavEl?.nativeElement;
     if (!el) return;
     const items = Array.from(el.querySelectorAll<HTMLElement>('.top-nav-item'));
@@ -394,7 +397,13 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
     const gap = 4;
     const itemW = items[0].offsetWidth + gap;
-    const containerW = el.clientWidth;
+    // Capienza disponibile: il dock-inner fa "shrink-to-fit" (width:max-content),
+    // quindi clientWidth riflette le voci ATTUALI, non lo spazio disponibile →
+    // userei una misura che si auto-restringe (loop). Uso quindi il max-width
+    // risolto (px) come capienza reale, ricadendo su clientWidth se non impostato.
+    let containerW = el.clientWidth;
+    const maxW = parseFloat(getComputedStyle(el).maxWidth);
+    if (isFinite(maxW) && maxW > containerW) containerW = maxW;
     if (itemW <= 0 || containerW <= 0) return;
 
     let next: number;

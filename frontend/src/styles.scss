@@ -2243,3 +2243,178 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   a[mat-flat-button], a[mat-stroked-button], a[mat-button] { min-height: 44px !important; }
   .mat-mdc-dialog-actions button.mat-mdc-button-base { min-height: 44px; }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  LIQUID GLASS — tema traslucido (dock fluttuante + superfici vetrose)
+//  Attivo quando body.glass-ui (layout di navigazione "floating").
+// ════════════════════════════════════════════════════════════════════════════
+:root {
+  --glass-bg:      rgba(255, 255, 255, 0.72);
+  --glass-card-bg: rgba(255, 255, 255, 0.80);
+  --glass-hover:   rgba(15, 23, 42, 0.06);
+  --glass-border:  rgba(255, 255, 255, 0.55);
+  --glass-blur:    blur(22px) saturate(180%);
+  --glass-shadow:  0 14px 40px -10px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+.dark-mode {
+  --glass-bg:      rgba(18, 26, 42, 0.62);
+  --glass-card-bg: rgba(22, 30, 48, 0.70);
+  --glass-hover:   rgba(255, 255, 255, 0.08);
+  --glass-border:  rgba(255, 255, 255, 0.10);
+  --glass-shadow:  0 16px 46px -10px rgba(0, 0, 0, 0.62), 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+body.glass-ui {
+  // Sfondo della pagina: mesh morbida così la traslucenza si "legge".
+  .shell--floating {
+    background:
+      radial-gradient(1100px 560px at 100% -8%, rgba(21, 164, 162, 0.13), transparent 60%),
+      radial-gradient(820px 520px at -8% 112%, rgba(17, 118, 155, 0.12), transparent 58%),
+      var(--bg-page);
+  }
+  .content-area { background: transparent; }
+
+  // Topbar traslucida
+  .topbar {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--glass-border) !important;
+    box-shadow: none !important;
+  }
+
+  // Card vetrose con angoli morbidi
+  .card {
+    background: var(--glass-card-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--glass-shadow);
+  }
+  .kpi-card {
+    background: var(--glass-card-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+  }
+}
+
+// Dialog vetrosi (overlay fuori dalla shell → gate su body.glass-ui).
+body.glass-ui {
+  .mat-mdc-dialog-surface {
+    background: var(--glass-card-bg) !important;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-2xl) !important;
+  }
+  .cdk-overlay-dark-backdrop {
+    background: rgba(15, 23, 42, 0.34);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+  }
+  // Menu (dropdown, "Altro" del dock) vetrosi
+  .mat-mdc-menu-panel {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg) !important;
+  }
+}
+
+// I browser che non supportano backdrop-filter ricevono comunque uno sfondo opaco
+// (i token --glass-* sono già semi-trasparenti, ma con un fallback più coprente).
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body.glass-ui {
+    --glass-bg: rgba(255, 255, 255, 0.96);
+    --glass-card-bg: #ffffff;
+  }
+  body.glass-ui.dark-mode {
+    --glass-bg: rgba(18, 26, 42, 0.97);
+    --glass-card-bg: #161e30;
+  }
+}
+
+// ── Layout "floating": dock fluttuante in basso (globale) ─────────────────────
+.shell--floating {
+  .main-content { flex: 1 1 100%; min-width: 0; }
+  .content-area { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+}
+
+.dock {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 1100;
+  display: flex;
+  justify-content: center;
+  padding: 0 14px;
+  pointer-events: none;            // solo il dock-inner è interattivo
+  animation: dock-rise 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dock-inner {
+  pointer-events: auto;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  width: max-content;
+  max-width: min(680px, calc(100vw - 28px));
+  padding: 6px;
+  border-radius: 26px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;                // niente scroll: il priority-nav limita le voci
+}
+.dock-btn {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  min-width: 62px;
+  padding: 8px 12px 6px;
+  border: none; background: transparent;
+  color: var(--text-secondary);
+  border-radius: 18px;
+  font-family: inherit; font-size: 10.5px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: color .15s, background .15s, transform .12s;
+
+  mat-icon { font-size: 23px; width: 23px; height: 23px; }
+  .dock-label { white-space: nowrap; letter-spacing: .01em; line-height: 1; }
+
+  &:hover { color: var(--text-primary); background: var(--glass-hover); }
+  &:active { transform: scale(0.94); }
+  &.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--brand-teal) 100%);
+    box-shadow: 0 8px 18px -5px rgba(17, 118, 155, 0.55);
+  }
+
+  .nav-badge-dot {
+    position: absolute; top: 6px; left: 50%; margin-left: 4px;
+    width: 8px; height: 8px; min-width: 8px; padding: 0;
+    border-radius: 50%; background: var(--warning);
+    border: 2px solid var(--glass-bg);
+  }
+}
+
+// Mobile: dock a tutta larghezza, voci equidistribuite, etichette piccole
+@media (max-width: 767px) {
+  .dock { bottom: calc(8px + env(safe-area-inset-bottom)); padding: 0 8px; }
+  .dock-inner { width: 100%; max-width: 100%; justify-content: space-around; gap: 0; border-radius: 22px; }
+  .dock-btn { min-width: 0; flex: 1 1 0; padding: 7px 2px 5px; gap: 2px; }
+  .dock-btn mat-icon { font-size: 22px; width: 22px; height: 22px; }
+  .dock-btn .dock-label { font-size: 9.5px; }
+  .shell--floating .content-area { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+}
+
+@keyframes dock-rise {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

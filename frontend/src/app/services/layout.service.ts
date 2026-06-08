@@ -1,12 +1,13 @@
 import { Injectable, signal } from '@angular/core';
 
-export type NavLayout = 'side' | 'top';
+export type NavLayout = 'side' | 'floating';
 
 /**
- * Preferenza utente sul layout della navigazione: barra laterale ('side',
- * default, collassabile) oppure barra superiore ('top', con overflow "Altro").
- * Persistita in localStorage e condivisa tra App (rendering) e Impostazioni
- * (selettore). Signal così App reagisce al cambio in tempo reale.
+ * Preferenza utente sul layout della navigazione:
+ *  - 'floating' (default): dock fluttuante traslucido in basso, stile iOS.
+ *  - 'side': barra laterale classica, collassabile.
+ * Persistita in localStorage e condivisa tra App (rendering) e Impostazioni.
+ * I valori legacy ('top') vengono ricondotti a 'floating'.
  */
 @Injectable({ providedIn: 'root' })
 export class LayoutService {
@@ -14,11 +15,12 @@ export class LayoutService {
   readonly navLayout = signal<NavLayout>(this.read());
 
   private read(): NavLayout {
-    return localStorage.getItem(this.KEY) === 'top' ? 'top' : 'side';
+    return localStorage.getItem(this.KEY) === 'side' ? 'side' : 'floating';
   }
 
   setNavLayout(v: NavLayout) {
-    localStorage.setItem(this.KEY, v);
-    this.navLayout.set(v);
+    const norm: NavLayout = v === 'side' ? 'side' : 'floating';
+    localStorage.setItem(this.KEY, norm);
+    this.navLayout.set(norm);
   }
 }

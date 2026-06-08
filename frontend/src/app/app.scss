@@ -999,3 +999,6 @@
   from { transform: translateY(-100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+// NB: gli stili del dock fluttuante e del layout "floating" stanno in styles.scss
+// (globali) per non sforare il budget del foglio di stile di questo componente.
