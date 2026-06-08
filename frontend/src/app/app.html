@@ -36,16 +36,7 @@
           @if (!item.children) {
             <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-              @if (item.route === '/pagamenti') {
-                <span matListItemTitle class="nav-item-with-badge">
-                  Pagamenti
-                  @if (badges.scadenzeScadute > 0) {
-                    <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-                  }
-                </span>
-              } @else {
-                <span matListItemTitle>{{ item.label }}</span>
-              }
+              <span matListItemTitle>{{ item.label }}</span>
             </a>
           } @else {
             <mat-expansion-panel class="sidenav-panel">
@@ -220,9 +211,6 @@
                [matTooltip]="item.label" matTooltipPosition="above" (click)="closeOnMobile()">
               <mat-icon>{{ item.icon }}</mat-icon>
               <span class="dock-label">{{ item.label }}</span>
-              @if (item.route === '/pagamenti' && badges.scadenzeScadute > 0) {
-                <span class="nav-badge warn nav-badge-dot"></span>
-              }
             </a>
           } @else {
             <button class="dock-btn top-nav-item" type="button" [matMenuTriggerFor]="grpMenu"
@@ -244,7 +232,6 @@
           <button class="dock-btn dock-more top-nav-more" type="button" [matMenuTriggerFor]="altroMenu" aria-label="Altre sezioni">
             <mat-icon>apps</mat-icon>
             <span class="dock-label">Altro</span>
-            @if (overflowHasBadge) { <span class="nav-badge warn nav-badge-dot"></span> }
           </button>
           <mat-menu #altroMenu="matMenu" class="dock-menu">
             @for (o of overflowNavItems; track o.label) {
@@ -252,9 +239,6 @@
                 <a mat-menu-item [routerLink]="o.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                   <mat-icon>{{ o.icon }}</mat-icon>
                   <span>{{ o.label }}</span>
-                  @if (o.route === '/pagamenti' && badges.scadenzeScadute > 0) {
-                    <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-                  }
                 </a>
               } @else {
                 <button mat-menu-item type="button" [matMenuTriggerFor]="subMenu">
@@ -266,9 +250,6 @@
                     <a mat-menu-item [routerLink]="c.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                       <mat-icon>{{ c.icon }}</mat-icon>
                       <span>{{ c.label }}</span>
-                      @if (c.route === '/pagamenti' && badges.scadenzeScadute > 0) {
-                        <span class="nav-badge warn">{{ badges.scadenzeScadute }}</span>
-                      }
                     </a>
                   }
                 </mat-menu>
