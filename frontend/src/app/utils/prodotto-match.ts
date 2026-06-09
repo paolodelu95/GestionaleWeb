@@ -26,11 +26,14 @@ export function findProdottoByCodice(prodotti: Prodotto[], query: string): Prodo
   ) ?? null;
 
   // Ricerca "a token": la query viene divisa in pezzi (separati da spazi) e un
-  // prodotto corrisponde se OGNI pezzo è contenuto nel testo cercabile (codice +
-  // barcode + codice fornitore + nome). Così "12 7" trova "SKB 12V 7,2Ah".
+  // prodotto corrisponde se OGNI pezzo è contenuto nel testo cercabile. Così
+  // "12 7" trova "SKB 12V 7,2Ah".
+  // NB: il barcode (EAN, lungo e tutto cifre) è ESCLUSO dal match a token, altrimenti
+  // pezzi numerici corti ("12", "5") combacerebbero con quasi ogni codice a barre,
+  // generando falsi positivi. Il barcode resta usato per il match esatto (scansione).
   const tokens = q.split(/\s+/).filter(Boolean);
   const matches = prodotti.filter(p => {
-    const hay = `${norm(p.codice)} ${norm(p.barcode)} ${norm(p.codiceFornitore)} ${norm(p.nome)}`;
+    const hay = `${norm(p.codice)} ${norm(p.codiceFornitore)} ${norm(p.nome)}`;
     return tokens.every(t => hay.includes(t));
   });
 
