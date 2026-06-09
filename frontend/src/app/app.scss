@@ -434,6 +434,11 @@
 // ── Topbar ────────────────────────────────────────────────────────────────────
 .topbar {
   position: relative;                 // riferimento per la data centrata in assoluto
+  // Con il tema vetro la topbar ha backdrop-filter → diventa un contesto di
+  // impilamento: senza z-index il dropdown delle notifiche/ricerca finiva DIETRO
+  // l'area contenuti (sotto le card) e non era cliccabile. Lo z-index la porta
+  // sopra ai contenuti, restando sotto al drawer mobile (z 1000) e agli overlay.
+  z-index: 50;
   background: var(--bg-surface) !important;
   color: var(--text-primary) !important;
   height: var(--topbar-height);
