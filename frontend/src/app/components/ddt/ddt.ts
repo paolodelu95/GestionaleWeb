@@ -916,7 +916,14 @@ export class DdtComponent implements OnInit, AfterViewInit {
   setStato(d: Ddt, stato: string) {
     this.ds.setDdtStato(d.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
   }
-  bulkSetStato(stato: string) { this.selection.selected.forEach(d => this.ds.setDdtStato(d.id!, stato).subscribe()); this.load(); }
+  bulkSetStato(stato: string) {
+    const ids = this.selection.selected.map(d => d.id!);
+    if (!ids.length) return;
+    forkJoin(ids.map(id => this.ds.setDdtStato(id, stato))).subscribe({
+      next: () => { this.selection.clear(); this.load(); },
+      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
 
   printDoc(d: Ddt) { this.printSvc.printDdt(d.id!); }
 

@@ -717,7 +717,14 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   setStato(n: NotaCredito, stato: string) {
     this.ds.setNotaCreditoStato(n.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
   }
-  bulkSetStato(stato: string) { this.selection.selected.forEach(n => this.ds.setNotaCreditoStato(n.id!, stato).subscribe()); this.load(); }
+  bulkSetStato(stato: string) {
+    const ids = this.selection.selected.map(n => n.id!);
+    if (!ids.length) return;
+    forkJoin(ids.map(id => this.ds.setNotaCreditoStato(id, stato))).subscribe({
+      next: () => { this.selection.clear(); this.load(); },
+      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
 
   open(n?: NotaCredito) {
     const ref = this.dialog.open(NotaCreditoDialogComponent, {

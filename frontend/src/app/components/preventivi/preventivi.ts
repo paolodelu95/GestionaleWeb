@@ -681,7 +681,14 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   setStato(p: Preventivo, stato: string) {
     this.ds.setPreventivoStato(p.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
   }
-  bulkSetStato(stato: string) { this.selection.selected.forEach(p => this.ds.setPreventivoStato(p.id!, stato).subscribe()); this.load(); }
+  bulkSetStato(stato: string) {
+    const ids = this.selection.selected.map(p => p.id!);
+    if (!ids.length) return;
+    forkJoin(ids.map(id => this.ds.setPreventivoStato(id, stato))).subscribe({
+      next: () => { this.selection.clear(); this.load(); },
+      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
 
   open(p?: Preventivo) {
     const ref = this.dialog.open(PreventivoDialogComponent, {

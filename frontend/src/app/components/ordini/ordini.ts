@@ -765,7 +765,14 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   setStato(o: Ordine, stato: string) {
     this.ds.setOrdineStato(o.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
   }
-  bulkSetStato(stato: string) { this.selection.selected.forEach(o => this.ds.setOrdineStato(o.id!, stato).subscribe()); this.load(); }
+  bulkSetStato(stato: string) {
+    const ids = this.selection.selected.map(o => o.id!);
+    if (!ids.length) return;
+    forkJoin(ids.map(id => this.ds.setOrdineStato(id, stato))).subscribe({
+      next: () => { this.selection.clear(); this.load(); },
+      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
 
   open(o?: Ordine) {
     const ref = this.dialog.open(OrdineDialogComponent, {

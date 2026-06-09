@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { audit } = require('../utils/audit');
+const { getNextNumero } = require('../utils/nextNumero');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`SELECT p.*, c.ragione_sociale as cliente_nome
@@ -104,22 +105,29 @@ router.post('/:id/to-ddt', (req, res) => {
   const prev = db.prepare('SELECT * FROM preventivi WHERE id=?').get(req.params.id);
   if (!prev) return res.status(404).json({ error: 'Preventivo non trovato' });
   const righe = getRighe(prev.id);
-  const count = db.prepare('SELECT COUNT(*) as n FROM ddt').get();
-  const numero = String(count.n + 1);
-  const data = new Date().toISOString().split('T')[0];
-  const result = db.prepare(`
-    INSERT INTO ddt (numero, data_emissione, cliente_id, causale, stato, preventivo_id)
-    VALUES (?,?,?,?,?,?)`)
-    .run(numero, data, prev.cliente_id, `Da preventivo n. ${prev.numero}`, 'EMESSO', prev.id);
-  const ddtId = result.lastInsertRowid;
-  const stmt = db.prepare(`INSERT INTO ddt_righe
-    (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
-  for (const r of righe)
-    stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
-             r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
-  db.prepare('UPDATE preventivi SET stato=? WHERE id=?').run('CONFERMATO', prev.id);
-  res.json({ id: ddtId, numero });
+  try {
+    const out = db.transaction(() => {
+      // Numerazione coerente (prefisso/anno) tramite getNextNumero, non COUNT(*)+1.
+      const numero = getNextNumero('ddt', 'ddt');
+      const data = new Date().toISOString().split('T')[0];
+      const result = db.prepare(`
+        INSERT INTO ddt (numero, data_emissione, cliente_id, causale, stato, preventivo_id)
+        VALUES (?,?,?,?,?,?)`)
+        .run(numero, data, prev.cliente_id, `Da preventivo n. ${prev.numero}`, 'EMESSO', prev.id);
+      const ddtId = result.lastInsertRowid;
+      const stmt = db.prepare(`INSERT INTO ddt_righe
+        (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+      for (const r of righe)
+        stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+                 r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+      db.prepare('UPDATE preventivi SET stato=? WHERE id=?').run('CONFERMATO', prev.id);
+      return { id: ddtId, numero };
+    })();
+    res.json(out);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // ── POST /:id/to-ordine – converti preventivo in ordine cliente ───────────────
@@ -127,22 +135,29 @@ router.post('/:id/to-ordine', (req, res) => {
   const prev = db.prepare('SELECT * FROM preventivi WHERE id=?').get(req.params.id);
   if (!prev) return res.status(404).json({ error: 'Preventivo non trovato' });
   const righe = getRighe(prev.id);
-  const count = db.prepare('SELECT COUNT(*) as n FROM ordini').get();
-  const numero = String(count.n + 1);
-  const data = new Date().toISOString().split('T')[0];
-  const result = db.prepare(`
-    INSERT INTO ordini (numero, data_ordine, cliente_id, tipo, stato, note, preventivo_id)
-    VALUES (?,?,?,?,?,?,?)`)
-    .run(numero, data, prev.cliente_id, 'CLIENTE', 'APERTO', `Da preventivo n. ${prev.numero}`, prev.id);
-  const ordineId = result.lastInsertRowid;
-  const stmt = db.prepare(`INSERT INTO ordini_righe
-    (ordine_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
-  for (const r of righe)
-    stmt.run(ordineId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
-             r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
-  db.prepare('UPDATE preventivi SET stato=? WHERE id=?').run('CONFERMATO', prev.id);
-  res.json({ id: ordineId, numero });
+  try {
+    const out = db.transaction(() => {
+      // Numerazione coerente (prefisso/anno) tramite getNextNumero, non COUNT(*)+1.
+      const numero = getNextNumero('ordini', 'ordini');
+      const data = new Date().toISOString().split('T')[0];
+      const result = db.prepare(`
+        INSERT INTO ordini (numero, data_ordine, cliente_id, tipo, stato, note, preventivo_id)
+        VALUES (?,?,?,?,?,?,?)`)
+        .run(numero, data, prev.cliente_id, 'CLIENTE', 'APERTO', `Da preventivo n. ${prev.numero}`, prev.id);
+      const ordineId = result.lastInsertRowid;
+      const stmt = db.prepare(`INSERT INTO ordini_righe
+        (ordine_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+      for (const r of righe)
+        stmt.run(ordineId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+                 r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+      db.prepare('UPDATE preventivi SET stato=? WHERE id=?').run('CONFERMATO', prev.id);
+      return { id: ordineId, numero };
+    })();
+    res.json(out);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;

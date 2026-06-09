@@ -579,7 +579,14 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   setStato(a: Acquisto, stato: string) {
     this.ds.setAcquistoStato(a.id!, stato).subscribe({ next: () => this.load(), error: e => this.snack.open(e.message, '', { duration: 3000 }) });
   }
-  bulkSetStato(stato: string) { this.selection.selected.forEach(a => this.ds.setAcquistoStato(a.id!, stato).subscribe()); this.load(); }
+  bulkSetStato(stato: string) {
+    const ids = this.selection.selected.map(a => a.id!);
+    if (!ids.length) return;
+    forkJoin(ids.map(id => this.ds.setAcquistoStato(id, stato))).subscribe({
+      next: () => { this.selection.clear(); this.load(); },
+      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
 
   open(a?: Acquisto) {
     const ref = this.dialog.open(AcquistoDialogComponent, {

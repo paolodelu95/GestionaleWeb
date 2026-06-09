@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { audit } = require('../utils/audit');
+const { getNextNumero } = require('../utils/nextNumero');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`SELECT o.*, c.ragione_sociale as cliente_nome, f.ragione_sociale as fornitore_nome,
@@ -130,22 +131,30 @@ router.post('/:id/to-ddt', (req, res) => {
   if (!ordine) return res.status(404).json({ error: 'Ordine non trovato' });
   if (ordine.tipo !== 'CLIENTE') return res.status(400).json({ error: 'Solo gli ordini cliente possono essere convertiti in DDT' });
   const righe = getRighe(ordine.id);
-  const count = db.prepare('SELECT COUNT(*) as n FROM ddt').get();
-  const numero = String(count.n + 1);
-  const data = new Date().toISOString().split('T')[0];
-  const result = db.prepare(`
-    INSERT INTO ddt (numero, data_emissione, cliente_id, causale, stato)
-    VALUES (?,?,?,?,?)`)
-    .run(numero, data, ordine.cliente_id, `Da ordine n. ${ordine.numero}`, 'EMESSO');
-  const ddtId = result.lastInsertRowid;
-  const stmt = db.prepare(`INSERT INTO ddt_righe
-    (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
-  for (const r of righe)
-    stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
-             r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
-  db.prepare('UPDATE ordini SET stato=? WHERE id=?').run('EVASO', ordine.id);
-  res.json({ id: ddtId, numero });
+  try {
+    const out = db.transaction(() => {
+      // Numerazione coerente (prefisso/anno) tramite getNextNumero, non COUNT(*)+1
+      // che ignorava i prefissi e poteva collidere dopo le cancellazioni.
+      const numero = getNextNumero('ddt', 'ddt');
+      const data = new Date().toISOString().split('T')[0];
+      const result = db.prepare(`
+        INSERT INTO ddt (numero, data_emissione, cliente_id, causale, stato)
+        VALUES (?,?,?,?,?)`)
+        .run(numero, data, ordine.cliente_id, `Da ordine n. ${ordine.numero}`, 'EMESSO');
+      const ddtId = result.lastInsertRowid;
+      const stmt = db.prepare(`INSERT INTO ddt_righe
+        (ddt_id, prodotto_id, descrizione, quantita, prezzo, sconto, iva, unita_misura, variante_id, variante_taglia, variante_colore)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+      for (const r of righe)
+        stmt.run(ddtId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,
+                 r.sconto ?? 0, r.iva, r.unitaMisura || '', r.varianteId || null, r.varianteTaglia || '', r.varianteColore || '');
+      db.prepare('UPDATE ordini SET stato=? WHERE id=?').run('EVASO', ordine.id);
+      return { id: ddtId, numero };
+    })();
+    res.json(out);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;
