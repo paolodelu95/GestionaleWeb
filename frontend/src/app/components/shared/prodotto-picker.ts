@@ -147,13 +147,14 @@ export class ProdottoPickerComponent implements OnInit {
   }
 
   private applyQuery(list: Prodotto[]): Prodotto[] {
-    const q = this.query.toLowerCase();
-    return list.filter(p =>
-      (p.codice ?? '').toLowerCase().includes(q) ||
-      p.nome.toLowerCase().includes(q) ||
-      (p.categoria ?? '').toLowerCase().includes(q) ||
-      (p.barcode ?? '').toLowerCase().includes(q)
-    );
+    // Ricerca "a token": ogni pezzo della query (separato da spazi) deve essere
+    // contenuto nel testo cercabile. Così "12 7" trova "SKB 12V 7,2Ah".
+    const tokens = this.query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return [...list];
+    return list.filter(p => {
+      const hay = `${p.codice ?? ''} ${p.barcode ?? ''} ${p.codiceFornitore ?? ''} ${p.nome ?? ''} ${p.categoria ?? ''}`.toLowerCase();
+      return tokens.every(t => hay.includes(t));
+    });
   }
 
   select(p: Prodotto) {

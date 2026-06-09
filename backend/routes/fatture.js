@@ -154,6 +154,9 @@ const updateFatturaTxBody = (id, f, ddtIds) => {
   }
   saveDdtLinks(id, ddtIds);
   saveRiferimenti(id, f.riferimenti || []);
+  // Se in modifica viene impostato un metodo immediato (es. POS) e non era ancora
+  // stato registrato, crea ora l'incasso automatico (idempotente).
+  if (!ddtIds.length) creaPagamentoImmediato(id);
   audit('fattura', id, 'UPDATE', { before, after: { numero: f.numero, dataEmissione: f.dataEmissione, clienteId: f.clienteId, stato: f.stato, numRighe: f.righe?.length || 0 } });
 };
 
@@ -367,6 +370,12 @@ function creaPagamentoImmediato(fatturaId) {
   if (!fattura?.tipo_pagamento_id) return;
   const tp = db.prepare('SELECT * FROM tipi_pagamento WHERE id=?').get(fattura.tipo_pagamento_id);
   if (tp?.immediato !== 1) return;
+  // Idempotente: se l'incasso automatico esiste già (es. ri-salvataggio in modifica)
+  // non lo duplichiamo.
+  const esiste = db.prepare(
+    "SELECT 1 FROM pagamenti WHERE fattura_id=? AND tipo='ENTRATA' AND note='Pagamento automatico'"
+  ).get(fatturaId);
+  if (esiste) return;
   // Si incassa il NETTO A PAGARE (totale documento meno l'eventuale ritenuta d'acconto).
   const righe = db.prepare('SELECT quantita, prezzo, sconto, iva FROM fatture_righe WHERE fattura_id=?').all(fatturaId);
   const totale = calcolaTotaliFiscali(righe, fiscFromRow(fattura)).nettoAPagare;

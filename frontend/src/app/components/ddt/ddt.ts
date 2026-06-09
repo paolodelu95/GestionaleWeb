@@ -28,6 +28,7 @@ import { PrintService } from '../../services/print.service';
 import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
+import { scrollFocusLastRiga } from '../../utils/scroll';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
@@ -55,7 +56,7 @@ import { DocLockService } from '../../services/doc-lock.service';
         </div>
         <div class="dialog-hero-text">
           <span class="dialog-hero-title">
-            {{ data?.id ? ('DDT n. ' + (data?.numero || '')) : 'Nuovo DDT' }}
+            {{ data?.id ? ('Documento di trasporto n. ' + (data?.numero || '')) : 'Nuovo documento di trasporto' }}
             @if (data?.id && locked) {
               <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
             }
@@ -742,6 +743,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
     this.prezziRecenti.push([]);
     this.prezziRecentiTutti.push([]);
     this.tuttiCaricati.push(false);
+    scrollFocusLastRiga(this.codiceInputs);
   }
 
   apriCopiaRighe() {
@@ -924,7 +926,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
-          title: `Invia DDT n. ${d.numero}`,
+          title: `Invia documento di trasporto n. ${d.numero}`,
           subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
           destinatario: cliente?.email || '',
           testo: az?.emailCorpoDocumento || '',
@@ -943,7 +945,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
   generaFattura(ddt: Ddt) {
     forkJoin({ full: this.ds.getDdtById(ddt.id!), num: this.ds.getNextNumero('fatture') }).subscribe({
       next: ({ full, num }) => {
-        if (!full) { this.snack.open('DDT non disponibile', 'OK', { duration: 3000, panelClass: 'snack-error' }); return; }
+        if (!full) { this.snack.open('Documento di trasporto non disponibile', 'OK', { duration: 3000, panelClass: 'snack-error' }); return; }
         const pre: Fattura = {
           numero: String(num.numero),
           dataEmissione: new Date().toISOString().substring(0, 10),
@@ -959,7 +961,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
             });
           });
       },
-      error: e => this.snack.open('Errore caricamento DDT: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+      error: e => this.snack.open('Errore caricamento documento di trasporto: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
     });
   }
 

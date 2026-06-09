@@ -946,6 +946,15 @@ function initTenantSchema(db) {
     `);
   } catch(_) {}
 
+  // Allinea il flag "immediato" sui metodi di cassa/POS/anticipato per i tenant
+  // creati prima che il flag fosse seedato a 1 (INSERT OR IGNORE non aggiorna le
+  // righe esistenti). Senza, le fatture pagate subito non venivano registrate come
+  // incassate. Questi metodi sono per natura immediati: l'override è sicuro.
+  try {
+    db.exec(`UPDATE tipi_pagamento SET immediato=1
+             WHERE immediato=0 AND nome IN ('Contanti','POS','Bonifico anticipato')`);
+  } catch(_) {}
+
   try {
     const insTP = db.prepare(`
       INSERT INTO tipi_pagamento (nome, conto, giorni_scadenza, fine_mese, immediato, attivo)

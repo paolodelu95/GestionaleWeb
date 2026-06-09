@@ -25,12 +25,14 @@ export function findProdottoByCodice(prodotti: Prodotto[], query: string): Prodo
     norm(p.codice) === q || norm(p.barcode) === q || norm(p.codiceFornitore) === q
   ) ?? null;
 
-  const matches = prodotti.filter(p =>
-    norm(p.codice).includes(q) ||
-    norm(p.barcode).includes(q) ||
-    norm(p.codiceFornitore).includes(q) ||
-    norm(p.nome).includes(q)
-  );
+  // Ricerca "a token": la query viene divisa in pezzi (separati da spazi) e un
+  // prodotto corrisponde se OGNI pezzo è contenuto nel testo cercabile (codice +
+  // barcode + codice fornitore + nome). Così "12 7" trova "SKB 12V 7,2Ah".
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const matches = prodotti.filter(p => {
+    const hay = `${norm(p.codice)} ${norm(p.barcode)} ${norm(p.codiceFornitore)} ${norm(p.nome)}`;
+    return tokens.every(t => hay.includes(t));
+  });
 
   return { exact, matches };
 }

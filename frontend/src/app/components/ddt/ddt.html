@@ -1,6 +1,6 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">DDT</h1>
+    <h1 class="page-title">Documenti di trasporto</h1>
     @if (selection.hasValue()) {
       <div class="bulk-bar">
         <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
@@ -10,7 +10,7 @@
         <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
       </div>
     }
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo DDT</button>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo documento di trasporto</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
 
     <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuDdt" title="Altre azioni">
@@ -52,7 +52,7 @@
 
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca DDT...</mat-label>
+      <mat-label>Cerca documenti di trasporto...</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
@@ -143,12 +143,12 @@
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (dataSource.filter) {
             <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessun DDT corrisponde alla ricerca." />
+              message="Nessun documento di trasporto corrisponde alla ricerca." />
           } @else {
-            <app-empty-state icon="local_shipping" title="Ancora nessun DDT"
+            <app-empty-state icon="local_shipping" title="Ancora nessun documento di trasporto"
               message="Crea il primo documento di trasporto: da qui potrai poi generare la fattura.">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuovo DDT
+                <mat-icon>add</mat-icon> Nuovo documento di trasporto
               </button>
             </app-empty-state>
           }

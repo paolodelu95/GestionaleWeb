@@ -24,6 +24,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Ordine, Cliente, Fornitore, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
+import { scrollFocusLastRiga } from '../../utils/scroll';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -601,7 +602,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
     this.righe[index].sconto = sconto;
   }
 
-  addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); this.prezziRecenti.push([]); this.prezziRecentiTutti.push([]); this.tuttiCaricati.push(false); }
+  addRiga() { this.righe.push({ tipo: 'PRODOTTO', descrizione: '', quantita: 1, unitaMisura: '', prezzo: 0, iva: 22, sconto: 0 }); this.prezziRecenti.push([]); this.prezziRecentiTutti.push([]); this.tuttiCaricati.push(false); scrollFocusLastRiga(this.codiceInputs); }
 
   apriCopiaRighe() {
     let data: CopiaRigheDialogData;

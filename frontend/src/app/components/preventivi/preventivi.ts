@@ -25,6 +25,7 @@ import { PrintService } from '../../services/print.service';
 import { Preventivo, Cliente, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
+import { scrollFocusLastRiga } from '../../utils/scroll';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -553,6 +554,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
     this.prezziRecenti.push([]);
     this.prezziRecentiTutti.push([]);
     this.tuttiCaricati.push(false);
+    scrollFocusLastRiga(this.codiceInputs);
   }
   addNota(testo: string) {
     this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 });

@@ -29,6 +29,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, ProdottoVariante, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
+import { scrollFocusLastRiga } from '../../utils/scroll';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
@@ -1430,6 +1431,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.prezziRecenti.push([]);
     this.prezziRecentiTutti.push([]);
     this.tuttiCaricati.push(false);
+    scrollFocusLastRiga(this.codiceInputs);
   }
   addNota(testo: string) {
     this.righe.push({ tipo: 'NOTA', descrizione: testo, quantita: 0, prezzo: 0, sconto: 0, iva: 0 });
