@@ -2491,3 +2491,20 @@ body.glass-ui .mat-mdc-snack-bar-container { margin-bottom: 92px; }
   from { transform: translateY(14px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
+
+// Notifiche su mobile: il dropdown è ancorato a destra della campanella e con
+// min-width:360px usciva dallo schermo a sinistra. Su telefono lo agganciamo al
+// viewport con margini laterali (sotto la topbar), così resta sempre dentro lo schermo.
+// (!important per battere la regola "scoped" del componente app.)
+@media (max-width: 767px) {
+  .notif-wrap .notif-dropdown {
+    position: fixed !important;
+    top: calc(var(--topbar-height) + 6px) !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: calc(100dvh - var(--topbar-height) - 100px) !important;
+  }
+}
