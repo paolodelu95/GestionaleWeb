@@ -718,6 +718,9 @@ function initTenantSchema(db) {
     'ALTER TABLE listini ADD COLUMN griglia INTEGER DEFAULT 0',
     // Tema di stampa del listino ('' = segue la grafica documenti).
     `ALTER TABLE listini ADD COLUMN tema TEXT DEFAULT ''`,
+    // Stili per cella (JSON {chiaveColonna: {b,i,s,al}}): grassetto, corsivo,
+    // barrato e allineamento applicati a editor e stampa.
+    `ALTER TABLE listini_prezzi ADD COLUMN stili TEXT DEFAULT '{}'`,
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

@@ -37,6 +37,7 @@ const prezzoDto = (r) => r && ({
   sconto: r.sconto,
   ordine: r.ordine || 0,
   datiExtra: parseJson(r.dati_extra, {}),
+  stili: parseJson(r.stili, {}),
   prodottoNome: r.prodotto_nome,
   prodottoCodice: r.prodotto_codice,
   prodottoPrezzoBase: r.prodotto_prezzo_base,
@@ -66,7 +67,9 @@ const sanitizeColonneStd = (cols) => {
 };
 
 // Config colonne unificata: standard + personalizzate in un unico ordine.
-// Tutte rinominabili e nascondibili (anche "prodotto", su richiesta esplicita).
+// Tutte rinominabili e nascondibili (anche "prodotto", su richiesta esplicita),
+// con stile testo opzionale (grassetto/corsivo/allineamento).
+const ALIGNS = ['left', 'center', 'right'];
 const sanitizeColonneCfg = (cols) => {
   const seen = new Set();
   const out = [];
@@ -75,13 +78,33 @@ const sanitizeColonneCfg = (cols) => {
     const key = c.key.trim().slice(0, 40);
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    out.push({
+    const col = {
       key,
       label: String(c.label ?? '').trim().slice(0, 60),
       visibile: c.visibile !== false,
       tipo: STD_KEYS.includes(key) ? 'std' : 'extra',
-    });
+    };
+    if (c.bold) col.bold = true;
+    if (c.italic) col.italic = true;
+    if (ALIGNS.includes(c.align)) col.align = c.align;
+    out.push(col);
     if (out.length >= 18) break;
+  }
+  return out;
+};
+
+// Stili per cella: {chiaveColonna: {b,i,s,al}} — solo flag riconosciuti.
+const sanitizeStili = (d) => {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(d).slice(0, 24)) {
+    if (typeof k !== 'string' || !k.trim() || !v || typeof v !== 'object') continue;
+    const st = {};
+    if (v.b) st.b = true;
+    if (v.i) st.i = true;
+    if (v.s) st.s = true;
+    if (ALIGNS.includes(v.al)) st.al = v.al;
+    if (Object.keys(st).length) out[k.trim().slice(0, 40)] = st;
   }
   return out;
 };
@@ -208,28 +231,34 @@ router.get('/:id/prezzi', (req, res) => {
 });
 
 router.post('/:id/prezzi', (req, res) => {
-  const { prodottoId, prezzo, sconto, datiExtra } = req.body || {};
+  const { prodottoId, prezzo, sconto, datiExtra, stili } = req.body || {};
   if (!prodottoId) return res.status(400).json({ error: 'prodottoId obbligatorio' });
   try {
-    // datiExtra assente = preserva i valori già salvati (upsert parziale)
+    // datiExtra/stili assenti = preserva i valori già salvati (upsert parziale)
     const extraJson = datiExtra === undefined
       ? undefined
       : JSON.stringify(sanitizeDatiExtra(datiExtra));
+    const stiliJson = stili === undefined
+      ? undefined
+      : JSON.stringify(sanitizeStili(stili));
     const ord = nextOrdine(req.params.id);
     const result = db.prepare(`
-      INSERT INTO listini_prezzi (listino_id, prodotto_id, prezzo, sconto, dati_extra, ordine)
-      VALUES (?, ?, ?, ?, COALESCE(?, '{}'), ?)
+      INSERT INTO listini_prezzi (listino_id, prodotto_id, prezzo, sconto, dati_extra, stili, ordine)
+      VALUES (?, ?, ?, ?, COALESCE(?, '{}'), COALESCE(?, '{}'), ?)
       ON CONFLICT(listino_id, prodotto_id) DO UPDATE SET
         prezzo=excluded.prezzo, sconto=excluded.sconto,
-        dati_extra=CASE WHEN ? IS NULL THEN dati_extra ELSE excluded.dati_extra END
+        dati_extra=CASE WHEN ? IS NULL THEN dati_extra ELSE excluded.dati_extra END,
+        stili=CASE WHEN ? IS NULL THEN stili ELSE excluded.stili END
     `).run(
       req.params.id,
       prodottoId,
       prezzo == null || prezzo === '' ? null : +prezzo,
       sconto == null || sconto === '' ? null : +sconto,
       extraJson ?? null,
+      stiliJson ?? null,
       ord,
       extraJson ?? null,
+      stiliJson ?? null,
     );
     res.json({ id: result.lastInsertRowid });
   } catch (e) {

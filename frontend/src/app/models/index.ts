@@ -299,13 +299,28 @@ export interface ListinoColonnaStd {
   visibile: boolean;
 }
 
+export type ListinoAlign = 'left' | 'center' | 'right';
+
 /** Config colonne unificata: standard e personalizzate in un unico ordine,
- *  tutte rinominabili, nascondibili e riordinabili liberamente. */
+ *  tutte rinominabili, nascondibili e riordinabili liberamente,
+ *  con stile testo opzionale applicato all'intera colonna. */
 export interface ListinoColonnaCfg {
   key: string;
   label: string;
   visibile: boolean;
   tipo: 'std' | 'extra';
+  bold?: boolean;
+  italic?: boolean;
+  /** Allineamento; assente = automatico (numeri a destra, testo a sinistra). */
+  align?: ListinoAlign;
+}
+
+/** Stile di una singola cella: grassetto, corsivo, barrato, allineamento. */
+export interface ListinoCellaStile {
+  b?: boolean;
+  i?: boolean;
+  s?: boolean;
+  al?: ListinoAlign;
 }
 
 export const LISTINO_COLONNE_DEFAULT_LABELS: Record<ListinoColonnaStdKey, string> = {
@@ -338,6 +353,9 @@ export function mergeColonneCfg(l?: Pick<Listino, 'colonneConfig' | 'colonneStan
       label: (c.label || '').trim() || (LISTINO_COLONNE_DEFAULT_LABELS[c.key as ListinoColonnaStdKey] ?? c.key),
       visibile: c.visibile !== false,
       tipo: LISTINO_STD_KEYS.includes(c.key as ListinoColonnaStdKey) ? 'std' : 'extra',
+      ...(c.bold ? { bold: true } : {}),
+      ...(c.italic ? { italic: true } : {}),
+      ...(c.align ? { align: c.align } : {}),
     }));
     // Standard mancanti (config salvata da versioni precedenti): aggiunte nascoste? No:
     // vanno mostrate con il loro default, nell'ordine canonico, per non perdere colonne.
@@ -420,6 +438,8 @@ export interface ListinoPrezzo {
   ordine?: number;
   /** Valori delle colonne personalizzate, indicizzati per ListinoColonna.key. */
   datiExtra?: Record<string, string>;
+  /** Stili per cella, indicizzati per chiave colonna (standard o extra). */
+  stili?: Record<string, ListinoCellaStile>;
   prodottoNome?: string;
   prodottoCodice?: string;
   prodottoPrezzoBase?: number;

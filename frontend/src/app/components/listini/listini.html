@@ -184,14 +184,13 @@
         </mat-form-field>
         <span class="ed-righe-count">{{ prodottiCount }} prodotti · {{ sezioni.length }} sezioni</span>
         <span style="flex:1"></span>
-        <mat-form-field class="ed-bulk-field" subscriptSizing="dynamic">
-          <mat-label>Sconto % a tutte</mat-label>
-          <input matInput type="number" step="0.5" min="0" max="100" [(ngModel)]="scontoBulk"
-                 (keyup.enter)="applicaScontoBulk()">
-        </mat-form-field>
+        <input class="bulk-input" type="number" step="0.5" min="0" max="100"
+               placeholder="Sconto %" [(ngModel)]="scontoBulk"
+               matTooltip="Sconto da applicare a tutte le righe"
+               (keyup.enter)="applicaScontoBulk()">
         <button mat-stroked-button type="button" (click)="applicaScontoBulk()"
                 [disabled]="scontoBulk == null || !prezzi.length">
-          <mat-icon>percent</mat-icon> Applica
+          <mat-icon>percent</mat-icon> Applica a tutte
         </button>
         <button mat-icon-button type="button" [matMenuTriggerFor]="moreMenu" matTooltip="Altre azioni">
           <mat-icon>more_vert</mat-icon>
@@ -212,7 +211,8 @@
                 @for (c of colonneVisibili; track c.key) {
                   <th [class.num]="c.key === 'prezzoBase' || c.key === 'sconto' || c.key === 'prezzo'"
                       [class.num-th]="c.key === 'num'"
-                      [class.extra-th]="c.tipo === 'extra'">{{ c.label }}</th>
+                      [class.extra-th]="c.tipo === 'extra'"
+                      [style.text-align]="thAlign(c)">{{ c.label }}</th>
                 }
                 <th style="width:40px"></th>
               </tr>
@@ -255,13 +255,16 @@
                     @for (c of colonneVisibili; track c.key) {
                       @switch (cellType(c)) {
                         @case ('num') {
-                          <td class="num-td">{{ r.num }}</td>
+                          <td class="num-td" [ngStyle]="cellNgStyle(r.prezzo!, c)"
+                              (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">{{ r.num }}</td>
                         }
                         @case ('codice') {
-                          <td class="cod-td">{{ r.prezzo!.prodottoCodice || '—' }}</td>
+                          <td class="cod-td" [ngStyle]="cellNgStyle(r.prezzo!, c)"
+                              (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">{{ r.prezzo!.prodottoCodice || '—' }}</td>
                         }
                         @case ('prodotto') {
-                          <td>
+                          <td [ngStyle]="cellNgStyle(r.prezzo!, c)"
+                              (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">
                             <div class="ed-pname">{{ r.prezzo!.prodottoNome }}</div>
                             <div class="lst-sub">
                               @if (r.prezzo!.prodottoCategoria) { <span>{{ r.prezzo!.prodottoCategoria }}</span> }
@@ -270,22 +273,25 @@
                           </td>
                         }
                         @case ('extra') {
-                          <td class="extra-td">
+                          <td class="extra-td" (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">
                             <input class="cell-input" type="text"
                                    [value]="r.prezzo!.datiExtra?.[c.key] ?? ''"
+                                   [ngStyle]="cellNgStyle(r.prezzo!, c)"
                                    [attr.data-row]="i" [attr.data-col]="'x_' + c.key"
                                    (blur)="updateExtra(r.prezzo!, c.key, $event)"
                                    (keydown.enter)="updateExtra(r.prezzo!, c.key, $event); focusNext($event, 'x_' + c.key)">
                           </td>
                         }
                         @case ('prezzoBase') {
-                          <td class="num base-td">{{ r.prezzo!.prodottoPrezzoBase | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                          <td class="num base-td" [ngStyle]="cellNgStyle(r.prezzo!, c)"
+                              (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">{{ r.prezzo!.prodottoPrezzoBase | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
                         }
                         @case ('sconto') {
-                          <td class="sconto-td">
+                          <td class="sconto-td" (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">
                             <input class="cell-input num" type="number" step="0.5" min="0" max="100"
                                    [value]="r.prezzo!.sconto ?? ''" placeholder="—"
                                    [disabled]="r.prezzo!.prezzo != null"
+                                   [ngStyle]="cellNgStyle(r.prezzo!, c)"
                                    [matTooltip]="r.prezzo!.prezzo != null ? 'Sconto ignorato: la riga ha un prezzo manuale' : ''"
                                    [attr.data-row]="i" [attr.data-col]="'sconto'"
                                    (blur)="updateSconto(r.prezzo!, $event)"
@@ -293,10 +299,11 @@
                           </td>
                         }
                         @case ('prezzo') {
-                          <td class="finale-td">
+                          <td class="finale-td" (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">
                             <span class="finale-cell" [class.override]="r.prezzo!.prezzo != null">
                               <input class="cell-input num finale-input" type="number" step="0.01" min="0"
                                      [value]="prezzoFinale(r.prezzo!)"
+                                     [ngStyle]="cellNgStyle(r.prezzo!, c)"
                                      [attr.data-row]="i" [attr.data-col]="'prezzo'"
                                      (blur)="updatePrezzoFinale(r.prezzo!, $event)"
                                      (keydown.enter)="updatePrezzoFinale(r.prezzo!, $event); focusNext($event, 'prezzo')">
@@ -328,7 +335,7 @@
             <b>Sezioni</b>: righe-divisore per raggruppare i prodotti (es. per categoria), rinominabili sul posto.
             <b>Prezzo</b>: scrivici sopra per fissarlo a mano (l'icona <mat-icon class="hint-icon">undo</mat-icon> torna al calcolo da sconto, vuoto = sconto default {{ sel.scontoDefault || 0 }}%).
             <b>Invio</b> su una cella passa alla riga successiva; trascina <mat-icon class="hint-icon">drag_indicator</mat-icon> per riordinare righe e sezioni come appariranno in stampa.
-            Da <b>Colonne</b> riordini, rinomini o nascondi ogni colonna, anche quelle standard.
+            Da <b>Colonne</b> riordini, rinomini, nascondi o formatti ogni colonna; <b>tasto destro su una cella</b> per grassetto, corsivo, barrato e allineamento della singola cella.
           </span>
         </div>
       } @else {
@@ -336,5 +343,40 @@
           message="Aggiungi i prodotti dall'elenco con i flag rapidi oppure un'intera categoria in un click." />
       }
     </div>
+
+    <!-- Menu contestuale stile cella (tasto destro) -->
+    <div class="ctx-anchor" [style.left.px]="ctxX" [style.top.px]="ctxY"
+         [matMenuTriggerFor]="cellaMenu" #ctxTrigger="matMenuTrigger"></div>
+    <mat-menu #cellaMenu="matMenu">
+      <button mat-menu-item type="button" (click)="toggleStileCella('b')">
+        <mat-icon>format_bold</mat-icon> Grassetto
+        @if (stileCellaAttivo('b')) { <mat-icon class="ctx-check">check</mat-icon> }
+      </button>
+      <button mat-menu-item type="button" (click)="toggleStileCella('i')">
+        <mat-icon>format_italic</mat-icon> Corsivo
+        @if (stileCellaAttivo('i')) { <mat-icon class="ctx-check">check</mat-icon> }
+      </button>
+      <button mat-menu-item type="button" (click)="toggleStileCella('s')">
+        <mat-icon>format_strikethrough</mat-icon> Barrato
+        @if (stileCellaAttivo('s')) { <mat-icon class="ctx-check">check</mat-icon> }
+      </button>
+      <mat-divider></mat-divider>
+      <button mat-menu-item type="button" (click)="setAlignCella('left')">
+        <mat-icon>format_align_left</mat-icon> Allinea a sinistra
+        @if (alignCellaAttivo('left')) { <mat-icon class="ctx-check">check</mat-icon> }
+      </button>
+      <button mat-menu-item type="button" (click)="setAlignCella('center')">
+        <mat-icon>format_align_center</mat-icon> Centra
+        @if (alignCellaAttivo('center')) { <mat-icon class="ctx-check">check</mat-icon> }
+      </button>
+      <button mat-menu-item type="button" (click)="setAlignCella('right')">
+        <mat-icon>format_align_right</mat-icon> Allinea a destra
+        @if (alignCellaAttivo('right')) { <mat-icon class="ctx-check">check</mat-icon> }
+      </button>
+      <mat-divider></mat-divider>
+      <button mat-menu-item type="button" (click)="clearStileCella()">
+        <mat-icon>format_clear</mat-icon> Rimuovi stili cella
+      </button>
+    </mat-menu>
   }
 </div>

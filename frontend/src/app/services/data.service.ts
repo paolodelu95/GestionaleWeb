@@ -6,7 +6,7 @@ import {
   Azienda, Prodotto, ProdottoVariante, ProdottoFornitore, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
-  CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, ListinoSezione, PrezzoRisolto,
+  CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, ListinoSezione, ListinoCellaStile, PrezzoRisolto,
   ListinoRigaNonTrovata, ListinoMatchRisultato, CodiceAlias, VariazionePrezzo,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   Magazzino, Giacenza, ScadenzaLotto,
@@ -197,7 +197,7 @@ export class DataService {
   getListinoPrezzi(listinoId: number): Observable<ListinoPrezzo[]> {
     return this.api.get(`listini/${listinoId}/prezzi`);
   }
-  upsertListinoPrezzo(listinoId: number, p: { prodottoId: number; prezzo?: number | null; sconto?: number | null; datiExtra?: Record<string, string> }): Observable<any> {
+  upsertListinoPrezzo(listinoId: number, p: { prodottoId: number; prezzo?: number | null; sconto?: number | null; datiExtra?: Record<string, string>; stili?: Record<string, ListinoCellaStile> }): Observable<any> {
     return this.api.post(`listini/${listinoId}/prezzi`, p);
   }
   /** Aggiunta massiva di prodotti al listino (quelli già presenti vengono ignorati). */

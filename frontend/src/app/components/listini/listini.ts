@@ -11,6 +11,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { forkJoin, of } from 'rxjs';
@@ -18,8 +19,11 @@ import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Listino, ListinoColonnaCfg, ListinoColonnaStdKey, ListinoPrezzo, ListinoSezione, ListinoTema,
-         Prodotto, LISTINO_STD_KEYS, LISTINO_COLONNE_DEFAULT_LABELS, LISTINI_TEMI, mergeColonneCfg } from '../../models';
+import { ViewChild } from '@angular/core';
+import { MatMenuTrigger } from '@angular/material/menu';
+import { Listino, ListinoAlign, ListinoCellaStile, ListinoColonnaCfg, ListinoColonnaStdKey,
+         ListinoPrezzo, ListinoSezione, ListinoTema, Prodotto,
+         LISTINO_STD_KEYS, LISTINO_COLONNE_DEFAULT_LABELS, LISTINI_TEMI, mergeColonneCfg } from '../../models';
 import { QuickListinoDialogComponent } from './quick-listino-dialog';
 
 /** Riga del listino nell'editor: prodotto oppure sezione (divisore). */
@@ -103,6 +107,20 @@ export class NuovoListinoDialogComponent {
             <mat-checkbox [(ngModel)]="c.visibile"></mat-checkbox>
             <input class="col-input" [(ngModel)]="c.label" [placeholder]="placeholderDi(c)"
                    [disabled]="!c.visibile">
+            <span class="fmt-group">
+              <button type="button" class="fmt-btn" [class.on]="c.bold" [disabled]="!c.visibile"
+                      (click)="c.bold = !c.bold" matTooltip="Grassetto (tutta la colonna)">
+                <mat-icon>format_bold</mat-icon>
+              </button>
+              <button type="button" class="fmt-btn" [class.on]="c.italic" [disabled]="!c.visibile"
+                      (click)="c.italic = !c.italic" matTooltip="Corsivo (tutta la colonna)">
+                <mat-icon>format_italic</mat-icon>
+              </button>
+              <button type="button" class="fmt-btn" [class.on]="!!c.align" [disabled]="!c.visibile"
+                      (click)="cycleAlign(c)" [matTooltip]="'Allineamento: ' + alignLabel(c)">
+                <mat-icon>{{ alignIcon(c) }}</mat-icon>
+              </button>
+            </span>
             @if (c.tipo === 'std') {
               <span class="col-key" [matTooltip]="'Colonna standard: ' + placeholderDi(c)">{{ placeholderDi(c) }}</span>
             } @else {
@@ -155,6 +173,16 @@ export class NuovoListinoDialogComponent {
     }
     .col-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--shadow-focus); }
     .col-input:disabled { color: var(--text-tertiary); background: var(--bg-surface-2); }
+    .fmt-group { display: inline-flex; gap: 2px; flex-shrink: 0; }
+    .fmt-btn {
+      border: 1px solid var(--border); background: var(--bg-surface); border-radius: 6px;
+      width: 28px; height: 28px; padding: 0; cursor: pointer; line-height: 0;
+      color: var(--text-tertiary); display: inline-flex; align-items: center; justify-content: center;
+      mat-icon { font-size: 17px; width: 17px; height: 17px; }
+    }
+    .fmt-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .fmt-btn.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .fmt-btn:disabled { opacity: 0.4; cursor: default; }
     .col-add { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
     .col-suggerimenti { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
     .col-chip {
@@ -182,6 +210,32 @@ export class ColonneListinoDialogComponent {
 
   placeholderDi(c: ListinoColonnaCfg): string {
     return c.tipo === 'std' ? LISTINO_COLONNE_DEFAULT_LABELS[c.key as ListinoColonnaStdKey] : c.label || 'Colonna';
+  }
+
+  /** Allineamento a rotazione: automatico → sinistra → centro → destra. */
+  cycleAlign(c: ListinoColonnaCfg) {
+    const next: Record<string, ListinoAlign | undefined> =
+      { undefined: 'left', left: 'center', center: 'right', right: undefined } as any;
+    const nuovo = next[String(c.align)];
+    if (nuovo) c.align = nuovo; else delete c.align;
+  }
+
+  alignIcon(c: ListinoColonnaCfg): string {
+    switch (c.align) {
+      case 'left': return 'format_align_left';
+      case 'center': return 'format_align_center';
+      case 'right': return 'format_align_right';
+      default: return 'format_align_justify';
+    }
+  }
+
+  alignLabel(c: ListinoColonnaCfg): string {
+    switch (c.align) {
+      case 'left': return 'sinistra';
+      case 'center': return 'centro';
+      case 'right': return 'destra';
+      default: return 'automatico';
+    }
   }
 
   esiste(label: string): boolean {
@@ -364,7 +418,8 @@ export class SelezioneProdottiDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatMenuModule,
             MatFormFieldModule, MatInputModule, MatSelectModule, MatSlideToggleModule,
-            MatTooltipModule, MatDialogModule, MatSnackBarModule, DragDropModule, EmptyStateComponent],
+            MatTooltipModule, MatDialogModule, MatDividerModule, MatSnackBarModule,
+            DragDropModule, EmptyStateComponent],
   templateUrl: './listini.html',
   styleUrl: './listini.scss',
 })
@@ -385,6 +440,12 @@ export class ListiniComponent implements OnInit {
   prodotti: Prodotto[] = [];
   readonly temi = LISTINI_TEMI;
   private anagraficaSnapshot = '';
+
+  // ── menu contestuale stile cella (tasto destro) ──
+  @ViewChild('ctxTrigger') ctxTrigger?: MatMenuTrigger;
+  ctxX = 0;
+  ctxY = 0;
+  ctxCell: { p: ListinoPrezzo; key: string } | null = null;
 
   constructor(
     private ds: DataService,
@@ -671,16 +732,80 @@ export class ListiniComponent implements OnInit {
 
   get prodottiCount(): number { return this.prezzi.length; }
 
-  private upsertRiga(p: ListinoPrezzo, includeExtra = false) {
+  private upsertRiga(p: ListinoPrezzo, includeExtra = false, includeStili = false) {
     this.ds.upsertListinoPrezzo(this.sel!.id!, {
       prodottoId: p.prodottoId,
       prezzo: p.prezzo ?? null,
       sconto: p.sconto ?? null,
       ...(includeExtra ? { datiExtra: p.datiExtra || {} } : {}),
+      ...(includeStili ? { stili: p.stili || {} } : {}),
     }).subscribe({
       error: () => { this.snack.open('Errore salvataggio riga', '', { duration: 3000 }); this.reloadRighe(); },
     });
   }
+
+  // ── Stili cella (menu tasto destro) e stili colonna ─────────────────────────
+
+  apriMenuCella(e: MouseEvent, p: ListinoPrezzo, key: string) {
+    e.preventDefault();
+    this.ctxX = e.clientX;
+    this.ctxY = e.clientY;
+    this.ctxCell = { p, key };
+    setTimeout(() => this.ctxTrigger?.openMenu());
+  }
+
+  stileCellaAttivo(flag: 'b' | 'i' | 's'): boolean {
+    const c = this.ctxCell;
+    return !!(c && c.p.stili?.[c.key]?.[flag]);
+  }
+
+  alignCellaAttivo(al: ListinoAlign): boolean {
+    const c = this.ctxCell;
+    return !!(c && c.p.stili?.[c.key]?.al === al);
+  }
+
+  toggleStileCella(flag: 'b' | 'i' | 's') {
+    const c = this.ctxCell;
+    if (!c) return;
+    const st: ListinoCellaStile = { ...(c.p.stili?.[c.key] || {}) };
+    if (st[flag]) delete st[flag]; else st[flag] = true;
+    this.salvaStileCella(c, st);
+  }
+
+  setAlignCella(al: ListinoAlign | null) {
+    const c = this.ctxCell;
+    if (!c) return;
+    const st: ListinoCellaStile = { ...(c.p.stili?.[c.key] || {}) };
+    if (al && st.al !== al) st.al = al; else delete st.al;
+    this.salvaStileCella(c, st);
+  }
+
+  clearStileCella() {
+    const c = this.ctxCell;
+    if (!c) return;
+    this.salvaStileCella(c, {});
+  }
+
+  private salvaStileCella(c: { p: ListinoPrezzo; key: string }, st: ListinoCellaStile) {
+    if (!c.p.stili) c.p.stili = {};
+    if (Object.keys(st).length) c.p.stili[c.key] = st;
+    else delete c.p.stili[c.key];
+    this.upsertRiga(c.p, false, true);
+  }
+
+  /** Stile effettivo di una cella: colonna (grassetto/corsivo/allineamento) + override cella. */
+  cellNgStyle(p: ListinoPrezzo, c: ListinoColonnaCfg): Record<string, string | null> {
+    const st = p.stili?.[c.key] || {};
+    return {
+      'font-weight': (st.b || c.bold) ? '700' : null,
+      'font-style': (st.i || c.italic) ? 'italic' : null,
+      'text-decoration': st.s ? 'line-through' : null,
+      'text-align': st.al || c.align || null,
+    };
+  }
+
+  /** Allineamento dell'intestazione colonna (solo se configurato). */
+  thAlign(c: ListinoColonnaCfg): string | null { return c.align || null; }
 
   /** Modifica diretta del prezzo finale: scrivere un valore lo fissa come prezzo
    *  manuale (override); svuotare la cella torna al calcolo da sconto. */

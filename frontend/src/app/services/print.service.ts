@@ -520,7 +520,24 @@ export class PrintService {
         fontSize: (due ? 8.5 : 9.5) * fs,
       },
     }];
-    const rowOf = (p: ListinoPrezzo, n: number) => defs.map(d => d.val(p, n));
+    // Stili: la colonna definisce grassetto/corsivo/allineamento di base,
+    // la singola cella può aggiungere i propri (incluso il barrato, disegnato
+    // in didDrawCell perché jsPDF non ha un line-through nativo).
+    const fontStyleOf = (b?: boolean, i?: boolean): 'normal' | 'bold' | 'italic' | 'bolditalic' =>
+      b && i ? 'bolditalic' : b ? 'bold' : i ? 'italic' : 'normal';
+    const cellOf = (p: ListinoPrezzo, n: number, idx: number) => {
+      const d = defs[idx];
+      const col = cfg[idx];
+      const v = d.val(p, n);
+      const st = p.stili?.[col.key];
+      if (!st) return v;
+      const styles: any = {};
+      const fsty = fontStyleOf(st.b || col.bold, st.i || col.italic);
+      if (fsty !== 'normal') styles.fontStyle = fsty;
+      if (st.al) styles.halign = st.al;
+      return { content: v, styles, _strike: !!st.s };
+    };
+    const rowOf = (p: ListinoPrezzo, n: number) => defs.map((_d, idx) => cellOf(p, n, idx));
     const vuota = () => defs.map(() => '');
 
     let head: (string | number)[];
@@ -531,7 +548,7 @@ export class PrintService {
       // colonna vuota in mezzo da separatore. I prodotti vengono appaiati DENTRO
       // ogni sezione; le righe sezione attraversano tutta la pagina.
       head = [...defs.map(d => d.label), '', ...defs.map(d => d.label)];
-      let buf: (string | number)[][] = [];
+      let buf: any[][] = [];
       const flush = () => {
         for (let i = 0; i < buf.length; i += 2) {
           body.push([...buf[i], '', ...(buf[i + 1] || vuota())]);
@@ -553,7 +570,14 @@ export class PrintService {
 
     const columnStyles: any = {};
     defs.forEach((d, i) => {
-      const style = { cellWidth: d.width, ...(d.halign ? { halign: d.halign } : {}) };
+      const col = cfg[i];
+      const halign = col.align || d.halign;
+      const fsty = fontStyleOf(col.bold, col.italic);
+      const style = {
+        cellWidth: d.width,
+        ...(halign ? { halign } : {}),
+        ...(fsty !== 'normal' ? { fontStyle: fsty } : {}),
+      };
       columnStyles[i] = style;
       if (due) columnStyles[i + half + 1] = { ...style };
     });
@@ -578,6 +602,27 @@ export class PrintService {
           data.cell.styles.lineWidth = 0;
         }
       } : undefined,
+      // Barrato: disegnato a mano sopra il testo delle celle marcate _strike
+      didDrawCell: (data: any) => {
+        const raw = data.cell?.raw;
+        if (data.section !== 'body' || !raw || typeof raw !== 'object' || !raw._strike) return;
+        const cell = data.cell;
+        const txt = Array.isArray(cell.text) ? (cell.text[0] || '') : String(cell.text ?? '');
+        if (!txt) return;
+        const d2 = data.doc;
+        d2.setFont(this.resolved.fontFamily, cell.styles.fontStyle || 'normal');
+        d2.setFontSize(cell.styles.fontSize);
+        const padL = cell.padding('left');
+        const padR = cell.padding('right');
+        const tw = Math.min(d2.getTextWidth(txt), cell.width - padL - padR);
+        let x = cell.x + padL;
+        if (cell.styles.halign === 'center') x = cell.x + (cell.width - tw) / 2;
+        else if (cell.styles.halign === 'right') x = cell.x + cell.width - padR - tw;
+        const yMid = cell.y + cell.height / 2;
+        d2.setDrawColor(...C.text);
+        d2.setLineWidth(0.3);
+        d2.line(x, yMid, x + tw, yMid);
+      },
     });
     y = (pdf as any).lastAutoTable.finalY + 5;
 
