@@ -131,7 +131,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     { label: 'Nuovo cliente',     icon: 'person_add',     route: '/clienti' },
     { label: 'Nuovo prodotto',    icon: 'add_box',        route: '/prodotti' },
     { label: 'Nuovo preventivo',  icon: 'description',    route: '/preventivi' },
-    { label: 'Nuovo DDT',         icon: 'local_shipping', route: '/ddt' },
+    { label: 'Nuovo documento di trasporto', icon: 'local_shipping', route: '/ddt' },
     { label: 'Vendita al banco',  icon: 'point_of_sale',  route: '/vendita-banco' },
     { label: 'Vai a dashboard',   icon: 'dashboard',      route: '/dashboard' },
     { label: 'Vai a magazzino',   icon: 'inventory',      route: '/magazzino' },
@@ -262,7 +262,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         ...r.fornitori.map((x: any)  => ({ ...x, tipo: 'Fornitore' })),
         ...r.prodotti.map((x: any)   => ({ ...x, tipo: 'Prodotto' })),
         ...r.fatture.map((x: any)    => ({ ...x, tipo: 'Fattura' })),
-        ...r.ddt.map((x: any)        => ({ ...x, tipo: 'DDT' })),
+        ...r.ddt.map((x: any)        => ({ ...x, tipo: 'Doc. di trasporto' })),
         ...r.ordini.map((x: any)     => ({ ...x, tipo: 'Ordine' })),
         ...r.preventivi.map((x: any) => ({ ...x, tipo: 'Preventivo' })),
       ];
@@ -784,7 +784,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       children: [
         { label: 'Preventivi',       icon: 'request_quote',   route: '/preventivi' },
         { label: 'Ordini cliente',   icon: 'shopping_cart',   route: '/ordini' },
-        { label: 'DDT',              icon: 'receipt_long',    route: '/ddt' },
+        { label: 'Documenti di trasporto', icon: 'receipt_long', route: '/ddt' },
         { label: 'Fatture',          icon: 'receipt',         route: '/fatture' },
         { label: 'Fatture elettroniche (SDI)', icon: 'fact_check', route: '/fatture-elettroniche' },
         { label: 'Note di Credito',  icon: 'note_alt',        route: '/note-credito' },

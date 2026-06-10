@@ -34,6 +34,7 @@ import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-u
 import { consumePrefill } from '../../utils/nav-prefill';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
+import { creaProdottoDaRiga } from '../../utils/crea-prodotto-da-riga';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
@@ -57,8 +58,8 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
           <mat-icon>receipt_long</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">Genera fatture da DDT non fatturati</span>
-          <span class="dialog-hero-sub">Seleziona i DDT da includere. Verrà creata una fattura per ogni cliente.</span>
+          <span class="dialog-hero-title">Genera fatture da documenti di trasporto non fatturati</span>
+          <span class="dialog-hero-sub">Seleziona i documenti di trasporto da includere. Verrà creata una fattura per ogni cliente.</span>
         </div>
       </div>
 
@@ -69,7 +70,7 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
       } @else if (!groups.length) {
         <div style="text-align:center;padding:40px;color:#94a3b8">
           <mat-icon style="font-size:48px;width:48px;height:48px;display:block;margin:0 auto 12px">check_circle_outline</mat-icon>
-          <p style="margin:0;font-size:14px">Nessun DDT da fatturare</p>
+          <p style="margin:0;font-size:14px">Nessun documento di trasporto da fatturare</p>
         </div>
       } @else {
         <div class="gd-groups">
@@ -96,7 +97,7 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
                 <div class="gd-ddt-row" [class.gd-unchecked]="!item.checked">
                   <mat-checkbox [(ngModel)]="item.checked"></mat-checkbox>
                   <mat-icon style="font-size:15px;width:15px;height:15px;color:#64748b">local_shipping</mat-icon>
-                  <span class="gd-ddt-num">DDT n.&nbsp;{{ item.ddt.numero }}</span>
+                  <span class="gd-ddt-num">Doc. di trasporto n.&nbsp;{{ item.ddt.numero }}</span>
                   <span class="gd-ddt-data">{{ item.ddt.dataEmissione | date:'dd/MM/yyyy' }}</span>
                   <span class="gd-ddt-tot">{{ item.ddt.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
                 </div>
@@ -107,9 +108,9 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
         <div class="gd-summary">
           <mat-icon>info_outline</mat-icon>
           @if (selectedGroups.length) {
-            Verranno generate <b>{{ selectedGroups.length }}&nbsp;fatture</b> per&nbsp;<b>{{ selectedCount }}&nbsp;DDT</b> selezionati
+            Verranno generate <b>{{ selectedGroups.length }}&nbsp;fatture</b> per&nbsp;<b>{{ selectedCount }}&nbsp;documenti di trasporto</b> selezionati
           } @else {
-            Nessun DDT selezionato
+            Nessun documento di trasporto selezionato
           }
         </div>
       }
@@ -293,11 +294,11 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
             @if (hasCliente) {
             <div class="form-section">
               <div class="form-section-header">
-                <mat-icon>local_shipping</mat-icon><span>DDT collegati</span>
+                <mat-icon>local_shipping</mat-icon><span>Documenti di trasporto collegati</span>
                 <select class="riga-input" [(ngModel)]="ddtSelezione" (change)="addDdt()">
-                  <option [ngValue]="null">— Collega DDT… —</option>
+                  <option [ngValue]="null">— Collega documento di trasporto… —</option>
                   @for (d of ddtDisponibili; track d.id) {
-                    <option [ngValue]="d.id">DDT {{ d.numero }} — {{ d.dataEmissione | date:'dd/MM/yy' }}</option>
+                    <option [ngValue]="d.id">Doc. di trasporto {{ d.numero }} — {{ d.dataEmissione | date:'dd/MM/yy' }}</option>
                   }
                 </select>
               </div>
@@ -306,13 +307,13 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                   @for (d of linkedDdts; track d.id) {
                     <span class="doc-chip is-info">
                       <mat-icon>local_shipping</mat-icon>
-                      DDT n. {{ d.numero }} del {{ d.dataEmissione | date:'dd/MM/yyyy' }}
-                      <button type="button" class="chip-remove" (click)="removeDdt(d.id!)" title="Scollega DDT">×</button>
+                      Doc. di trasporto n. {{ d.numero }} del {{ d.dataEmissione | date:'dd/MM/yyyy' }}
+                      <button type="button" class="chip-remove" (click)="removeDdt(d.id!)" title="Scollega documento di trasporto">×</button>
                     </span>
                   }
                 </div>
               } @else {
-                <p class="section-empty">Nessun DDT collegato. Selezionane uno per importare le righe automaticamente.</p>
+                <p class="section-empty">Nessun documento di trasporto collegato. Selezionane uno per importare le righe automaticamente.</p>
               }
             </div>
             }
@@ -483,8 +484,14 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
                       <td class="td-scarico" [attr.data-label]="'Scarica magazzino'">
-                        <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
-                               [disabled]="!riga.prodottoId" title="Scarica questa riga dal magazzino">
+                        @if (riga.prodottoId) {
+                          <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
+                                 title="Scarica questa riga dal magazzino">
+                        } @else {
+                          <input type="checkbox" class="riga-check riga-check--crea" [checked]="false"
+                                 (click)="creaProdottoPerRiga($index, $event)"
+                                 matTooltip="Prodotto non a catalogo: clicca per crearlo e abilitare lo scarico dal magazzino">
+                        }
                       </td>
                       <td class="td-actions">
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -1097,7 +1104,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
       const dataFmt = `${day}/${month}/${year}`;
 
       // Riga di intestazione con il riferimento al DDT
-      this.righe.push({ descrizione: `Riferimento DDT n. ${ddt.numero} del ${dataFmt}`, quantita: 0, prezzo: 0, sconto: 0, iva: 0, unitaMisura: '' });
+      this.righe.push({ descrizione: `Riferimento documento di trasporto n. ${ddt.numero} del ${dataFmt}`, quantita: 0, prezzo: 0, sconto: 0, iva: 0, unitaMisura: '' });
       this.prezziRecenti.push([]);
       this.prezziRecentiTutti.push([]);
       this.tuttiCaricati.push(false);
@@ -1291,6 +1298,23 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     if (this.righe[index].scaricaMagazzino === undefined) this.righe[index].scaricaMagazzino = true;
     this.applyListino(index);
     this.loadPrezziRecenti(index);
+  }
+
+  /** Crea al volo un prodotto non a catalogo a partire dai dati della riga, poi lo collega. */
+  creaProdottoPerRiga(index: number, event?: Event) {
+    event?.preventDefault();
+    const riga = this.righe[index];
+    if (!riga || riga.prodottoId) return;
+    creaProdottoDaRiga(this.matDialog, this.ds, riga).subscribe({
+      next: nuovo => {
+        if (!nuovo) return;
+        this.prodotti = [...this.prodotti, nuovo];
+        this.applyProdottoToRiga(index, nuovo);
+        this.righe[index].scaricaMagazzino = true;
+        this.snack.open(`Prodotto "${nuovo.nome}" creato e collegato alla riga`, '', { duration: 2500 });
+      },
+      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore creazione prodotto', '', { duration: 3500 }),
+    });
   }
 
   /**

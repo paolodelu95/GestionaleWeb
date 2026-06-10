@@ -22,7 +22,7 @@ export interface CopiaRigheDialogData {
 
 const TIPI_DOC = [
   { tipo: 'fatture',      label: 'Fatture',     entity: 'clienteId'   as const },
-  { tipo: 'ddt',          label: 'DDT',          entity: 'clienteId'   as const },
+  { tipo: 'ddt',          label: 'Doc. di trasporto', entity: 'clienteId'   as const },
   { tipo: 'preventivi',   label: 'Preventivi',   entity: 'clienteId'   as const },
   { tipo: 'ordini',       label: 'Ordini',       entity: 'any'         as const },
   { tipo: 'note-credito', label: 'Note credito', entity: 'clienteId'   as const },

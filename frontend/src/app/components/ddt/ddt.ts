@@ -32,6 +32,7 @@ import { scrollFocusLastRiga } from '../../utils/scroll';
 import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-univoco';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
+import { creaProdottoDaRiga } from '../../utils/crea-prodotto-da-riga';
 import { FatturaDialogComponent } from '../fatture/fatture';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { FattureInsoluteDialogComponent } from '../shared/fatture-insolute-dialog';
@@ -257,8 +258,14 @@ import { DocLockService } from '../../services/doc-lock.service';
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
                       <td class="td-scarico" [attr.data-label]="'Scarica magazzino'">
-                        <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
-                               [disabled]="!riga.prodottoId" title="Scarica questa riga dal magazzino">
+                        @if (riga.prodottoId) {
+                          <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
+                                 title="Scarica questa riga dal magazzino">
+                        } @else {
+                          <input type="checkbox" class="riga-check riga-check--crea" [checked]="false"
+                                 (click)="creaProdottoPerRiga($index, $event)"
+                                 matTooltip="Prodotto non a catalogo: clicca per crearlo e abilitare lo scarico dal magazzino">
+                        }
                       </td>
                       <td class="td-actions">
                         <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -663,6 +670,23 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
     this.loadPrezziRecenti(index);
   }
 
+  /** Crea al volo un prodotto non a catalogo a partire dai dati della riga, poi lo collega. */
+  creaProdottoPerRiga(index: number, event?: Event) {
+    event?.preventDefault();
+    const riga = this.righe[index];
+    if (!riga || riga.prodottoId) return;
+    creaProdottoDaRiga(this.matDialog, this.ds, riga).subscribe({
+      next: nuovo => {
+        if (!nuovo) return;
+        this.prodotti = [...this.prodotti, nuovo];
+        this.applyProdottoToRiga(index, nuovo);
+        this.righe[index].scaricaMagazzino = true;
+        this.snack.open(`Prodotto "${nuovo.nome}" creato e collegato alla riga`, '', { duration: 2500 });
+      },
+      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore creazione prodotto', '', { duration: 3500 }),
+    });
+  }
+
   /** Inserimento rapido da tastiera: codice (anche parziale) + Invio. */
   risolviCodiceRiga(index: number, event: Event) {
     if ((event as KeyboardEvent).ctrlKey || (event as KeyboardEvent).metaKey) return;   // Ctrl/Cmd+Invio = salva
@@ -910,7 +934,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(r=>`<tr><td>${r.numero}</td><td>${d(r.dataEmissione)}</td><td>${r.clienteNome||'—'}</td><td class="r">${e(r.totale)}</td><td>${r.stato}</td><td>${r.fatturaNumero||'—'}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>DDT</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>DDT</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th><th>Fattura</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>Documenti di trasporto</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Documenti di trasporto</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th><th>Fattura</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
@@ -1057,7 +1081,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'EMESSO';
         this.ds.createDdt(pre).subscribe({
-          next: () => { this.load(); this.snack.open(`DDT duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          next: () => { this.load(); this.snack.open(`Documento di trasporto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
           error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
         });
       },
@@ -1066,15 +1090,15 @@ export class DdtComponent implements OnInit, AfterViewInit {
   }
 
   async delete(d: Ddt) {
-    if (!await this.confirm.delete(`Eliminare DDT ${d.numero}?`)) return;
+    if (!await this.confirm.delete(`Eliminare il documento di trasporto ${d.numero}?`)) return;
     this.ds.getDdtById(d.id!).subscribe(full => {
       this.ds.deleteDdt(d.id!).subscribe(() => {
         this.load();
-        const ref = this.snack.open(`DDT ${d.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const ref = this.snack.open(`Documento di trasporto ${d.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           const { id, ...payload } = full as any;
           this.ds.createDdt(payload).subscribe({
-            next: () => { this.load(); this.snack.open('DDT ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
+            next: () => { this.load(); this.snack.open('Documento di trasporto ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
             error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
           });
         });

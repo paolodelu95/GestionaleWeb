@@ -14,7 +14,7 @@
           <mat-icon>cancel</mat-icon> Annulla
         </button>
         <button mat-stroked-button type="button" (click)="bulkConvertiInDdt()">
-          <mat-icon>local_shipping</mat-icon> Genera DDT
+          <mat-icon>local_shipping</mat-icon> Genera documenti di trasporto
         </button>
         <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
       </div>
@@ -106,7 +106,7 @@
             }
             @if (o.tipo === 'CLIENTE' && o.stato !== 'ANNULLATO' && o.stato !== 'EVASO') {
               <button mat-menu-item type="button" (click)="convertiInDdt(o)">
-                <mat-icon>receipt_long</mat-icon> Converti in DDT
+                <mat-icon>receipt_long</mat-icon> Converti in documento di trasporto
               </button>
             }
             @if (o.stato !== 'ANNULLATO' && o.stato !== 'EVASO') {
@@ -133,7 +133,7 @@
               message="Nessun ordine corrisponde alla ricerca." />
           } @else {
             <app-empty-state icon="shopping_cart" title="Ancora nessun ordine"
-              message="Registra il primo ordine cliente: potrai convertirlo in DDT o fattura.">
+              message="Registra il primo ordine cliente: potrai convertirlo in documento di trasporto o fattura.">
               <button mat-flat-button color="primary" type="button" (click)="open()">
                 <mat-icon>add</mat-icon> Nuovo ordine
               </button>

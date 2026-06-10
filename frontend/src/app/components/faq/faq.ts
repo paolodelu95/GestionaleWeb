@@ -72,7 +72,7 @@ import { MatButtonModule } from '@angular/material/button';
             <div class="card">
               <mat-icon>phone_iphone</mat-icon>
               <h3>Funziona anche da mobile</h3>
-              <p>PWA installabile su iPhone e Android: emetti fatture, controlla magazzino e firma DDT direttamente dal telefono.</p>
+              <p>PWA installabile su iPhone e Android: emetti fatture, controlla magazzino e firma documenti di trasporto direttamente dal telefono.</p>
             </div>
             <div class="card">
               <mat-icon>group</mat-icon>
@@ -184,7 +184,7 @@ import { MatButtonModule } from '@angular/material/button';
               <div class="price"><span class="amount">€ 29</span><span class="period">/ mese</span></div>
               <ul class="check-list">
                 <li><mat-icon>check_circle</mat-icon> Fino a 10 utenti</li>
-                <li><mat-icon>check_circle</mat-icon> Fatture e DDT illimitati</li>
+                <li><mat-icon>check_circle</mat-icon> Fatture e documenti di trasporto illimitati</li>
                 <li><mat-icon>check_circle</mat-icon> SDI integrato</li>
                 <li><mat-icon>check_circle</mat-icon> OCR fatture (50/mese)</li>
                 <li><mat-icon>check_circle</mat-icon> Supporto email</li>

@@ -40,7 +40,7 @@ import { DataService } from '../../services/data.service';
           </mat-form-field>
           <mat-form-field style="flex:2">
             <mat-label>Pagina</mat-label>
-            <input matInput [(ngModel)]="pagina" [placeholder]="data?.pagina || 'es. Fatture, DDT…'">
+            <input matInput [(ngModel)]="pagina" [placeholder]="data?.pagina || 'es. Fatture, Documenti di trasporto…'">
           </mat-form-field>
         </div>
         <mat-form-field style="width:100%">

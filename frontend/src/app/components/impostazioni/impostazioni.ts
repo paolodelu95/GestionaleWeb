@@ -431,7 +431,7 @@ export class ImpostazioniComponent implements OnInit {
   private prefissiOriginali: Record<string, string> = {};
 
   private readonly PREFISSI_MAP = [
-    { field: 'prefissoDdt',        documento: 'DDT' },
+    { field: 'prefissoDdt',        documento: 'Documenti di trasporto' },
     { field: 'prefissoFatture',    documento: 'Fatture' },
     { field: 'prefissoOrdini',     documento: 'Ordini' },
     { field: 'prefissoPreventivi', documento: 'Preventivi' },
@@ -479,8 +479,8 @@ export class ImpostazioniComponent implements OnInit {
     { key: 'tabella', label: 'Tabella prodotti' },
     { key: 'totali', label: 'Totali e IVA' },
     { key: 'pagamento', label: 'Modalità di pagamento' },
-    { key: 'trasporto', label: 'Dati trasporto (DDT)' },
-    { key: 'firme', label: 'Firme (DDT)' },
+    { key: 'trasporto', label: 'Dati trasporto (doc. di trasporto)' },
+    { key: 'firme', label: 'Firme (doc. di trasporto)' },
     { key: 'note', label: 'Note' },
     { key: 'footer', label: 'Piè di pagina' },
   ];

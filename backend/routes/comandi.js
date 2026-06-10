@@ -213,7 +213,7 @@ function parseRighe(testo) {
 
 function bozzaDocumento(target, qIn) {
   // Nome documento per il titolo.
-  const nomeDoc = target === 'fattura' ? 'fattura' : target === 'preventivo' ? 'preventivo' : 'DDT';
+  const nomeDoc = target === 'fattura' ? 'fattura' : target === 'preventivo' ? 'preventivo' : 'documento di trasporto';
   // "una/uno/un sedia" → "1 sedia" così la quantità implicita viene letta.
   const q = qIn.replace(/\b(una|uno|un)\b/gi, '1');
 

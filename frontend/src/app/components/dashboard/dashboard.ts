@@ -40,7 +40,7 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: 'chart-vendite',   label: 'Grafico vendite mensili', icon: 'bar_chart',     visible: true },
   { id: 'chart-top',       label: 'Top 5 prodotti',          icon: 'pie_chart',     visible: true },
   { id: 'table-sotto',     label: 'Prodotti sotto soglia',   icon: 'inventory',     visible: true },
-  { id: 'table-ddt',       label: 'DDT da fatturare',        icon: 'receipt_long',  visible: true },
+  { id: 'table-ddt',       label: 'Documenti di trasporto da fatturare', icon: 'receipt_long',  visible: true },
   { id: 'table-incassare', label: 'Fatture da incassare',    icon: 'request_quote', visible: true },
   { id: 'table-pagare',    label: 'Fatture da pagare',       icon: 'payments',      visible: true },
 ];

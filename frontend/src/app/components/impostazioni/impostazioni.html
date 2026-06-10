@@ -414,7 +414,7 @@
               Prefissi facoltativi per ogni tipo di documento (es. <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">DDT</code> → DDT2025/0001).
             </p>
             <div class="form-row" style="flex-wrap:wrap;gap:8px">
-              <mat-form-field style="max-width:130px"><mat-label>DDT</mat-label>
+              <mat-form-field style="max-width:130px"><mat-label>Doc. di trasporto</mat-label>
                 <input matInput formControlName="prefissoDdt" maxlength="6" placeholder="es. DDT"></mat-form-field>
               <mat-form-field style="max-width:130px"><mat-label>Fatture</mat-label>
                 <input matInput formControlName="prefissoFatture" maxlength="6" placeholder="es. FAT"></mat-form-field>
@@ -755,7 +755,7 @@
             </button>
           </div>
           <p style="font-size:13px;color:#64748b;margin:0 0 12px">
-            Le note rapide appaiono nel menu "Aggiungi nota" di tutti i documenti (DDT, fatture, preventivi ecc.).
+            Le note rapide appaiono nel menu "Aggiungi nota" di tutti i documenti (documenti di trasporto, fatture, preventivi ecc.).
           </p>
           <table mat-table [dataSource]="noteRapide" class="mat-mdc-table">
             <ng-container matColumnDef="testo">
@@ -990,10 +990,10 @@
             <mat-slide-toggle
               [(ngModel)]="notificheConfig.avvisoInsolutiDdt"
               (change)="saveNotificheConfig()">
-              <span style="font-weight:600">Avviso fatture aperte su DDT</span>
+              <span style="font-weight:600">Avviso fatture aperte su documenti di trasporto</span>
             </mat-slide-toggle>
             <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
-              Mostra un avviso quando crei un nuovo DDT per un cliente con fatture non pagate,
+              Mostra un avviso quando crei un nuovo documento di trasporto per un cliente con fatture non pagate,
               con l'elenco delle fatture aperte (numero, data, importo).
             </p>
           </div>

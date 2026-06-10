@@ -106,7 +106,7 @@
                 @if (ddtDaFatturare.length > 0) {
                   <a class="alert-chip alert-blue" [routerLink]="['/ddt']">
                     <mat-icon>receipt_long</mat-icon>
-                    {{ ddtDaFatturare.length }} DDT da fatturare
+                    {{ ddtDaFatturare.length }} {{ ddtDaFatturare.length === 1 ? 'documento di trasporto da fatturare' : 'documenti di trasporto da fatturare' }}
                   </a>
                 }
                 @if (prodottiSottoSoglia.length > 0) {
@@ -418,8 +418,8 @@
           @if (w.id === 'table-ddt') {
             <div class="card">
               <div class="section-header">
-                <h3 class="section-title info">DDT da fatturare</h3>
-                <a [routerLink]="['/ddt']" class="section-link">Vai ai DDT →</a>
+                <h3 class="section-title info">Documenti di trasporto da fatturare</h3>
+                <a [routerLink]="['/ddt']" class="section-link">Vai ai documenti di trasporto →</a>
               </div>
               <table mat-table [dataSource]="ddtDaFatturare" class="mat-mdc-table hide-mobile">
                 <ng-container matColumnDef="numero">
@@ -442,7 +442,7 @@
                   <th mat-header-cell *matHeaderCellDef>Azione</th>
                   <td mat-cell *matCellDef="let d">
                     <button mat-button type="button" color="primary" class="btn-fattura"
-                            title="Crea fattura da questo DDT" (click)="convertiDdtInFattura(d)">
+                            title="Crea fattura da questo documento di trasporto" (click)="convertiDdtInFattura(d)">
                       Fattura
                     </button>
                   </td>
@@ -465,7 +465,7 @@
                   </div>
                 }
               </div>
-              @if (!ddtDaFatturare.length) { <app-empty-state compact icon="receipt_long" title="Nessun DDT da fatturare" /> }
+              @if (!ddtDaFatturare.length) { <app-empty-state compact icon="receipt_long" title="Nessun documento di trasporto da fatturare" /> }
             </div>
           }
 

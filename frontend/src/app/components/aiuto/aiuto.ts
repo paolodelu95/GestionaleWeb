@@ -499,9 +499,9 @@ export class AiutoComponent {
       colore: 'linear-gradient(135deg,#0284c7,#0369a1)',
       intro: 'Prima cosa da fare al primo accesso',
       passi: [
-        { titolo: 'Inserisci ragione sociale e P.IVA', descrizione: 'Vai in Impostazioni → Dati azienda. Compila ragione sociale, P.IVA (11 cifre), codice fiscale (se diverso), indirizzo completo, telefono e PEC. Tutti i documenti emessi (fatture, DDT, ecc.) useranno questi dati.' },
-        { titolo: 'Carica il logo', descrizione: 'Nella stessa sezione carica il logo dell\'azienda (PNG o JPG, max 2MB). Comparirà su fatture, preventivi, DDT, email automatiche.' },
-        { titolo: 'Imposta numerazione documenti', descrizione: 'Decide se la numerazione fatture/DDT/ecc. è annuale (es. 2026/0001) o continua (1, 2, 3…). Puoi anche aggiungere prefissi personalizzati come "FATT-" o "DDT-".' },
+        { titolo: 'Inserisci ragione sociale e P.IVA', descrizione: 'Vai in Impostazioni → Dati azienda. Compila ragione sociale, P.IVA (11 cifre), codice fiscale (se diverso), indirizzo completo, telefono e PEC. Tutti i documenti emessi (fatture, documenti di trasporto, ecc.) useranno questi dati.' },
+        { titolo: 'Carica il logo', descrizione: 'Nella stessa sezione carica il logo dell\'azienda (PNG o JPG, max 2MB). Comparirà su fatture, preventivi, documenti di trasporto, email automatiche.' },
+        { titolo: 'Imposta numerazione documenti', descrizione: 'Decide se la numerazione fatture/documenti di trasporto/ecc. è annuale (es. 2026/0001) o continua (1, 2, 3…). Puoi anche aggiungere prefissi personalizzati come "FATT-" o "DDT-".' },
         { titolo: 'Configura email per inviare ai clienti', descrizione: 'In Impostazioni → Email puoi configurare il tuo SMTP personale (Gmail, Outlook, Aruba, ecc.) per inviare fatture e solleciti direttamente dai tuoi indirizzi.' },
       ],
     },
@@ -559,13 +559,13 @@ export class AiutoComponent {
     },
     {
       id: 'ddt',
-      titolo: 'DDT (Documenti di Trasporto)',
+      titolo: 'Documenti di trasporto (DDT)',
       icona: 'receipt_long',
       colore: 'linear-gradient(135deg,#38bdf8,#0ea5e9)',
       intro: 'Bolle di accompagnamento merce + conversione in fattura',
       passi: [
-        { titolo: 'Emettere un DDT', descrizione: '"DDT" → "Nuovo". Cliente, righe, vettore, peso, colli. Stampa direttamente o esporta PDF.' },
-        { titolo: 'Convertire un DDT in fattura', descrizione: 'Dalla lista DDT, spunta uno o più DDT dello stesso cliente e click "Crea fattura". Ordeva genera una fattura riepilogativa con tutte le righe.' },
+        { titolo: 'Emettere un documento di trasporto', descrizione: '"Documenti di trasporto" → "Nuovo". Cliente, righe, vettore, peso, colli. Stampa direttamente o esporta PDF.' },
+        { titolo: 'Convertire un documento di trasporto in fattura', descrizione: 'Dalla lista documenti di trasporto, spunta uno o più documenti dello stesso cliente e click "Crea fattura". Ordeva genera una fattura riepilogativa con tutte le righe.' },
       ],
     },
     {
@@ -599,7 +599,7 @@ export class AiutoComponent {
       intro: 'Carichi, scarichi, giacenze, soglie minime',
       passi: [
         { titolo: 'Carico manuale', descrizione: '"Magazzino" → "Nuovo movimento" → "Carico". Scegli prodotto e quantità. Aumenta la giacenza.' },
-        { titolo: 'Carico automatico da DDT/Acquisto', descrizione: 'Ogni DDT in entrata o Arrivo Merce confermato carica automaticamente il magazzino. Non devi fare nulla manualmente.' },
+        { titolo: 'Carico automatico da documento di trasporto/Acquisto', descrizione: 'Ogni documento di trasporto in entrata o Arrivo Merce confermato carica automaticamente il magazzino. Non devi fare nulla manualmente.' },
         { titolo: 'Inventario fisico', descrizione: 'Per la rettifica annuale, vai in "Magazzino" → "Inventario" e imposta le quantità contate. Ordeva genera i movimenti di rettifica e l\'export per il commercialista.' },
       ],
     },
@@ -660,7 +660,7 @@ export class AiutoComponent {
       intro: 'Invitare il team con permessi differenziati',
       passi: [
         { titolo: 'Creare un utente nuovo', descrizione: 'Solo Owner e Admin possono. "Utenti" → "Nuovo". Username (email), password temporanea, ruolo, nome.' },
-        { titolo: 'Ruoli disponibili', descrizione: 'OWNER (full access), ADMIN (full access escluse modifiche fatturazione/piano), COMMERCIALE (clienti, vendite), CONTABILE (fatture, pagamenti, contabilità), MAGAZZINIERE (prodotti, magazzino, DDT), OPERATORE (solo lettura più aree base).' },
+        { titolo: 'Ruoli disponibili', descrizione: 'OWNER (full access), ADMIN (full access escluse modifiche fatturazione/piano), COMMERCIALE (clienti, vendite), CONTABILE (fatture, pagamenti, contabilità), MAGAZZINIERE (prodotti, magazzino, documenti di trasporto), OPERATORE (solo lettura più aree base).' },
         { titolo: 'Gruppi per agenda condivisa', descrizione: 'In Impostazioni → Gruppi crea team (es. "Commerciali", "Amministrazione"). Gli appuntamenti condivisi sono visibili solo ai membri dello stesso gruppo.' },
       ],
     },

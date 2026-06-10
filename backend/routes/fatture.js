@@ -53,13 +53,13 @@ router.post('/da-ddt', (req, res) => {
         : null;
       const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato, tipo_pagamento_id)
         VALUES (?,?,?,?,?,?,?)`)
-        .run(numero, oggi, clienteId || null, ddts[0].id, `Da DDT: ${ddtNums}`, 'EMESSA', tipoPagamentoId || null);
+        .run(numero, oggi, clienteId || null, ddts[0].id, `Da documenti di trasporto: ${ddtNums}`, 'EMESSA', tipoPagamentoId || null);
       const fatturaId = result.lastInsertRowid;
 
       for (const ddt of ddts) {
         stmtLink.run(fatturaId, ddt.id);
         const [y, m, d] = ddt.data_emissione.split('T')[0].split('-');
-        stmtRiga.run(fatturaId, null, `Riferimento DDT n. ${ddt.numero} del ${d}/${m}/${y}`,
+        stmtRiga.run(fatturaId, null, `Riferimento documento di trasporto n. ${ddt.numero} del ${d}/${m}/${y}`,
           0, 0, 0, 0, '', '', null, '', '', 'NOTA');
         for (const r of getDdtRighe(ddt.id))
           stmtRiga.run(fatturaId, r.prodottoId || null, r.descrizione, r.quantita, r.prezzo,

@@ -190,9 +190,9 @@ router.get('/:id/print', (req, res) => {
 // ── POST /:id/to-fattura – converti DDT in fattura ───────────────────────────
 router.post('/:id/to-fattura', (req, res) => {
   const ddt = db.prepare('SELECT * FROM ddt WHERE id=?').get(req.params.id);
-  if (!ddt) return res.status(404).json({ error: 'DDT non trovato' });
+  if (!ddt) return res.status(404).json({ error: 'Documento di trasporto non trovato' });
   const existing = db.prepare('SELECT id, numero FROM fatture WHERE ddt_id=?').get(req.params.id);
-  if (existing) return res.status(409).json({ error: `DDT già collegato alla fattura n. ${existing.numero}` });
+  if (existing) return res.status(409).json({ error: `Documento di trasporto già collegato alla fattura n. ${existing.numero}` });
   try {
     const out = db.transaction(() => {
       const righe = getRighe(ddt.id);
@@ -202,7 +202,7 @@ router.post('/:id/to-fattura', (req, res) => {
       const data = new Date().toISOString().split('T')[0];
       const result = db.prepare(`INSERT INTO fatture (numero, data_emissione, cliente_id, ddt_id, note, stato)
         VALUES (?,?,?,?,?,?)`)
-        .run(numero, data, ddt.cliente_id, ddt.id, `Da DDT n. ${ddt.numero}`, 'EMESSA');
+        .run(numero, data, ddt.cliente_id, ddt.id, `Da documento di trasporto n. ${ddt.numero}`, 'EMESSA');
       const fatturaId = result.lastInsertRowid;
       db.prepare('INSERT OR IGNORE INTO fatture_ddt (fattura_id, ddt_id) VALUES (?,?)').run(fatturaId, ddt.id);
       const stmt = db.prepare(`INSERT INTO fatture_righe

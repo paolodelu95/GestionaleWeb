@@ -992,7 +992,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
           const { fatture, ddt, preventivi, ordini, noteCredito } = err.error.counts;
           const parts: string[] = [];
           if (fatture > 0)     parts.push(`${fatture} fattur${fatture === 1 ? 'a' : 'e'}`);
-          if (ddt > 0)         parts.push(`${ddt} DDT`);
+          if (ddt > 0)         parts.push(`${ddt} document${ddt === 1 ? 'o' : 'i'} di trasporto`);
           if (preventivi > 0)  parts.push(`${preventivi} preventiv${preventivi === 1 ? 'o' : 'i'}`);
           if (ordini > 0)      parts.push(`${ordini} ordin${ordini === 1 ? 'e' : 'i'}`);
           if (noteCredito > 0) parts.push(`${noteCredito} nota${noteCredito === 1 ? ' di credito' : ' di credito'}`);

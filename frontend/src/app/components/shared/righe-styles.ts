@@ -78,6 +78,9 @@ export const RIGHE_STYLES = `
   /* Flag "scarica magazzino" per riga (Fatture / DDT) */
   .td-scarico { width: 58px; text-align: center; padding: 0 !important; }
   .td-scarico .riga-check { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+  /* Riga senza prodotto a catalogo: il flag scarico apre la creazione rapida prodotto */
+  .td-scarico .riga-check--crea { outline: 1px dashed var(--primary); outline-offset: 2px; opacity: 0.7; }
+  .td-scarico .riga-check--crea:hover { opacity: 1; }
   th.td-scarico .mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-tertiary); vertical-align: middle; }
 
   /* Cluster azioni di riga (search/history) raggruppate */

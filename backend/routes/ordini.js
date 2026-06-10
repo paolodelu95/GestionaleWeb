@@ -129,7 +129,7 @@ router.patch('/:id/acquisto', (req, res) => {
 router.post('/:id/to-ddt', (req, res) => {
   const ordine = db.prepare('SELECT * FROM ordini WHERE id=?').get(req.params.id);
   if (!ordine) return res.status(404).json({ error: 'Ordine non trovato' });
-  if (ordine.tipo !== 'CLIENTE') return res.status(400).json({ error: 'Solo gli ordini cliente possono essere convertiti in DDT' });
+  if (ordine.tipo !== 'CLIENTE') return res.status(400).json({ error: 'Solo gli ordini cliente possono essere convertiti in documento di trasporto' });
   const righe = getRighe(ordine.id);
   try {
     const out = db.transaction(() => {

@@ -825,9 +825,9 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   }
 
   async convertiInDdt(o: Ordine) {
-    if (!await this.confirm.ask(`Convertire l'ordine ${o.numero} in DDT?`)) return;
+    if (!await this.confirm.ask(`Convertire l'ordine ${o.numero} in documento di trasporto?`)) return;
     this.ds.ordineToDD(o.id!).subscribe({
-      next: r => { this.load(); this.snack.open(`DDT ${r.numero} creato`, '', { duration: 3000 }); },
+      next: r => { this.load(); this.snack.open(`Documento di trasporto ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.message || 'Errore conversione', '', { duration: 3000 }),
     });
   }
@@ -836,14 +836,14 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   async bulkConvertiInDdt() {
     const sel = this.selection.selected.slice();
     if (!sel.length) return;
-    if (!await this.confirm.ask(`Convertire ${sel.length} ordini in DDT?`)) return;
+    if (!await this.confirm.ask(`Convertire ${sel.length} ordini in documenti di trasporto?`)) return;
     forkJoin(sel.map(o => this.ds.ordineToDD(o.id!).pipe(catchError(() => of(null)))))
       .subscribe((res: any[]) => {
         const ok = res.filter(Boolean).length;
         this.selection.clear();
         this.load();
         const falliti = sel.length - ok;
-        this.snack.open(`${ok} DDT creat${ok === 1 ? 'o' : 'i'}${falliti ? ` · ${falliti} non convertiti` : ''}`, '', { duration: 4000 });
+        this.snack.open(`${ok} ${ok === 1 ? 'documento di trasporto' : 'documenti di trasporto'} creat${ok === 1 ? 'o' : 'i'}${falliti ? ` · ${falliti} non convertiti` : ''}`, '', { duration: 4000 });
       });
   }
 

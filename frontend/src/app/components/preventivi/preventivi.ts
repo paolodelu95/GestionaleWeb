@@ -736,9 +736,9 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   }
 
   async convertiInDdt(p: Preventivo) {
-    if (!await this.confirm.ask(`Convertire il preventivo ${p.numero} in DDT? Il preventivo verrà marcato come CONFERMATO.`)) return;
+    if (!await this.confirm.ask(`Convertire il preventivo ${p.numero} in documento di trasporto? Il preventivo verrà marcato come CONFERMATO.`)) return;
     this.ds.preventivoToDdt(p.id!).subscribe({
-      next: r => { this.load(); this.snack.open(`DDT n. ${r.numero} creato`, '', { duration: 3000 }); },
+      next: r => { this.load(); this.snack.open(`Documento di trasporto n. ${r.numero} creato`, '', { duration: 3000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
     });
   }
@@ -762,9 +762,9 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   async bulkConvertiInDdt() {
     const sel = this.selection.selected.slice();
     if (!sel.length) return;
-    if (!await this.confirm.ask(`Convertire ${sel.length} preventivi in DDT? Verranno marcati come CONFERMATI.`)) return;
+    if (!await this.confirm.ask(`Convertire ${sel.length} preventivi in documenti di trasporto? Verranno marcati come CONFERMATI.`)) return;
     forkJoin(sel.map(p => this.ds.preventivoToDdt(p.id!).pipe(catchError(() => of(null)))))
-      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'DDT', 'DDT'));
+      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'documento di trasporto', 'documenti di trasporto'));
   }
   private fineBulk(res: any[], tot: number, sing: string, plur: string) {
     const ok = res.filter(Boolean).length;

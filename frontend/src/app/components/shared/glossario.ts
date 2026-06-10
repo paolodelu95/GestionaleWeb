@@ -78,7 +78,7 @@ export const GLOSSARIO: Record<string, GlossarioVoce> = {
     descrizione: 'Comunicazione trimestrale del calcolo dell\'IVA a debito o a credito.',
   },
   ddt: {
-    titolo: 'DDT (Documento Di Trasporto)',
+    titolo: 'Documento di trasporto (DDT)',
     descrizione: 'Accompagna la merce durante il trasporto. Da qui puoi poi generare la fattura.',
   },
   listino: {

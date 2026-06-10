@@ -153,14 +153,14 @@ router.post('/ddt/:id', async (req, res) => {
     const row = db.prepare(`
       SELECT d.*, c.ragione_sociale as c_nome, c.email as c_email
       FROM ddt d LEFT JOIN clienti c ON d.cliente_id = c.id WHERE d.id=?`).get(req.params.id);
-    if (!row) return res.status(404).json({ error: 'DDT non trovato' });
+    if (!row) return res.status(404).json({ error: 'Documento di trasporto non trovato' });
     const dest = to || row.c_email;
     assertSafeRecipient(dest);
     const righe = db.prepare(`SELECT * FROM ddt_righe WHERE ddt_id=?`).all(row.id);
     const { html, subject } = sendDocumentoEmail({
       docRow: row, righe, dest, note,
-      subject: `DDT n. ${row.numero}`,
-      heading: `DDT n. ${row.numero}`,
+      subject: `Documento di trasporto n. ${row.numero}`,
+      heading: `Documento di trasporto n. ${row.numero}`,
       withTotal: false,
     });
     const t = getTransporter();
@@ -322,10 +322,10 @@ router.post('/preview/:tipo/:id', (req, res) => {
       body = `${corpo}\n\n${docInfo('Fattura', row.numero, row.data_emissione, totale)}\n\n${saluti}`;
     } else if (tipo === 'ddt') {
       row = db.prepare(`SELECT d.*, c.email as c_email FROM ddt d LEFT JOIN clienti c ON d.cliente_id=c.id WHERE d.id=?`).get(id);
-      if (!row) return res.status(404).json({ error: 'DDT non trovato' });
+      if (!row) return res.status(404).json({ error: 'Documento di trasporto non trovato' });
       dest = to || row.c_email;
-      subject = `DDT n. ${row.numero}`;
-      body = `${corpo}\n\n${docInfo('DDT', row.numero, row.data_emissione)}\n\n${saluti}`;
+      subject = `Documento di trasporto n. ${row.numero}`;
+      body = `${corpo}\n\n${docInfo('Documento di trasporto', row.numero, row.data_emissione)}\n\n${saluti}`;
     } else if (tipo === 'preventivo') {
       row = db.prepare(`SELECT p.*, c.email as c_email FROM preventivi p LEFT JOIN clienti c ON p.cliente_id=c.id WHERE p.id=?`).get(id);
       if (!row) return res.status(404).json({ error: 'Preventivo non trovato' });

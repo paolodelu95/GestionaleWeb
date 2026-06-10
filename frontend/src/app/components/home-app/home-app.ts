@@ -161,7 +161,7 @@ export class HomeAppComponent {
   readonly quickActions: { label: string; icon: string; route: string }[] = [
     { label: 'Nuova fattura',    icon: 'receipt',        route: '/fatture' },
     { label: 'Nuovo preventivo', icon: 'request_quote',  route: '/preventivi' },
-    { label: 'Nuovo DDT',        icon: 'local_shipping', route: '/ddt' },
+    { label: 'Nuovo documento di trasporto', icon: 'local_shipping', route: '/ddt' },
     { label: 'Vendita al banco', icon: 'point_of_sale',  route: '/vendita-banco' },
     { label: 'Nuovo cliente',    icon: 'person_add',     route: '/clienti' },
     { label: 'Registra acquisto',icon: 'shopping_bag',   route: '/acquisti' },
@@ -183,7 +183,7 @@ export class HomeAppComponent {
     // ── Vendite ── indigo / violet / pink scuri ────────────────────────────
     { label: 'Preventivi',        description: 'Offerte commerciali',    icon: 'request_quote',   route: '/preventivi',         color: 'linear-gradient(135deg,#4f46e5,#4338ca)', category: 'Vendite' },
     { label: 'Ordini cliente',    description: 'Ordini da clienti',      icon: 'shopping_cart',   route: '/ordini',             color: 'linear-gradient(135deg,#7c3aed,#6d28d9)', category: 'Vendite' },
-    { label: 'DDT',               description: 'Documenti di trasporto', icon: 'receipt_long',    route: '/ddt',                color: 'linear-gradient(135deg,#9333ea,#7e22ce)', category: 'Vendite' },
+    { label: 'Documenti di trasporto', description: 'Trasporto e consegna merci', icon: 'receipt_long',    route: '/ddt',                color: 'linear-gradient(135deg,#9333ea,#7e22ce)', category: 'Vendite' },
     { label: 'Fatture',           description: 'Emissione fatture + XML SDI', icon: 'receipt',    route: '/fatture',            color: 'linear-gradient(135deg,#db2777,#be185d)', category: 'Vendite' },
     { label: 'Note di credito',   description: 'Storni e rimborsi',      icon: 'note_alt',        route: '/note-credito',       color: 'linear-gradient(135deg,#e11d48,#be123c)', category: 'Vendite' },
     { label: 'Ricorrenti',        description: 'Fatturazione periodica', icon: 'autorenew',       route: '/fatture-ricorrenti', color: 'linear-gradient(135deg,#ea580c,#c2410c)', category: 'Vendite' },

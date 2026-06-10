@@ -177,7 +177,7 @@ const MODULI_NASCOSTI = new Set(['crm', 'timesheet']);
 const MODULI_CATALOGO = [
   // CORE — sempre attivi
   { slug: 'anagrafica',  nome: 'Anagrafica',  descrizione: 'Clienti, fornitori, prodotti',  categoria: 'Core', icona: 'contacts',        core: 1, default_attivo: 1, ordine: 1 },
-  { slug: 'vendite',     nome: 'Vendite',     descrizione: 'Preventivi, ordini, DDT, fatture, note credito', categoria: 'Core', icona: 'point_of_sale', core: 1, default_attivo: 1, ordine: 2 },
+  { slug: 'vendite',     nome: 'Vendite',     descrizione: 'Preventivi, ordini, documenti di trasporto, fatture, note credito', categoria: 'Core', icona: 'point_of_sale', core: 1, default_attivo: 1, ordine: 2 },
   { slug: 'acquisti',    nome: 'Acquisti',    descrizione: 'Acquisti e arrivi merce',       categoria: 'Core', icona: 'shopping_bag',    core: 1, default_attivo: 1, ordine: 3 },
   { slug: 'magazzino',   nome: 'Magazzino',   descrizione: 'Movimenti e giacenze',          categoria: 'Core', icona: 'warehouse',       core: 1, default_attivo: 1, ordine: 4 },
   { slug: 'contabilita', nome: 'Contabilità', descrizione: 'Pagamenti, scadenzario, prima nota', categoria: 'Core', icona: 'account_balance', core: 1, default_attivo: 1, ordine: 5 },
