@@ -538,7 +538,7 @@ export class AiutoComponent {
       passi: [
         { titolo: 'Aggiungere un prodotto', descrizione: '"Prodotti" → "Nuovo". Nome, prezzo, IVA, unità di misura, codice interno. Per articoli con codice a barre, scansionalo con la fotocamera (icona barcode).' },
         { titolo: 'Varianti taglia/colore', descrizione: 'Nella scheda prodotto attiva "Gestione varianti" e aggiungi le combinazioni (es. "S/Rosso", "M/Blu"). Ogni variante ha la sua quantità in magazzino.' },
-        { titolo: 'Listini differenziati', descrizione: 'In Impostazioni → Listini puoi creare listini diversi (es. "Privati", "Aziende", "Rivenditori") con sconti per categoria di prodotto. Assegna un listino al cliente e applica i prezzi giusti automaticamente.' },
+        { titolo: 'Listini differenziati', descrizione: 'In Vendite → Listini puoi creare listini diversi (es. "Privati", "Aziende", "Rivenditori") con sconti per categoria di prodotto. Assegna un listino al cliente e applica i prezzi giusti automaticamente.' },
         { titolo: 'Soglia minima scorta', descrizione: 'Imposta una "Soglia minima" per ogni prodotto. Quando la giacenza scende sotto, vedi una notifica nella dashboard.' },
       ],
     },

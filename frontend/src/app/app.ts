@@ -790,6 +790,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Note di Credito',  icon: 'note_alt',        route: '/note-credito' },
         { label: 'Ricorrenti',       icon: 'autorenew',       route: '/fatture-ricorrenti' },
         { label: 'Vendita al banco', icon: 'point_of_sale',   route: '/vendita-banco' },
+        { label: 'Listini',          icon: 'sell',            route: '/listini' },
       ]
     },
     {

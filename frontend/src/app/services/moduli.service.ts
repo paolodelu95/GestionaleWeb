@@ -51,7 +51,7 @@ export class ModuliService {
     const map: Record<string, string> = {
       '/preventivi': 'vendite', '/ordini': 'vendite', '/ddt': 'vendite',
       '/fatture': 'vendite', '/note-credito': 'vendite',
-      '/fatture-elettroniche': 'vendite',
+      '/fatture-elettroniche': 'vendite', '/listini': 'vendite',
       '/fatture-ricorrenti': 'fatture_ricorrenti',
       '/vendita-banco': 'vendita_banco',
       '/acquisti': 'acquisti', '/arrivi-merce': 'acquisti', '/ordini-fornitore': 'acquisti',

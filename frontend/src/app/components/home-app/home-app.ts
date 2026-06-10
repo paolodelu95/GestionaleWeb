@@ -187,6 +187,7 @@ export class HomeAppComponent {
     { label: 'Fatture',           description: 'Emissione fatture + XML SDI', icon: 'receipt',    route: '/fatture',            color: 'linear-gradient(135deg,#db2777,#be185d)', category: 'Vendite' },
     { label: 'Note di credito',   description: 'Storni e rimborsi',      icon: 'note_alt',        route: '/note-credito',       color: 'linear-gradient(135deg,#e11d48,#be123c)', category: 'Vendite' },
     { label: 'Ricorrenti',        description: 'Fatturazione periodica', icon: 'autorenew',       route: '/fatture-ricorrenti', color: 'linear-gradient(135deg,#ea580c,#c2410c)', category: 'Vendite' },
+    { label: 'Listini',           description: 'Prezzi e sconti per cliente', icon: 'sell',       route: '/listini',            color: 'linear-gradient(135deg,#6d28d9,#5b21b6)', category: 'Vendite' },
 
     // ── Acquisti ── amber / yellow scuri (warm, "outgoing") ───────────────
     { label: 'Acquisti',     description: 'Fatture passive ricevute', icon: 'shopping_bag',  route: '/acquisti',     color: 'linear-gradient(135deg,#d97706,#b45309)', category: 'Acquisti' },

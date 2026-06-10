@@ -31,12 +31,10 @@ import { SectionKey, ColumnKey } from '../../models';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, Listino, ModuloDto } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, ModuloDto } from '../../models';
 import { ModuliService } from '../../services/moduli.service';
 import { DocLockService } from '../../services/doc-lock.service';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
-import { ListinoDialogComponent } from './listino-dialog';
-import { QuickListinoDialogComponent } from './quick-listino-dialog';
 import { AuthService } from '../../services/auth.service';
 import { AdminComponent } from '../admin/admin';
 import { SuperAdminComponent } from '../super-admin/super-admin';
@@ -448,9 +446,6 @@ export class ImpostazioniComponent implements OnInit {
   categorie: CategoriaProdotto[] = [];
   catColumns = ['nome', 'azioni'];
 
-  listini: Listino[] = [];
-  listiniColumns = ['nome', 'scontoDefault', 'prezziCount', 'attivo', 'azioni'];
-
   unitaMisura: UnitaMisura[] = [];
   umColumns = ['nome', 'simbolo', 'azioni'];
 
@@ -565,7 +560,6 @@ export class ImpostazioniComponent implements OnInit {
 
     this.loadTipiPagamento();
     this.loadCategorie();
-    this.loadListini();
     this.loadUnitaMisura();
     this.loadAliquoteIva();
     this.loadUtenti();
@@ -611,33 +605,6 @@ export class ImpostazioniComponent implements OnInit {
         this.snack.open(e.error?.error || e.message, '', { duration: 3000 });
         this.loadModuli();
       },
-    });
-  }
-
-  // ── Listini ─────────────────────────────────────────────────────────────────
-  loadListini() { this.ds.getListini().subscribe(l => this.listini = l); }
-
-  openListino(l?: Listino) {
-    const ref = this.dialog.open(ListinoDialogComponent, {
-      data: l ?? null, width: '760px', maxWidth: '95vw',
-    });
-    ref.afterClosed().subscribe((result) => {
-      if (result != null) this.loadListini();
-    });
-  }
-
-  openQuickListino() {
-    const ref = this.dialog.open(QuickListinoDialogComponent, { width: '860px', maxWidth: '96vw' });
-    ref.afterClosed().subscribe((result) => {
-      if (result != null) this.loadListini();
-    });
-  }
-
-  async deleteListino(l: Listino) {
-    if (!await this.confirm.delete(`Eliminare il listino "${l.nome}"?\n\nI clienti assegnati torneranno a usare i prezzi base.`)) return;
-    this.ds.deleteListino(l.id!).subscribe({
-      next: () => { this.loadListini(); this.snack.open('Listino eliminato', '', { duration: 2000 }); },
-      error: () => this.snack.open('Errore eliminazione', '', { duration: 3000 }),
     });
   }
 
