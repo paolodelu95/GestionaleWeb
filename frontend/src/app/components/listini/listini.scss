@@ -1,0 +1,185 @@
+// ── Pagina Listini: elenco + editor ──────────────────────────────────────────
+
+.page-intro {
+  margin: -6px 0 16px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  max-width: 860px;
+}
+
+// ── Tabella condivisa (elenco + editor) ──────────────────────────────────────
+.lst-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    background: var(--bg-surface-2);
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th.num, td.num { text-align: right; }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+  }
+}
+
+.lst-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  display: flex;
+  gap: 8px;
+}
+.lst-muted { color: var(--text-tertiary); font-size: 12px; }
+
+// ── Elenco ───────────────────────────────────────────────────────────────────
+.lst-elenco {
+  .lst-row { cursor: pointer; }
+  .lst-row:hover { background: var(--bg-surface-2); }
+}
+
+.lst-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--primary); }
+}
+
+.lst-cols { display: flex; gap: 4px; flex-wrap: wrap; }
+.lst-col-chip {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 99px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+// ── Editor: header e anagrafica ──────────────────────────────────────────────
+.ed-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  .page-title { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+.ed-anagrafica {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+// ── Editor: toolbar tabella ──────────────────────────────────────────────────
+.ed-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.ed-filtro { min-width: 220px; }
+.ed-bulk-field { max-width: 130px; }
+.ed-righe-count { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+
+// ── Editor: tabella "foglio di calcolo" ──────────────────────────────────────
+.ed-table-wrap { overflow-x: auto; }
+
+.ed-table {
+  .drag-th, .drag-td { width: 28px; padding: 4px 2px; }
+  .num-th, .num-td { width: 34px; text-align: right; color: var(--text-tertiary); font-size: 12px; }
+  .extra-th { min-width: 110px; }
+
+  tbody tr:hover { background: var(--bg-surface-2); }
+
+  .drag-handle {
+    color: var(--text-tertiary);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    cursor: grab;
+    opacity: 0.4;
+  }
+  tbody tr:hover .drag-handle { opacity: 1; }
+
+  .ed-pname { font-weight: 600; }
+  .ed-pcode { font-family: monospace; }
+
+  .base-td { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .finale-td { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .del-icon { font-size: 18px; color: var(--text-tertiary); }
+  button:hover .del-icon { color: #dc2626; }
+}
+
+.cell-input {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 13px;
+  width: 100%;
+  min-width: 70px;
+  max-width: 150px;
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.12s, background 0.12s;
+
+  &.num { text-align: right; width: 90px; }
+  &:hover:not(:disabled) { border-color: var(--border); background: var(--bg-surface); }
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-focus);
+  }
+  &:disabled { color: var(--text-tertiary); }
+}
+
+.ed-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--info-soft);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--info-on);
+  mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+}
+
+// Anteprima riga durante il drag (la riga esce dal flusso della tabella)
+.cdk-drag-preview.ed-table-row,
+tr.cdk-drag-preview {
+  display: table;
+  background: var(--bg-surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
+}
+tr.cdk-drag-placeholder { opacity: 0.3; }
+
+// ── Mobile ───────────────────────────────────────────────────────────────────
+@media (max-width: 767px) {
+  .ed-anagrafica { gap: 8px; }
+  .lst-table th, .lst-table td { padding: 6px 6px; }
+  .cell-input { min-width: 60px; &.num { width: 70px; } }
+  .ed-bulk-field { max-width: 110px; }
+}

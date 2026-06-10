@@ -281,12 +281,19 @@ export interface Cliente {
   fattureInsolute?: number;
 }
 
+/** Colonna descrittiva personalizzata di un listino (es. Dimensioni, Peso, Q.tà pallet). */
+export interface ListinoColonna {
+  key: string;
+  label: string;
+}
+
 export interface Listino {
   id?: number;
   nome: string;
   descrizione?: string;
   scontoDefault?: number;
   attivo?: boolean;
+  colonneExtra?: ListinoColonna[];
   prezziCount?: number;
   createdAt?: string;
 }
@@ -297,10 +304,16 @@ export interface ListinoPrezzo {
   prodottoId: number;
   prezzo?: number | null;
   sconto?: number | null;
+  ordine?: number;
+  /** Valori delle colonne personalizzate, indicizzati per ListinoColonna.key. */
+  datiExtra?: Record<string, string>;
   prodottoNome?: string;
   prodottoCodice?: string;
   prodottoPrezzoBase?: number;
   prodottoIva?: number;
+  prodottoUm?: string;
+  prodottoCategoria?: string;
+  prodottoDescrizione?: string;
 }
 
 export interface PrezzoRisolto {

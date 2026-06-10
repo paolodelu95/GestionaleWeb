@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DataService } from './data.service';
-import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig } from '../models';
+import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig, Listino, ListinoPrezzo } from '../models';
 import { SAMPLE_AZIENDA, SAMPLE_FATTURA } from './print-sample-data';
 
 @Component({
@@ -313,6 +313,15 @@ export class PrintService {
     });
   }
 
+  /** Stampa un listino prezzi formattato (tema/colori della grafica documenti). */
+  printListino(listino: Listino, prezzi: ListinoPrezzo[]) {
+    this.ds.getAzienda().subscribe(async az => {
+      const pdf = await this.buildListino(listino, prezzi, az);
+      const nomeFile = (listino.nome || 'listino').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_') || 'listino';
+      this.showPreview(pdf, `Listino_${nomeFile}.pdf`);
+    });
+  }
+
   // ── Builders (rendono il PDF senza aprire il dialog) ─────────────────────────
 
   private async buildFattura(doc: any, az: Azienda, cfg?: TemplateConfig): Promise<jsPDF> {
@@ -438,6 +447,127 @@ export class PrintService {
     });
     this.footer(pdf, az);
     return pdf;
+  }
+
+  private async buildListino(listino: Listino, prezzi: ListinoPrezzo[], az: Azienda): Promise<jsPDF> {
+    this.resolved = this.normalizeConfig(this.getTemplateConfig(az), 'fattura');
+    const logo = await this.logoFor(az);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const C = this.resolved.colors;
+    const fs = this.resolved.fontScale;
+    const oggi = new Date().toISOString().slice(0, 10);
+
+    let y = this.hdrListino(pdf, az, listino.nome || '', oggi, logo);
+
+    if (listino.descrizione) {
+      this.F(pdf, 9, 'normal'); pdf.setTextColor(...C.muted);
+      const lines = pdf.splitTextToSize(listino.descrizione, this.CW);
+      pdf.text(lines, this.ML, y + 2);
+      y += lines.length * 4.2 + 5;
+    }
+
+    // Tabella: # | Codice | Prodotto | colonne personalizzate | Prezzo finale
+    const extra = listino.colonneExtra || [];
+    const head = ['#', 'Codice', 'Prodotto', ...extra.map(c => c.label), 'Prezzo'];
+    const body = prezzi.map((p, i) => [
+      i + 1,
+      p.prodottoCodice || '—',
+      p.prodottoNome || '',
+      ...extra.map(c => p.datiExtra?.[c.key] ?? ''),
+      this.fe(this.prezzoListino(p, listino)),
+    ]);
+    const columnStyles: any = {
+      0: { cellWidth: 9, halign: 'center' },
+      1: { cellWidth: 24 },
+      2: { cellWidth: 'auto' },
+      [head.length - 1]: { cellWidth: 24, halign: 'right' },
+    };
+    autoTable(pdf, {
+      startY: y,
+      head: [head],
+      body,
+      theme: this.resolved.tableTheme,
+      styles: { font: this.resolved.fontFamily },
+      headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: 9 * fs },
+      bodyStyles: { fontSize: 9 * fs, textColor: C.text },
+      alternateRowStyles: { fillColor: C.rowAlt },
+      columnStyles,
+      margin: { left: this.ML, right: this.ML },
+    });
+    y = (pdf as any).lastAutoTable.finalY + 5;
+
+    this.F(pdf, 8, 'italic'); pdf.setTextColor(...C.muted);
+    pdf.text('Prezzi in euro, IVA esclusa.', this.ML, y);
+
+    this.footer(pdf, az);
+    return pdf;
+  }
+
+  /** Prezzo finale di una riga di listino: override manuale, altrimenti base scontata. */
+  private prezzoListino(p: ListinoPrezzo, l: Listino): number {
+    if (p.prezzo != null) return p.prezzo;
+    const base = p.prodottoPrezzoBase || 0;
+    const sconto = p.sconto != null ? p.sconto : (l.scontoDefault || 0);
+    return Math.round(base * (1 - sconto / 100) * 100) / 100;
+  }
+
+  /** Header del listino: senza "N./Del", adattato ai tre stili della grafica documenti. */
+  private hdrListino(doc: jsPDF, az: Azienda, titolo: string, dataStr: string, logo: any): number {
+    const C = this.resolved.colors;
+
+    if (this.resolved.stile === 'moderno') {
+      const ac = this.ac();
+      const bandH = 36;
+      doc.setFillColor(...ac);
+      doc.rect(0, 0, PW, bandH, 'F');
+      const a = this.hdrAnchors(logo, 5);
+      if (logo) {
+        try { doc.addImage(logo.src, logo.fmt, a.logoX, (bandH - logo.h) / 2, logo.w, logo.h); } catch (_) {}
+      }
+      this.F(doc, 12, 'bold'); doc.setTextColor(255, 255, 255);
+      doc.text(az.ragioneSociale || '', a.textX, 13, { align: a.textAlign });
+      this.F(doc, 7.5, 'normal'); doc.setTextColor(215, 220, 255);
+      let iy = 19;
+      for (const line of this.azInfoLines(az).slice(0, 2)) { doc.text(line, a.textX, iy, { align: a.textAlign }); iy += 4.2; }
+      this.F(doc, 20, 'bold'); doc.setTextColor(255, 255, 255);
+      doc.text('LISTINO', a.titleX, 13, { align: a.titleAlign });
+      this.F(doc, 10, 'bold');
+      doc.text(titolo, a.titleX, 20, { align: a.titleAlign });
+      this.F(doc, 8, 'normal'); doc.setTextColor(215, 220, 255);
+      doc.text(`Aggiornato al ${this.fd(dataStr)}`, a.titleX, 25, { align: a.titleAlign });
+      return bandH + 6;
+    }
+
+    const minimal = this.resolved.stile === 'minimal';
+    const topY = this.ML;
+    const a = this.hdrAnchors(logo, minimal ? 5 : 4);
+    if (logo) {
+      try { doc.addImage(logo.src, logo.fmt, a.logoX, topY, logo.w, logo.h); } catch (_) {}
+    }
+    const baseY = (a.stacked && logo) ? topY + logo.h + 3 : topY;
+
+    this.F(doc, minimal ? 10 : 13, 'bold'); doc.setTextColor(...C.text);
+    doc.text(az.ragioneSociale || '', a.textX, baseY + (minimal ? 6 : 7), { align: a.textAlign });
+
+    const infoLines = this.azInfoLines(az, !minimal);
+    this.F(doc, minimal ? 7.5 : 8, 'normal'); doc.setTextColor(...C.muted);
+    let iy = baseY + (minimal ? 11 : 12);
+    for (const line of infoLines) { doc.text(line, a.textX, iy, { align: a.textAlign }); iy += 4; }
+
+    if (minimal) { this.F(doc, 30, 'bold'); doc.setTextColor(...WM); }
+    else { this.F(doc, 22, 'bold'); doc.setTextColor(...this.ac()); }
+    doc.text('LISTINO', a.titleX, baseY + (minimal ? 17 : 8), { align: a.titleAlign });
+
+    this.F(doc, 10, 'bold'); doc.setTextColor(...C.text);
+    doc.text(titolo, a.titleX, baseY + (minimal ? 24 : 15), { align: a.titleAlign });
+    this.F(doc, 9, 'normal'); doc.setTextColor(...C.muted);
+    doc.text(`Aggiornato al ${this.fd(dataStr)}`, a.titleX, baseY + (minimal ? 29 : 20), { align: a.titleAlign });
+
+    const yy = Math.max(iy, baseY + (minimal ? 30 : 28)) + 2;
+    if (minimal) { doc.setDrawColor(...MIN_DIV); doc.setLineWidth(0.25); }
+    else { doc.setDrawColor(...this.ac()); doc.setLineWidth(0.7); }
+    doc.line(this.ML, yy, PW - this.ML, yy);
+    return yy + (minimal ? 5 : 6);
   }
 
   // ── Section dispatcher ───────────────────────────────────────────────────────

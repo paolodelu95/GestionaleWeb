@@ -691,6 +691,12 @@ function initTenantSchema(db) {
     )`,
     'CREATE INDEX IF NOT EXISTS idx_alias_lookup ON fornitore_codice_alias(fornitore_id, codice_norm)',
     'CREATE INDEX IF NOT EXISTS idx_alias_prodotto ON fornitore_codice_alias(prodotto_id)',
+    // Listini come strumento di composizione: colonne personalizzate definite
+    // dall'utente (JSON [{key,label}]) + valori per riga (JSON {key: valore})
+    // + ordinamento manuale delle righe.
+    `ALTER TABLE listini ADD COLUMN colonne_extra TEXT DEFAULT '[]'`,
+    `ALTER TABLE listini_prezzi ADD COLUMN dati_extra TEXT DEFAULT '{}'`,
+    'ALTER TABLE listini_prezzi ADD COLUMN ordine INTEGER DEFAULT 0',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

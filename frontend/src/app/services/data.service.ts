@@ -197,8 +197,16 @@ export class DataService {
   getListinoPrezzi(listinoId: number): Observable<ListinoPrezzo[]> {
     return this.api.get(`listini/${listinoId}/prezzi`);
   }
-  upsertListinoPrezzo(listinoId: number, p: { prodottoId: number; prezzo?: number | null; sconto?: number | null }): Observable<any> {
+  upsertListinoPrezzo(listinoId: number, p: { prodottoId: number; prezzo?: number | null; sconto?: number | null; datiExtra?: Record<string, string> }): Observable<any> {
     return this.api.post(`listini/${listinoId}/prezzi`, p);
+  }
+  /** Aggiunta massiva di prodotti al listino (quelli già presenti vengono ignorati). */
+  bulkAddListinoPrezzi(listinoId: number, prodottoIds: number[], sconto?: number | null): Observable<{ aggiunti: number }> {
+    return this.api.post(`listini/${listinoId}/prezzi/bulk`, { prodottoIds, sconto: sconto ?? null });
+  }
+  /** Salva l'ordinamento manuale delle righe (array di prezzoId nell'ordine voluto). */
+  riordinaListinoPrezzi(listinoId: number, ids: number[]): Observable<any> {
+    return this.api.put(`listini/${listinoId}/prezzi/riordina`, { ids });
   }
   deleteListinoPrezzo(listinoId: number, prezzoId: number): Observable<any> {
     return this.api.delete(`listini/${listinoId}/prezzi/${prezzoId}`);

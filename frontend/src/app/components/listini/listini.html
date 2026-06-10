@@ -1,0 +1,267 @@
+<div class="page">
+
+  <!-- ════════════════ Vista elenco ════════════════ -->
+  @if (!sel) {
+    <div class="page-header">
+      <h1 class="page-title">Listini</h1>
+      <div class="header-actions">
+        <button mat-stroked-button color="primary" type="button" (click)="openQuickListino()">
+          <mat-icon>bolt</mat-icon> Creazione rapida
+        </button>
+        <button mat-flat-button color="primary" type="button" (click)="nuovoListino()">
+          <mat-icon>add</mat-icon> Nuovo listino
+        </button>
+      </div>
+    </div>
+
+    <p class="page-intro">
+      Crea listini con prezzi e sconti personalizzati, arricchiscili con colonne descrittive
+      (dimensioni, peso, quantità per pallet…) e stampali in PDF con la grafica dei tuoi documenti.
+      Assegna un listino al cliente dalla sua scheda anagrafica: i prezzi vengono applicati
+      automaticamente nei documenti.
+    </p>
+
+    <div class="card">
+      <table class="lst-table lst-elenco">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th class="num">Sconto default</th>
+            <th class="num">Prodotti</th>
+            <th>Colonne extra</th>
+            <th>Stato</th>
+            <th style="width:48px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of listini; track l.id) {
+            <tr class="lst-row" (click)="apri(l.id!)">
+              <td>
+                <b>{{ l.nome }}</b>
+                @if (l.descrizione) {
+                  <div class="lst-sub">{{ l.descrizione }}</div>
+                }
+              </td>
+              <td class="num">
+                @if (l.scontoDefault) {
+                  <span class="stato-chip inviato">-{{ l.scontoDefault }}%</span>
+                } @else {
+                  <span class="lst-muted">—</span>
+                }
+              </td>
+              <td class="num">
+                @if (l.prezziCount) {
+                  <span class="lst-count"><mat-icon>sell</mat-icon>{{ l.prezziCount }}</span>
+                } @else {
+                  <span class="lst-muted">—</span>
+                }
+              </td>
+              <td>
+                @if (l.colonneExtra?.length) {
+                  <span class="lst-cols">
+                    @for (c of l.colonneExtra; track c.key) {
+                      <span class="lst-col-chip">{{ c.label }}</span>
+                    }
+                  </span>
+                } @else {
+                  <span class="lst-muted">—</span>
+                }
+              </td>
+              <td>
+                @if (l.attivo) { <span class="stato-chip pagata">Attivo</span> }
+                @else { <span class="stato-chip bozza">Disattivo</span> }
+              </td>
+              <td class="table-actions" (click)="$event.stopPropagation()">
+                <button mat-icon-button type="button" [matMenuTriggerFor]="lstMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #lstMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="apri(l.id!)"><mat-icon>edit</mat-icon> Apri editor</button>
+                  <button mat-menu-item type="button" (click)="deleteListino(l)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                </mat-menu>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (!listini.length) {
+        <app-empty-state compact icon="sell" title="Nessun listino"
+          message="Creane uno per assegnare prezzi personalizzati ai clienti e stampare il catalogo prezzi." />
+      }
+    </div>
+  }
+
+  <!-- ════════════════ Editor listino ════════════════ -->
+  @if (sel) {
+    <div class="page-header">
+      <div class="ed-title">
+        <button mat-icon-button type="button" (click)="chiudiEditor()" matTooltip="Torna all'elenco">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <h1 class="page-title">{{ sel.nome }}</h1>
+        @if (sel.attivo) { <span class="stato-chip pagata">Attivo</span> }
+        @else { <span class="stato-chip bozza">Disattivo</span> }
+      </div>
+      <div class="header-actions">
+        <button mat-stroked-button type="button" (click)="gestisciColonne()">
+          <mat-icon>view_column</mat-icon> Colonne
+        </button>
+        <button mat-stroked-button color="primary" type="button" [matMenuTriggerFor]="addMenu">
+          <mat-icon>playlist_add</mat-icon> Aggiungi prodotti
+        </button>
+        <mat-menu #addMenu="matMenu">
+          <button mat-menu-item type="button" (click)="apriPicker()">
+            <mat-icon>checklist</mat-icon> Scegli dall'elenco…
+          </button>
+          @if (categorieDisponibili.length) {
+            <button mat-menu-item type="button" [matMenuTriggerFor]="catMenu">
+              <mat-icon>category</mat-icon> Tutta una categoria
+            </button>
+          }
+        </mat-menu>
+        <mat-menu #catMenu="matMenu">
+          @for (c of categorieDisponibili; track c.nome) {
+            <button mat-menu-item type="button" (click)="aggiungiCategoria(c.nome)">
+              {{ c.nome }} <span class="lst-muted">&nbsp;({{ c.count }})</span>
+            </button>
+          }
+        </mat-menu>
+        <button mat-flat-button color="primary" type="button" (click)="stampa()" [disabled]="!prezzi.length">
+          <mat-icon>picture_as_pdf</mat-icon> Stampa PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Anagrafica (salvataggio automatico) -->
+    <div class="card ed-anagrafica">
+      <mat-form-field style="flex:2;min-width:220px" subscriptSizing="dynamic">
+        <mat-label>Nome listino</mat-label>
+        <input matInput [(ngModel)]="sel.nome" (blur)="salvaAnagrafica()">
+      </mat-form-field>
+      <mat-form-field style="flex:3;min-width:260px" subscriptSizing="dynamic">
+        <mat-label>Descrizione (compare in testa al PDF)</mat-label>
+        <input matInput [(ngModel)]="sel.descrizione" (blur)="salvaAnagrafica()">
+      </mat-form-field>
+      <mat-form-field style="max-width:160px" subscriptSizing="dynamic">
+        <mat-label>Sconto default %</mat-label>
+        <input matInput type="number" step="0.5" min="0" max="100"
+               [(ngModel)]="sel.scontoDefault" (blur)="salvaAnagrafica()">
+        <mat-icon matSuffix>percent</mat-icon>
+      </mat-form-field>
+      <mat-slide-toggle [(ngModel)]="sel.attivo" (change)="salvaAnagrafica()">Attivo</mat-slide-toggle>
+    </div>
+
+    <!-- Tabella prodotti -->
+    <div class="card">
+      <div class="ed-toolbar">
+        <mat-form-field class="ed-filtro" subscriptSizing="dynamic">
+          <mat-label>Filtra righe</mat-label>
+          <input matInput [(ngModel)]="filtro" placeholder="Nome, codice o categoria…">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+        <span class="ed-righe-count">{{ righeVisibili.length }} / {{ prezzi.length }} righe</span>
+        <span style="flex:1"></span>
+        <mat-form-field class="ed-bulk-field" subscriptSizing="dynamic">
+          <mat-label>Sconto % a tutte</mat-label>
+          <input matInput type="number" step="0.5" min="0" max="100" [(ngModel)]="scontoBulk"
+                 (keyup.enter)="applicaScontoBulk()">
+        </mat-form-field>
+        <button mat-stroked-button type="button" (click)="applicaScontoBulk()"
+                [disabled]="scontoBulk == null || !prezzi.length">
+          <mat-icon>percent</mat-icon> Applica
+        </button>
+        <button mat-icon-button type="button" [matMenuTriggerFor]="moreMenu" matTooltip="Altre azioni">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #moreMenu="matMenu">
+          <button mat-menu-item type="button" (click)="svuotaListino()" [disabled]="!prezzi.length" style="color:#dc2626">
+            <mat-icon style="color:#dc2626">delete_sweep</mat-icon> Svuota listino
+          </button>
+        </mat-menu>
+      </div>
+
+      @if (prezzi.length) {
+        <div class="ed-table-wrap">
+          <table class="lst-table ed-table">
+            <thead>
+              <tr>
+                <th class="drag-th"></th>
+                <th class="num-th">#</th>
+                <th>Prodotto</th>
+                @for (c of sel.colonneExtra; track c.key) {
+                  <th class="extra-th">{{ c.label }}</th>
+                }
+                <th class="num">Prezzo base</th>
+                <th class="num">Sconto %</th>
+                <th class="num">Prezzo manuale</th>
+                <th class="num">Prezzo finale</th>
+                <th style="width:40px"></th>
+              </tr>
+            </thead>
+            <tbody cdkDropList [cdkDropListDisabled]="!!filtro" (cdkDropListDropped)="dropRiga($event)">
+              @for (p of righeVisibili; track p.id; let i = $index) {
+                <tr cdkDrag [cdkDragDisabled]="!!filtro">
+                  <td class="drag-td">
+                    <mat-icon cdkDragHandle class="drag-handle"
+                              [matTooltip]="filtro ? 'Riordino disabilitato con filtro attivo' : 'Trascina per riordinare'">
+                      drag_indicator
+                    </mat-icon>
+                  </td>
+                  <td class="num-td">{{ i + 1 }}</td>
+                  <td>
+                    <div class="ed-pname">{{ p.prodottoNome }}</div>
+                    <div class="lst-sub">
+                      @if (p.prodottoCodice) { <span class="ed-pcode">{{ p.prodottoCodice }}</span> }
+                      @if (p.prodottoCategoria) { <span>{{ p.prodottoCategoria }}</span> }
+                      @if (p.prodottoUm) { <span>{{ p.prodottoUm }}</span> }
+                    </div>
+                  </td>
+                  @for (c of sel.colonneExtra; track c.key) {
+                    <td class="extra-td">
+                      <input class="cell-input" type="text"
+                             [value]="p.datiExtra?.[c.key] ?? ''"
+                             [attr.data-row]="i" [attr.data-col]="'x_' + c.key"
+                             (blur)="updateExtra(p, c.key, $event)"
+                             (keydown.enter)="updateExtra(p, c.key, $event); focusNext($event, 'x_' + c.key)">
+                    </td>
+                  }
+                  <td class="num base-td">{{ p.prodottoPrezzoBase | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                  <td>
+                    <input class="cell-input num" type="number" step="0.5" min="0" max="100"
+                           [value]="p.sconto ?? ''" placeholder="—"
+                           [disabled]="p.prezzo != null"
+                           [attr.data-row]="i" [attr.data-col]="'sconto'"
+                           (blur)="updateSconto(p, $event)"
+                           (keydown.enter)="updateSconto(p, $event); focusNext($event, 'sconto')">
+                  </td>
+                  <td>
+                    <input class="cell-input num" type="number" step="0.01" min="0"
+                           [value]="p.prezzo ?? ''" placeholder="—"
+                           [attr.data-row]="i" [attr.data-col]="'prezzo'"
+                           (blur)="updatePrezzo(p, $event)"
+                           (keydown.enter)="updatePrezzo(p, $event); focusNext($event, 'prezzo')">
+                  </td>
+                  <td class="num finale-td">{{ prezzoFinale(p) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                  <td>
+                    <button mat-icon-button type="button" (click)="removeRiga(p)" matTooltip="Rimuovi dal listino">
+                      <mat-icon class="del-icon">close</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="ed-hint">
+          <mat-icon>info</mat-icon>
+          <span>
+            <b>Sconto %</b>: calcola il prezzo dal prezzo base (vuoto = sconto default {{ sel.scontoDefault || 0 }}%).
+            <b>Prezzo manuale</b>: ha la precedenza e ignora gli sconti.
+            <b>Invio</b> su una cella passa alla riga successiva; trascina <mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle">drag_indicator</mat-icon> per riordinare le righe come appariranno in stampa.
+          </span>
+        </div>
+      } @else {
+        <app-empty-state compact icon="playlist_add" title="Listino vuoto"
+          message="Aggiungi i prodotti dall'elenco con i flag rapidi oppure un'intera categoria in un click." />
+      }
+    </div>
+  }
+</div>
