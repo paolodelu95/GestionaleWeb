@@ -271,15 +271,27 @@ import { catchError } from 'rxjs/operators';
       </div>
 
       <div class="margine-strip">
-        <mat-icon class="margine-eye">visibility_off</mat-icon>
-        <span class="margine-tag">Solo uso interno</span>
-        <span class="totals-spacer"></span>
-        <div class="totals-item"><span class="totals-label">Costo</span><span class="totals-value">{{ costoTotale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-        <div class="totals-item"><span class="totals-label">Guadagno</span><span class="totals-value" [style.color]="guadagnoColor">{{ guadagno | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-        <div class="totals-item"><span class="totals-label">Margine</span><span class="totals-value" [style.color]="guadagnoColor">{{ marginePerc !== null ? (marginePerc | number:'1.0-1') + '%' : '—' }}</span></div>
-        @if (righeSenzaCosto > 0) {
-          <mat-icon class="margine-warn" [matTooltip]="righeSenzaCosto + ' righe senza prezzo d\\'acquisto: il margine è parziale'">info_outline</mat-icon>
-        }
+        <div class="margine-head">
+          <mat-icon>visibility_off</mat-icon>
+          <span>Solo uso interno</span>
+          @if (righeSenzaCosto > 0) {
+            <mat-icon class="margine-warn" [matTooltip]="righeSenzaCosto + ' righe senza prezzo d\\'acquisto: il margine è parziale'">info_outline</mat-icon>
+          }
+        </div>
+        <div class="margine-stats">
+          <div class="margine-stat">
+            <span class="margine-stat-label">Costo</span>
+            <span class="margine-stat-value">{{ costoTotale | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
+          </div>
+          <div class="margine-stat">
+            <span class="margine-stat-label">Guadagno</span>
+            <span class="margine-stat-value" [style.color]="guadagnoColor">{{ guadagno | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
+          </div>
+          <div class="margine-stat">
+            <span class="margine-stat-label">Margine</span>
+            <span class="margine-stat-value" [style.color]="guadagnoColor">{{ marginePerc !== null ? (marginePerc | number:'1.0-1') + '%' : '—' }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="form-section is-flat" [formGroup]="form">
@@ -303,17 +315,41 @@ import { catchError } from 'rxjs/operators';
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES, `
     .margine-strip {
-      display: flex; align-items: center; gap: 18px;
-      margin: 8px 0 0; padding: 8px 14px;
-      border: 1px dashed var(--border); border-radius: var(--radius-md);
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      margin: 10px 0 0; padding: 12px 18px;
+      border: 1px dashed var(--border-strong); border-radius: var(--radius-md);
       background: var(--bg-surface-2);
     }
-    .margine-eye { font-size: 17px; width: 17px; height: 17px; color: var(--text-tertiary); }
-    .margine-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-tertiary); }
+    .margine-head {
+      display: flex; align-items: center; gap: 8px; margin-right: auto;
+      color: var(--text-tertiary);
+    }
+    .margine-head > mat-icon { font-size: 17px; width: 17px; height: 17px; }
+    .margine-head > span {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; white-space: nowrap;
+    }
+    .margine-stats { display: flex; align-items: stretch; }
+    .margine-stat {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+      padding: 2px 22px; border-left: 1px solid var(--border);
+    }
+    .margine-stat:first-child { border-left: none; padding-left: 0; }
+    .margine-stat:last-child { padding-right: 0; }
+    .margine-stat-label {
+      font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .04em; color: var(--text-tertiary);
+    }
+    .margine-stat-value {
+      font-size: 15px; font-weight: 700; color: var(--text-primary);
+      font-variant-numeric: tabular-nums; line-height: 1.2;
+    }
     .margine-warn { font-size: 17px; width: 17px; height: 17px; color: #f59e0b; cursor: help; }
     @media (max-width: 767px) {
-      .margine-strip { flex-wrap: wrap; gap: 10px 14px; }
-      .margine-strip .totals-spacer { display: none; }
+      .margine-strip { padding: 10px 14px; gap: 10px; }
+      .margine-stats { width: 100%; }
+      .margine-stat { flex: 1; padding: 2px 10px; }
+      .margine-stat:first-child { align-items: flex-start; }
     }
   `]
 })

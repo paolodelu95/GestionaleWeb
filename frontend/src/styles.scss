@@ -1868,6 +1868,10 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
     justify-content: flex-start;
     text-align: left;
     padding: 8px 46px 10px 0 !important;
+    // Alta almeno quanto il kebab assoluto (40px da top:6px): senza, il bottone
+    // sborda sulla riga sotto (es. la data) e il valore ci finisce sotto.
+    min-height: 48px;
+    box-sizing: border-box;
     font-size: 16px !important;
     font-weight: 700;
     color: var(--text-primary);
@@ -1899,6 +1903,13 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
     width: auto !important;
     min-height: 0;
     padding: 0 !important;
+    // Bottone compatto (40px) così resta dentro la fascia del titolo della card
+    .mat-mdc-icon-button {
+      --mdc-icon-button-state-layer-size: 40px;
+      width: 40px;
+      height: 40px;
+      padding: 8px;
+    }
   }
   // Checkbox di selezione: ancorata in alto a sinistra della card
   td.mat-column-select {
