@@ -15,10 +15,10 @@
     </div>
 
     <p class="page-intro">
-      Crea listini con prezzi e sconti personalizzati, arricchiscili con colonne descrittive
-      (dimensioni, peso, quantità per pallet…) e stampali in PDF con la grafica dei tuoi documenti.
-      Assegna un listino al cliente dalla sua scheda anagrafica: i prezzi vengono applicati
-      automaticamente nei documenti.
+      Crea listini con prezzi e sconti personalizzati, organizzali in sezioni (es. per categoria),
+      arricchiscili con colonne descrittive (dimensioni, peso, quantità per pallet…) e stampali
+      in PDF con la grafica dei tuoi documenti. Assegna un listino al cliente dalla sua scheda
+      anagrafica: i prezzi vengono applicati automaticamente nei documenti.
     </p>
 
     <div class="card">
@@ -57,9 +57,9 @@
                 }
               </td>
               <td>
-                @if (l.colonneExtra?.length) {
+                @if (colonneExtraDi(l).length) {
                   <span class="lst-cols">
-                    @for (c of l.colonneExtra; track c.key) {
+                    @for (c of colonneExtraDi(l); track c.key) {
                       <span class="lst-col-chip">{{ c.label }}</span>
                     }
                   </span>
@@ -105,17 +105,23 @@
           <mat-icon>view_column</mat-icon> Colonne
         </button>
         <button mat-stroked-button color="primary" type="button" [matMenuTriggerFor]="addMenu">
-          <mat-icon>playlist_add</mat-icon> Aggiungi prodotti
+          <mat-icon>playlist_add</mat-icon> Aggiungi
         </button>
         <mat-menu #addMenu="matMenu">
           <button mat-menu-item type="button" (click)="apriPicker()">
-            <mat-icon>checklist</mat-icon> Scegli dall'elenco…
+            <mat-icon>checklist</mat-icon> Prodotti dall'elenco…
           </button>
           @if (categorieDisponibili.length) {
             <button mat-menu-item type="button" [matMenuTriggerFor]="catMenu">
               <mat-icon>category</mat-icon> Tutta una categoria
             </button>
           }
+          <button mat-menu-item type="button" (click)="aggiungiSezione()">
+            <mat-icon>splitscreen</mat-icon> Nuova sezione
+          </button>
+          <button mat-menu-item type="button" (click)="sezioniDaCategorie()" [disabled]="!prezzi.length">
+            <mat-icon>auto_awesome_motion</mat-icon> Sezioni dalle categorie
+          </button>
         </mat-menu>
         <mat-menu #catMenu="matMenu">
           @for (c of categorieDisponibili; track c.nome) {
@@ -161,7 +167,7 @@
           <input matInput [(ngModel)]="filtro" placeholder="Nome, codice o categoria…">
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
-        <span class="ed-righe-count">{{ righeVisibili.length }} / {{ prezzi.length }} righe</span>
+        <span class="ed-righe-count">{{ prodottiCount }} prodotti · {{ sezioni.length }} sezioni</span>
         <span style="flex:1"></span>
         <mat-form-field class="ed-bulk-field" subscriptSizing="dynamic">
           <mat-label>Sconto % a tutte</mat-label>
@@ -176,93 +182,127 @@
           <mat-icon>more_vert</mat-icon>
         </button>
         <mat-menu #moreMenu="matMenu">
-          <button mat-menu-item type="button" (click)="svuotaListino()" [disabled]="!prezzi.length" style="color:#dc2626">
+          <button mat-menu-item type="button" (click)="svuotaListino()" [disabled]="!prezzi.length && !sezioni.length" style="color:#dc2626">
             <mat-icon style="color:#dc2626">delete_sweep</mat-icon> Svuota listino
           </button>
         </mat-menu>
       </div>
 
-      @if (prezzi.length) {
+      @if (righe.length) {
         <div class="ed-table-wrap">
           <table class="lst-table ed-table">
             <thead>
               <tr>
                 <th class="drag-th"></th>
-                @if (colVisibile('num')) { <th class="num-th">{{ colLabel('num') }}</th> }
-                <th>{{ colLabel('prodotto') }}</th>
-                @for (c of sel.colonneExtra; track c.key) {
-                  <th class="extra-th">{{ c.label }}</th>
+                @for (c of colonneVisibili; track c.key) {
+                  <th [class.num]="c.key === 'prezzoBase' || c.key === 'sconto' || c.key === 'prezzo'"
+                      [class.num-th]="c.key === 'num'"
+                      [class.extra-th]="c.tipo === 'extra'">{{ c.label }}</th>
                 }
-                @if (colVisibile('prezzoBase')) { <th class="num">{{ colLabel('prezzoBase') }}</th> }
-                @if (colVisibile('sconto')) { <th class="num">{{ colLabel('sconto') }}</th> }
-                @if (colVisibile('prezzo')) { <th class="num">{{ colLabel('prezzo') }}</th> }
                 <th style="width:40px"></th>
               </tr>
             </thead>
             <tbody cdkDropList [cdkDropListDisabled]="!!filtro" (cdkDropListDropped)="dropRiga($event)">
-              @for (p of righeVisibili; track p.id; let i = $index) {
-                <tr cdkDrag [cdkDragDisabled]="!!filtro">
-                  <td class="drag-td">
-                    <mat-icon cdkDragHandle class="drag-handle"
-                              [matTooltip]="filtro ? 'Riordino disabilitato con filtro attivo' : 'Trascina per riordinare'">
-                      drag_indicator
-                    </mat-icon>
-                  </td>
-                  @if (colVisibile('num')) { <td class="num-td">{{ i + 1 }}</td> }
-                  <td>
-                    <div class="ed-pname">{{ p.prodottoNome }}</div>
-                    <div class="lst-sub">
-                      @if (colVisibile('codice') && p.prodottoCodice) { <span class="ed-pcode">{{ p.prodottoCodice }}</span> }
-                      @if (p.prodottoCategoria) { <span>{{ p.prodottoCategoria }}</span> }
-                      @if (p.prodottoUm) { <span>{{ p.prodottoUm }}</span> }
-                    </div>
-                  </td>
-                  @for (c of sel.colonneExtra; track c.key) {
-                    <td class="extra-td">
-                      <input class="cell-input" type="text"
-                             [value]="p.datiExtra?.[c.key] ?? ''"
-                             [attr.data-row]="i" [attr.data-col]="'x_' + c.key"
-                             (blur)="updateExtra(p, c.key, $event)"
-                             (keydown.enter)="updateExtra(p, c.key, $event); focusNext($event, 'x_' + c.key)">
+              @for (r of righeVisibili; track r.tipo + '-' + (r.tipo === 'sezione' ? r.sezione!.id : r.prezzo!.id); let i = $index) {
+
+                <!-- ── Riga sezione (divisore) ── -->
+                @if (r.tipo === 'sezione') {
+                  <tr cdkDrag [cdkDragDisabled]="!!filtro" class="sez-row">
+                    <td class="drag-td">
+                      <mat-icon cdkDragHandle class="drag-handle" matTooltip="Trascina per riordinare">drag_indicator</mat-icon>
                     </td>
-                  }
-                  @if (colVisibile('prezzoBase')) {
-                    <td class="num base-td">{{ p.prodottoPrezzoBase | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
-                  }
-                  @if (colVisibile('sconto')) {
+                    <td [attr.colspan]="colonneVisibili.length">
+                      <div class="sez-cell">
+                        <mat-icon class="sez-icon">label</mat-icon>
+                        <input class="sez-input" [value]="r.sezione!.nome"
+                               (blur)="updateSezione(r.sezione!, $event)"
+                               (keydown.enter)="updateSezione(r.sezione!, $event)">
+                      </div>
+                    </td>
                     <td>
-                      <input class="cell-input num" type="number" step="0.5" min="0" max="100"
-                             [value]="p.sconto ?? ''" placeholder="—"
-                             [disabled]="p.prezzo != null"
-                             [matTooltip]="p.prezzo != null ? 'Sconto ignorato: la riga ha un prezzo manuale' : ''"
-                             [attr.data-row]="i" [attr.data-col]="'sconto'"
-                             (blur)="updateSconto(p, $event)"
-                             (keydown.enter)="updateSconto(p, $event); focusNext($event, 'sconto')">
+                      <button mat-icon-button type="button" (click)="deleteSezione(r.sezione!)"
+                              matTooltip="Elimina sezione (i prodotti restano nel listino)">
+                        <mat-icon class="del-icon">close</mat-icon>
+                      </button>
                     </td>
-                  }
-                  @if (colVisibile('prezzo')) {
-                    <td class="finale-td">
-                      <span class="finale-cell" [class.override]="p.prezzo != null">
-                        <input class="cell-input num finale-input" type="number" step="0.01" min="0"
-                               [value]="prezzoFinale(p)"
-                               [attr.data-row]="i" [attr.data-col]="'prezzo'"
-                               (blur)="updatePrezzoFinale(p, $event)"
-                               (keydown.enter)="updatePrezzoFinale(p, $event); focusNext($event, 'prezzo')">
-                        @if (p.prezzo != null) {
-                          <button type="button" class="override-undo" (click)="rimuoviOverride(p)"
-                                  matTooltip="Prezzo manuale: clicca per tornare al calcolo da sconto">
-                            <mat-icon>undo</mat-icon>
-                          </button>
+                  </tr>
+                }
+
+                <!-- ── Riga prodotto ── -->
+                @if (r.tipo === 'prezzo') {
+                  <tr cdkDrag [cdkDragDisabled]="!!filtro">
+                    <td class="drag-td">
+                      <mat-icon cdkDragHandle class="drag-handle"
+                                [matTooltip]="filtro ? 'Riordino disabilitato con filtro attivo' : 'Trascina per riordinare'">
+                        drag_indicator
+                      </mat-icon>
+                    </td>
+                    @for (c of colonneVisibili; track c.key) {
+                      @switch (cellType(c)) {
+                        @case ('num') {
+                          <td class="num-td">{{ r.num }}</td>
                         }
-                      </span>
+                        @case ('codice') {
+                          <td class="cod-td">{{ r.prezzo!.prodottoCodice || '—' }}</td>
+                        }
+                        @case ('prodotto') {
+                          <td>
+                            <div class="ed-pname">{{ r.prezzo!.prodottoNome }}</div>
+                            <div class="lst-sub">
+                              @if (r.prezzo!.prodottoCategoria) { <span>{{ r.prezzo!.prodottoCategoria }}</span> }
+                              @if (r.prezzo!.prodottoUm) { <span>{{ r.prezzo!.prodottoUm }}</span> }
+                            </div>
+                          </td>
+                        }
+                        @case ('extra') {
+                          <td class="extra-td">
+                            <input class="cell-input" type="text"
+                                   [value]="r.prezzo!.datiExtra?.[c.key] ?? ''"
+                                   [attr.data-row]="i" [attr.data-col]="'x_' + c.key"
+                                   (blur)="updateExtra(r.prezzo!, c.key, $event)"
+                                   (keydown.enter)="updateExtra(r.prezzo!, c.key, $event); focusNext($event, 'x_' + c.key)">
+                          </td>
+                        }
+                        @case ('prezzoBase') {
+                          <td class="num base-td">{{ r.prezzo!.prodottoPrezzoBase | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                        }
+                        @case ('sconto') {
+                          <td class="sconto-td">
+                            <input class="cell-input num" type="number" step="0.5" min="0" max="100"
+                                   [value]="r.prezzo!.sconto ?? ''" placeholder="—"
+                                   [disabled]="r.prezzo!.prezzo != null"
+                                   [matTooltip]="r.prezzo!.prezzo != null ? 'Sconto ignorato: la riga ha un prezzo manuale' : ''"
+                                   [attr.data-row]="i" [attr.data-col]="'sconto'"
+                                   (blur)="updateSconto(r.prezzo!, $event)"
+                                   (keydown.enter)="updateSconto(r.prezzo!, $event); focusNext($event, 'sconto')">
+                          </td>
+                        }
+                        @case ('prezzo') {
+                          <td class="finale-td">
+                            <span class="finale-cell" [class.override]="r.prezzo!.prezzo != null">
+                              <input class="cell-input num finale-input" type="number" step="0.01" min="0"
+                                     [value]="prezzoFinale(r.prezzo!)"
+                                     [attr.data-row]="i" [attr.data-col]="'prezzo'"
+                                     (blur)="updatePrezzoFinale(r.prezzo!, $event)"
+                                     (keydown.enter)="updatePrezzoFinale(r.prezzo!, $event); focusNext($event, 'prezzo')">
+                              @if (r.prezzo!.prezzo != null) {
+                                <button type="button" class="override-undo" (click)="rimuoviOverride(r.prezzo!)"
+                                        matTooltip="Prezzo manuale: clicca per tornare al calcolo da sconto">
+                                  <mat-icon>undo</mat-icon>
+                                </button>
+                              }
+                            </span>
+                          </td>
+                        }
+                      }
+                    }
+                    <td>
+                      <button mat-icon-button type="button" (click)="removeRiga(r.prezzo!)" matTooltip="Rimuovi dal listino">
+                        <mat-icon class="del-icon">close</mat-icon>
+                      </button>
                     </td>
-                  }
-                  <td>
-                    <button mat-icon-button type="button" (click)="removeRiga(p)" matTooltip="Rimuovi dal listino">
-                      <mat-icon class="del-icon">close</mat-icon>
-                    </button>
-                  </td>
-                </tr>
+                  </tr>
+                }
               }
             </tbody>
           </table>
@@ -270,10 +310,10 @@
         <div class="ed-hint">
           <mat-icon>info</mat-icon>
           <span>
-            <b>{{ colLabel('sconto') }}</b>: calcola il prezzo dal prezzo base (vuoto = sconto default {{ sel.scontoDefault || 0 }}%).
-            <b>{{ colLabel('prezzo') }}</b>: scrivici sopra per fissare il prezzo a mano (l'icona <mat-icon class="hint-icon">undo</mat-icon> torna al calcolo da sconto).
-            <b>Invio</b> su una cella passa alla riga successiva; trascina <mat-icon class="hint-icon">drag_indicator</mat-icon> per riordinare le righe come appariranno in stampa.
-            Da <b>Colonne</b> puoi rinominare o nascondere ogni colonna, anche quelle standard.
+            <b>Sezioni</b>: righe-divisore per raggruppare i prodotti (es. per categoria), rinominabili sul posto.
+            <b>Prezzo</b>: scrivici sopra per fissarlo a mano (l'icona <mat-icon class="hint-icon">undo</mat-icon> torna al calcolo da sconto, vuoto = sconto default {{ sel.scontoDefault || 0 }}%).
+            <b>Invio</b> su una cella passa alla riga successiva; trascina <mat-icon class="hint-icon">drag_indicator</mat-icon> per riordinare righe e sezioni come appariranno in stampa.
+            Da <b>Colonne</b> riordini, rinomini o nascondi ogni colonna, anche quelle standard.
           </span>
         </div>
       } @else {

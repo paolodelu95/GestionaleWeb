@@ -119,6 +119,37 @@
 
   .ed-pname { font-weight: 600; }
   .ed-pcode { font-family: monospace; }
+  .cod-td { font-family: monospace; font-size: 12px; color: #0e6480; white-space: nowrap; }
+
+  // ── Righe sezione (divisori) ──
+  .sez-row {
+    background: var(--bg-surface-2);
+
+    td { border-bottom: 1px solid var(--border); }
+
+    .sez-cell { display: flex; align-items: center; gap: 8px; }
+    .sez-icon { font-size: 16px; width: 16px; height: 16px; color: var(--primary); flex-shrink: 0; }
+    .sez-input {
+      flex: 1;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: transparent;
+      color: var(--text-primary);
+      min-width: 120px;
+    }
+    .sez-input:hover { border-color: var(--border); background: var(--bg-surface); }
+    .sez-input:focus {
+      outline: none; border-color: var(--primary);
+      background: var(--bg-surface); box-shadow: var(--shadow-focus);
+      text-transform: none; letter-spacing: normal; font-weight: 600;
+    }
+  }
+  tbody tr.sez-row:hover { background: var(--bg-surface-2); }
 
   .base-td { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
   .finale-td { font-variant-numeric: tabular-nums; white-space: nowrap; }

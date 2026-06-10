@@ -290,33 +290,77 @@ export interface ListinoColonna {
 /** Chiavi delle colonne standard di un listino. */
 export type ListinoColonnaStdKey = 'num' | 'codice' | 'prodotto' | 'prezzoBase' | 'sconto' | 'prezzo';
 
-/** Configurazione di una colonna standard: rinominabile e (tranne "prodotto") nascondibile. */
+export const LISTINO_STD_KEYS: ListinoColonnaStdKey[] = ['num', 'codice', 'prodotto', 'prezzoBase', 'sconto', 'prezzo'];
+
+/** Configurazione legacy di una colonna standard (mantenuta per compat di lettura). */
 export interface ListinoColonnaStd {
   key: ListinoColonnaStdKey;
   label: string;
   visibile: boolean;
 }
 
-export const LISTINO_COLONNE_STD_DEFAULT: ListinoColonnaStd[] = [
-  { key: 'num',        label: '#',             visibile: true },
-  { key: 'codice',     label: 'Codice',        visibile: true },
-  { key: 'prodotto',   label: 'Prodotto',      visibile: true },
-  { key: 'prezzoBase', label: 'Prezzo base',   visibile: true },
-  { key: 'sconto',     label: 'Sconto %',      visibile: true },
-  { key: 'prezzo',     label: 'Prezzo',        visibile: true },
-];
+/** Config colonne unificata: standard e personalizzate in un unico ordine,
+ *  tutte rinominabili, nascondibili e riordinabili liberamente. */
+export interface ListinoColonnaCfg {
+  key: string;
+  label: string;
+  visibile: boolean;
+  tipo: 'std' | 'extra';
+}
 
-/** Config salvata (eventualmente parziale) + default → set completo e ordinato. */
-export function mergeColonneStd(saved?: ListinoColonnaStd[]): ListinoColonnaStd[] {
-  return LISTINO_COLONNE_STD_DEFAULT.map(d => {
-    const s = saved?.find(x => x.key === d.key);
-    if (!s) return { ...d };
+export const LISTINO_COLONNE_DEFAULT_LABELS: Record<ListinoColonnaStdKey, string> = {
+  num: '#', codice: 'Codice', prodotto: 'Prodotto',
+  prezzoBase: 'Prezzo base', sconto: 'Sconto %', prezzo: 'Prezzo',
+};
+
+/** Posizione di default delle standard (le extra legacy si inseriscono dopo "prodotto"). */
+const ORDINE_STD_DEFAULT: ListinoColonnaStdKey[] = ['num', 'codice', 'prodotto', 'prezzoBase', 'sconto', 'prezzo'];
+
+/**
+ * Config colonne effettiva di un listino: usa colonneConfig se presente
+ * (integrando eventuali standard mancanti in coda alla loro zona di default),
+ * altrimenti la costruisce dai campi legacy colonneStandard + colonneExtra.
+ */
+export function mergeColonneCfg(l?: Pick<Listino, 'colonneConfig' | 'colonneStandard' | 'colonneExtra'>): ListinoColonnaCfg[] {
+  const stdCfg = (key: ListinoColonnaStdKey): ListinoColonnaCfg => {
+    const legacy = l?.colonneStandard?.find(c => c.key === key);
     return {
-      ...d,
-      label: (s.label || '').trim() || d.label,
-      visibile: d.key === 'prodotto' ? true : s.visibile !== false,
+      key,
+      label: (legacy?.label || '').trim() || LISTINO_COLONNE_DEFAULT_LABELS[key],
+      visibile: legacy ? legacy.visibile !== false : true,
+      tipo: 'std',
     };
-  });
+  };
+
+  if (l?.colonneConfig?.length) {
+    const out: ListinoColonnaCfg[] = l.colonneConfig.map(c => ({
+      key: c.key,
+      label: (c.label || '').trim() || (LISTINO_COLONNE_DEFAULT_LABELS[c.key as ListinoColonnaStdKey] ?? c.key),
+      visibile: c.visibile !== false,
+      tipo: LISTINO_STD_KEYS.includes(c.key as ListinoColonnaStdKey) ? 'std' : 'extra',
+    }));
+    // Standard mancanti (config salvata da versioni precedenti): aggiunte nascoste? No:
+    // vanno mostrate con il loro default, nell'ordine canonico, per non perdere colonne.
+    for (const key of ORDINE_STD_DEFAULT) {
+      if (!out.some(c => c.key === key)) out.push(stdCfg(key));
+    }
+    return out;
+  }
+
+  // Fallback legacy: standard nell'ordine storico, extra dopo "prodotto".
+  const out: ListinoColonnaCfg[] = [];
+  for (const key of ['num', 'codice', 'prodotto'] as ListinoColonnaStdKey[]) out.push(stdCfg(key));
+  for (const c of l?.colonneExtra || []) out.push({ key: c.key, label: c.label, visibile: true, tipo: 'extra' });
+  for (const key of ['prezzoBase', 'sconto', 'prezzo'] as ListinoColonnaStdKey[]) out.push(stdCfg(key));
+  return out;
+}
+
+/** Sezione del listino: riga-divisore (es. categoria) nella sequenza delle righe. */
+export interface ListinoSezione {
+  id?: number;
+  listinoId?: number;
+  nome: string;
+  ordine?: number;
 }
 
 export interface Listino {
@@ -325,8 +369,12 @@ export interface Listino {
   descrizione?: string;
   scontoDefault?: number;
   attivo?: boolean;
+  /** Legacy (lettura): definizioni colonne personalizzate. */
   colonneExtra?: ListinoColonna[];
+  /** Legacy (lettura): override colonne standard. */
   colonneStandard?: ListinoColonnaStd[];
+  /** Config colonne unificata (fonte di verità, vedi mergeColonneCfg). */
+  colonneConfig?: ListinoColonnaCfg[];
   /** Stampa PDF su due tabelle affiancate (due prodotti per riga). */
   stampaDueColonne?: boolean;
   prezziCount?: number;

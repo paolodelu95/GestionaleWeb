@@ -15,8 +15,16 @@ const toDto = (r) => r && ({
   attivo: !!r.attivo,
   colonneExtra: parseJson(r.colonne_extra, []),
   colonneStandard: parseJson(r.colonne_standard, []),
+  colonneConfig: parseJson(r.colonne_config, []),
   stampaDueColonne: !!r.stampa_due_colonne,
   createdAt: r.created_at,
+});
+
+const sezioneDto = (r) => r && ({
+  id: r.id,
+  listinoId: r.listino_id,
+  nome: r.nome,
+  ordine: r.ordine || 0,
 });
 
 const prezzoDto = (r) => r && ({
@@ -42,8 +50,7 @@ const sanitizeColonne = (cols) => (Array.isArray(cols) ? cols : [])
   .slice(0, 12)
   .map(c => ({ key: c.key.trim().slice(0, 40), label: c.label.trim().slice(0, 60) }));
 
-// Override delle colonne standard: solo chiavi note, label rinominabile, visibilità.
-// "prodotto" non è nascondibile (è l'identità della riga).
+// Override delle colonne standard (legacy, mantenuto per compat di lettura).
 const STD_KEYS = ['num', 'codice', 'prodotto', 'prezzoBase', 'sconto', 'prezzo'];
 const sanitizeColonneStd = (cols) => {
   const seen = new Set();
@@ -52,9 +59,36 @@ const sanitizeColonneStd = (cols) => {
     .map(c => ({
       key: c.key,
       label: String(c.label ?? '').trim().slice(0, 60),
-      visibile: c.key === 'prodotto' ? true : c.visibile !== false,
+      visibile: c.visibile !== false,
     }));
 };
+
+// Config colonne unificata: standard + personalizzate in un unico ordine.
+// Tutte rinominabili e nascondibili (anche "prodotto", su richiesta esplicita).
+const sanitizeColonneCfg = (cols) => {
+  const seen = new Set();
+  const out = [];
+  for (const c of (Array.isArray(cols) ? cols : [])) {
+    if (!c || typeof c.key !== 'string') continue;
+    const key = c.key.trim().slice(0, 40);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      key,
+      label: String(c.label ?? '').trim().slice(0, 60),
+      visibile: c.visibile !== false,
+      tipo: STD_KEYS.includes(key) ? 'std' : 'extra',
+    });
+    if (out.length >= 18) break;
+  }
+  return out;
+};
+
+/** Prossimo valore di "ordine": sequenza unica condivisa tra prezzi e sezioni. */
+const nextOrdine = (listinoId) => Math.max(
+  db.prepare('SELECT COALESCE(MAX(ordine), 0) AS m FROM listini_prezzi WHERE listino_id=?').get(listinoId).m,
+  db.prepare('SELECT COALESCE(MAX(ordine), 0) AS m FROM listini_sezioni WHERE listino_id=?').get(listinoId).m,
+) + 1;
 
 const sanitizeDatiExtra = (d) => {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return {};
@@ -84,15 +118,16 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, stampaDueColonne } = req.body || {};
+  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, colonneConfig, stampaDueColonne } = req.body || {};
   if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
     const result = db.prepare(`
-      INSERT INTO listini (nome, descrizione, sconto_default, attivo, colonne_extra, colonne_standard, stampa_due_colonne)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO listini (nome, descrizione, sconto_default, attivo, colonne_extra, colonne_standard, colonne_config, stampa_due_colonne)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(nome.trim(), descrizione || '', +scontoDefault || 0, attivo === false ? 0 : 1,
            JSON.stringify(sanitizeColonne(colonneExtra)),
            JSON.stringify(sanitizeColonneStd(colonneStandard)),
+           JSON.stringify(sanitizeColonneCfg(colonneConfig)),
            stampaDueColonne ? 1 : 0);
     res.json({ id: result.lastInsertRowid });
   } catch (e) {
@@ -104,11 +139,11 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, stampaDueColonne } = req.body || {};
+  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, colonneConfig, stampaDueColonne } = req.body || {};
   if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
     // Campi di configurazione assenti nel payload = non toccare quelli salvati
-    const cur = db.prepare('SELECT colonne_extra, colonne_standard, stampa_due_colonne FROM listini WHERE id=?')
+    const cur = db.prepare('SELECT colonne_extra, colonne_standard, colonne_config, stampa_due_colonne FROM listini WHERE id=?')
       .get(req.params.id) || {};
     const colonneJson = colonneExtra === undefined
       ? (cur.colonne_extra || '[]')
@@ -116,14 +151,17 @@ router.put('/:id', (req, res) => {
     const colonneStdJson = colonneStandard === undefined
       ? (cur.colonne_standard || '[]')
       : JSON.stringify(sanitizeColonneStd(colonneStandard));
+    const colonneCfgJson = colonneConfig === undefined
+      ? (cur.colonne_config || '[]')
+      : JSON.stringify(sanitizeColonneCfg(colonneConfig));
     const dueColonne = stampaDueColonne === undefined
       ? (cur.stampa_due_colonne || 0)
       : (stampaDueColonne ? 1 : 0);
     db.prepare(`
-      UPDATE listini SET nome=?, descrizione=?, sconto_default=?, attivo=?, colonne_extra=?, colonne_standard=?, stampa_due_colonne=?
+      UPDATE listini SET nome=?, descrizione=?, sconto_default=?, attivo=?, colonne_extra=?, colonne_standard=?, colonne_config=?, stampa_due_colonne=?
       WHERE id=?
     `).run(nome.trim(), descrizione || '', +scontoDefault || 0, attivo === false ? 0 : 1,
-           colonneJson, colonneStdJson, dueColonne, req.params.id);
+           colonneJson, colonneStdJson, colonneCfgJson, dueColonne, req.params.id);
     res.json({ success: true });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) {
@@ -167,8 +205,7 @@ router.post('/:id/prezzi', (req, res) => {
     const extraJson = datiExtra === undefined
       ? undefined
       : JSON.stringify(sanitizeDatiExtra(datiExtra));
-    const maxOrd = db.prepare('SELECT COALESCE(MAX(ordine), 0) AS m FROM listini_prezzi WHERE listino_id=?')
-      .get(req.params.id).m;
+    const ord = nextOrdine(req.params.id);
     const result = db.prepare(`
       INSERT INTO listini_prezzi (listino_id, prodotto_id, prezzo, sconto, dati_extra, ordine)
       VALUES (?, ?, ?, ?, COALESCE(?, '{}'), ?)
@@ -181,7 +218,7 @@ router.post('/:id/prezzi', (req, res) => {
       prezzo == null || prezzo === '' ? null : +prezzo,
       sconto == null || sconto === '' ? null : +sconto,
       extraJson ?? null,
-      maxOrd + 1,
+      ord,
       extraJson ?? null,
     );
     res.json({ id: result.lastInsertRowid });
@@ -201,8 +238,7 @@ router.post('/:id/prezzi/bulk', (req, res) => {
   if (!listino) return res.status(404).json({ error: 'Listino non trovato' });
   try {
     const scontoVal = sconto == null || sconto === '' ? null : +sconto;
-    let maxOrd = db.prepare('SELECT COALESCE(MAX(ordine), 0) AS m FROM listini_prezzi WHERE listino_id=?')
-      .get(req.params.id).m;
+    let maxOrd = nextOrdine(req.params.id) - 1;
     const ins = db.prepare(`
       INSERT INTO listini_prezzi (listino_id, prodotto_id, prezzo, sconto, dati_extra, ordine)
       VALUES (?, ?, NULL, ?, '{}', ?)
@@ -223,16 +259,57 @@ router.post('/:id/prezzi/bulk', (req, res) => {
   }
 });
 
-// Ordinamento manuale delle righe: array di prezzoId nell'ordine desiderato.
-router.put('/:id/prezzi/riordina', (req, res) => {
-  const { ids } = req.body || {};
-  if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids obbligatorio' });
+// ── SEZIONI (righe-divisore del listino, es. per categoria) ──────────────────
+router.get('/:id/sezioni', (req, res) => {
+  const rows = db.prepare('SELECT * FROM listini_sezioni WHERE listino_id=? ORDER BY ordine, id')
+    .all(req.params.id);
+  res.json(rows.map(sezioneDto));
+});
+
+router.post('/:id/sezioni', (req, res) => {
+  const { nome } = req.body || {};
+  if (!nome || !String(nome).trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
+  const listino = db.prepare('SELECT id FROM listini WHERE id=?').get(req.params.id);
+  if (!listino) return res.status(404).json({ error: 'Listino non trovato' });
   try {
-    const upd = db.prepare('UPDATE listini_prezzi SET ordine=? WHERE id=? AND listino_id=?');
+    const result = db.prepare('INSERT INTO listini_sezioni (listino_id, nome, ordine) VALUES (?, ?, ?)')
+      .run(req.params.id, String(nome).trim().slice(0, 80), nextOrdine(req.params.id));
+    res.json({ id: result.lastInsertRowid });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/:id/sezioni/:sezioneId', (req, res) => {
+  const { nome } = req.body || {};
+  if (!nome || !String(nome).trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
+  db.prepare('UPDATE listini_sezioni SET nome=? WHERE id=? AND listino_id=?')
+    .run(String(nome).trim().slice(0, 80), req.params.sezioneId, req.params.id);
+  res.json({ success: true });
+});
+
+router.delete('/:id/sezioni/:sezioneId', (req, res) => {
+  db.prepare('DELETE FROM listini_sezioni WHERE id=? AND listino_id=?')
+    .run(req.params.sezioneId, req.params.id);
+  res.json({ success: true });
+});
+
+// Ordinamento manuale misto: array di {tipo: 'sezione'|'prezzo', id} nell'ordine
+// desiderato. Assegna una sequenza unica condivisa tra le due tabelle.
+router.put('/:id/riordina', (req, res) => {
+  const { items } = req.body || {};
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'items obbligatorio' });
+  try {
+    const updPrezzo = db.prepare('UPDATE listini_prezzi SET ordine=? WHERE id=? AND listino_id=?');
+    const updSezione = db.prepare('UPDATE listini_sezioni SET ordine=? WHERE id=? AND listino_id=?');
     const tx = db.transaction((list) => {
-      list.forEach((id, i) => upd.run(i + 1, id, req.params.id));
+      list.forEach((it, i) => {
+        if (!it || !+it.id) return;
+        if (it.tipo === 'sezione') updSezione.run(i + 1, +it.id, req.params.id);
+        else updPrezzo.run(i + 1, +it.id, req.params.id);
+      });
     });
-    tx(ids.slice(0, 5000));
+    tx(items.slice(0, 10000));
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });

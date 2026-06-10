@@ -701,6 +701,19 @@ function initTenantSchema(db) {
     // e layout di stampa a due tabelle affiancate (due prodotti per riga nel PDF).
     `ALTER TABLE listini ADD COLUMN colonne_standard TEXT DEFAULT '[]'`,
     'ALTER TABLE listini ADD COLUMN stampa_due_colonne INTEGER DEFAULT 0',
+    // Config colonne unificata (standard + personalizzate in un unico ordine,
+    // tutte rinominabili/nascondibili). Sostituisce colonne_standard/colonne_extra,
+    // che restano per il fallback di lettura dei listini già configurati.
+    `ALTER TABLE listini ADD COLUMN colonne_config TEXT DEFAULT '[]'`,
+    // Sezioni del listino: righe-divisore (es. per categoria) interleavate con i
+    // prodotti tramite il campo "ordine" condiviso (sequenza unica per listino).
+    `CREATE TABLE IF NOT EXISTS listini_sezioni (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      listino_id INTEGER NOT NULL REFERENCES listini(id) ON DELETE CASCADE,
+      nome TEXT NOT NULL,
+      ordine INTEGER DEFAULT 0
+    )`,
+    'CREATE INDEX IF NOT EXISTS idx_listini_sezioni ON listini_sezioni(listino_id)',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

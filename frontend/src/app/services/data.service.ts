@@ -6,7 +6,7 @@ import {
   Azienda, Prodotto, ProdottoVariante, ProdottoFornitore, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
   Pagamento, ScadenzarioEntry, TipoPagamento, Acquisto,
-  CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, PrezzoRisolto,
+  CategoriaProdotto, CausalePagamento, PropostaRiordino, UnitaMisura, AliquotaIva, Listino, ListinoPrezzo, ListinoSezione, PrezzoRisolto,
   ListinoRigaNonTrovata, ListinoMatchRisultato, CodiceAlias, VariazionePrezzo,
   MovimentoMagazzino, GiacenzaStorica, VenditaBanco,
   Magazzino, Giacenza, ScadenzaLotto,
@@ -204,9 +204,22 @@ export class DataService {
   bulkAddListinoPrezzi(listinoId: number, prodottoIds: number[], sconto?: number | null): Observable<{ aggiunti: number }> {
     return this.api.post(`listini/${listinoId}/prezzi/bulk`, { prodottoIds, sconto: sconto ?? null });
   }
-  /** Salva l'ordinamento manuale delle righe (array di prezzoId nell'ordine voluto). */
-  riordinaListinoPrezzi(listinoId: number, ids: number[]): Observable<any> {
-    return this.api.put(`listini/${listinoId}/prezzi/riordina`, { ids });
+  /** Ordinamento manuale misto di sezioni e prodotti (sequenza unica). */
+  riordinaListino(listinoId: number, items: { tipo: 'sezione' | 'prezzo'; id: number }[]): Observable<any> {
+    return this.api.put(`listini/${listinoId}/riordina`, { items });
+  }
+
+  getListinoSezioni(listinoId: number): Observable<ListinoSezione[]> {
+    return this.api.get(`listini/${listinoId}/sezioni`);
+  }
+  createListinoSezione(listinoId: number, nome: string): Observable<{ id: number }> {
+    return this.api.post(`listini/${listinoId}/sezioni`, { nome });
+  }
+  updateListinoSezione(listinoId: number, sezioneId: number, nome: string): Observable<any> {
+    return this.api.put(`listini/${listinoId}/sezioni/${sezioneId}`, { nome });
+  }
+  deleteListinoSezione(listinoId: number, sezioneId: number): Observable<any> {
+    return this.api.delete(`listini/${listinoId}/sezioni/${sezioneId}`);
   }
   deleteListinoPrezzo(listinoId: number, prezzoId: number): Observable<any> {
     return this.api.delete(`listini/${listinoId}/prezzi/${prezzoId}`);

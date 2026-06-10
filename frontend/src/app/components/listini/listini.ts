@@ -18,8 +18,18 @@ import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Listino, ListinoColonna, ListinoColonnaStd, ListinoColonnaStdKey, ListinoPrezzo, Prodotto, mergeColonneStd } from '../../models';
+import { Listino, ListinoColonnaCfg, ListinoColonnaStdKey, ListinoPrezzo, ListinoSezione,
+         Prodotto, LISTINO_STD_KEYS, LISTINO_COLONNE_DEFAULT_LABELS, mergeColonneCfg } from '../../models';
 import { QuickListinoDialogComponent } from './quick-listino-dialog';
+
+/** Riga del listino nell'editor: prodotto oppure sezione (divisore). */
+export interface RigaListino {
+  tipo: 'sezione' | 'prezzo';
+  sezione?: ListinoSezione;
+  prezzo?: ListinoPrezzo;
+  /** Numero progressivo del prodotto (solo tipo 'prezzo'). */
+  num?: number;
+}
 
 // ── Nuovo listino (anagrafica minima, poi si apre l'editor) ──────────────────
 @Component({
@@ -69,12 +79,8 @@ export class NuovoListinoDialogComponent {
   }
 }
 
-// ── Gestione colonne (standard + personalizzate) ─────────────────────────────
-export interface ColonneDialogData {
-  standard: ListinoColonnaStd[];
-  extra: ListinoColonna[];
-}
-
+// ── Gestione colonne: lista unica (standard + personalizzate), tutte
+//    riordinabili col drag, rinominabili e disattivabili ──────────────────────
 @Component({
   selector: 'app-colonne-listino-dialog',
   standalone: true,
@@ -83,49 +89,34 @@ export interface ColonneDialogData {
             MatTooltipModule, DragDropModule],
   template: `
     <h2 mat-dialog-title>Colonne del listino</h2>
-    <mat-dialog-content style="min-width:520px">
-
-      <div class="col-section-title">Colonne standard</div>
+    <mat-dialog-content style="min-width:560px">
       <p class="col-help">
-        Rinomina le intestazioni o nascondi le colonne che non ti servono: spariranno
-        sia dalla tabella che dalla stampa PDF.
-      </p>
-      @for (c of standard; track c.key) {
-        <div class="col-row">
-          <mat-checkbox [(ngModel)]="c.visibile" [disabled]="c.key === 'prodotto'"
-                        [matTooltip]="c.key === 'prodotto' ? 'La colonna prodotto non può essere nascosta' : ''">
-          </mat-checkbox>
-          <input class="col-input" [(ngModel)]="c.label" [placeholder]="defaultLabel(c.key)"
-                 [disabled]="!c.visibile">
-          <span class="col-key">{{ defaultLabel(c.key) }}</span>
-        </div>
-      }
-
-      <div class="col-section-title" style="margin-top:18px">Colonne personalizzate</div>
-      <p class="col-help">
-        Aggiungi colonne descrittive (es. dimensioni, peso, quantità per pallet) da
-        compilare riga per riga.
+        Trascina per cambiare l'ordine, rinomina le intestazioni o spunta/togli la
+        visibilità: vale per la tabella e per la stampa PDF. Le colonne personalizzate
+        si compilano riga per riga.
       </p>
 
       <div cdkDropList (cdkDropListDropped)="riordina($event)">
         @for (c of colonne; track c.key) {
           <div class="col-row" cdkDrag>
             <mat-icon cdkDragHandle class="col-drag" matTooltip="Trascina per riordinare">drag_indicator</mat-icon>
-            <input class="col-input" [(ngModel)]="c.label" placeholder="Nome colonna">
-            <button mat-icon-button type="button" (click)="rimuovi(c)" matTooltip="Rimuovi colonna">
-              <mat-icon style="color:#dc2626;font-size:18px">delete</mat-icon>
-            </button>
+            <mat-checkbox [(ngModel)]="c.visibile"></mat-checkbox>
+            <input class="col-input" [(ngModel)]="c.label" [placeholder]="placeholderDi(c)"
+                   [disabled]="!c.visibile">
+            @if (c.tipo === 'std') {
+              <span class="col-key" [matTooltip]="'Colonna standard: ' + placeholderDi(c)">{{ placeholderDi(c) }}</span>
+            } @else {
+              <span class="col-badge">personalizzata</span>
+              <button mat-icon-button type="button" (click)="rimuovi(c)" matTooltip="Elimina colonna personalizzata">
+                <mat-icon style="color:#dc2626;font-size:18px">delete</mat-icon>
+              </button>
+            }
           </div>
         }
       </div>
-      @if (!colonne.length) {
-        <p style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:8px 0">
-          Nessuna colonna personalizzata.
-        </p>
-      }
 
       <div class="col-add">
-        <input class="col-input" [(ngModel)]="nuova" placeholder="Nuova colonna…"
+        <input class="col-input" [(ngModel)]="nuova" placeholder="Nuova colonna personalizzata…"
                (keyup.enter)="aggiungi()">
         <button mat-stroked-button color="primary" type="button" (click)="aggiungi()" [disabled]="!nuova.trim()">
           <mat-icon>add</mat-icon> Aggiungi
@@ -143,48 +134,54 @@ export interface ColonneDialogData {
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" (click)="salva()">Salva colonne</button>
+      <button mat-flat-button color="primary" (click)="salva()" [disabled]="!almenoUnaVisibile">Salva colonne</button>
     </mat-dialog-actions>`,
   styles: [`
-    .col-section-title {
-      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-      color: var(--text-tertiary); margin: 6px 0 2px;
+    .col-help { margin: 4px 0 12px; font-size: 12.5px; color: var(--text-tertiary); }
+    .col-key { font-size: 11px; color: var(--text-tertiary); min-width: 86px; text-align: right; }
+    .col-badge {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+      color: var(--primary); background: var(--bg-surface-2); border-radius: 99px;
+      padding: 2px 8px; white-space: nowrap;
     }
-    .col-help { margin: 0 0 10px; font-size: 12.5px; color: var(--text-tertiary); }
-    .col-key { font-size: 11px; color: var(--text-tertiary); min-width: 90px; text-align: right; }
-    .col-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-    .col-drag { color: var(--text-tertiary); cursor: grab; font-size: 20px; }
+    .col-row {
+      display: flex; align-items: center; gap: 8px; padding: 4px 0;
+      background: var(--bg-surface);
+    }
+    .col-drag { color: var(--text-tertiary); cursor: grab; font-size: 20px; flex-shrink: 0; }
     .col-input {
       flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
-      font-size: 13px; background: var(--bg-surface); color: var(--text-primary);
+      font-size: 13px; background: var(--bg-surface); color: var(--text-primary); min-width: 0;
     }
     .col-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--shadow-focus); }
-    .col-add { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
-    .col-suggerimenti { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+    .col-input:disabled { color: var(--text-tertiary); background: var(--bg-surface-2); }
+    .col-add { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+    .col-suggerimenti { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
     .col-chip {
       border: 1px dashed var(--border); background: transparent; border-radius: 99px;
       padding: 3px 10px; font-size: 12px; color: var(--text-secondary); cursor: pointer;
     }
     .col-chip:hover { border-color: var(--primary); color: var(--primary); }
+    .cdk-drag-preview.col-row { box-shadow: 0 4px 14px rgba(0,0,0,0.18); border-radius: 8px; padding: 4px 8px; }
+    .cdk-drag-placeholder { opacity: 0.3; }
   `],
 })
 export class ColonneListinoDialogComponent {
-  standard: ListinoColonnaStd[] = [];
-  colonne: ListinoColonna[] = [];
+  colonne: ListinoColonnaCfg[] = [];
   nuova = '';
   readonly suggerimenti = ['Dimensioni', 'Peso', 'Q.tà per pallet', 'Q.tà per cartone', 'Confezione', 'Colore', 'Materiale', 'Note'];
-  private readonly defaults = mergeColonneStd();
 
   constructor(
     public dialogRef: MatDialogRef<ColonneListinoDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) data: ColonneDialogData | null,
+    @Inject(MAT_DIALOG_DATA) data: ListinoColonnaCfg[] | null,
   ) {
-    this.standard = mergeColonneStd(data?.standard).map(c => ({ ...c }));
-    this.colonne = (data?.extra || []).map(c => ({ ...c }));
+    this.colonne = (data?.length ? data : mergeColonneCfg()).map(c => ({ ...c }));
   }
 
-  defaultLabel(key: ListinoColonnaStdKey): string {
-    return this.defaults.find(c => c.key === key)?.label || key;
+  get almenoUnaVisibile(): boolean { return this.colonne.some(c => c.visibile); }
+
+  placeholderDi(c: ListinoColonnaCfg): string {
+    return c.tipo === 'std' ? LISTINO_COLONNE_DEFAULT_LABELS[c.key as ListinoColonnaStdKey] : c.label || 'Colonna';
   }
 
   esiste(label: string): boolean {
@@ -194,7 +191,10 @@ export class ColonneListinoDialogComponent {
   private slug(label: string): string {
     const base = label.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'col';
     let key = base, i = 2;
-    while (this.colonne.some(c => c.key === key)) key = `${base}_${i++}`;
+    // Evita collisioni sia con le colonne esistenti che con le chiavi standard riservate
+    while (this.colonne.some(c => c.key === key) || (LISTINO_STD_KEYS as string[]).includes(key)) {
+      key = `${base}_${i++}`;
+    }
     return key;
   }
 
@@ -202,21 +202,25 @@ export class ColonneListinoDialogComponent {
 
   aggiungiNome(label: string) {
     const l = label.trim();
-    if (!l || this.esiste(l) || this.colonne.length >= 12) return;
-    this.colonne.push({ key: this.slug(l), label: l });
+    if (!l || this.esiste(l) || this.colonne.length >= 18) return;
+    this.colonne.push({ key: this.slug(l), label: l, visibile: true, tipo: 'extra' });
   }
 
-  rimuovi(c: ListinoColonna) { this.colonne = this.colonne.filter(x => x !== c); }
+  rimuovi(c: ListinoColonnaCfg) {
+    if (c.tipo !== 'extra') return;
+    this.colonne = this.colonne.filter(x => x !== c);
+  }
 
-  riordina(e: CdkDragDrop<ListinoColonna[]>) {
+  riordina(e: CdkDragDrop<ListinoColonnaCfg[]>) {
     moveItemInArray(this.colonne, e.previousIndex, e.currentIndex);
   }
 
   salva() {
-    this.dialogRef.close({
-      standard: this.standard.map(c => ({ ...c, label: c.label.trim() || this.defaultLabel(c.key) })),
-      extra: this.colonne.filter(c => c.label.trim()),
-    } as ColonneDialogData);
+    if (!this.almenoUnaVisibile) return;
+    this.dialogRef.close(this.colonne.map(c => ({
+      ...c,
+      label: c.label.trim() || this.placeholderDi(c),
+    })));
   }
 }
 
@@ -373,6 +377,9 @@ export class ListiniComponent implements OnInit {
   // ── editor ──
   sel: Listino | null = null;
   prezzi: ListinoPrezzo[] = [];
+  sezioni: ListinoSezione[] = [];
+  /** Sequenza visuale: prodotti e sezioni interleavati per ordine. */
+  righe: RigaListino[] = [];
   filtro = '';
   scontoBulk: number | null = null;
   prodotti: Prodotto[] = [];
@@ -388,6 +395,11 @@ export class ListiniComponent implements OnInit {
   ngOnInit() { this.loadListini(); }
 
   loadListini() { this.ds.getListini().subscribe(l => this.listini = l); }
+
+  /** Colonne personalizzate di un listino (per i chip nell'elenco). */
+  colonneExtraDi(l: Listino): ListinoColonnaCfg[] {
+    return mergeColonneCfg(l).filter(c => c.tipo === 'extra' && c.visibile);
+  }
 
   // ── Elenco: creazione / apertura / eliminazione ────────────────────────────
 
@@ -414,16 +426,18 @@ export class ListiniComponent implements OnInit {
     forkJoin({
       listino: this.ds.getListino(id),
       prezzi: this.ds.getListinoPrezzi(id),
-    }).subscribe(({ listino, prezzi }) => {
+      sezioni: this.ds.getListinoSezioni(id),
+    }).subscribe(({ listino, prezzi, sezioni }) => {
       this.sel = {
         ...listino,
-        colonneExtra: listino.colonneExtra || [],
-        colonneStandard: mergeColonneStd(listino.colonneStandard),
+        colonneConfig: mergeColonneCfg(listino),
         stampaDueColonne: !!listino.stampaDueColonne,
       };
       this.prezzi = prezzi;
+      this.sezioni = sezioni;
       this.filtro = '';
       this.scontoBulk = null;
+      this.rebuildRighe();
       this.anagraficaSnapshot = this.snapshot();
       if (!this.prodotti.length) this.ds.getProdotti().subscribe(p => this.prodotti = p);
     });
@@ -432,6 +446,8 @@ export class ListiniComponent implements OnInit {
   chiudiEditor() {
     this.sel = null;
     this.prezzi = [];
+    this.sezioni = [];
+    this.righe = [];
     this.loadListini();
   }
 
@@ -439,7 +455,7 @@ export class ListiniComponent implements OnInit {
     if (!await this.confirm.delete(`Eliminare il listino "${l.nome}"?\n\nI clienti assegnati torneranno a usare i prezzi base.`)) return;
     this.ds.deleteListino(l.id!).subscribe({
       next: () => {
-        if (this.sel?.id === l.id) { this.sel = null; this.prezzi = []; }
+        if (this.sel?.id === l.id) this.chiudiEditor();
         this.loadListini();
         this.snack.open('Listino eliminato', '', { duration: 2000 });
       },
@@ -452,16 +468,7 @@ export class ListiniComponent implements OnInit {
   private snapshot(): string {
     const s = this.sel!;
     return JSON.stringify([s.nome, s.descrizione, s.scontoDefault, s.attivo,
-                           s.colonneExtra, s.colonneStandard, s.stampaDueColonne]);
-  }
-
-  /** Visibilità/etichetta di una colonna standard (config del listino, con default). */
-  colVisibile(key: ListinoColonnaStdKey): boolean {
-    return this.sel?.colonneStandard?.find(c => c.key === key)?.visibile !== false;
-  }
-  colLabel(key: ListinoColonnaStdKey): string {
-    return this.sel?.colonneStandard?.find(c => c.key === key)?.label
-      || mergeColonneStd().find(c => c.key === key)!.label;
+                           s.colonneConfig, s.stampaDueColonne]);
   }
 
   salvaAnagrafica() {
@@ -473,22 +480,29 @@ export class ListiniComponent implements OnInit {
     });
   }
 
+  // ── Editor: colonne ─────────────────────────────────────────────────────────
+
+  get colonneVisibili(): ListinoColonnaCfg[] {
+    return (this.sel?.colonneConfig || []).filter(c => c.visibile);
+  }
+
+  /** Tipo di cella da renderizzare per una colonna. */
+  cellType(c: ListinoColonnaCfg): string {
+    return c.tipo === 'extra' ? 'extra' : c.key;
+  }
+
   gestisciColonne() {
     this.dialog.open(ColonneListinoDialogComponent, {
-      data: {
-        standard: this.sel!.colonneStandard,
-        extra: this.sel!.colonneExtra || [],
-      } as ColonneDialogData,
-      width: '580px', maxWidth: '96vw',
-    }).afterClosed().subscribe((cols: ColonneDialogData | undefined) => {
+      data: this.sel!.colonneConfig || [],
+      width: '620px', maxWidth: '96vw',
+    }).afterClosed().subscribe((cols: ListinoColonnaCfg[] | undefined) => {
       if (!cols) return;
-      this.sel!.colonneStandard = cols.standard;
-      this.sel!.colonneExtra = cols.extra;
+      this.sel!.colonneConfig = cols;
       this.salvaAnagrafica();
     });
   }
 
-  // ── Editor: aggiunta prodotti ───────────────────────────────────────────────
+  // ── Editor: aggiunta prodotti e sezioni ─────────────────────────────────────
 
   apriPicker() {
     this.dialog.open(SelezioneProdottiDialogComponent, {
@@ -521,27 +535,138 @@ export class ListiniComponent implements OnInit {
   private bulkAdd(ids: number[]) {
     this.ds.bulkAddListinoPrezzi(this.sel!.id!, ids).subscribe({
       next: (r) => {
-        this.reloadPrezzi();
+        this.reloadRighe();
         this.snack.open(`${r.aggiunti} prodotti aggiunti al listino`, '', { duration: 2500 });
       },
       error: () => this.snack.open('Errore aggiunta prodotti', '', { duration: 3000 }),
     });
   }
 
-  private reloadPrezzi() {
-    this.ds.getListinoPrezzi(this.sel!.id!).subscribe(p => this.prezzi = p);
+  aggiungiSezione() {
+    this.ds.createListinoSezione(this.sel!.id!, 'Nuova sezione').subscribe({
+      next: () => this.reloadRighe(),
+      error: () => this.snack.open('Errore creazione sezione', '', { duration: 3000 }),
+    });
   }
 
-  // ── Editor: righe (filtro client, modifica inline, drag, rimozione) ─────────
+  /** Crea automaticamente le sezioni dalle categorie dei prodotti già nel listino
+   *  e riordina le righe raggruppandole; le sezioni omonime esistenti vengono riusate. */
+  async sezioniDaCategorie() {
+    const cats: string[] = [];
+    for (const p of this.prezzi) {
+      const c = (p.prodottoCategoria || '').trim();
+      if (c && !cats.includes(c)) cats.push(c);
+    }
+    if (!cats.length) {
+      this.snack.open('I prodotti del listino non hanno categorie', '', { duration: 3000 });
+      return;
+    }
+    if (!await this.confirm.ask(
+      `Creare ${cats.length} sezioni dalle categorie e raggruppare i prodotti?\n\nLe righe verranno riordinate per categoria.`)) return;
 
-  get righeVisibili(): ListinoPrezzo[] {
+    const daCreare = cats.filter(c => !this.sezioni.some(s => s.nome.toLowerCase() === c.toLowerCase()));
+    const creazioni = daCreare.length
+      ? forkJoin(daCreare.map(c => this.ds.createListinoSezione(this.sel!.id!, c)))
+      : of([]);
+    creazioni.subscribe({
+      next: () => {
+        this.ds.getListinoSezioni(this.sel!.id!).subscribe(sezioni => {
+          this.sezioni = sezioni;
+          const items: { tipo: 'sezione' | 'prezzo'; id: number }[] = [];
+          // Prodotti senza categoria in testa (prima di ogni sezione)
+          for (const p of this.prezzi) {
+            if (!(p.prodottoCategoria || '').trim()) items.push({ tipo: 'prezzo', id: p.id! });
+          }
+          const usate = new Set<number>();
+          for (const cat of cats) {
+            const sez = sezioni.find(s => s.nome.toLowerCase() === cat.toLowerCase());
+            if (sez) { items.push({ tipo: 'sezione', id: sez.id! }); usate.add(sez.id!); }
+            for (const p of this.prezzi) {
+              if ((p.prodottoCategoria || '').trim().toLowerCase() === cat.toLowerCase()) {
+                items.push({ tipo: 'prezzo', id: p.id! });
+              }
+            }
+          }
+          // Eventuali sezioni preesistenti non legate a categorie: in coda
+          for (const s of sezioni) {
+            if (!usate.has(s.id!)) items.push({ tipo: 'sezione', id: s.id! });
+          }
+          this.ds.riordinaListino(this.sel!.id!, items).subscribe({
+            next: () => { this.reloadRighe(); this.snack.open('Prodotti raggruppati per categoria', '', { duration: 2500 }); },
+            error: () => { this.snack.open('Errore riordino', '', { duration: 3000 }); this.reloadRighe(); },
+          });
+        });
+      },
+      error: () => this.snack.open('Errore creazione sezioni', '', { duration: 3000 }),
+    });
+  }
+
+  updateSezione(s: ListinoSezione, e: Event) {
+    const v = (e.target as HTMLInputElement).value.trim();
+    if (!v || v === s.nome) return;
+    s.nome = v;
+    this.ds.updateListinoSezione(this.sel!.id!, s.id!, v).subscribe({
+      error: () => { this.snack.open('Errore rinomina sezione', '', { duration: 3000 }); this.reloadRighe(); },
+    });
+  }
+
+  deleteSezione(s: ListinoSezione) {
+    this.ds.deleteListinoSezione(this.sel!.id!, s.id!).subscribe({
+      next: () => {
+        this.sezioni = this.sezioni.filter(x => x.id !== s.id);
+        this.rebuildRighe();
+      },
+      error: () => this.snack.open('Errore eliminazione sezione', '', { duration: 3000 }),
+    });
+  }
+
+  // ── Editor: righe (merge, filtro, modifica inline, drag, rimozione) ─────────
+
+  private reloadRighe() {
+    forkJoin({
+      prezzi: this.ds.getListinoPrezzi(this.sel!.id!),
+      sezioni: this.ds.getListinoSezioni(this.sel!.id!),
+    }).subscribe(({ prezzi, sezioni }) => {
+      this.prezzi = prezzi;
+      this.sezioni = sezioni;
+      this.rebuildRighe();
+    });
+  }
+
+  /** Ricostruisce la sequenza visuale (prodotti + sezioni per ordine condiviso). */
+  private rebuildRighe() {
+    const items: RigaListino[] = [
+      ...this.sezioni.map(s => ({ tipo: 'sezione' as const, sezione: s })),
+      ...this.prezzi.map(p => ({ tipo: 'prezzo' as const, prezzo: p })),
+    ];
+    items.sort((a, b) => {
+      const oa = (a.tipo === 'sezione' ? a.sezione!.ordine : a.prezzo!.ordine) || 0;
+      const ob = (b.tipo === 'sezione' ? b.sezione!.ordine : b.prezzo!.ordine) || 0;
+      if (oa !== ob) return oa - ob;
+      // ordine legacy a parità: sezioni prima, poi per id
+      if (a.tipo !== b.tipo) return a.tipo === 'sezione' ? -1 : 1;
+      const ia = (a.tipo === 'sezione' ? a.sezione!.id : a.prezzo!.id) || 0;
+      const ib = (b.tipo === 'sezione' ? b.sezione!.id : b.prezzo!.id) || 0;
+      return ia - ib;
+    });
+    let n = 0;
+    for (const it of items) if (it.tipo === 'prezzo') it.num = ++n;
+    this.righe = items;
+  }
+
+  get righeVisibili(): RigaListino[] {
     const tokens = this.filtro.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    if (!tokens.length) return this.prezzi;
-    return this.prezzi.filter(p => {
+    if (!tokens.length) return this.righe;
+    // Con filtro attivo si mostrano solo i prodotti corrispondenti (niente sezioni)
+    return this.righe.filter(r => {
+      if (r.tipo !== 'prezzo') return false;
+      const p = r.prezzo!;
       const hay = `${p.prodottoCodice ?? ''} ${p.prodottoNome ?? ''} ${p.prodottoCategoria ?? ''}`.toLowerCase();
       return tokens.every(t => hay.includes(t));
     });
   }
+
+  get prodottiCount(): number { return this.prezzi.length; }
 
   private upsertRiga(p: ListinoPrezzo, includeExtra = false) {
     this.ds.upsertListinoPrezzo(this.sel!.id!, {
@@ -550,7 +675,7 @@ export class ListiniComponent implements OnInit {
       sconto: p.sconto ?? null,
       ...(includeExtra ? { datiExtra: p.datiExtra || {} } : {}),
     }).subscribe({
-      error: () => { this.snack.open('Errore salvataggio riga', '', { duration: 3000 }); this.reloadPrezzi(); },
+      error: () => { this.snack.open('Errore salvataggio riga', '', { duration: 3000 }); this.reloadRighe(); },
     });
   }
 
@@ -598,20 +723,38 @@ export class ListiniComponent implements OnInit {
     if (!p.id) return;
     this.ds.deleteListinoPrezzo(this.sel!.id!, p.id).subscribe(() => {
       this.prezzi = this.prezzi.filter(x => x.id !== p.id);
+      this.rebuildRighe();
     });
   }
 
   async svuotaListino() {
-    if (!this.prezzi.length) return;
-    if (!await this.confirm.delete(`Rimuovere tutte le ${this.prezzi.length} righe dal listino?`)) return;
-    forkJoin(this.prezzi.map(p => this.ds.deleteListinoPrezzo(this.sel!.id!, p.id!)))
-      .subscribe(() => { this.prezzi = []; this.snack.open('Listino svuotato', '', { duration: 2000 }); });
+    if (!this.prezzi.length && !this.sezioni.length) return;
+    if (!await this.confirm.delete(`Rimuovere tutte le righe e le sezioni dal listino?`)) return;
+    const ops = [
+      ...this.prezzi.map(p => this.ds.deleteListinoPrezzo(this.sel!.id!, p.id!)),
+      ...this.sezioni.map(s => this.ds.deleteListinoSezione(this.sel!.id!, s.id!)),
+    ];
+    forkJoin(ops.length ? ops : [of(null)]).subscribe(() => {
+      this.prezzi = []; this.sezioni = []; this.righe = [];
+      this.snack.open('Listino svuotato', '', { duration: 2000 });
+    });
   }
 
-  dropRiga(e: CdkDragDrop<ListinoPrezzo[]>) {
+  dropRiga(e: CdkDragDrop<RigaListino[]>) {
     if (this.filtro) return; // con filtro attivo il riordino è disabilitato
-    moveItemInArray(this.prezzi, e.previousIndex, e.currentIndex);
-    this.ds.riordinaListinoPrezzi(this.sel!.id!, this.prezzi.map(p => p.id!)).subscribe({
+    moveItemInArray(this.righe, e.previousIndex, e.currentIndex);
+    // Allinea gli "ordine" locali e la numerazione alla nuova sequenza
+    this.righe.forEach((r, i) => {
+      if (r.tipo === 'sezione') r.sezione!.ordine = i + 1;
+      else r.prezzo!.ordine = i + 1;
+    });
+    let n = 0;
+    for (const r of this.righe) if (r.tipo === 'prezzo') r.num = ++n;
+    const items = this.righe.map(r => ({
+      tipo: r.tipo,
+      id: (r.tipo === 'sezione' ? r.sezione!.id : r.prezzo!.id)!,
+    }));
+    this.ds.riordinaListino(this.sel!.id!, items).subscribe({
       error: () => this.snack.open('Errore salvataggio ordine', '', { duration: 3000 }),
     });
   }
@@ -625,7 +768,7 @@ export class ListiniComponent implements OnInit {
     });
     forkJoin(ops.length ? ops : [of(null)]).subscribe({
       next: () => this.snack.open(`Sconto ${s}% applicato a ${ops.length} righe`, '', { duration: 2500 }),
-      error: () => { this.snack.open('Errore applicazione sconto', '', { duration: 3000 }); this.reloadPrezzi(); },
+      error: () => { this.snack.open('Errore applicazione sconto', '', { duration: 3000 }); this.reloadRighe(); },
     });
   }
 
@@ -636,18 +779,21 @@ export class ListiniComponent implements OnInit {
     return +(base * (1 - sconto / 100)).toFixed(2);
   }
 
-  /** Invio su una cella: passa alla stessa colonna della riga successiva (stile foglio di calcolo). */
+  /** Invio su una cella: passa alla stessa colonna della prossima riga prodotto
+   *  (saltando le righe sezione, stile foglio di calcolo). */
   focusNext(e: Event, col: string) {
     e.preventDefault();
     const input = e.target as HTMLInputElement;
     const row = +(input.getAttribute('data-row') || 0);
-    const next = input.closest('table')
-      ?.querySelector<HTMLInputElement>(`input[data-col="${col}"][data-row="${row + 1}"]`);
-    if (next) { next.focus(); next.select(); }
+    const candidates = Array.from(
+      input.closest('table')?.querySelectorAll<HTMLInputElement>(`input[data-col="${col}"]`) || []
+    ).filter(x => +(x.getAttribute('data-row') || 0) > row)
+     .sort((a, b) => +(a.getAttribute('data-row') || 0) - +(b.getAttribute('data-row') || 0));
+    if (candidates[0]) { candidates[0].focus(); candidates[0].select(); }
   }
 
   stampa() {
     if (!this.sel) return;
-    this.printSvc.printListino(this.sel, this.prezzi);
+    this.printSvc.printListino(this.sel, this.prezzi, this.sezioni);
   }
 }

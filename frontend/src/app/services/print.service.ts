@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DataService } from './data.service';
-import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig, Listino, ListinoPrezzo, mergeColonneStd } from '../models';
+import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig, Listino, ListinoPrezzo, ListinoSezione, ListinoColonnaStdKey, mergeColonneCfg } from '../models';
 import { SAMPLE_AZIENDA, SAMPLE_FATTURA } from './print-sample-data';
 
 @Component({
@@ -314,9 +314,9 @@ export class PrintService {
   }
 
   /** Stampa un listino prezzi formattato (tema/colori della grafica documenti). */
-  printListino(listino: Listino, prezzi: ListinoPrezzo[]) {
+  printListino(listino: Listino, prezzi: ListinoPrezzo[], sezioni: ListinoSezione[] = []) {
     this.ds.getAzienda().subscribe(async az => {
-      const pdf = await this.buildListino(listino, prezzi, az);
+      const pdf = await this.buildListino(listino, prezzi, sezioni, az);
       const nomeFile = (listino.nome || 'listino').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_') || 'listino';
       this.showPreview(pdf, `Listino_${nomeFile}.pdf`);
     });
@@ -449,7 +449,7 @@ export class PrintService {
     return pdf;
   }
 
-  private async buildListino(listino: Listino, prezzi: ListinoPrezzo[], az: Azienda): Promise<jsPDF> {
+  private async buildListino(listino: Listino, prezzi: ListinoPrezzo[], sezioni: ListinoSezione[], az: Azienda): Promise<jsPDF> {
     this.resolved = this.normalizeConfig(this.getTemplateConfig(az), 'fattura');
     const logo = await this.logoFor(az);
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -466,48 +466,76 @@ export class PrintService {
       y += lines.length * 4.2 + 5;
     }
 
-    // Colonne guidate dalla config del listino: le standard sono rinominabili e
-    // nascondibili, le extra sono libere. Layout opzionale a due tabelle affiancate.
+    // Colonne guidate dalla config unificata del listino (standard + extra in un
+    // unico ordine, tutte rinominabili/nascondibili). Layout opzionale affiancato.
     const due = !!listino.stampaDueColonne;
-    const std = mergeColonneStd(listino.colonneStandard);
-    const vis = (k: string) => std.find(c => c.key === k)!.visibile;
-    const lbl = (k: string) => std.find(c => c.key === k)!.label;
-    const extra = listino.colonneExtra || [];
+    const cfg = mergeColonneCfg(listino).filter(c => c.visibile);
 
-    interface ColDef { label: string; width: number | 'auto'; halign?: 'center' | 'right'; val: (p: ListinoPrezzo, i: number) => string | number; }
-    const defs: ColDef[] = [];
-    if (vis('num')) defs.push({ label: lbl('num'), width: due ? 7 : 9, halign: 'center', val: (_p, i) => i + 1 });
-    if (vis('codice')) defs.push({ label: lbl('codice'), width: due ? 16 : 24, val: p => p.prodottoCodice || '—' });
-    defs.push({ label: lbl('prodotto'), width: 'auto', val: p => p.prodottoNome || '' });
-    for (const c of extra) defs.push({ label: c.label, width: 'auto', val: p => p.datiExtra?.[c.key] ?? '' });
-    if (vis('prezzoBase')) defs.push({ label: lbl('prezzoBase'), width: due ? 16 : 20, halign: 'right', val: p => this.fe(p.prodottoPrezzoBase || 0) });
-    if (vis('sconto')) defs.push({
-      label: lbl('sconto'), width: due ? 11 : 14, halign: 'right',
-      val: p => {
-        const s = p.prezzo != null ? 0 : (p.sconto != null ? p.sconto : (listino.scontoDefault || 0));
-        return s > 0 ? `${s}%` : '—';
-      },
+    interface ColDef { label: string; width: number | 'auto'; halign?: 'center' | 'right'; val: (p: ListinoPrezzo, n: number) => string | number; }
+    const defs: ColDef[] = cfg.map(c => {
+      if (c.tipo === 'extra') {
+        return { label: c.label, width: 'auto' as const, val: (p: ListinoPrezzo) => p.datiExtra?.[c.key] ?? '' };
+      }
+      switch (c.key as ListinoColonnaStdKey) {
+        case 'num': return { label: c.label, width: due ? 7 : 9, halign: 'center' as const, val: (_p: ListinoPrezzo, n: number) => n };
+        case 'codice': return { label: c.label, width: due ? 16 : 24, val: (p: ListinoPrezzo) => p.prodottoCodice || '—' };
+        case 'prezzoBase': return { label: c.label, width: due ? 16 : 20, halign: 'right' as const, val: (p: ListinoPrezzo) => this.fe(p.prodottoPrezzoBase || 0) };
+        case 'sconto': return {
+          label: c.label, width: due ? 11 : 14, halign: 'right' as const,
+          val: (p: ListinoPrezzo) => {
+            const s = p.prezzo != null ? 0 : (p.sconto != null ? p.sconto : (listino.scontoDefault || 0));
+            return s > 0 ? `${s}%` : '—';
+          },
+        };
+        case 'prezzo': return { label: c.label, width: due ? 18 : 24, halign: 'right' as const, val: (p: ListinoPrezzo) => this.fe(this.prezzoListino(p, listino)) };
+        default: return { label: c.label, width: 'auto' as const, val: (p: ListinoPrezzo) => p.prodottoNome || '' }; // 'prodotto'
+      }
     });
-    if (vis('prezzo')) defs.push({ label: lbl('prezzo'), width: due ? 18 : 24, halign: 'right', val: p => this.fe(this.prezzoListino(p, listino)) });
 
-    const rowOf = (p: ListinoPrezzo | undefined, i: number) =>
-      p ? defs.map(d => d.val(p, i)) : defs.map(() => '');
+    // Sequenza mista prodotti + sezioni (stesso ordinamento dell'editor)
+    type RigaMista = { tipo: 'sezione' | 'prezzo'; nome?: string; p?: ListinoPrezzo; ordine: number; id: number };
+    const merged: RigaMista[] = [
+      ...(sezioni || []).map(s => ({ tipo: 'sezione' as const, nome: s.nome, ordine: s.ordine || 0, id: s.id || 0 })),
+      ...prezzi.map(p => ({ tipo: 'prezzo' as const, p, ordine: p.ordine || 0, id: p.id || 0 })),
+    ].sort((a, b) => (a.ordine - b.ordine)
+      || (a.tipo !== b.tipo ? (a.tipo === 'sezione' ? -1 : 1) : a.id - b.id));
+
+    const half = defs.length; // indice della colonna distanziatrice nel layout affiancato
+    const totalCols = due ? defs.length * 2 + 1 : defs.length;
+    const sezRow = (nome: string) => [{
+      content: nome,
+      colSpan: totalCols,
+      styles: { fontStyle: 'bold' as const, fillColor: C.lightBg, textColor: C.text, fontSize: (due ? 8.5 : 9.5) * fs },
+    }];
+    const rowOf = (p: ListinoPrezzo, n: number) => defs.map(d => d.val(p, n));
+    const vuota = () => defs.map(() => '');
 
     let head: (string | number)[];
-    let body: (string | number)[][];
-    const half = defs.length; // indice della colonna distanziatrice nel layout affiancato
+    const body: any[][] = [];
+    let n = 0;
     if (due) {
-      // Due tabelle affiancate = colonne raddoppiate in un'unica autoTable
-      // (riga i = prodotti 2i e 2i+1, paginazione e intestazioni automatiche),
-      // con una colonna vuota in mezzo a fare da separatore visivo.
+      // Due tabelle affiancate = colonne raddoppiate in un'unica autoTable, con
+      // colonna vuota in mezzo da separatore. I prodotti vengono appaiati DENTRO
+      // ogni sezione; le righe sezione attraversano tutta la pagina.
       head = [...defs.map(d => d.label), '', ...defs.map(d => d.label)];
-      body = [];
-      for (let i = 0; i < prezzi.length; i += 2) {
-        body.push([...rowOf(prezzi[i], i), '', ...rowOf(prezzi[i + 1], i + 1)]);
+      let buf: (string | number)[][] = [];
+      const flush = () => {
+        for (let i = 0; i < buf.length; i += 2) {
+          body.push([...buf[i], '', ...(buf[i + 1] || vuota())]);
+        }
+        buf = [];
+      };
+      for (const r of merged) {
+        if (r.tipo === 'sezione') { flush(); body.push(sezRow(r.nome!)); }
+        else { n++; buf.push(rowOf(r.p!, n)); }
       }
+      flush();
     } else {
       head = defs.map(d => d.label);
-      body = prezzi.map((p, i) => rowOf(p, i));
+      for (const r of merged) {
+        if (r.tipo === 'sezione') body.push(sezRow(r.nome!));
+        else { n++; body.push(rowOf(r.p!, n)); }
+      }
     }
 
     const columnStyles: any = {};
