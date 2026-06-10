@@ -569,6 +569,9 @@ export class PrintService {
     }
 
     const columnStyles: any = {};
+    // Allineamento intestazioni: columnStyles.halign vale solo per il corpo,
+    // quindi le testate vengono allineate a parte (in didParseCell).
+    const headAligns: Record<number, 'left' | 'center' | 'right'> = {};
     defs.forEach((d, i) => {
       const col = cfg[i];
       const halign = col.align || d.halign;
@@ -579,7 +582,11 @@ export class PrintService {
         ...(fsty !== 'normal' ? { fontStyle: fsty } : {}),
       };
       columnStyles[i] = style;
-      if (due) columnStyles[i + half + 1] = { ...style };
+      if (halign) headAligns[i] = halign;
+      if (due) {
+        columnStyles[i + half + 1] = { ...style };
+        if (halign) headAligns[i + half + 1] = halign;
+      }
     });
     if (due) columnStyles[half] = { cellWidth: 4 };
 
@@ -596,12 +603,15 @@ export class PrintService {
       alternateRowStyles: { fillColor: rowAlt },
       columnStyles,
       margin: { left: this.ML, right: this.ML },
-      didParseCell: due ? (data) => {
-        if (data.column.index === half) {
+      didParseCell: (data) => {
+        if (due && data.column.index === half) {
           data.cell.styles.fillColor = [255, 255, 255];
           data.cell.styles.lineWidth = 0;
         }
-      } : undefined,
+        if (data.section === 'head' && headAligns[data.column.index]) {
+          data.cell.styles.halign = headAligns[data.column.index];
+        }
+      },
       // Barrato: disegnato a mano sopra il testo delle celle marcate _strike
       didDrawCell: (data: any) => {
         const raw = data.cell?.raw;
