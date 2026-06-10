@@ -86,8 +86,9 @@ export class OrdiniFornitoreComponent implements OnInit {
   }
 
   nuovo() {
+    const numeriEsistenti = this.ordini.map(x => x.numero);
     this.dialog.open(OrdineDialogComponent, {
-      data: { tipo: 'FORNITORE', numero: this.nextNumero() }, width: '90vw', maxWidth: '1200px', maxHeight: '95vh',
+      data: { tipo: 'FORNITORE', numero: this.nextNumero(), numeriEsistenti }, width: '90vw', maxWidth: '1200px', maxHeight: '95vh',
     }).afterClosed().subscribe(result => {
       if (!result) return;
       result.tipo = 'FORNITORE';
@@ -100,8 +101,9 @@ export class OrdiniFornitoreComponent implements OnInit {
   }
 
   modifica(o: Ordine) {
+    const numeriEsistenti = this.ordini.filter(x => x.id !== o.id).map(x => x.numero);
     this.dialog.open(OrdineDialogComponent, {
-      data: { ...o }, width: '90vw', maxWidth: '1200px', maxHeight: '95vh',
+      data: { ...o, numeriEsistenti }, width: '90vw', maxWidth: '1200px', maxHeight: '95vh',
     }).afterClosed().subscribe(result => {
       if (!result) return;
       result.tipo = 'FORNITORE';

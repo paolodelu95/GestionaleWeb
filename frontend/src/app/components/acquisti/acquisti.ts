@@ -29,6 +29,7 @@ import { PrintService } from '../../services/print.service';
 import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, NotaRapida } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
+import { numeroUnivocoValidator } from '../../utils/numero-univoco';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -101,6 +102,9 @@ import { DocLockService } from '../../services/doc-lock.service';
             <mat-form-field>
               <mat-label>Numero *</mat-label>
               <input matInput formControlName="numero">
+              @if (form.get('numero')?.hasError('numeroDuplicato')) {
+                <mat-error>Numero già esistente</mat-error>
+              }
             </mat-form-field>
             <mat-form-field>
               <mat-label>Data ricezione *</mat-label>
@@ -241,7 +245,7 @@ import { DocLockService } from '../../services/doc-lock.service';
           <mat-icon>print</mat-icon> Esporta PDF </button>
       }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid || locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
+              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : (form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : '')">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
@@ -257,9 +261,23 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit {
     this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
   }
   form: FormGroup;
+  /** Numeri già usati negli acquisti, con il rispettivo fornitore: per le fatture di acquisto
+   *  il numero è quello del fornitore, quindi è duplicato solo se lo stesso fornitore lo riusa. */
+  numeriEsistenti: { fornitoreId: number | null; numero: string }[] = [];
   fornitori: Fornitore[] = [];
   filteredFornitori: Fornitore[] = [];
   fornitoreCtrl = new FormControl<Fornitore | string | null>('');
+  private currentFornitoreId(): number | null {
+    const v: any = this.fornitoreCtrl.value;
+    return v && typeof v === 'object' ? (v.id ?? null) : null;
+  }
+  private numeriEsistentiCorrente(): Set<string> {
+    const fid = this.currentFornitoreId();
+    return new Set(this.numeriEsistenti
+      .filter(e => (e.fornitoreId ?? null) === fid)
+      .map(e => (e.numero ?? '').toString().trim().toLowerCase())
+      .filter(Boolean));
+  }
   tipiPagamento: TipoPagamento[] = [];
   righe: RigaDocumento[] = [];
   noteRapideList: NotaRapida[] = [];
@@ -289,8 +307,9 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit {
     @Inject(MAT_DIALOG_DATA) public data: Acquisto | null
   ) {
     this.locked = !!data?.id && this.docLockSvc.enabled;
+    this.numeriEsistenti = (data as any)?.numeriEsistenti ?? [];
     this.form = this.fb.group({
-      numero: [data?.numero ?? '', Validators.required],
+      numero: [data?.numero ?? '', [Validators.required, numeroUnivocoValidator(() => this.numeriEsistentiCorrente())]],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
       tipoPagamentoId: [data?.tipoPagamentoId ?? null],
       note: [data?.note ?? ''],
@@ -308,6 +327,8 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit {
     this.fornitoreCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredFornitori = this.fornitori.filter(f => f.ragioneSociale.toLowerCase().includes(q));
+      // il numero è duplicato solo a parità di fornitore: ricontrolla quando cambia
+      this.form.get('numero')?.updateValueAndValidity({ emitEvent: false });
     });
 
     this.ds.getFornitori().subscribe(f => {
@@ -589,8 +610,11 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   }
 
   open(a?: Acquisto) {
+    const numeriEsistenti = this.allAcquisti
+      .filter(x => x.id !== a?.id)
+      .map(x => ({ fornitoreId: x.fornitoreId ?? null, numero: x.numero }));
     const ref = this.dialog.open(AcquistoDialogComponent, {
-      data: a ?? null, width: '90vw', maxWidth: '1200px', maxHeight: '95vh'
+      data: { ...(a ?? {}), numeriEsistenti }, width: '90vw', maxWidth: '1200px', maxHeight: '95vh'
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;

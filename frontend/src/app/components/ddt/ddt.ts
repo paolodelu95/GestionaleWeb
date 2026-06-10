@@ -29,6 +29,7 @@ import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, Unita
 import { consumePrefill } from '../../utils/nav-prefill';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
+import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-univoco';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { FatturaDialogComponent } from '../fatture/fatture';
@@ -104,6 +105,9 @@ import { DocLockService } from '../../services/doc-lock.service';
                 <mat-form-field>
                   <mat-label>Numero *</mat-label>
                   <input matInput formControlName="numero">
+                  @if (documentoForm.get('numero')?.hasError('numeroDuplicato')) {
+                    <mat-error>Numero già esistente</mat-error>
+                  }
                 </mat-form-field>
                 <mat-form-field>
                   <mat-label>Data emissione *</mat-label>
@@ -421,8 +425,9 @@ import { DocLockService } from '../../services/doc-lock.service';
         <button mat-stroked-button type="button" (click)="printFromDialog()">
           <mat-icon>print</mat-icon> Esporta PDF </button>
       }
-      <button mat-flat-button type="button" (click)="save()" [disabled]="locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">
+      <button mat-flat-button type="button" (click)="save()"
+              [disabled]="locked || documentoForm.get('numero')?.hasError('numeroDuplicato')"
+              [matTooltip]="documentoForm.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : (locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : '')">
         <mat-icon>save</mat-icon> Salva
       </button>
     </mat-dialog-actions>`,
@@ -455,6 +460,8 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
   tuttiCaricati: boolean[] = [];
   indirizziCliente: ClienteIndirizzo[] = [];
   destinazioneId: number | null = null;
+  /** Numeri documento già esistenti (lowercase, escluso quello corrente) per la validazione. */
+  numeriEsistenti = new Set<string>();
   readonly isNew: boolean;
 
   submitted = false;
@@ -526,9 +533,10 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
     this.isNew = !data?.id;
     this.locked = !!data?.id && this.docLockSvc.enabled;
     this.destinazioneId = (data as any)?.destinazioneId ?? null;
+    this.numeriEsistenti = setNumeriEsistenti((data as any)?.numeriEsistenti);
 
     this.documentoForm = this.fb.group({
-      numero: [data?.numero ?? '', Validators.required],
+      numero: [data?.numero ?? '', [Validators.required, numeroUnivocoValidator(() => this.numeriEsistenti)]],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
       note: [data?.note ?? ''],
     });
@@ -982,8 +990,9 @@ export class DdtComponent implements OnInit, AfterViewInit {
   }
 
   open(d?: Ddt) {
+    const numeriEsistenti = this.allDdt.filter(x => x.id !== d?.id).map(x => x.numero);
     const ref = this.dialog.open(DdtDialogComponent, {
-      data: d ?? null, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
+      data: { ...(d ?? {}), numeriEsistenti }, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;

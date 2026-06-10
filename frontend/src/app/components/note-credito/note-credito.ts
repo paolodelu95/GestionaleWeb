@@ -25,6 +25,7 @@ import { PrintService } from '../../services/print.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
+import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-univoco';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -101,6 +102,9 @@ import { forkJoin } from 'rxjs';
             <mat-form-field>
               <mat-label>Numero *</mat-label>
               <input matInput formControlName="numero">
+              @if (form.get('numero')?.hasError('numeroDuplicato')) {
+                <mat-error>Numero già esistente</mat-error>
+              }
             </mat-form-field>
             <mat-form-field>
               <mat-label>Data emissione *</mat-label>
@@ -294,7 +298,7 @@ import { forkJoin } from 'rxjs';
           <mat-icon>print</mat-icon> Esporta PDF </button>
       }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid || locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
+              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : (form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : '')">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
@@ -310,6 +314,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
     this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
   }
   form: FormGroup;
+  numeriEsistenti = new Set<string>();
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
@@ -362,8 +367,9 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
   ) {
     this.isNew = !data?.id;
     this.locked = !!data?.id && this.docLockSvc.enabled;
+    this.numeriEsistenti = setNumeriEsistenti((data as any)?.numeriEsistenti);
     this.form = this.fb.group({
-      numero: [data?.numero ?? '', Validators.required],
+      numero: [data?.numero ?? '', [Validators.required, numeroUnivocoValidator(() => this.numeriEsistenti)]],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
       fatturaId: [data?.fatturaId ?? null],
       note: [data?.note ?? ''],
@@ -727,8 +733,9 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   }
 
   open(n?: NotaCredito) {
+    const numeriEsistenti = this.allNoteCredito.filter(x => x.id !== n?.id).map(x => x.numero);
     const ref = this.dialog.open(NotaCreditoDialogComponent, {
-      data: n ?? null, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
+      data: { ...(n ?? {}), numeriEsistenti }, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;

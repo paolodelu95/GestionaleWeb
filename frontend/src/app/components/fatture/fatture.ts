@@ -30,6 +30,7 @@ import { PrintService } from '../../services/print.service';
 import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, ProdottoVariante, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
+import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-univoco';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
@@ -277,6 +278,9 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                 <mat-form-field>
                   <mat-label>Numero *</mat-label>
                   <input matInput formControlName="numero">
+                  @if (form.get('numero')?.hasError('numeroDuplicato')) {
+                    <mat-error>Numero già esistente</mat-error>
+                  }
                 </mat-form-field>
                 <mat-form-field>
                   <mat-label>Data emissione *</mat-label>
@@ -767,8 +771,9 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
           <mat-icon>print</mat-icon> Esporta PDF </button>
       }
-      <button mat-flat-button (click)="save()" [disabled]="locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
+      <button mat-flat-button (click)="save()"
+              [disabled]="locked || form.get('numero')?.hasError('numeroDuplicato')"
+              [matTooltip]="form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : (locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : '')">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES + `
     .pagamento-info { background:var(--bg-subtle); border-radius:var(--radius-md); padding:var(--sp-4); margin-top:var(--sp-2); display:flex; flex-direction:column; gap:var(--sp-3); }
@@ -791,6 +796,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
 export class FatturaDialogComponent implements OnInit, AfterViewInit {
   form: FormGroup;
   locked = false;
+  numeriEsistenti = new Set<string>();
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
@@ -1149,8 +1155,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     this.locked = !!data?.id && this.docLockSvc.enabled;
     this.selectedTipoPagamentoId = data?.tipoPagamentoId ?? null;
     this.applyFiscFrom(data);
+    this.numeriEsistenti = setNumeriEsistenti((data as any)?.numeriEsistenti);
     this.form = this.fb.group({
-      numero: [data?.numero ?? '', Validators.required],
+      numero: [data?.numero ?? '', [Validators.required, numeroUnivocoValidator(() => this.numeriEsistenti)]],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
       note: [data?.note ?? ''],
     });
@@ -1627,8 +1634,9 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   open(f?: Fattura) {
+    const numeriEsistenti = this.allFatture.filter(x => x.id !== f?.id).map(x => x.numero);
     const ref = this.dialog.open(FatturaDialogComponent, {
-      data: f ?? null, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
+      data: { ...(f ?? {}), numeriEsistenti }, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;

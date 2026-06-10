@@ -26,6 +26,7 @@ import { Preventivo, Cliente, Prodotto, RigaDocumento, UnitaMisura, NotaRapida }
 import { consumePrefill } from '../../utils/nav-prefill';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
+import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-univoco';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
@@ -94,6 +95,9 @@ import { catchError } from 'rxjs/operators';
             <mat-form-field>
               <mat-label>Numero *</mat-label>
               <input matInput formControlName="numero">
+              @if (form.get('numero')?.hasError('numeroDuplicato')) {
+                <mat-error>Numero già esistente</mat-error>
+              }
             </mat-form-field>
             <mat-form-field>
               <mat-label>Data emissione *</mat-label>
@@ -282,8 +286,8 @@ import { catchError } from 'rxjs/operators';
         <button mat-stroked-button type="button" (click)="printFromDialog()">
           <mat-icon>print</mat-icon> Esporta PDF </button>
       }
-      <button mat-flat-button (click)="save()" [disabled]="locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : ''">Salva</button>
+      <button mat-flat-button (click)="save()" [disabled]="locked || form.get('numero')?.hasError('numeroDuplicato')"
+              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : (form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : '')">Salva</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
@@ -299,6 +303,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
     this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
   }
   form: FormGroup;
+  numeriEsistenti = new Set<string>();
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
@@ -370,8 +375,9 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
   ) {
     this.isNew = !data?.id;
     this.locked = !!data?.id && this.docLockSvc.enabled;
+    this.numeriEsistenti = setNumeriEsistenti((data as any)?.numeriEsistenti);
     this.form = this.fb.group({
-      numero: [data?.numero ?? '', Validators.required],
+      numero: [data?.numero ?? '', [Validators.required, numeroUnivocoValidator(() => this.numeriEsistenti)]],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
       validita: [data?.validita ?? 30],
       note: [data?.note ?? ''],
@@ -691,8 +697,9 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   }
 
   open(p?: Preventivo) {
+    const numeriEsistenti = this.allPreventivi.filter(x => x.id !== p?.id).map(x => x.numero);
     const ref = this.dialog.open(PreventivoDialogComponent, {
-      data: p ?? null, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
+      data: { ...(p ?? {}), numeriEsistenti }, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
     });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
