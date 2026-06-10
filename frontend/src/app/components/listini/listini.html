@@ -152,6 +152,17 @@
                [(ngModel)]="sel.scontoDefault" (blur)="salvaAnagrafica()">
         <mat-icon matSuffix>percent</mat-icon>
       </mat-form-field>
+      <mat-form-field style="max-width:190px" subscriptSizing="dynamic">
+        <mat-label>Tema stampa</mat-label>
+        <mat-select [(ngModel)]="sel.tema" (selectionChange)="salvaAnagrafica()">
+          <mat-option value="">Grafica documenti</mat-option>
+          @for (t of temi; track t.key) {
+            <mat-option [value]="t.key">
+              <span class="tema-dot" [style.background]="temaDot(t)"></span>{{ t.label }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
       <mat-slide-toggle [(ngModel)]="sel.attivo" (change)="salvaAnagrafica()">Attivo</mat-slide-toggle>
       <mat-slide-toggle [(ngModel)]="sel.stampaDueColonne" (change)="salvaAnagrafica()"
                         matTooltip="Nel PDF i prodotti vengono disposti su due tabelle affiancate (due per riga): ideale quando le colonne sono poche">

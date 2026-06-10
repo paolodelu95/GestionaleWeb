@@ -85,6 +85,16 @@
   margin-bottom: 16px;
 }
 
+.tema-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: -1px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
 // ── Editor: toolbar tabella ──────────────────────────────────────────────────
 .ed-toolbar {
   display: flex;

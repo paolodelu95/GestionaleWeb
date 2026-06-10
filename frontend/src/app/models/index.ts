@@ -355,6 +355,32 @@ export function mergeColonneCfg(l?: Pick<Listino, 'colonneConfig' | 'colonneStan
   return out;
 }
 
+/** Tema di stampa del listino: palette per testata, intestazioni tabella e righe. */
+export interface ListinoTema {
+  key: string;
+  label: string;
+  /** Colore del titolo LISTINO, divisori e nomi sezione. */
+  accent: [number, number, number];
+  /** Sfondo dell'intestazione tabella. */
+  headFill: [number, number, number];
+  /** Testo dell'intestazione tabella. */
+  headText: [number, number, number];
+  /** Sfondo delle righe alternate. */
+  rowAlt: [number, number, number];
+  tableTheme: 'striped' | 'grid' | 'plain';
+}
+
+/** Temi di default ('' = segue la grafica documenti). */
+export const LISTINI_TEMI: ListinoTema[] = [
+  { key: 'ordeva',    label: 'Teal',        accent: [17, 118, 155],  headFill: [17, 118, 155],  headText: [255, 255, 255], rowAlt: [235, 246, 249], tableTheme: 'striped' },
+  { key: 'blu',       label: 'Blu notte',   accent: [30, 58, 138],   headFill: [30, 58, 138],   headText: [255, 255, 255], rowAlt: [239, 246, 255], tableTheme: 'striped' },
+  { key: 'verde',     label: 'Verde bosco', accent: [21, 128, 61],   headFill: [21, 128, 61],   headText: [255, 255, 255], rowAlt: [240, 253, 244], tableTheme: 'striped' },
+  { key: 'bordeaux',  label: 'Bordeaux',    accent: [136, 19, 55],   headFill: [136, 19, 55],   headText: [255, 255, 255], rowAlt: [255, 241, 242], tableTheme: 'striped' },
+  { key: 'antracite', label: 'Antracite',   accent: [31, 41, 55],    headFill: [31, 41, 55],    headText: [255, 255, 255], rowAlt: [243, 244, 246], tableTheme: 'striped' },
+  { key: 'sabbia',    label: 'Sabbia',      accent: [180, 83, 9],    headFill: [254, 243, 199], headText: [120, 53, 15],   rowAlt: [255, 251, 235], tableTheme: 'striped' },
+  { key: 'carta',     label: 'Carta',       accent: [100, 116, 139], headFill: [248, 250, 252], headText: [51, 65, 85],    rowAlt: [255, 255, 255], tableTheme: 'plain' },
+];
+
 /** Sezione del listino: riga-divisore (es. categoria) nella sequenza delle righe. */
 export interface ListinoSezione {
   id?: number;
@@ -379,6 +405,8 @@ export interface Listino {
   stampaDueColonne?: boolean;
   /** Righe verticali che separano le colonne (editor + stampa PDF). */
   griglia?: boolean;
+  /** Tema di stampa (key di LISTINI_TEMI, '' = grafica documenti). */
+  tema?: string;
   prezziCount?: number;
   createdAt?: string;
 }

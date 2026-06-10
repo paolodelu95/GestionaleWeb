@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DataService } from './data.service';
-import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig, Listino, ListinoPrezzo, ListinoSezione, ListinoColonnaStdKey, mergeColonneCfg } from '../models';
+import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig, Listino, ListinoPrezzo, ListinoSezione, ListinoColonnaStdKey, LISTINI_TEMI, mergeColonneCfg } from '../models';
 import { SAMPLE_AZIENDA, SAMPLE_FATTURA } from './print-sample-data';
 
 @Component({
@@ -457,7 +457,15 @@ export class PrintService {
     const fs = this.resolved.fontScale;
     const oggi = new Date().toISOString().slice(0, 10);
 
-    let y = this.hdrListino(pdf, az, listino.nome || '', oggi, logo);
+    // Tema del listino: palette dedicata per testata, intestazioni e righe;
+    // assente = si seguono i colori della grafica documenti.
+    const tema = LISTINI_TEMI.find(t => t.key === (listino.tema || '')) || null;
+    const accent: RGB | undefined = tema?.accent;
+    const headFill: RGB = tema ? tema.headFill : this.tableHeadFill();
+    const headText: RGB = tema ? tema.headText : this.tableHeadText();
+    const rowAlt: RGB = tema ? tema.rowAlt : C.rowAlt;
+
+    let y = this.hdrListino(pdf, az, listino.nome || '', oggi, logo, accent);
 
     if (listino.descrizione) {
       this.F(pdf, 9, 'normal'); pdf.setTextColor(...C.muted);
@@ -505,7 +513,12 @@ export class PrintService {
     const sezRow = (nome: string) => [{
       content: nome,
       colSpan: totalCols,
-      styles: { fontStyle: 'bold' as const, fillColor: C.lightBg, textColor: C.text, fontSize: (due ? 8.5 : 9.5) * fs },
+      styles: {
+        fontStyle: 'bold' as const,
+        fillColor: tema ? tema.rowAlt : C.lightBg,
+        textColor: tema ? tema.accent : C.text,
+        fontSize: (due ? 8.5 : 9.5) * fs,
+      },
     }];
     const rowOf = (p: ListinoPrezzo, n: number) => defs.map(d => d.val(p, n));
     const vuota = () => defs.map(() => '');
@@ -550,13 +563,13 @@ export class PrintService {
       startY: y,
       head: [head],
       body,
-      // Il toggle "Griglia" del listino forza il tema con i bordi colonna,
-      // indipendentemente dal tema tabella della grafica documenti.
-      theme: listino.griglia ? 'grid' : this.resolved.tableTheme,
+      // Il toggle "Griglia" del listino forza i bordi colonna; altrimenti vale
+      // il tema del listino, e in sua assenza la grafica documenti.
+      theme: listino.griglia ? 'grid' : (tema?.tableTheme ?? this.resolved.tableTheme),
       styles: { font: this.resolved.fontFamily },
-      headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: (due ? 8 : 9) * fs },
+      headStyles: { fillColor: headFill, textColor: headText, fontStyle: 'bold', fontSize: (due ? 8 : 9) * fs },
       bodyStyles: { fontSize: (due ? 8 : 9) * fs, textColor: C.text },
-      alternateRowStyles: { fillColor: C.rowAlt },
+      alternateRowStyles: { fillColor: rowAlt },
       columnStyles,
       margin: { left: this.ML, right: this.ML },
       didParseCell: due ? (data) => {
@@ -583,12 +596,13 @@ export class PrintService {
     return Math.round(base * (1 - sconto / 100) * 100) / 100;
   }
 
-  /** Header del listino: senza "N./Del", adattato ai tre stili della grafica documenti. */
-  private hdrListino(doc: jsPDF, az: Azienda, titolo: string, dataStr: string, logo: any): number {
+  /** Header del listino: senza "N./Del", adattato ai tre stili della grafica
+   *  documenti; accentOverride = colore del tema scelto per il listino. */
+  private hdrListino(doc: jsPDF, az: Azienda, titolo: string, dataStr: string, logo: any, accentOverride?: RGB): number {
     const C = this.resolved.colors;
 
     if (this.resolved.stile === 'moderno') {
-      const ac = this.ac();
+      const ac = accentOverride ?? this.ac();
       const bandH = 36;
       doc.setFillColor(...ac);
       doc.rect(0, 0, PW, bandH, 'F');
@@ -627,7 +641,7 @@ export class PrintService {
     for (const line of infoLines) { doc.text(line, a.textX, iy, { align: a.textAlign }); iy += 4; }
 
     if (minimal) { this.F(doc, 30, 'bold'); doc.setTextColor(...WM); }
-    else { this.F(doc, 22, 'bold'); doc.setTextColor(...this.ac()); }
+    else { this.F(doc, 22, 'bold'); doc.setTextColor(...(accentOverride ?? this.ac())); }
     doc.text('LISTINO', a.titleX, baseY + (minimal ? 17 : 8), { align: a.titleAlign });
 
     this.F(doc, 10, 'bold'); doc.setTextColor(...C.text);
@@ -637,7 +651,7 @@ export class PrintService {
 
     const yy = Math.max(iy, baseY + (minimal ? 30 : 28)) + 2;
     if (minimal) { doc.setDrawColor(...MIN_DIV); doc.setLineWidth(0.25); }
-    else { doc.setDrawColor(...this.ac()); doc.setLineWidth(0.7); }
+    else { doc.setDrawColor(...(accentOverride ?? this.ac())); doc.setLineWidth(0.7); }
     doc.line(this.ML, yy, PW - this.ML, yy);
     return yy + (minimal ? 5 : 6);
   }

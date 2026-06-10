@@ -18,6 +18,7 @@ const toDto = (r) => r && ({
   colonneConfig: parseJson(r.colonne_config, []),
   stampaDueColonne: !!r.stampa_due_colonne,
   griglia: !!r.griglia,
+  tema: r.tema || '',
   createdAt: r.created_at,
 });
 
@@ -119,18 +120,19 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, colonneConfig, stampaDueColonne, griglia } = req.body || {};
+  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, colonneConfig, stampaDueColonne, griglia, tema } = req.body || {};
   if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
     const result = db.prepare(`
-      INSERT INTO listini (nome, descrizione, sconto_default, attivo, colonne_extra, colonne_standard, colonne_config, stampa_due_colonne, griglia)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO listini (nome, descrizione, sconto_default, attivo, colonne_extra, colonne_standard, colonne_config, stampa_due_colonne, griglia, tema)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(nome.trim(), descrizione || '', +scontoDefault || 0, attivo === false ? 0 : 1,
            JSON.stringify(sanitizeColonne(colonneExtra)),
            JSON.stringify(sanitizeColonneStd(colonneStandard)),
            JSON.stringify(sanitizeColonneCfg(colonneConfig)),
            stampaDueColonne ? 1 : 0,
-           griglia ? 1 : 0);
+           griglia ? 1 : 0,
+           String(tema || '').slice(0, 30));
     res.json({ id: result.lastInsertRowid });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) {
@@ -141,11 +143,11 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, colonneConfig, stampaDueColonne, griglia } = req.body || {};
+  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, colonneConfig, stampaDueColonne, griglia, tema } = req.body || {};
   if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
     // Campi di configurazione assenti nel payload = non toccare quelli salvati
-    const cur = db.prepare('SELECT colonne_extra, colonne_standard, colonne_config, stampa_due_colonne, griglia FROM listini WHERE id=?')
+    const cur = db.prepare('SELECT colonne_extra, colonne_standard, colonne_config, stampa_due_colonne, griglia, tema FROM listini WHERE id=?')
       .get(req.params.id) || {};
     const colonneJson = colonneExtra === undefined
       ? (cur.colonne_extra || '[]')
@@ -162,11 +164,14 @@ router.put('/:id', (req, res) => {
     const grigliaVal = griglia === undefined
       ? (cur.griglia || 0)
       : (griglia ? 1 : 0);
+    const temaVal = tema === undefined
+      ? (cur.tema || '')
+      : String(tema || '').slice(0, 30);
     db.prepare(`
-      UPDATE listini SET nome=?, descrizione=?, sconto_default=?, attivo=?, colonne_extra=?, colonne_standard=?, colonne_config=?, stampa_due_colonne=?, griglia=?
+      UPDATE listini SET nome=?, descrizione=?, sconto_default=?, attivo=?, colonne_extra=?, colonne_standard=?, colonne_config=?, stampa_due_colonne=?, griglia=?, tema=?
       WHERE id=?
     `).run(nome.trim(), descrizione || '', +scontoDefault || 0, attivo === false ? 0 : 1,
-           colonneJson, colonneStdJson, colonneCfgJson, dueColonne, grigliaVal, req.params.id);
+           colonneJson, colonneStdJson, colonneCfgJson, dueColonne, grigliaVal, temaVal, req.params.id);
     res.json({ success: true });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) {

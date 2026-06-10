@@ -18,8 +18,8 @@ import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Listino, ListinoColonnaCfg, ListinoColonnaStdKey, ListinoPrezzo, ListinoSezione,
-         Prodotto, LISTINO_STD_KEYS, LISTINO_COLONNE_DEFAULT_LABELS, mergeColonneCfg } from '../../models';
+import { Listino, ListinoColonnaCfg, ListinoColonnaStdKey, ListinoPrezzo, ListinoSezione, ListinoTema,
+         Prodotto, LISTINO_STD_KEYS, LISTINO_COLONNE_DEFAULT_LABELS, LISTINI_TEMI, mergeColonneCfg } from '../../models';
 import { QuickListinoDialogComponent } from './quick-listino-dialog';
 
 /** Riga del listino nell'editor: prodotto oppure sezione (divisore). */
@@ -363,8 +363,8 @@ export class SelezioneProdottiDialogComponent implements OnInit {
   selector: 'app-listini',
   standalone: true,
   imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatMenuModule,
-            MatFormFieldModule, MatInputModule, MatSlideToggleModule, MatTooltipModule,
-            MatDialogModule, MatSnackBarModule, DragDropModule, EmptyStateComponent],
+            MatFormFieldModule, MatInputModule, MatSelectModule, MatSlideToggleModule,
+            MatTooltipModule, MatDialogModule, MatSnackBarModule, DragDropModule, EmptyStateComponent],
   templateUrl: './listini.html',
   styleUrl: './listini.scss',
 })
@@ -383,6 +383,7 @@ export class ListiniComponent implements OnInit {
   filtro = '';
   scontoBulk: number | null = null;
   prodotti: Prodotto[] = [];
+  readonly temi = LISTINI_TEMI;
   private anagraficaSnapshot = '';
 
   constructor(
@@ -433,6 +434,7 @@ export class ListiniComponent implements OnInit {
         colonneConfig: mergeColonneCfg(listino),
         stampaDueColonne: !!listino.stampaDueColonne,
         griglia: !!listino.griglia,
+        tema: listino.tema || '',
       };
       this.prezzi = prezzi;
       this.sezioni = sezioni;
@@ -469,7 +471,7 @@ export class ListiniComponent implements OnInit {
   private snapshot(): string {
     const s = this.sel!;
     return JSON.stringify([s.nome, s.descrizione, s.scontoDefault, s.attivo,
-                           s.colonneConfig, s.stampaDueColonne, s.griglia]);
+                           s.colonneConfig, s.stampaDueColonne, s.griglia, s.tema]);
   }
 
   salvaAnagrafica() {
@@ -791,6 +793,11 @@ export class ListiniComponent implements OnInit {
     ).filter(x => +(x.getAttribute('data-row') || 0) > row)
      .sort((a, b) => +(a.getAttribute('data-row') || 0) - +(b.getAttribute('data-row') || 0));
     if (candidates[0]) { candidates[0].focus(); candidates[0].select(); }
+  }
+
+  /** Colore del pallino mostrato accanto al nome del tema nella select. */
+  temaDot(t: ListinoTema): string {
+    return `rgb(${t.accent[0]},${t.accent[1]},${t.accent[2]})`;
   }
 
   stampa() {
