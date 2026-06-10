@@ -377,6 +377,8 @@ export interface Listino {
   colonneConfig?: ListinoColonnaCfg[];
   /** Stampa PDF su due tabelle affiancate (due prodotti per riga). */
   stampaDueColonne?: boolean;
+  /** Righe verticali che separano le colonne (editor + stampa PDF). */
+  griglia?: boolean;
   prezziCount?: number;
   createdAt?: string;
 }

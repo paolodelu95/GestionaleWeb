@@ -550,7 +550,9 @@ export class PrintService {
       startY: y,
       head: [head],
       body,
-      theme: this.resolved.tableTheme,
+      // Il toggle "Griglia" del listino forza il tema con i bordi colonna,
+      // indipendentemente dal tema tabella della grafica documenti.
+      theme: listino.griglia ? 'grid' : this.resolved.tableTheme,
       styles: { font: this.resolved.fontFamily },
       headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: (due ? 8 : 9) * fs },
       bodyStyles: { fontSize: (due ? 8 : 9) * fs, textColor: C.text },

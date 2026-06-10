@@ -714,6 +714,8 @@ function initTenantSchema(db) {
       ordine INTEGER DEFAULT 0
     )`,
     'CREATE INDEX IF NOT EXISTS idx_listini_sezioni ON listini_sezioni(listino_id)',
+    // Griglia: righe verticali che separano le colonne (editor + stampa PDF).
+    'ALTER TABLE listini ADD COLUMN griglia INTEGER DEFAULT 0',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

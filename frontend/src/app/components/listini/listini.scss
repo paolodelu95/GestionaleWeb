@@ -224,6 +224,16 @@
   .hint-icon { font-size: 14px; width: 14px; height: 14px; vertical-align: middle; flex-shrink: 0; }
 }
 
+// ── Griglia: righe verticali tra le colonne (toggle per listino) ─────────────
+.ed-table.con-griglia {
+  th, td { border-right: 1px solid var(--border-subtle); }
+  th:last-child, td:last-child { border-right: none; }
+  // Niente separatori sulle colonne di servizio (drag) e dentro le sezioni
+  .drag-th, .drag-td { border-right: none; }
+  .sez-row td { border-right: none; }
+  td { border-bottom: 1px solid var(--border-subtle); }
+}
+
 // Anteprima riga durante il drag (la riga esce dal flusso della tabella)
 .cdk-drag-preview.ed-table-row,
 tr.cdk-drag-preview {

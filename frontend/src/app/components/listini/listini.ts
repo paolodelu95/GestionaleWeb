@@ -432,6 +432,7 @@ export class ListiniComponent implements OnInit {
         ...listino,
         colonneConfig: mergeColonneCfg(listino),
         stampaDueColonne: !!listino.stampaDueColonne,
+        griglia: !!listino.griglia,
       };
       this.prezzi = prezzi;
       this.sezioni = sezioni;
@@ -468,7 +469,7 @@ export class ListiniComponent implements OnInit {
   private snapshot(): string {
     const s = this.sel!;
     return JSON.stringify([s.nome, s.descrizione, s.scontoDefault, s.attivo,
-                           s.colonneConfig, s.stampaDueColonne]);
+                           s.colonneConfig, s.stampaDueColonne, s.griglia]);
   }
 
   salvaAnagrafica() {

@@ -157,6 +157,10 @@
                         matTooltip="Nel PDF i prodotti vengono disposti su due tabelle affiancate (due per riga): ideale quando le colonne sono poche">
         PDF a 2 colonne
       </mat-slide-toggle>
+      <mat-slide-toggle [(ngModel)]="sel.griglia" (change)="salvaAnagrafica()"
+                        matTooltip="Righe verticali che separano le colonne, nella tabella e nella stampa PDF">
+        Griglia
+      </mat-slide-toggle>
     </div>
 
     <!-- Tabella prodotti -->
@@ -190,7 +194,7 @@
 
       @if (righe.length) {
         <div class="ed-table-wrap">
-          <table class="lst-table ed-table">
+          <table class="lst-table ed-table" [class.con-griglia]="sel.griglia">
             <thead>
               <tr>
                 <th class="drag-th"></th>
