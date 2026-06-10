@@ -697,6 +697,10 @@ function initTenantSchema(db) {
     `ALTER TABLE listini ADD COLUMN colonne_extra TEXT DEFAULT '[]'`,
     `ALTER TABLE listini_prezzi ADD COLUMN dati_extra TEXT DEFAULT '{}'`,
     'ALTER TABLE listini_prezzi ADD COLUMN ordine INTEGER DEFAULT 0',
+    // Personalizzazione colonne standard (#, Codice, Prodotto, prezzi: rinomina/nascondi)
+    // e layout di stampa a due tabelle affiancate (due prodotti per riga nel PDF).
+    `ALTER TABLE listini ADD COLUMN colonne_standard TEXT DEFAULT '[]'`,
+    'ALTER TABLE listini ADD COLUMN stampa_due_colonne INTEGER DEFAULT 0',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

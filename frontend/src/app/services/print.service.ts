@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DataService } from './data.service';
-import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig, Listino, ListinoPrezzo } from '../models';
+import { Azienda, TemplateConfig, DocType, SectionKey, ColumnKey, TableColumnConfig, Listino, ListinoPrezzo, mergeColonneStd } from '../models';
 import { SAMPLE_AZIENDA, SAMPLE_FATTURA } from './print-sample-data';
 
 @Component({
@@ -466,33 +466,75 @@ export class PrintService {
       y += lines.length * 4.2 + 5;
     }
 
-    // Tabella: # | Codice | Prodotto | colonne personalizzate | Prezzo finale
+    // Colonne guidate dalla config del listino: le standard sono rinominabili e
+    // nascondibili, le extra sono libere. Layout opzionale a due tabelle affiancate.
+    const due = !!listino.stampaDueColonne;
+    const std = mergeColonneStd(listino.colonneStandard);
+    const vis = (k: string) => std.find(c => c.key === k)!.visibile;
+    const lbl = (k: string) => std.find(c => c.key === k)!.label;
     const extra = listino.colonneExtra || [];
-    const head = ['#', 'Codice', 'Prodotto', ...extra.map(c => c.label), 'Prezzo'];
-    const body = prezzi.map((p, i) => [
-      i + 1,
-      p.prodottoCodice || '—',
-      p.prodottoNome || '',
-      ...extra.map(c => p.datiExtra?.[c.key] ?? ''),
-      this.fe(this.prezzoListino(p, listino)),
-    ]);
-    const columnStyles: any = {
-      0: { cellWidth: 9, halign: 'center' },
-      1: { cellWidth: 24 },
-      2: { cellWidth: 'auto' },
-      [head.length - 1]: { cellWidth: 24, halign: 'right' },
-    };
+
+    interface ColDef { label: string; width: number | 'auto'; halign?: 'center' | 'right'; val: (p: ListinoPrezzo, i: number) => string | number; }
+    const defs: ColDef[] = [];
+    if (vis('num')) defs.push({ label: lbl('num'), width: due ? 7 : 9, halign: 'center', val: (_p, i) => i + 1 });
+    if (vis('codice')) defs.push({ label: lbl('codice'), width: due ? 16 : 24, val: p => p.prodottoCodice || '—' });
+    defs.push({ label: lbl('prodotto'), width: 'auto', val: p => p.prodottoNome || '' });
+    for (const c of extra) defs.push({ label: c.label, width: 'auto', val: p => p.datiExtra?.[c.key] ?? '' });
+    if (vis('prezzoBase')) defs.push({ label: lbl('prezzoBase'), width: due ? 16 : 20, halign: 'right', val: p => this.fe(p.prodottoPrezzoBase || 0) });
+    if (vis('sconto')) defs.push({
+      label: lbl('sconto'), width: due ? 11 : 14, halign: 'right',
+      val: p => {
+        const s = p.prezzo != null ? 0 : (p.sconto != null ? p.sconto : (listino.scontoDefault || 0));
+        return s > 0 ? `${s}%` : '—';
+      },
+    });
+    if (vis('prezzo')) defs.push({ label: lbl('prezzo'), width: due ? 18 : 24, halign: 'right', val: p => this.fe(this.prezzoListino(p, listino)) });
+
+    const rowOf = (p: ListinoPrezzo | undefined, i: number) =>
+      p ? defs.map(d => d.val(p, i)) : defs.map(() => '');
+
+    let head: (string | number)[];
+    let body: (string | number)[][];
+    const half = defs.length; // indice della colonna distanziatrice nel layout affiancato
+    if (due) {
+      // Due tabelle affiancate = colonne raddoppiate in un'unica autoTable
+      // (riga i = prodotti 2i e 2i+1, paginazione e intestazioni automatiche),
+      // con una colonna vuota in mezzo a fare da separatore visivo.
+      head = [...defs.map(d => d.label), '', ...defs.map(d => d.label)];
+      body = [];
+      for (let i = 0; i < prezzi.length; i += 2) {
+        body.push([...rowOf(prezzi[i], i), '', ...rowOf(prezzi[i + 1], i + 1)]);
+      }
+    } else {
+      head = defs.map(d => d.label);
+      body = prezzi.map((p, i) => rowOf(p, i));
+    }
+
+    const columnStyles: any = {};
+    defs.forEach((d, i) => {
+      const style = { cellWidth: d.width, ...(d.halign ? { halign: d.halign } : {}) };
+      columnStyles[i] = style;
+      if (due) columnStyles[i + half + 1] = { ...style };
+    });
+    if (due) columnStyles[half] = { cellWidth: 4 };
+
     autoTable(pdf, {
       startY: y,
       head: [head],
       body,
       theme: this.resolved.tableTheme,
       styles: { font: this.resolved.fontFamily },
-      headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: 9 * fs },
-      bodyStyles: { fontSize: 9 * fs, textColor: C.text },
+      headStyles: { fillColor: this.tableHeadFill(), textColor: this.tableHeadText(), fontStyle: 'bold', fontSize: (due ? 8 : 9) * fs },
+      bodyStyles: { fontSize: (due ? 8 : 9) * fs, textColor: C.text },
       alternateRowStyles: { fillColor: C.rowAlt },
       columnStyles,
       margin: { left: this.ML, right: this.ML },
+      didParseCell: due ? (data) => {
+        if (data.column.index === half) {
+          data.cell.styles.fillColor = [255, 255, 255];
+          data.cell.styles.lineWidth = 0;
+        }
+      } : undefined,
     });
     y = (pdf as any).lastAutoTable.finalY + 5;
 

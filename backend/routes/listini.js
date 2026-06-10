@@ -14,6 +14,8 @@ const toDto = (r) => r && ({
   scontoDefault: r.sconto_default || 0,
   attivo: !!r.attivo,
   colonneExtra: parseJson(r.colonne_extra, []),
+  colonneStandard: parseJson(r.colonne_standard, []),
+  stampaDueColonne: !!r.stampa_due_colonne,
   createdAt: r.created_at,
 });
 
@@ -39,6 +41,20 @@ const sanitizeColonne = (cols) => (Array.isArray(cols) ? cols : [])
   .filter(c => c && typeof c.key === 'string' && c.key.trim() && typeof c.label === 'string' && c.label.trim())
   .slice(0, 12)
   .map(c => ({ key: c.key.trim().slice(0, 40), label: c.label.trim().slice(0, 60) }));
+
+// Override delle colonne standard: solo chiavi note, label rinominabile, visibilità.
+// "prodotto" non è nascondibile (è l'identità della riga).
+const STD_KEYS = ['num', 'codice', 'prodotto', 'prezzoBase', 'sconto', 'prezzo'];
+const sanitizeColonneStd = (cols) => {
+  const seen = new Set();
+  return (Array.isArray(cols) ? cols : [])
+    .filter(c => c && STD_KEYS.includes(c.key) && !seen.has(c.key) && seen.add(c.key))
+    .map(c => ({
+      key: c.key,
+      label: String(c.label ?? '').trim().slice(0, 60),
+      visibile: c.key === 'prodotto' ? true : c.visibile !== false,
+    }));
+};
 
 const sanitizeDatiExtra = (d) => {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return {};
@@ -68,14 +84,16 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { nome, descrizione, scontoDefault, attivo, colonneExtra } = req.body || {};
+  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, stampaDueColonne } = req.body || {};
   if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
     const result = db.prepare(`
-      INSERT INTO listini (nome, descrizione, sconto_default, attivo, colonne_extra)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO listini (nome, descrizione, sconto_default, attivo, colonne_extra, colonne_standard, stampa_due_colonne)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(nome.trim(), descrizione || '', +scontoDefault || 0, attivo === false ? 0 : 1,
-           JSON.stringify(sanitizeColonne(colonneExtra)));
+           JSON.stringify(sanitizeColonne(colonneExtra)),
+           JSON.stringify(sanitizeColonneStd(colonneStandard)),
+           stampaDueColonne ? 1 : 0);
     res.json({ id: result.lastInsertRowid });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) {
@@ -86,18 +104,26 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const { nome, descrizione, scontoDefault, attivo, colonneExtra } = req.body || {};
+  const { nome, descrizione, scontoDefault, attivo, colonneExtra, colonneStandard, stampaDueColonne } = req.body || {};
   if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
-    // colonneExtra assente nel payload = non toccare quelle salvate
+    // Campi di configurazione assenti nel payload = non toccare quelli salvati
+    const cur = db.prepare('SELECT colonne_extra, colonne_standard, stampa_due_colonne FROM listini WHERE id=?')
+      .get(req.params.id) || {};
     const colonneJson = colonneExtra === undefined
-      ? (db.prepare('SELECT colonne_extra FROM listini WHERE id=?').get(req.params.id)?.colonne_extra || '[]')
+      ? (cur.colonne_extra || '[]')
       : JSON.stringify(sanitizeColonne(colonneExtra));
+    const colonneStdJson = colonneStandard === undefined
+      ? (cur.colonne_standard || '[]')
+      : JSON.stringify(sanitizeColonneStd(colonneStandard));
+    const dueColonne = stampaDueColonne === undefined
+      ? (cur.stampa_due_colonne || 0)
+      : (stampaDueColonne ? 1 : 0);
     db.prepare(`
-      UPDATE listini SET nome=?, descrizione=?, sconto_default=?, attivo=?, colonne_extra=?
+      UPDATE listini SET nome=?, descrizione=?, sconto_default=?, attivo=?, colonne_extra=?, colonne_standard=?, stampa_due_colonne=?
       WHERE id=?
     `).run(nome.trim(), descrizione || '', +scontoDefault || 0, attivo === false ? 0 : 1,
-           colonneJson, req.params.id);
+           colonneJson, colonneStdJson, dueColonne, req.params.id);
     res.json({ success: true });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) {

@@ -18,7 +18,7 @@ import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { Listino, ListinoColonna, ListinoPrezzo, Prodotto } from '../../models';
+import { Listino, ListinoColonna, ListinoColonnaStd, ListinoColonnaStdKey, ListinoPrezzo, Prodotto, mergeColonneStd } from '../../models';
 import { QuickListinoDialogComponent } from './quick-listino-dialog';
 
 // ── Nuovo listino (anagrafica minima, poi si apre l'editor) ──────────────────
@@ -69,18 +69,42 @@ export class NuovoListinoDialogComponent {
   }
 }
 
-// ── Gestione colonne personalizzate ──────────────────────────────────────────
+// ── Gestione colonne (standard + personalizzate) ─────────────────────────────
+export interface ColonneDialogData {
+  standard: ListinoColonnaStd[];
+  extra: ListinoColonna[];
+}
+
 @Component({
   selector: 'app-colonne-listino-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule,
-            MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule, DragDropModule],
+            MatInputModule, MatButtonModule, MatIconModule, MatCheckboxModule,
+            MatTooltipModule, DragDropModule],
   template: `
-    <h2 mat-dialog-title>Colonne personalizzate</h2>
-    <mat-dialog-content style="min-width:480px">
-      <p style="margin:0 0 14px;font-size:13px;color:var(--text-tertiary)">
-        Aggiungi colonne descrittive al listino (es. dimensioni, peso, quantità per pallet).
-        Compariranno nella tabella e nella stampa PDF, e potrai compilarle riga per riga.
+    <h2 mat-dialog-title>Colonne del listino</h2>
+    <mat-dialog-content style="min-width:520px">
+
+      <div class="col-section-title">Colonne standard</div>
+      <p class="col-help">
+        Rinomina le intestazioni o nascondi le colonne che non ti servono: spariranno
+        sia dalla tabella che dalla stampa PDF.
+      </p>
+      @for (c of standard; track c.key) {
+        <div class="col-row">
+          <mat-checkbox [(ngModel)]="c.visibile" [disabled]="c.key === 'prodotto'"
+                        [matTooltip]="c.key === 'prodotto' ? 'La colonna prodotto non può essere nascosta' : ''">
+          </mat-checkbox>
+          <input class="col-input" [(ngModel)]="c.label" [placeholder]="defaultLabel(c.key)"
+                 [disabled]="!c.visibile">
+          <span class="col-key">{{ defaultLabel(c.key) }}</span>
+        </div>
+      }
+
+      <div class="col-section-title" style="margin-top:18px">Colonne personalizzate</div>
+      <p class="col-help">
+        Aggiungi colonne descrittive (es. dimensioni, peso, quantità per pallet) da
+        compilare riga per riga.
       </p>
 
       <div cdkDropList (cdkDropListDropped)="riordina($event)">
@@ -122,6 +146,12 @@ export class NuovoListinoDialogComponent {
       <button mat-flat-button color="primary" (click)="salva()">Salva colonne</button>
     </mat-dialog-actions>`,
   styles: [`
+    .col-section-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--text-tertiary); margin: 6px 0 2px;
+    }
+    .col-help { margin: 0 0 10px; font-size: 12.5px; color: var(--text-tertiary); }
+    .col-key { font-size: 11px; color: var(--text-tertiary); min-width: 90px; text-align: right; }
     .col-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
     .col-drag { color: var(--text-tertiary); cursor: grab; font-size: 20px; }
     .col-input {
@@ -139,15 +169,22 @@ export class NuovoListinoDialogComponent {
   `],
 })
 export class ColonneListinoDialogComponent {
+  standard: ListinoColonnaStd[] = [];
   colonne: ListinoColonna[] = [];
   nuova = '';
   readonly suggerimenti = ['Dimensioni', 'Peso', 'Q.tà per pallet', 'Q.tà per cartone', 'Confezione', 'Colore', 'Materiale', 'Note'];
+  private readonly defaults = mergeColonneStd();
 
   constructor(
     public dialogRef: MatDialogRef<ColonneListinoDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) data: ListinoColonna[] | null,
+    @Inject(MAT_DIALOG_DATA) data: ColonneDialogData | null,
   ) {
-    this.colonne = (data || []).map(c => ({ ...c }));
+    this.standard = mergeColonneStd(data?.standard).map(c => ({ ...c }));
+    this.colonne = (data?.extra || []).map(c => ({ ...c }));
+  }
+
+  defaultLabel(key: ListinoColonnaStdKey): string {
+    return this.defaults.find(c => c.key === key)?.label || key;
   }
 
   esiste(label: string): boolean {
@@ -176,7 +213,10 @@ export class ColonneListinoDialogComponent {
   }
 
   salva() {
-    this.dialogRef.close(this.colonne.filter(c => c.label.trim()));
+    this.dialogRef.close({
+      standard: this.standard.map(c => ({ ...c, label: c.label.trim() || this.defaultLabel(c.key) })),
+      extra: this.colonne.filter(c => c.label.trim()),
+    } as ColonneDialogData);
   }
 }
 
@@ -375,7 +415,12 @@ export class ListiniComponent implements OnInit {
       listino: this.ds.getListino(id),
       prezzi: this.ds.getListinoPrezzi(id),
     }).subscribe(({ listino, prezzi }) => {
-      this.sel = { ...listino, colonneExtra: listino.colonneExtra || [] };
+      this.sel = {
+        ...listino,
+        colonneExtra: listino.colonneExtra || [],
+        colonneStandard: mergeColonneStd(listino.colonneStandard),
+        stampaDueColonne: !!listino.stampaDueColonne,
+      };
       this.prezzi = prezzi;
       this.filtro = '';
       this.scontoBulk = null;
@@ -406,7 +451,17 @@ export class ListiniComponent implements OnInit {
 
   private snapshot(): string {
     const s = this.sel!;
-    return JSON.stringify([s.nome, s.descrizione, s.scontoDefault, s.attivo, s.colonneExtra]);
+    return JSON.stringify([s.nome, s.descrizione, s.scontoDefault, s.attivo,
+                           s.colonneExtra, s.colonneStandard, s.stampaDueColonne]);
+  }
+
+  /** Visibilità/etichetta di una colonna standard (config del listino, con default). */
+  colVisibile(key: ListinoColonnaStdKey): boolean {
+    return this.sel?.colonneStandard?.find(c => c.key === key)?.visibile !== false;
+  }
+  colLabel(key: ListinoColonnaStdKey): string {
+    return this.sel?.colonneStandard?.find(c => c.key === key)?.label
+      || mergeColonneStd().find(c => c.key === key)!.label;
   }
 
   salvaAnagrafica() {
@@ -420,10 +475,15 @@ export class ListiniComponent implements OnInit {
 
   gestisciColonne() {
     this.dialog.open(ColonneListinoDialogComponent, {
-      data: this.sel!.colonneExtra || [], width: '540px', maxWidth: '96vw',
-    }).afterClosed().subscribe((cols: ListinoColonna[] | undefined) => {
+      data: {
+        standard: this.sel!.colonneStandard,
+        extra: this.sel!.colonneExtra || [],
+      } as ColonneDialogData,
+      width: '580px', maxWidth: '96vw',
+    }).afterClosed().subscribe((cols: ColonneDialogData | undefined) => {
       if (!cols) return;
-      this.sel!.colonneExtra = cols;
+      this.sel!.colonneStandard = cols.standard;
+      this.sel!.colonneExtra = cols.extra;
       this.salvaAnagrafica();
     });
   }
@@ -494,9 +554,29 @@ export class ListiniComponent implements OnInit {
     });
   }
 
-  updatePrezzo(p: ListinoPrezzo, e: Event) {
+  /** Modifica diretta del prezzo finale: scrivere un valore lo fissa come prezzo
+   *  manuale (override); svuotare la cella torna al calcolo da sconto. */
+  updatePrezzoFinale(p: ListinoPrezzo, e: Event) {
     const v = (e.target as HTMLInputElement).value;
-    p.prezzo = v === '' ? null : +v;
+    if (v === '') {
+      if (p.prezzo == null) return;
+      p.prezzo = null;
+      this.upsertRiga(p);
+      return;
+    }
+    const n = +v;
+    if (isNaN(n)) return;
+    // Tab/blur senza modifiche: il valore calcolato non deve diventare un override
+    if (p.prezzo == null && Math.abs(n - this.prezzoFinale(p)) < 0.005) return;
+    if (p.prezzo != null && Math.abs(n - p.prezzo) < 0.005) return;
+    p.prezzo = n;
+    this.upsertRiga(p);
+  }
+
+  /** Toglie il prezzo manuale dalla riga (torna allo sconto). */
+  rimuoviOverride(p: ListinoPrezzo) {
+    if (p.prezzo == null) return;
+    p.prezzo = null;
     this.upsertRiga(p);
   }
 

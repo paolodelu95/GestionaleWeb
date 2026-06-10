@@ -287,6 +287,38 @@ export interface ListinoColonna {
   label: string;
 }
 
+/** Chiavi delle colonne standard di un listino. */
+export type ListinoColonnaStdKey = 'num' | 'codice' | 'prodotto' | 'prezzoBase' | 'sconto' | 'prezzo';
+
+/** Configurazione di una colonna standard: rinominabile e (tranne "prodotto") nascondibile. */
+export interface ListinoColonnaStd {
+  key: ListinoColonnaStdKey;
+  label: string;
+  visibile: boolean;
+}
+
+export const LISTINO_COLONNE_STD_DEFAULT: ListinoColonnaStd[] = [
+  { key: 'num',        label: '#',             visibile: true },
+  { key: 'codice',     label: 'Codice',        visibile: true },
+  { key: 'prodotto',   label: 'Prodotto',      visibile: true },
+  { key: 'prezzoBase', label: 'Prezzo base',   visibile: true },
+  { key: 'sconto',     label: 'Sconto %',      visibile: true },
+  { key: 'prezzo',     label: 'Prezzo',        visibile: true },
+];
+
+/** Config salvata (eventualmente parziale) + default → set completo e ordinato. */
+export function mergeColonneStd(saved?: ListinoColonnaStd[]): ListinoColonnaStd[] {
+  return LISTINO_COLONNE_STD_DEFAULT.map(d => {
+    const s = saved?.find(x => x.key === d.key);
+    if (!s) return { ...d };
+    return {
+      ...d,
+      label: (s.label || '').trim() || d.label,
+      visibile: d.key === 'prodotto' ? true : s.visibile !== false,
+    };
+  });
+}
+
 export interface Listino {
   id?: number;
   nome: string;
@@ -294,6 +326,9 @@ export interface Listino {
   scontoDefault?: number;
   attivo?: boolean;
   colonneExtra?: ListinoColonna[];
+  colonneStandard?: ListinoColonnaStd[];
+  /** Stampa PDF su due tabelle affiancate (due prodotti per riga). */
+  stampaDueColonne?: boolean;
   prezziCount?: number;
   createdAt?: string;
 }

@@ -121,7 +121,33 @@
   .ed-pcode { font-family: monospace; }
 
   .base-td { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-  .finale-td { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .finale-td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .finale-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+
+    .finale-input { font-weight: 700; }
+
+    // Prezzo fissato a mano: evidenziato rispetto a quello calcolato dallo sconto
+    &.override .finale-input {
+      color: var(--primary);
+      border-color: var(--border);
+      background: var(--bg-surface);
+    }
+  }
+
+  .override-undo {
+    border: none;
+    background: transparent;
+    padding: 2px;
+    cursor: pointer;
+    line-height: 0;
+    color: var(--text-tertiary);
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    &:hover { color: var(--primary); }
+  }
 
   .del-icon { font-size: 18px; color: var(--text-tertiary); }
   button:hover .del-icon { color: #dc2626; }
@@ -164,6 +190,7 @@
   font-size: 12px;
   color: var(--info-on);
   mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+  .hint-icon { font-size: 14px; width: 14px; height: 14px; vertical-align: middle; flex-shrink: 0; }
 }
 
 // Anteprima riga durante il drag (la riga esce dal flusso della tabella)

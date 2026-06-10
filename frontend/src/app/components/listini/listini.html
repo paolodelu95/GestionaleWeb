@@ -147,6 +147,10 @@
         <mat-icon matSuffix>percent</mat-icon>
       </mat-form-field>
       <mat-slide-toggle [(ngModel)]="sel.attivo" (change)="salvaAnagrafica()">Attivo</mat-slide-toggle>
+      <mat-slide-toggle [(ngModel)]="sel.stampaDueColonne" (change)="salvaAnagrafica()"
+                        matTooltip="Nel PDF i prodotti vengono disposti su due tabelle affiancate (due per riga): ideale quando le colonne sono poche">
+        PDF a 2 colonne
+      </mat-slide-toggle>
     </div>
 
     <!-- Tabella prodotti -->
@@ -184,15 +188,14 @@
             <thead>
               <tr>
                 <th class="drag-th"></th>
-                <th class="num-th">#</th>
-                <th>Prodotto</th>
+                @if (colVisibile('num')) { <th class="num-th">{{ colLabel('num') }}</th> }
+                <th>{{ colLabel('prodotto') }}</th>
                 @for (c of sel.colonneExtra; track c.key) {
                   <th class="extra-th">{{ c.label }}</th>
                 }
-                <th class="num">Prezzo base</th>
-                <th class="num">Sconto %</th>
-                <th class="num">Prezzo manuale</th>
-                <th class="num">Prezzo finale</th>
+                @if (colVisibile('prezzoBase')) { <th class="num">{{ colLabel('prezzoBase') }}</th> }
+                @if (colVisibile('sconto')) { <th class="num">{{ colLabel('sconto') }}</th> }
+                @if (colVisibile('prezzo')) { <th class="num">{{ colLabel('prezzo') }}</th> }
                 <th style="width:40px"></th>
               </tr>
             </thead>
@@ -205,11 +208,11 @@
                       drag_indicator
                     </mat-icon>
                   </td>
-                  <td class="num-td">{{ i + 1 }}</td>
+                  @if (colVisibile('num')) { <td class="num-td">{{ i + 1 }}</td> }
                   <td>
                     <div class="ed-pname">{{ p.prodottoNome }}</div>
                     <div class="lst-sub">
-                      @if (p.prodottoCodice) { <span class="ed-pcode">{{ p.prodottoCodice }}</span> }
+                      @if (colVisibile('codice') && p.prodottoCodice) { <span class="ed-pcode">{{ p.prodottoCodice }}</span> }
                       @if (p.prodottoCategoria) { <span>{{ p.prodottoCategoria }}</span> }
                       @if (p.prodottoUm) { <span>{{ p.prodottoUm }}</span> }
                     </div>
@@ -223,23 +226,37 @@
                              (keydown.enter)="updateExtra(p, c.key, $event); focusNext($event, 'x_' + c.key)">
                     </td>
                   }
-                  <td class="num base-td">{{ p.prodottoPrezzoBase | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
-                  <td>
-                    <input class="cell-input num" type="number" step="0.5" min="0" max="100"
-                           [value]="p.sconto ?? ''" placeholder="—"
-                           [disabled]="p.prezzo != null"
-                           [attr.data-row]="i" [attr.data-col]="'sconto'"
-                           (blur)="updateSconto(p, $event)"
-                           (keydown.enter)="updateSconto(p, $event); focusNext($event, 'sconto')">
-                  </td>
-                  <td>
-                    <input class="cell-input num" type="number" step="0.01" min="0"
-                           [value]="p.prezzo ?? ''" placeholder="—"
-                           [attr.data-row]="i" [attr.data-col]="'prezzo'"
-                           (blur)="updatePrezzo(p, $event)"
-                           (keydown.enter)="updatePrezzo(p, $event); focusNext($event, 'prezzo')">
-                  </td>
-                  <td class="num finale-td">{{ prezzoFinale(p) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                  @if (colVisibile('prezzoBase')) {
+                    <td class="num base-td">{{ p.prodottoPrezzoBase | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                  }
+                  @if (colVisibile('sconto')) {
+                    <td>
+                      <input class="cell-input num" type="number" step="0.5" min="0" max="100"
+                             [value]="p.sconto ?? ''" placeholder="—"
+                             [disabled]="p.prezzo != null"
+                             [matTooltip]="p.prezzo != null ? 'Sconto ignorato: la riga ha un prezzo manuale' : ''"
+                             [attr.data-row]="i" [attr.data-col]="'sconto'"
+                             (blur)="updateSconto(p, $event)"
+                             (keydown.enter)="updateSconto(p, $event); focusNext($event, 'sconto')">
+                    </td>
+                  }
+                  @if (colVisibile('prezzo')) {
+                    <td class="finale-td">
+                      <span class="finale-cell" [class.override]="p.prezzo != null">
+                        <input class="cell-input num finale-input" type="number" step="0.01" min="0"
+                               [value]="prezzoFinale(p)"
+                               [attr.data-row]="i" [attr.data-col]="'prezzo'"
+                               (blur)="updatePrezzoFinale(p, $event)"
+                               (keydown.enter)="updatePrezzoFinale(p, $event); focusNext($event, 'prezzo')">
+                        @if (p.prezzo != null) {
+                          <button type="button" class="override-undo" (click)="rimuoviOverride(p)"
+                                  matTooltip="Prezzo manuale: clicca per tornare al calcolo da sconto">
+                            <mat-icon>undo</mat-icon>
+                          </button>
+                        }
+                      </span>
+                    </td>
+                  }
                   <td>
                     <button mat-icon-button type="button" (click)="removeRiga(p)" matTooltip="Rimuovi dal listino">
                       <mat-icon class="del-icon">close</mat-icon>
@@ -253,9 +270,10 @@
         <div class="ed-hint">
           <mat-icon>info</mat-icon>
           <span>
-            <b>Sconto %</b>: calcola il prezzo dal prezzo base (vuoto = sconto default {{ sel.scontoDefault || 0 }}%).
-            <b>Prezzo manuale</b>: ha la precedenza e ignora gli sconti.
-            <b>Invio</b> su una cella passa alla riga successiva; trascina <mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle">drag_indicator</mat-icon> per riordinare le righe come appariranno in stampa.
+            <b>{{ colLabel('sconto') }}</b>: calcola il prezzo dal prezzo base (vuoto = sconto default {{ sel.scontoDefault || 0 }}%).
+            <b>{{ colLabel('prezzo') }}</b>: scrivici sopra per fissare il prezzo a mano (l'icona <mat-icon class="hint-icon">undo</mat-icon> torna al calcolo da sconto).
+            <b>Invio</b> su una cella passa alla riga successiva; trascina <mat-icon class="hint-icon">drag_indicator</mat-icon> per riordinare le righe come appariranno in stampa.
+            Da <b>Colonne</b> puoi rinominare o nascondere ogni colonna, anche quelle standard.
           </span>
         </div>
       } @else {
