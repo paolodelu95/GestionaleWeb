@@ -11,6 +11,7 @@ import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angu
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -85,8 +86,8 @@ const PRODOTTI_FIELDS: FieldDef[] = [
   selector: 'app-prodotto-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule,
-            MatIconModule, MatCheckboxModule, MatButtonToggleModule, FieldHelpComponent],
+            MatFormFieldModule, MatInputModule, MatSelectModule, MatAutocompleteModule, MatButtonModule,
+            MatIconModule, MatCheckboxModule, MatButtonToggleModule, MatTooltipModule, FieldHelpComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -208,11 +209,20 @@ const PRODOTTI_FIELDS: FieldDef[] = [
             <div class="form-row" style="align-items:flex-start;gap:8px">
               <mat-form-field style="flex:2">
                 <mat-label>Fornitore</mat-label>
-                <mat-select [(ngModel)]="f.fornitoreId" [ngModelOptions]="{ standalone: true }">
-                  @for (fo of fornitoriList; track fo.id) {
-                    <mat-option [value]="fo.id">{{ fo.ragioneSociale }}</mat-option>
+                <input matInput [matAutocomplete]="autoForn"
+                       [(ngModel)]="f.cercaFornitore" [ngModelOptions]="{ standalone: true }"
+                       (focus)="$any($event.target).select()" (blur)="syncFornitoreText(f)"
+                       placeholder="Cerca per nome, P.IVA o città...">
+                <mat-icon matSuffix>search</mat-icon>
+                <mat-autocomplete #autoForn="matAutocomplete"
+                                  (optionSelected)="onFornitorePick(f, $event.option.value)">
+                  @for (fo of filtraFornitori(f.cercaFornitore); track fo.id) {
+                    <mat-option [value]="fo">
+                      <span style="font-weight:600">{{ fo.ragioneSociale }}</span>
+                      @if (fo.citta) { <span style="color:#94a3b8;margin-left:8px;font-size:12px">{{ fo.citta }}</span> }
+                    </mat-option>
                   }
-                </mat-select>
+                </mat-autocomplete>
               </mat-form-field>
               <mat-form-field style="flex:1">
                 <mat-label>Codice</mat-label>
@@ -386,7 +396,7 @@ export class ProdottoDialogComponent implements OnInit {
   unitaMisura: UnitaMisura[] = [];
   aliquoteIva: AliquotaIva[] = [];
   varianti: { id?: number; taglia: string; colore: string; quantita: number; barcode: string }[] = [];
-  fornitori: ProdottoFornitore[] = [];
+  fornitori: (ProdottoFornitore & { cercaFornitore?: string })[] = [];
   fornitoriList: Fornitore[] = [];
   codiciAlias: CodiceAlias[] = [];
 
@@ -470,11 +480,45 @@ export class ProdottoDialogComponent implements OnInit {
     this.ds.getFornitori().subscribe(f => this.fornitoriList = f);
     if (this.data?.id && this.data.haVarianti) {
       this.ds.getProdottoVarianti(this.data.id).subscribe(v => this.varianti = v);
+    } else if (this.data?.varianti?.length) {
+      // Duplicazione: precarico le varianti del prodotto sorgente (come nuove, senza id/barcode).
+      this.varianti = this.data.varianti.map(v => ({ taglia: v.taglia, colore: v.colore, quantita: v.quantita, barcode: '' }));
     }
     if (this.data?.id) {
-      this.ds.getProdottoFornitori(this.data.id).subscribe(f => this.fornitori = f);
+      this.ds.getProdottoFornitori(this.data.id).subscribe(f =>
+        this.fornitori = f.map(x => ({ ...x, cercaFornitore: x.fornitoreNome ?? '' })));
       this.ds.getCodiciAlias(this.data.id).subscribe(a => this.codiciAlias = a);
+    } else if (this.data?.fornitori?.length) {
+      // Duplicazione: precarico i fornitori del prodotto sorgente (come nuovi, senza id).
+      this.fornitori = this.data.fornitori.map(x => ({
+        fornitoreId: x.fornitoreId, codiceFornitore: x.codiceFornitore ?? '',
+        prezzoAcquisto: x.prezzoAcquisto ?? null, predefinito: x.predefinito,
+        cercaFornitore: x.fornitoreNome ?? '',
+      }));
     }
+  }
+
+  /** Ricerca "a token" tra i fornitori: ogni parola deve comparire in nome, P.IVA o città. */
+  filtraFornitori(text?: string): Fornitore[] {
+    const tokens = (text ?? '').toString().toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return this.fornitoriList;
+    return this.fornitoriList.filter(f => {
+      const hay = `${f.ragioneSociale ?? ''} ${f.pIva ?? ''} ${f.citta ?? ''}`.toLowerCase();
+      return tokens.every(t => hay.includes(t));
+    });
+  }
+
+  onFornitorePick(f: ProdottoFornitore & { cercaFornitore?: string }, fo: Fornitore) {
+    f.fornitoreId = fo.id ?? null;
+    f.cercaFornitore = fo.ragioneSociale;
+  }
+
+  /** Al blur riallinea il testo mostrato al fornitore effettivamente selezionato (evita testo "orfano"). */
+  syncFornitoreText(f: ProdottoFornitore & { cercaFornitore?: string }) {
+    setTimeout(() => {
+      const fo = this.fornitoriList.find(x => x.id === f.fornitoreId);
+      f.cercaFornitore = fo?.ragioneSociale ?? '';
+    }, 200);
   }
 
   async removeCodiceAlias(a: CodiceAlias) {
@@ -488,7 +532,7 @@ export class ProdottoDialogComponent implements OnInit {
   removeVariante(i: number) { this.varianti.splice(i, 1); }
 
   addFornitore() {
-    this.fornitori.push({ fornitoreId: null, codiceFornitore: '', prezzoAcquisto: null, predefinito: this.fornitori.length === 0 });
+    this.fornitori.push({ fornitoreId: null, codiceFornitore: '', prezzoAcquisto: null, predefinito: this.fornitori.length === 0, cercaFornitore: '' });
   }
   removeFornitore(i: number) {
     const wasPref = this.fornitori[i]?.predefinito;
@@ -506,7 +550,8 @@ export class ProdottoDialogComponent implements OnInit {
 
   save() {
     if (this.form.valid) {
-      this.dialogRef.close({ ...this.data, ...this.form.value, varianti: this.varianti, fornitori: this.fornitori });
+      const fornitori = this.fornitori.map(({ cercaFornitore, ...rest }) => rest);
+      this.dialogRef.close({ ...this.data, ...this.form.value, varianti: this.varianti, fornitori });
     }
   }
 }
@@ -699,6 +744,29 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       const op = result.id ? this.ds.updateProdotto(result) : this.ds.createProdotto(result);
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
+    });
+  }
+
+  /** Duplica un prodotto: apre la scheda precompilata col nome + " (copia)" (e fornitori/varianti copiati). */
+  duplica(p: Prodotto) {
+    this.ds.getProdottoFornitori(p.id!).subscribe(fornitori => {
+      const clone: Prodotto = {
+        ...p,
+        id: undefined,
+        nome: `${p.nome} (copia)`,
+        barcode: '',
+        quantita: 0,
+        fornitori,
+        varianti: (p.varianti ?? []).map(v => ({ taglia: v.taglia, colore: v.colore, quantita: 0, barcode: '' })),
+      };
+      const ref = this.dialog.open(ProdottoDialogComponent, { data: clone, width: '95vw', maxWidth: '900px' });
+      ref.afterClosed().subscribe(result => {
+        if (!result) return;
+        this.ds.createProdotto(result).subscribe({
+          next: () => { this.load(); this.snack.open('Prodotto duplicato', '', { duration: 2000 }); },
+          error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 }),
+        });
+      });
     });
   }
 

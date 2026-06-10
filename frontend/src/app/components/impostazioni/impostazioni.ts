@@ -36,6 +36,7 @@ import { ModuliService } from '../../services/moduli.service';
 import { DocLockService } from '../../services/doc-lock.service';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
 import { ListinoDialogComponent } from './listino-dialog';
+import { QuickListinoDialogComponent } from './quick-listino-dialog';
 import { AuthService } from '../../services/auth.service';
 import { AdminComponent } from '../admin/admin';
 import { SuperAdminComponent } from '../super-admin/super-admin';
@@ -620,6 +621,13 @@ export class ImpostazioniComponent implements OnInit {
     const ref = this.dialog.open(ListinoDialogComponent, {
       data: l ?? null, width: '760px', maxWidth: '95vw',
     });
+    ref.afterClosed().subscribe((result) => {
+      if (result != null) this.loadListini();
+    });
+  }
+
+  openQuickListino() {
+    const ref = this.dialog.open(QuickListinoDialogComponent, { width: '860px', maxWidth: '96vw' });
     ref.afterClosed().subscribe((result) => {
       if (result != null) this.loadListini();
     });
