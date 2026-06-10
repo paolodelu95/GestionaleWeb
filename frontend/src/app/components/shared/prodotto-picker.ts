@@ -1,13 +1,14 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { DataService } from '../../services/data.service';
 import { Prodotto, ProdottoVariante } from '../../models';
+import { creaProdottoDaRiga } from '../../utils/crea-prodotto-da-riga';
 
 export interface ProdottoPick {
   prodotto: Prodotto;
@@ -55,7 +56,12 @@ export interface ProdottoPick {
             </div>
           }
           @if (!filtered.length) {
-            <p style="color:#94a3b8; padding:24px 0; text-align:center">Nessun prodotto trovato</p>
+            <div style="padding:24px 0; text-align:center">
+              <p style="color:#94a3b8; margin:0 0 12px">Nessun prodotto trovato</p>
+              <button mat-flat-button color="primary" type="button" (click)="creaNuovo()">
+                <mat-icon>add</mat-icon> Crea {{ query ? '"' + query + '"' : 'nuovo prodotto' }}
+              </button>
+            </div>
           }
         </div>
       } @else {
@@ -95,6 +101,11 @@ export interface ProdottoPick {
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
+      @if (!selectedProdotto) {
+        <button mat-stroked-button color="primary" type="button" (click)="creaNuovo()" style="margin-right:auto">
+          <mat-icon>add</mat-icon> Crea nuovo prodotto
+        </button>
+      }
       <button mat-button mat-dialog-close>Annulla</button>
     </mat-dialog-actions>`,
   styles: [`
@@ -122,6 +133,7 @@ export class ProdottoPickerComponent implements OnInit {
 
   constructor(
     private ds: DataService,
+    private dialog: MatDialog,
     public dialogRef: MatDialogRef<ProdottoPickerComponent>,
     // Accetta sia la lista prodotti diretta (uso legacy) sia un oggetto
     // { prodotti?, query? } per aprire il picker GIÀ filtrato sul testo digitato.
@@ -182,5 +194,14 @@ export class ProdottoPickerComponent implements OnInit {
   backToList() {
     this.selectedProdotto = null;
     this.variantiList = [];
+  }
+
+  /** Crea un nuovo prodotto (stesso dialog della schermata Prodotti) precompilato col
+   *  testo cercato; al salvataggio chiude il picker restituendo il prodotto creato. */
+  creaNuovo() {
+    creaProdottoDaRiga(this.dialog, this.ds, { codiceProdotto: this.query })
+      .subscribe(nuovo => {
+        if (nuovo) this.dialogRef.close({ prodotto: nuovo, variante: undefined } as ProdottoPick);
+      });
   }
 }

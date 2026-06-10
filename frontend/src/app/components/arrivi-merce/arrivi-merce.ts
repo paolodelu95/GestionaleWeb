@@ -441,7 +441,8 @@ export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
   }
 
   searchProdotto(index: number, lista?: Prodotto[]) {
-    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: lista ?? this.prodotti })
+    const query = (this.righe[index]?.descrizione ?? '').toString().trim();
+    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: { prodotti: lista ?? this.prodotti, query } })
       .afterClosed().subscribe((pick: ProdottoPick) => {
         if (!pick) return;
         this.applyProdottoToRiga(index, pick.prodotto, pick.variante);

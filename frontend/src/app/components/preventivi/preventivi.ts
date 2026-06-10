@@ -477,7 +477,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
     if (exact) { this.applyProdottoToRiga(index, exact); this.focusNextCodice(input); }
     else if (matches.length === 1) { this.applyProdottoToRiga(index, matches[0]); this.focusNextCodice(input); }
     else if (matches.length > 1) { this.searchProdotto(index, matches); }
-    else { this.snack.open(`Nessun prodotto per "${q}"`, '', { duration: 2200 }); }
+    else { this.searchProdotto(index); }
   }
 
   /** Sposta il focus al codice della riga successiva; se non esiste, ne crea una nuova. */

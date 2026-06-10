@@ -367,7 +367,8 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit {
   }
 
   searchProdotto(index: number, lista?: Prodotto[]) {
-    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: lista ?? this.prodotti })
+    const query = (this.righe[index]?.codiceProdotto ?? '').toString().trim();
+    this.matDialog.open(ProdottoPickerComponent, { width: '650px', data: { prodotti: lista ?? this.prodotti, query } })
       .afterClosed().subscribe((pick: ProdottoPick) => {
         if (!pick) return;
         this.applyProdottoToRiga(index, pick.prodotto, pick.variante);
@@ -399,7 +400,7 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit {
     if (exact) { this.applyProdottoToRiga(index, exact); this.focusNextCodice(input); }
     else if (matches.length === 1) { this.applyProdottoToRiga(index, matches[0]); this.focusNextCodice(input); }
     else if (matches.length > 1) { this.searchProdotto(index, matches); }
-    else { this.snack.open(`Nessun prodotto per "${q}"`, '', { duration: 2200 }); }
+    else { this.searchProdotto(index); }
   }
 
   /** Sposta il focus al codice della riga successiva; se non esiste, ne crea una nuova. */
