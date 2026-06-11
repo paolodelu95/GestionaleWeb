@@ -274,6 +274,14 @@
                             </div>
                           </td>
                         }
+                        @case ('dimensioni') {
+                          <td class="cod-td" [ngStyle]="cellNgStyle(r.prezzo!, c)"
+                              (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">{{ r.prezzo!.prodottoDimensioni || '—' }}</td>
+                        }
+                        @case ('peso') {
+                          <td class="num base-td" [ngStyle]="cellNgStyle(r.prezzo!, c)"
+                              (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">{{ r.prezzo!.prodottoPeso != null ? (r.prezzo!.prodottoPeso | number:'1.0-3') + ' kg' : '—' }}</td>
+                        }
                         @case ('extra') {
                           <td class="extra-td" (contextmenu)="apriMenuCella($event, r.prezzo!, c.key)">
                             <input class="cell-input" type="text"

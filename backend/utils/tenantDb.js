@@ -721,6 +721,12 @@ function initTenantSchema(db) {
     // Stili per cella (JSON {chiaveColonna: {b,i,s,al}}): grassetto, corsivo,
     // barrato e allineamento applicati a editor e stampa.
     `ALTER TABLE listini_prezzi ADD COLUMN stili TEXT DEFAULT '{}'`,
+    // Scheda logistica prodotto: peso (kg/unità), dimensioni (testo libero) e
+    // immagine (data URL ridimensionato lato client). L'immagine è esclusa dal
+    // GET di lista per non gonfiare il payload: viaggia solo nel GET singolo.
+    'ALTER TABLE prodotti ADD COLUMN peso REAL',
+    `ALTER TABLE prodotti ADD COLUMN dimensioni TEXT DEFAULT ''`,
+    `ALTER TABLE prodotti ADD COLUMN immagine TEXT DEFAULT ''`,
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

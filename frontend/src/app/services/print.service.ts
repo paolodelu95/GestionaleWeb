@@ -1,6 +1,6 @@
 import { Component, Inject, Injectable } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { forkJoin } from 'rxjs';
+import { forkJoin, firstValueFrom } from 'rxjs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -410,6 +410,10 @@ export class PrintService {
       totali: (yy) => this.totals(pdf, yy, doc),
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
     });
+    // Appendice con le foto dei prodotti (disattivabile da Impostazioni → Stampa).
+    if (this.blockVisible('schedeProdotto')) {
+      y = await this.schedeProdotto(pdf, y, doc.righe || []);
+    }
     this.footer(pdf, az);
     return pdf;
   }
@@ -487,6 +491,8 @@ export class PrintService {
       switch (c.key as ListinoColonnaStdKey) {
         case 'num': return { label: c.label, width: due ? 7 : 9, halign: 'center' as const, val: (_p: ListinoPrezzo, n: number) => n };
         case 'codice': return { label: c.label, width: due ? 16 : 24, val: (p: ListinoPrezzo) => p.prodottoCodice || '—' };
+        case 'dimensioni': return { label: c.label, width: due ? 18 : 26, val: (p: ListinoPrezzo) => p.prodottoDimensioni || '—' };
+        case 'peso': return { label: c.label, width: due ? 12 : 16, halign: 'right' as const, val: (p: ListinoPrezzo) => p.prodottoPeso != null ? `${p.prodottoPeso} kg` : '—' };
         case 'prezzoBase': return { label: c.label, width: due ? 16 : 20, halign: 'right' as const, val: (p: ListinoPrezzo) => this.fe(p.prodottoPrezzoBase || 0) };
         case 'sconto': return {
           label: c.label, width: due ? 11 : 14, halign: 'right' as const,
@@ -1256,6 +1262,79 @@ export class PrintService {
     doc.setDrawColor(...SEC_LINE); doc.setLineWidth(0.2);
     doc.line(this.ML + tw + 2, y - 1, PW - this.ML, y - 1);
     return y + 5;
+  }
+
+  /** Appendice "Schede prodotto" del preventivo: card con foto, nome, codice,
+   *  dimensioni e peso per i prodotti delle righe che hanno un'immagine. */
+  private async schedeProdotto(pdf: jsPDF, y: number, righe: any[]): Promise<number> {
+    const ids = [...new Set((righe || [])
+      .filter(r => r.tipo !== 'NOTA' && r.prodottoId)
+      .map(r => r.prodottoId as number))];
+    if (!ids.length) return y;
+    let schede: { id: number; nome: string; codice: string; peso: number | null; dimensioni: string; immagine: string }[];
+    try {
+      schede = await firstValueFrom(this.ds.getProdottoSchede(ids));
+    } catch { return y; }
+    schede = (schede || []).filter(s => s.immagine);
+    if (!schede.length) return y;
+
+    const C = this.resolved.colors;
+    const gap = 6;
+    const cols = 3;
+    const cw = (this.CW - gap * (cols - 1)) / cols;
+    const imgH = 32;
+    const cardH = imgH + 24;
+
+    // Dimensioni naturali delle immagini, per centrarle senza deformarle.
+    const dims = await Promise.all(schede.map(s => this.imageSize(s.immagine)));
+
+    y += 4;
+    if (y + cardH + 12 > 282) { pdf.addPage(); y = 16; }
+    y = this.secTitle(pdf, y, 'Schede prodotto');
+    y += 2;
+
+    for (let i = 0; i < schede.length; i++) {
+      const col = i % cols;
+      if (col === 0 && i > 0) y += cardH + gap;
+      if (col === 0 && y + cardH > 282) { pdf.addPage(); y = 16; }
+      const x = this.ML + col * (cw + gap);
+      const s = schede[i];
+
+      pdf.setDrawColor(...C.divider); pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, y, cw, cardH, 1.5, 1.5, 'S');
+
+      const d = dims[i];
+      if (d) {
+        const boxW = cw - 4, boxH = imgH;
+        const k = Math.min(boxW / d.w, boxH / d.h);
+        const iw = d.w * k, ih = d.h * k;
+        const fmt = s.immagine.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        try {
+          pdf.addImage(s.immagine, fmt, x + 2 + (boxW - iw) / 2, y + 2 + (boxH - ih) / 2, iw, ih);
+        } catch { /* immagine non leggibile: lascia la card senza foto */ }
+      }
+
+      let ty = y + imgH + 8;
+      this.F(pdf, 8.5, 'bold'); pdf.setTextColor(...C.text);
+      const nameLines = (pdf.splitTextToSize(s.nome || '', cw - 6) as string[]).slice(0, 2);
+      pdf.text(nameLines, x + 3, ty);
+      ty += nameLines.length * 4 + 1.5;
+      this.F(pdf, 7.5, 'normal'); pdf.setTextColor(...C.muted);
+      const meta = [s.codice, s.dimensioni, s.peso != null ? `${s.peso} kg` : '']
+        .filter(Boolean).join(' · ');
+      if (meta) pdf.text((pdf.splitTextToSize(meta, cw - 6) as string[]).slice(0, 1), x + 3, ty);
+    }
+    return y + cardH + 6;
+  }
+
+  /** Dimensioni naturali di un'immagine data-URL (null se non caricabile). */
+  private imageSize(dataUrl: string): Promise<{ w: number; h: number } | null> {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.width || 1, h: img.height || 1 });
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
   }
 
   private footer(doc: jsPDF, az: Azienda) {

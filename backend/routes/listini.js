@@ -45,6 +45,8 @@ const prezzoDto = (r) => r && ({
   prodottoUm: r.prodotto_um,
   prodottoCategoria: r.prodotto_categoria,
   prodottoDescrizione: r.prodotto_descrizione,
+  prodottoPeso: r.prodotto_peso ?? null,
+  prodottoDimensioni: r.prodotto_dimensioni || '',
 });
 
 // Le colonne extra sono definite dall'utente: accetta solo {key,label} sani.
@@ -54,7 +56,7 @@ const sanitizeColonne = (cols) => (Array.isArray(cols) ? cols : [])
   .map(c => ({ key: c.key.trim().slice(0, 40), label: c.label.trim().slice(0, 60) }));
 
 // Override delle colonne standard (legacy, mantenuto per compat di lettura).
-const STD_KEYS = ['num', 'codice', 'prodotto', 'prezzoBase', 'sconto', 'prezzo'];
+const STD_KEYS = ['num', 'codice', 'prodotto', 'dimensioni', 'peso', 'prezzoBase', 'sconto', 'prezzo'];
 const sanitizeColonneStd = (cols) => {
   const seen = new Set();
   return (Array.isArray(cols) ? cols : [])
@@ -221,7 +223,9 @@ router.get('/:id/prezzi', (req, res) => {
            p.iva         AS prodotto_iva,
            p.unita_misura AS prodotto_um,
            p.categoria   AS prodotto_categoria,
-           p.descrizione AS prodotto_descrizione
+           p.descrizione AS prodotto_descrizione,
+           p.peso        AS prodotto_peso,
+           p.dimensioni  AS prodotto_dimensioni
     FROM listini_prezzi lp
     JOIN prodotti p ON p.id = lp.prodotto_id
     WHERE lp.listino_id=?

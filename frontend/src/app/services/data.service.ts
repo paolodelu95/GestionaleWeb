@@ -26,6 +26,12 @@ export class DataService {
 
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }
+  /** Dettaglio singolo prodotto: include l'immagine (esclusa dalla lista). */
+  getProdotto(id: number): Observable<Prodotto> { return this.api.get(`prodotti/${id}`); }
+  /** Schede sintetiche (immagine, peso, dimensioni) per la stampa dei preventivi. */
+  getProdottoSchede(ids: number[]): Observable<{ id: number; nome: string; codice: string; peso: number | null; dimensioni: string; immagine: string }[]> {
+    return this.api.get(`prodotti/schede?ids=${ids.join(',')}`);
+  }
   getProdottiSottoSoglia(): Observable<Prodotto[]> { return this.api.get('prodotti/sotto-soglia'); }
   rettificaGiacenza(id: number, quantita: number, note?: string): Observable<any> {
     return this.api.post(`prodotti/${id}/rettifica`, { quantita, note: note || '' });

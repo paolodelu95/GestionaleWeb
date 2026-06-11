@@ -120,12 +120,13 @@ router.get('/valore', (req, res) => {
 router.post('/', (req, res) => {
   const p = req.body;
   const result = db.prepare(`INSERT INTO prodotti
-    (nome, categoria, descrizione, prezzo, prezzo_acquisto, quantita, soglia_minima, unita_misura, codice, codice_fornitore, iva, barcode, ha_varianti, fornitore_id_preferito, riordino_quantita)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    (nome, categoria, descrizione, prezzo, prezzo_acquisto, quantita, soglia_minima, unita_misura, codice, codice_fornitore, iva, barcode, ha_varianti, fornitore_id_preferito, riordino_quantita, peso, dimensioni, immagine)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.prezzoAcquisto ?? null, p.quantita ?? 0,
          p.sogliaMinima ?? 0, p.unitaMisura, p.codice, p.codiceFornitore || '',
          p.iva, p.barcode || '', p.haVarianti ? 1 : 0,
-         p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0);
+         p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0,
+         p.peso ?? null, p.dimensioni || '', p.immagine || '');
   const id = result.lastInsertRowid;
   if (p.haVarianti && p.varianti?.length) {
     saveVarianti(id, p.varianti);
@@ -370,13 +371,27 @@ router.post('/import-listino/abbina', (req, res) => {
   res.json({ associati, aggiornati, saltati });
 });
 
-// GET /api/prodotti/:id — dettaglio singolo prodotto
+// GET /api/prodotti/schede?ids=1,2,3 — schede sintetiche (con immagine) per la
+// stampa dei preventivi: una sola chiamata per tutte le righe del documento.
+router.get('/schede', (req, res) => {
+  const ids = String(req.query.ids || '')
+    .split(',').map(s => parseInt(s, 10)).filter(Number.isFinite);
+  if (!ids.length) return res.json([]);
+  const rows = db.prepare(`SELECT id, nome, codice, peso, dimensioni, immagine
+    FROM prodotti WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  res.json(rows.map(r => ({
+    id: r.id, nome: r.nome, codice: r.codice || '',
+    peso: r.peso ?? null, dimensioni: r.dimensioni || '', immagine: r.immagine || '',
+  })));
+});
+
+// GET /api/prodotti/:id — dettaglio singolo prodotto (include l'immagine)
 router.get('/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID non valido' });
   const row = db.prepare('SELECT * FROM prodotti WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: 'Prodotto non trovato' });
-  res.json(toDto(row));
+  res.json(toDto(row, { withImmagine: true }));
 });
 
 // GET /api/prodotti/:id/fornitori — fornitori del prodotto (codice + prezzo per fornitore)
@@ -420,11 +435,17 @@ router.put('/:id', (req, res) => {
   const p = req.body;
   db.prepare(`UPDATE prodotti SET nome=?, categoria=?, descrizione=?, prezzo=?, prezzo_acquisto=?,
     quantita=?, soglia_minima=?, unita_misura=?, codice=?, codice_fornitore=?, iva=?, barcode=?, ha_varianti=?,
-    fornitore_id_preferito=?, riordino_quantita=? WHERE id=?`)
+    fornitore_id_preferito=?, riordino_quantita=?, peso=?, dimensioni=? WHERE id=?`)
     .run(p.nome, p.categoria, p.descrizione, p.prezzo, p.prezzoAcquisto ?? null, p.quantita ?? 0,
          p.sogliaMinima ?? 0, p.unitaMisura, p.codice, p.codiceFornitore || '',
          p.iva, p.barcode || '', p.haVarianti ? 1 : 0,
-         p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0, req.params.id);
+         p.fornitoreIdPreferito || null, p.riordinoQuantita ?? 0,
+         p.peso ?? null, p.dimensioni || '', req.params.id);
+  // L'immagine viaggia solo nel GET singolo: se il client non la include
+  // (undefined) la lasciamo invariata, se la include (anche '') la aggiorniamo.
+  if (p.immagine !== undefined) {
+    db.prepare('UPDATE prodotti SET immagine=? WHERE id=?').run(p.immagine || '', req.params.id);
+  }
   if (p.haVarianti) {
     db.prepare('DELETE FROM prodotto_varianti WHERE prodotto_id=?').run(req.params.id);
     if (p.varianti?.length) saveVarianti(req.params.id, p.varianti);
@@ -483,7 +504,7 @@ function syncQuantita(prodottoId) {
   db.prepare('UPDATE prodotti SET quantita=? WHERE id=?').run(r.tot, prodottoId);
 }
 
-function toDto(r) {
+function toDto(r, { withImmagine = false } = {}) {
   const dto = {
     id: r.id, nome: r.nome, categoria: r.categoria, descrizione: r.descrizione,
     prezzo: r.prezzo, prezzoAcquisto: r.prezzo_acquisto ?? null, quantita: r.quantita, sogliaMinima: r.soglia_minima,
@@ -491,7 +512,10 @@ function toDto(r) {
     iva: r.iva, barcode: r.barcode || '', haVarianti: r.ha_varianti === 1,
     fornitoreIdPreferito: r.fornitore_id_preferito || null,
     riordinoQuantita: r.riordino_quantita ?? 0,
+    peso: r.peso ?? null, dimensioni: r.dimensioni || '',
+    haImmagine: !!r.immagine,
   };
+  if (withImmagine) dto.immagine = r.immagine || '';
   if (r.ha_varianti === 1) {
     dto.varianti = db.prepare(
       'SELECT id, taglia, colore, quantita, barcode FROM prodotto_varianti WHERE prodotto_id=? ORDER BY taglia, colore'

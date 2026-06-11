@@ -374,7 +374,14 @@ import { DocLockService } from '../../services/doc-lock.service';
                   <mat-form-field>
                     <mat-label>Peso lordo (kg)</mat-label>
                     <input matInput type="number" min="0" step="0.01" formControlName="pesoLordo">
+                    @if (pesoCalcolato !== null) {
+                      <mat-hint>Dai pesi prodotto: {{ pesoCalcolato | number:'1.0-2' }} kg</mat-hint>
+                    }
                   </mat-form-field>
+                  <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaPeso()"
+                          matTooltip="Calcola dal peso dei prodotti (quantità × peso unitario)">
+                    <mat-icon>scale</mat-icon>
+                  </button>
                 </div>
               </div>
 
@@ -520,6 +527,38 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
 
   calcolaColli() {
     this.trasportoForm.patchValue({ numeroColli: Math.ceil(this.totalQuantita) });
+  }
+
+  /** Peso totale teorico delle righe: somma quantità × peso unitario del prodotto.
+   *  Null se nessuna riga ha un prodotto con peso configurato. */
+  get pesoCalcolato(): number | null {
+    let tot = 0, conPeso = 0;
+    for (const r of this.righe) {
+      if (r.tipo === 'NOTA' || !r.prodottoId) continue;
+      const p = this.prodotti.find(x => x.id === r.prodottoId);
+      if (p?.peso == null) continue;
+      tot += (r.quantita ?? 0) * p.peso;
+      conPeso++;
+    }
+    return conPeso ? +tot.toFixed(2) : null;
+  }
+
+  /** Compila "Peso lordo" sommando quantità × peso unitario dei prodotti in riga. */
+  calcolaPeso() {
+    const righeProdotto = this.righe.filter(r => r.tipo !== 'NOTA' && (r.descrizione?.trim() || r.prodottoId));
+    const senzaPeso = righeProdotto.filter(r => {
+      const p = r.prodottoId ? this.prodotti.find(x => x.id === r.prodottoId) : null;
+      return !p || p.peso == null;
+    }).length;
+    const peso = this.pesoCalcolato;
+    if (peso === null) {
+      this.snack.open('Nessun prodotto in riga ha un peso configurato (scheda prodotto → Logistica)', '', { duration: 3500 });
+      return;
+    }
+    this.trasportoForm.patchValue({ pesoLordo: peso });
+    if (senzaPeso > 0) {
+      this.snack.open(`Peso parziale: ${senzaPeso} righe senza peso prodotto`, '', { duration: 3000 });
+    }
   }
 
   private defaultDataOra(): string {

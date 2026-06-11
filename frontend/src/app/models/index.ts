@@ -175,6 +175,14 @@ export interface Prodotto {
   fornitoreIdPreferito?: number | null;
   riordinoQuantita?: number;
   fornitori?: ProdottoFornitore[];
+  /** Peso unitario in kg (usato per il peso lordo dei documenti di trasporto). */
+  peso?: number | null;
+  /** Dimensioni in testo libero, es. "120×80×40 cm". */
+  dimensioni?: string;
+  /** Immagine (data URL) — presente solo nel GET singolo, mai nella lista. */
+  immagine?: string;
+  /** Flag leggero nella lista: il prodotto ha un'immagine salvata. */
+  haImmagine?: boolean;
 }
 
 export interface ProdottoFornitore {
@@ -288,9 +296,12 @@ export interface ListinoColonna {
 }
 
 /** Chiavi delle colonne standard di un listino. */
-export type ListinoColonnaStdKey = 'num' | 'codice' | 'prodotto' | 'prezzoBase' | 'sconto' | 'prezzo';
+export type ListinoColonnaStdKey = 'num' | 'codice' | 'prodotto' | 'dimensioni' | 'peso' | 'prezzoBase' | 'sconto' | 'prezzo';
 
-export const LISTINO_STD_KEYS: ListinoColonnaStdKey[] = ['num', 'codice', 'prodotto', 'prezzoBase', 'sconto', 'prezzo'];
+export const LISTINO_STD_KEYS: ListinoColonnaStdKey[] = ['num', 'codice', 'prodotto', 'dimensioni', 'peso', 'prezzoBase', 'sconto', 'prezzo'];
+
+/** Colonne standard nascoste di default (si attivano da "Colonne"): dati logistici. */
+export const LISTINO_STD_HIDDEN_DEFAULT: ListinoColonnaStdKey[] = ['dimensioni', 'peso'];
 
 /** Configurazione legacy di una colonna standard (mantenuta per compat di lettura). */
 export interface ListinoColonnaStd {
@@ -325,11 +336,12 @@ export interface ListinoCellaStile {
 
 export const LISTINO_COLONNE_DEFAULT_LABELS: Record<ListinoColonnaStdKey, string> = {
   num: '#', codice: 'Codice', prodotto: 'Prodotto',
+  dimensioni: 'Dimensioni', peso: 'Peso',
   prezzoBase: 'Prezzo base', sconto: 'Sconto %', prezzo: 'Prezzo',
 };
 
 /** Posizione di default delle standard (le extra legacy si inseriscono dopo "prodotto"). */
-const ORDINE_STD_DEFAULT: ListinoColonnaStdKey[] = ['num', 'codice', 'prodotto', 'prezzoBase', 'sconto', 'prezzo'];
+const ORDINE_STD_DEFAULT: ListinoColonnaStdKey[] = ['num', 'codice', 'prodotto', 'dimensioni', 'peso', 'prezzoBase', 'sconto', 'prezzo'];
 
 /**
  * Config colonne effettiva di un listino: usa colonneConfig se presente
@@ -342,7 +354,7 @@ export function mergeColonneCfg(l?: Pick<Listino, 'colonneConfig' | 'colonneStan
     return {
       key,
       label: (legacy?.label || '').trim() || LISTINO_COLONNE_DEFAULT_LABELS[key],
-      visibile: legacy ? legacy.visibile !== false : true,
+      visibile: legacy ? legacy.visibile !== false : !LISTINO_STD_HIDDEN_DEFAULT.includes(key),
       tipo: 'std',
     };
   };
@@ -367,7 +379,7 @@ export function mergeColonneCfg(l?: Pick<Listino, 'colonneConfig' | 'colonneStan
 
   // Fallback legacy: standard nell'ordine storico, extra dopo "prodotto".
   const out: ListinoColonnaCfg[] = [];
-  for (const key of ['num', 'codice', 'prodotto'] as ListinoColonnaStdKey[]) out.push(stdCfg(key));
+  for (const key of ['num', 'codice', 'prodotto', 'dimensioni', 'peso'] as ListinoColonnaStdKey[]) out.push(stdCfg(key));
   for (const c of l?.colonneExtra || []) out.push({ key: c.key, label: c.label, visibile: true, tipo: 'extra' });
   for (const key of ['prezzoBase', 'sconto', 'prezzo'] as ListinoColonnaStdKey[]) out.push(stdCfg(key));
   return out;
@@ -447,6 +459,8 @@ export interface ListinoPrezzo {
   prodottoUm?: string;
   prodottoCategoria?: string;
   prodottoDescrizione?: string;
+  prodottoPeso?: number | null;
+  prodottoDimensioni?: string;
 }
 
 export interface PrezzoRisolto {

@@ -1,4 +1,5 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { FieldHelpComponent } from '../shared/field-help';
@@ -303,6 +304,49 @@ const PRODOTTI_FIELDS: FieldDef[] = [
           }
         </div>
 
+        <!-- ── Logistica & immagine ─────────────────────── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <mat-icon>straighten</mat-icon>
+            <span>Logistica & immagine</span>
+            <span class="section-hint">Peso, dimensioni e foto del prodotto</span>
+          </div>
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Peso unitario (kg)</mat-label>
+              <input matInput type="number" min="0" step="0.001" formControlName="peso" placeholder="es. 2,5">
+              <mat-icon matSuffix>scale</mat-icon>
+              <mat-hint>Usato per calcolare il peso lordo dei documenti di trasporto</mat-hint>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Dimensioni</mat-label>
+              <input matInput formControlName="dimensioni" placeholder="es. 120×80×40 cm">
+              <mat-icon matSuffix>straighten</mat-icon>
+              <mat-hint>Testo libero: compare nei listini e nelle schede preventivo</mat-hint>
+            </mat-form-field>
+          </div>
+          <div class="img-row">
+            @if (immagine) {
+              <img [src]="immagine" alt="Immagine prodotto" class="img-preview">
+              <div class="img-actions">
+                <button mat-stroked-button type="button" (click)="imgInput.click()">
+                  <mat-icon>swap_horiz</mat-icon> Sostituisci
+                </button>
+                <button mat-stroked-button type="button" color="warn" (click)="rimuoviImmagine()">
+                  <mat-icon>delete</mat-icon> Rimuovi
+                </button>
+              </div>
+            } @else {
+              <button mat-stroked-button type="button" (click)="imgInput.click()" [disabled]="immagineLoading">
+                <mat-icon>add_photo_alternate</mat-icon>
+                {{ immagineLoading ? 'Caricamento…' : 'Carica immagine' }}
+              </button>
+              <span class="img-hint">JPG o PNG · ridimensionata automaticamente · usabile nelle schede prodotto dei preventivi</span>
+            }
+            <input #imgInput type="file" accept="image/*" class="hidden-input" (change)="onImmagineSelected($event)">
+          </div>
+        </div>
+
         <!-- ── Descrizione ──────────────────────────────── -->
         <div class="form-section is-flat">
           <div class="form-section-header">
@@ -388,6 +432,14 @@ const PRODOTTI_FIELDS: FieldDef[] = [
     .prezzo-mode-toggle ::ng-deep .mat-button-toggle { font-size:11px; }
     .prezzo-mode-toggle ::ng-deep .mat-button-toggle-button { height:24px; padding:0 10px; line-height:24px; }
     .prezzo-mode-toggle ::ng-deep .mat-button-toggle-label-content { line-height:24px; padding:0; font-weight:600; }
+    .img-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:4px; }
+    .img-preview {
+      max-width:160px; max-height:120px; border-radius:10px;
+      border:1px solid var(--border, #e2e8f0); object-fit:contain; background:#fff;
+      box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.06));
+    }
+    .img-actions { display:flex; flex-direction:column; gap:8px; }
+    .img-hint { font-size:11px; color:var(--text-tertiary, #94a3b8); max-width:260px; }
   `]
 })
 export class ProdottoDialogComponent implements OnInit {
@@ -399,6 +451,13 @@ export class ProdottoDialogComponent implements OnInit {
   fornitori: (ProdottoFornitore & { cercaFornitore?: string })[] = [];
   fornitoriList: Fornitore[] = [];
   codiciAlias: CodiceAlias[] = [];
+
+  /** Immagine prodotto (data URL). Caricata a parte: la lista non la include. */
+  immagine = '';
+  immagineLoading = false;
+  /** False finché l'immagine del prodotto in modifica non è arrivata dal server:
+   *  evita che un salvataggio "veloce" la sovrascriva con il valore vuoto. */
+  private immaginePronta = true;
 
   prezzoMode: 'netto' | 'ivato' = (localStorage.getItem('prodotto-prezzo-mode') as 'netto' | 'ivato') ?? 'netto';
 
@@ -460,7 +519,11 @@ export class ProdottoDialogComponent implements OnInit {
       sogliaMinima: [data?.sogliaMinima || null, [Validators.min(0)]],
       descrizione:  [data?.descrizione ?? ''],
       haVarianti:   [data?.haVarianti ?? false],
+      peso:         [data?.peso ?? null, [Validators.min(0)]],
+      dimensioni:   [data?.dimensioni ?? ''],
     });
+    this.immagine = data?.immagine ?? '';
+    this.immaginePronta = !data?.id || data?.immagine !== undefined;
   }
 
   ngOnInit() {
@@ -483,6 +546,17 @@ export class ProdottoDialogComponent implements OnInit {
     } else if (this.data?.varianti?.length) {
       // Duplicazione: precarico le varianti del prodotto sorgente (come nuove, senza id/barcode).
       this.varianti = this.data.varianti.map(v => ({ taglia: v.taglia, colore: v.colore, quantita: v.quantita, barcode: '' }));
+    }
+    if (this.data?.id && !this.immaginePronta) {
+      if (this.data.haImmagine === false) {
+        this.immaginePronta = true;   // il prodotto non ha immagine: niente da scaricare
+      } else {
+        // L'immagine non viaggia nella lista: la recupero dal dettaglio.
+        this.ds.getProdotto(this.data.id).subscribe({
+          next: p => { this.immagine = p.immagine || ''; this.immaginePronta = true; },
+          error: () => { this.immaginePronta = true; },
+        });
+      }
     }
     if (this.data?.id) {
       this.ds.getProdottoFornitori(this.data.id).subscribe(f =>
@@ -548,10 +622,53 @@ export class ProdottoDialogComponent implements OnInit {
     });
   }
 
+  // ── Immagine prodotto ─────────────────────────────────────────────────────
+  onImmagineSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.immagineLoading = true;
+    const reader = new FileReader();
+    reader.onload = () => this.ridimensionaImmagine(reader.result as string);
+    reader.onerror = () => { this.immagineLoading = false; };
+    reader.readAsDataURL(file);
+  }
+
+  /** Ridimensiona a max 900px sul lato lungo e comprime in JPEG su fondo bianco
+   *  (le foto originali da fotocamera sarebbero troppo pesanti per il DB). */
+  private ridimensionaImmagine(dataUrl: string) {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      this.immagine = canvas.toDataURL('image/jpeg', 0.85);
+      this.immaginePronta = true;
+      this.immagineLoading = false;
+    };
+    img.onerror = () => { this.immagineLoading = false; };
+    img.src = dataUrl;
+  }
+
+  rimuoviImmagine() { this.immagine = ''; this.immaginePronta = true; }
+
   save() {
     if (this.form.valid) {
       const fornitori = this.fornitori.map(({ cercaFornitore, ...rest }) => rest);
-      this.dialogRef.close({ ...this.data, ...this.form.value, varianti: this.varianti, fornitori });
+      this.dialogRef.close({
+        ...this.data, ...this.form.value, varianti: this.varianti, fornitori,
+        // Inclusa solo quando è nota: se il fetch non è ancora arrivato il
+        // backend la lascia invariata (undefined = non toccare).
+        ...(this.immaginePronta ? { immagine: this.immagine } : {}),
+      });
     }
   }
 }
@@ -747,9 +864,12 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /** Duplica un prodotto: apre la scheda precompilata col nome + " (copia)" (e fornitori/varianti copiati). */
+  /** Duplica un prodotto: apre la scheda precompilata col nome + " (copia)" (e fornitori/varianti/immagine copiati). */
   duplica(p: Prodotto) {
-    this.ds.getProdottoFornitori(p.id!).subscribe(fornitori => {
+    forkJoin({
+      fornitori: this.ds.getProdottoFornitori(p.id!),
+      dettaglio: this.ds.getProdotto(p.id!),
+    }).subscribe(({ fornitori, dettaglio }) => {
       const clone: Prodotto = {
         ...p,
         id: undefined,
@@ -757,6 +877,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
         barcode: '',
         quantita: 0,
         fornitori,
+        immagine: dettaglio.immagine || '',
         varianti: (p.varianti ?? []).map(v => ({ taglia: v.taglia, colore: v.colore, quantita: 0, barcode: '' })),
       };
       const ref = this.dialog.open(ProdottoDialogComponent, { data: clone, width: '95vw', maxWidth: '900px' });
@@ -817,6 +938,14 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
             { label: 'Soglia minima',    value: p.sogliaMinima != null ? String(p.sogliaMinima) : undefined },
             { label: 'Unità di misura',  value: p.unitaMisura },
             { label: 'Con varianti',     value: p.haVarianti ? 'Sì' : undefined },
+          ],
+        },
+        {
+          title: 'Logistica',
+          rows: [
+            { label: 'Peso unitario',    value: p.peso != null ? `${p.peso} kg` : undefined },
+            { label: 'Dimensioni',       value: p.dimensioni || undefined },
+            { label: 'Immagine',         value: p.haImmagine ? 'Sì' : undefined },
           ],
         },
       ],

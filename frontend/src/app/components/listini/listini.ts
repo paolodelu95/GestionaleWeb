@@ -200,7 +200,8 @@ export class NuovoListinoDialogComponent {
 export class ColonneListinoDialogComponent {
   colonne: ListinoColonnaCfg[] = [];
   nuova = '';
-  readonly suggerimenti = ['Dimensioni', 'Peso', 'Q.tà per pallet', 'Q.tà per cartone', 'Confezione', 'Colore', 'Materiale', 'Note'];
+  // Dimensioni e Peso non sono qui: sono colonne standard (dalla scheda prodotto).
+  readonly suggerimenti = ['Q.tà per pallet', 'Q.tà per cartone', 'Confezione', 'Colore', 'Materiale', 'Note'];
 
   constructor(
     public dialogRef: MatDialogRef<ColonneListinoDialogComponent>,
