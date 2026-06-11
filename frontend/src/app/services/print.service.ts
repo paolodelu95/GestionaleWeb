@@ -70,6 +70,9 @@ const FORCED_COLUMNS = new Set<ColumnKey>(['num', 'codiceDescrizione', 'importo'
 
 interface ResolvedColumn { key: ColumnKey; label: string; width: number | 'auto'; align: 'left' | 'center' | 'right'; visible: boolean; }
 
+/** Miniatura prodotto per la stampa: data-URL + dimensioni naturali (px). */
+interface RigaImg { data: string; w: number; h: number; }
+
 const DEFAULT_COLUMNS: ResolvedColumn[] = [
   { key: 'num', label: '#', width: 8, align: 'center', visible: true },
   { key: 'codiceDescrizione', label: 'Codice / Descrizione', width: 'auto', align: 'left', visible: true },
@@ -401,19 +404,19 @@ export class PrintService {
     this.resolved = this.normalizeConfig(this.getTemplateConfig(az), 'preventivo');
     const logo = await this.logoFor(az);
     const pdf = new jsPDF('p', 'mm', 'a4');
+    // Miniature dei prodotti accanto al codice (attivabile da Impostazioni → Stampa).
+    const immagini = this.blockVisible('immaginiPreventivo')
+      ? await this.loadRigheImmagini(doc.righe || [])
+      : undefined;
     let y = this.doHdr(pdf, az, 'PREVENTIVO', `Validità: ${doc.validita || 30} giorni`, doc.numero, doc.dataEmissione, logo);
     y = this.runSections(pdf, y, 'preventivo', {
       parti: (yy) => this.doParties(pdf, yy,
         { lbl: 'EMITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
         { lbl: 'CLIENTE', name: doc.cliente?.ragioneSociale || '—', lines: this.contactLines(doc.cliente) }),
-      tabella: (yy) => this.table(pdf, yy, doc.righe || []),
+      tabella: (yy) => this.table(pdf, yy, doc.righe || [], immagini),
       totali: (yy) => this.totals(pdf, yy, doc),
       note: (yy) => doc.note ? this.noteBox(pdf, yy, doc.note) : yy,
     });
-    // Appendice con le foto dei prodotti (disattivabile da Impostazioni → Stampa).
-    if (this.blockVisible('schedeProdotto')) {
-      y = await this.schedeProdotto(pdf, y, doc.righe || []);
-    }
     this.footer(pdf, az);
     return pdf;
   }
@@ -1019,25 +1022,35 @@ export class PrintService {
     }
   }
 
-  private table(doc: jsPDF, y: number, righe: any[]): number {
+  private table(doc: jsPDF, y: number, righe: any[], immagini?: Map<number, RigaImg>): number {
     const C = this.resolved.colors;
     const fs = this.resolved.fontScale;
     const cols = this.resolved.columns.filter(c => c.visible);
+    // Colonna miniatura accanto al codice, solo se almeno una riga ha un'immagine.
+    const showImg = !!immagini && righe.some(r => r.tipo !== 'NOTA' && r.prodottoId && immagini.get(r.prodottoId));
+    const imgColW = 16, imgH = 13;
+    const rowImg: (RigaImg | null)[] = [];
     let rowNum = 0;
     const body = righe.map(r => {
       if (r.tipo === 'NOTA') {
-        return [{ content: r.descrizione || '', colSpan: cols.length, styles: { fontStyle: 'italic', textColor: C.muted } }];
+        rowImg.push(null);
+        return [{ content: r.descrizione || '', colSpan: cols.length + (showImg ? 1 : 0), styles: { fontStyle: 'italic', textColor: C.muted } }];
       }
       rowNum++;
-      return cols.map(c => this.cellValue(c.key, r, rowNum));
+      const img = showImg && r.prodottoId ? (immagini!.get(r.prodottoId) || null) : null;
+      rowImg.push(img);
+      const cells: any[] = cols.map(c => this.cellValue(c.key, r, rowNum));
+      return showImg ? [{ content: '', styles: img ? { minCellHeight: imgH + 3 } : {} }, ...cells] : cells;
     });
+    const off = showImg ? 1 : 0;
     const columnStyles: any = {};
+    if (showImg) columnStyles[0] = { cellWidth: imgColW, halign: 'center', valign: 'middle' };
     cols.forEach((c, i) => {
-      columnStyles[i] = { cellWidth: c.width, ...(c.align !== 'left' ? { halign: c.align } : {}) };
+      columnStyles[i + off] = { cellWidth: c.width, ...(c.align !== 'left' ? { halign: c.align } : {}) };
     });
     autoTable(doc, {
       startY: y,
-      head: [cols.map(c => c.label)],
+      head: [[...(showImg ? [''] : []), ...cols.map(c => c.label)]],
       body,
       theme: this.resolved.tableTheme,
       styles: { font: this.resolved.fontFamily },
@@ -1046,6 +1059,17 @@ export class PrintService {
       alternateRowStyles: { fillColor: C.rowAlt },
       columnStyles,
       margin: { left: this.ML, right: this.ML },
+      didDrawCell: showImg ? (data: any) => {
+        if (data.section !== 'body' || data.column.index !== 0) return;
+        const img = rowImg[data.row.index];
+        if (!img) return;
+        const cell = data.cell, pad = 1.5;
+        const boxW = cell.width - pad * 2, boxH = cell.height - pad * 2;
+        const k = Math.min(boxW / img.w, boxH / img.h);
+        const iw = img.w * k, ih = img.h * k;
+        const fmt = img.data.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        try { doc.addImage(img.data, fmt, cell.x + (cell.width - iw) / 2, cell.y + (cell.height - ih) / 2, iw, ih); } catch { /* immagine illeggibile */ }
+      } : undefined,
     });
     return (doc as any).lastAutoTable.finalY + 4;
   }
@@ -1264,67 +1288,25 @@ export class PrintService {
     return y + 5;
   }
 
-  /** Appendice "Schede prodotto" del preventivo: card con foto, nome, codice,
-   *  dimensioni e peso per i prodotti delle righe che hanno un'immagine. */
-  private async schedeProdotto(pdf: jsPDF, y: number, righe: any[]): Promise<number> {
+  /** Carica le miniature dei prodotti delle righe (una sola chiamata), mappate
+   *  per prodottoId con le dimensioni naturali per non deformarle in stampa. */
+  private async loadRigheImmagini(righe: any[]): Promise<Map<number, RigaImg>> {
+    const map = new Map<number, RigaImg>();
     const ids = [...new Set((righe || [])
       .filter(r => r.tipo !== 'NOTA' && r.prodottoId)
       .map(r => r.prodottoId as number))];
-    if (!ids.length) return y;
-    let schede: { id: number; nome: string; codice: string; peso: number | null; dimensioni: string; immagine: string }[];
+    if (!ids.length) return map;
+    let schede: { id: number; immagine: string }[];
     try {
       schede = await firstValueFrom(this.ds.getProdottoSchede(ids));
-    } catch { return y; }
-    schede = (schede || []).filter(s => s.immagine);
-    if (!schede.length) return y;
-
-    const C = this.resolved.colors;
-    const gap = 6;
-    const cols = 3;
-    const cw = (this.CW - gap * (cols - 1)) / cols;
-    const imgH = 32;
-    const cardH = imgH + 24;
-
-    // Dimensioni naturali delle immagini, per centrarle senza deformarle.
-    const dims = await Promise.all(schede.map(s => this.imageSize(s.immagine)));
-
-    y += 4;
-    if (y + cardH + 12 > 282) { pdf.addPage(); y = 16; }
-    y = this.secTitle(pdf, y, 'Schede prodotto');
-    y += 2;
-
-    for (let i = 0; i < schede.length; i++) {
-      const col = i % cols;
-      if (col === 0 && i > 0) y += cardH + gap;
-      if (col === 0 && y + cardH > 282) { pdf.addPage(); y = 16; }
-      const x = this.ML + col * (cw + gap);
-      const s = schede[i];
-
-      pdf.setDrawColor(...C.divider); pdf.setLineWidth(0.3);
-      pdf.roundedRect(x, y, cw, cardH, 1.5, 1.5, 'S');
-
+    } catch { return map; }
+    const withImg = (schede || []).filter(s => s.immagine);
+    const dims = await Promise.all(withImg.map(s => this.imageSize(s.immagine)));
+    withImg.forEach((s, i) => {
       const d = dims[i];
-      if (d) {
-        const boxW = cw - 4, boxH = imgH;
-        const k = Math.min(boxW / d.w, boxH / d.h);
-        const iw = d.w * k, ih = d.h * k;
-        const fmt = s.immagine.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-        try {
-          pdf.addImage(s.immagine, fmt, x + 2 + (boxW - iw) / 2, y + 2 + (boxH - ih) / 2, iw, ih);
-        } catch { /* immagine non leggibile: lascia la card senza foto */ }
-      }
-
-      let ty = y + imgH + 8;
-      this.F(pdf, 8.5, 'bold'); pdf.setTextColor(...C.text);
-      const nameLines = (pdf.splitTextToSize(s.nome || '', cw - 6) as string[]).slice(0, 2);
-      pdf.text(nameLines, x + 3, ty);
-      ty += nameLines.length * 4 + 1.5;
-      this.F(pdf, 7.5, 'normal'); pdf.setTextColor(...C.muted);
-      const meta = [s.codice, s.dimensioni, s.peso != null ? `${s.peso} kg` : '']
-        .filter(Boolean).join(' · ');
-      if (meta) pdf.text((pdf.splitTextToSize(meta, cw - 6) as string[]).slice(0, 1), x + 3, ty);
-    }
-    return y + cardH + 6;
+      if (d) map.set(s.id, { data: s.immagine, w: d.w, h: d.h });
+    });
+    return map;
   }
 
   /** Dimensioni naturali di un'immagine data-URL (null se non caricabile). */

@@ -440,6 +440,13 @@ const PRODOTTI_FIELDS: FieldDef[] = [
     }
     .img-actions { display:flex; flex-direction:column; gap:8px; }
     .img-hint { font-size:11px; color:var(--text-tertiary, #94a3b8); max-width:260px; }
+    @media (max-width: 600px) {
+      .img-row { flex-direction:column; align-items:stretch; gap:10px; }
+      .img-preview { max-width:100%; max-height:200px; }
+      .img-actions { flex-direction:row; }
+      .img-actions button { flex:1; }
+      .img-hint { max-width:100%; }
+    }
   `]
 })
 export class ProdottoDialogComponent implements OnInit {

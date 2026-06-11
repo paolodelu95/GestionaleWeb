@@ -478,7 +478,7 @@ export class ImpostazioniComponent implements OnInit {
     { key: 'trasporto', label: 'Dati trasporto (doc. di trasporto)' },
     { key: 'firme', label: 'Firme (doc. di trasporto)' },
     { key: 'note', label: 'Note' },
-    { key: 'schedeProdotto', label: 'Schede prodotto con foto (preventivo)' },
+    { key: 'immaginiPreventivo', label: 'Immagini prodotti accanto al codice (preventivo)' },
     { key: 'footer', label: 'Piè di pagina' },
   ];
 

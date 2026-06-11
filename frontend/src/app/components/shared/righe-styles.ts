@@ -117,6 +117,11 @@ export const RIGHE_STYLES = `
   /* ===== DDT: colli ===== */
   .colli-row { display: flex; align-items: flex-end; gap: var(--sp-2); }
   .colli-calc-btn { margin-bottom: 20px; flex-shrink: 0; }
+  /* Mobile: la .form-row impila in colonna (styles.scss) → niente margine fittizio
+     d'allineamento, il bottone va a larghezza piena sotto al campo. */
+  @media (max-width: 600px) {
+    .colli-calc-btn { margin-bottom: 0; width: 100%; }
+  }
 
   /* ===== CDK drag ===== */
   .cdk-drag-placeholder { opacity: 0.4; }
