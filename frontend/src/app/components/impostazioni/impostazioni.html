@@ -839,7 +839,7 @@
               <!-- Colonne tabella -->
               <mat-expansion-panel>
                 <mat-expansion-panel-header><mat-panel-title>Colonne tabella</mat-panel-title></mat-expansion-panel-header>
-                <p class="grafica-hint">Trascina per riordinare, spunta per mostrare. # / Descrizione / Importo sono sempre presenti.</p>
+                <p class="grafica-hint">Trascina per riordinare, spunta per mostrare. Descrizione / Importo sono sempre presenti; il numero riga (#) si può togliere.</p>
                 <div class="reorder-list" cdkDropList (cdkDropListDropped)="dropColumn($event)">
                   @for (c of columnsList; track c.key) {
                     <div class="reorder-item" cdkDrag>

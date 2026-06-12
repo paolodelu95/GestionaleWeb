@@ -722,7 +722,8 @@ export class ImpostazioniComponent implements OnInit {
     num: 'N. riga', codiceDescrizione: 'Codice / Descrizione', quantita: 'Quantità',
     um: 'Unità di misura', prezzo: 'Prezzo', sconto: 'Sconto %', iva: 'IVA', importo: 'Importo',
   };
-  readonly forcedColumns: string[] = ['num', 'codiceDescrizione', 'importo'];
+  // Il numero riga (#) NON è più forzato: si può togliere dalla stampa.
+  readonly forcedColumns: string[] = ['codiceDescrizione', 'importo'];
 
   sectionsOrderList: SectionKey[] = ['parti', 'tabella', 'totali', 'pagamento', 'note'];
   columnsList: { key: ColumnKey; visible: boolean }[] = [];

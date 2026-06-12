@@ -677,7 +677,12 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
     moveItemInArray(this.tuttiCaricati, event.previousIndex, event.currentIndex);
   }
 
-  printFromDialog() { if (this.data?.id) this.printSvcDialog.printPreventivo(this.data.id); }
+  printFromDialog() {
+    if (this.data?.id) {
+      // Anteprima con il toggle immagini corrente, anche se non ancora salvato.
+      this.printSvcDialog.printPreventivo(this.data.id, { stampaImmagini: this.form.value.stampaImmagini });
+    }
+  }
 
   save() {
     this.submitted = true;

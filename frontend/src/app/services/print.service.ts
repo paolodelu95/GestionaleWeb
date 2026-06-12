@@ -66,7 +66,8 @@ const LOGO_SIZES: Record<'S' | 'M' | 'L', { w: number; h: number }> = {
   S: { w: 30, h: 12 }, M: { w: 44, h: 18 }, L: { w: 60, h: 24 },
 };
 
-const FORCED_COLUMNS = new Set<ColumnKey>(['num', 'codiceDescrizione', 'importo']);
+// Il numero riga ('num') è disattivabile da Impostazioni → Stampa → Colonne.
+const FORCED_COLUMNS = new Set<ColumnKey>(['codiceDescrizione', 'importo']);
 
 interface ResolvedColumn { key: ColumnKey; label: string; width: number | 'auto'; align: 'left' | 'center' | 'right'; visible: boolean; }
 
@@ -295,9 +296,11 @@ export class PrintService {
     });
   }
 
-  printPreventivo(id: number) {
+  // `override` consente al dialog di anteprimare opzioni non ancora salvate
+  // (es. il toggle "mostra immagini") senza dover prima salvare il preventivo.
+  printPreventivo(id: number, override?: Record<string, any>) {
     forkJoin({ doc: this.ds.getPreventivoePrint(id), az: this.ds.getAzienda() }).subscribe(async ({ doc, az }) => {
-      const pdf = await this.buildPreventivo(doc, az);
+      const pdf = await this.buildPreventivo({ ...doc, ...(override || {}) }, az);
       this.showPreview(pdf, `Preventivo_${doc.numero}.pdf`);
     });
   }

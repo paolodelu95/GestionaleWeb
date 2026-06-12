@@ -786,7 +786,6 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Ordini cliente',   icon: 'shopping_cart',   route: '/ordini' },
         { label: 'Documenti di trasporto', icon: 'receipt_long', route: '/ddt' },
         { label: 'Fatture',          icon: 'receipt',         route: '/fatture' },
-        { label: 'Fatture elettroniche (SDI)', icon: 'fact_check', route: '/fatture-elettroniche' },
         { label: 'Note di Credito',  icon: 'note_alt',        route: '/note-credito' },
         { label: 'Ricorrenti',       icon: 'autorenew',       route: '/fatture-ricorrenti' },
         { label: 'Vendita al banco', icon: 'point_of_sale',   route: '/vendita-banco' },
@@ -800,7 +799,13 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Ordini fornitore',  icon: 'shopping_cart',    route: '/ordini-fornitore' },
         { label: 'Arrivi merce',      icon: 'move_to_inbox',    route: '/arrivi-merce' },
         { label: 'OCR fatture (PDF)', icon: 'document_scanner', route: '/ocr-fatture' },
-        { label: 'SDI ricezione',     icon: 'cloud_download',   route: '/sdi-passive' },
+      ]
+    },
+    {
+      label: 'Fatture elettroniche', icon: 'cloud_sync',
+      children: [
+        { label: 'Emesse (SDI)',   icon: 'fact_check',      route: '/fatture-elettroniche' },
+        { label: 'Ricevute (SDI)', icon: 'cloud_download',  route: '/sdi-passive' },
       ]
     },
     {
