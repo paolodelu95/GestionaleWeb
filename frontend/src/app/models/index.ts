@@ -287,6 +287,9 @@ export interface Cliente {
   ultimoAcquisto?: string | null;
   fatturatoAnno?: number;
   fattureInsolute?: number;
+  /** È anche fornitore: crea/collega un'anagrafica fornitore gemella. */
+  ancheFornitore?: boolean;
+  fornitoreCollegatoId?: number | null;
 }
 
 /** Colonna descrittiva personalizzata di un listino (es. Dimensioni, Peso, Q.tà pallet). */
@@ -488,6 +491,9 @@ export interface Fornitore {
   pec?: string;
   /** Soggetto estero — usato per esterometro e autofatture TD17/18/19. */
   estero?: boolean;
+  /** È anche cliente: crea/collega un'anagrafica cliente gemella. */
+  ancheCliente?: boolean;
+  clienteCollegatoId?: number | null;
 }
 
 export interface RigaDocumento {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { applicaGemelloDaFornitore, scollegaGemelloFornitore } = require('../utils/anagraficaGemello');
 
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM fornitori ORDER BY ragione_sociale').all();
@@ -21,9 +22,10 @@ router.get('/check-piva', (req, res) => {
 router.post('/', (req, res) => {
   const f = req.body;
   const result = db.prepare(`INSERT INTO fornitori
-    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, p_iva, sdi, pec, estero)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0);
+    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, p_iva, sdi, pec, estero, anche_cliente)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0, f.ancheCliente ? 1 : 0);
+  applicaGemelloDaFornitore(result.lastInsertRowid);
   res.json({ id: result.lastInsertRowid });
 });
 
@@ -76,12 +78,14 @@ router.get('/:id', (req, res) => {
 router.put('/:id', (req, res) => {
   const f = req.body;
   db.prepare(`UPDATE fornitori SET ragione_sociale=?, email=?, telefono=?, cellulare=?, via=?, cap=?,
-    citta=?, provincia=?, stato=?, p_iva=?, sdi=?, pec=?, estero=? WHERE id=?`)
-    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0, req.params.id);
+    citta=?, provincia=?, stato=?, p_iva=?, sdi=?, pec=?, estero=?, anche_cliente=? WHERE id=?`)
+    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0, f.ancheCliente ? 1 : 0, req.params.id);
+  applicaGemelloDaFornitore(Number(req.params.id));
   res.json({ success: true });
 });
 
 router.delete('/:id', (req, res) => {
+  scollegaGemelloFornitore(Number(req.params.id));
   db.prepare('DELETE FROM fornitori WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });
@@ -98,6 +102,8 @@ function toDto(r) {
     id: r.id, ragioneSociale: r.ragione_sociale, email: r.email, telefono: r.telefono, cellulare: r.cellulare,
     via: r.via, cap: r.cap, citta: r.citta, provincia: r.provincia, stato: r.stato, pIva: r.p_iva, sdi: r.sdi, pec: r.pec,
     estero: r.estero === 1,
+    ancheCliente: r.anche_cliente === 1,
+    clienteCollegatoId: r.cliente_collegato_id || null,
   };
 }
 

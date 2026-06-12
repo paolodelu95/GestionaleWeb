@@ -730,6 +730,16 @@ function initTenantSchema(db) {
     // Preventivo: includere o no le miniature dei prodotti nella stampa PDF
     // (toggle per-documento; default 1 = mostra).
     'ALTER TABLE preventivi ADD COLUMN stampa_immagini INTEGER DEFAULT 1',
+    // Doppio ruolo anagrafica: un cliente può essere anche fornitore e viceversa.
+    // Il flag crea/collega un'anagrafica "gemella" nell'altra tabella, tenuta in
+    // sync sui campi condivisi (vedi utils/anagraficaGemello.js).
+    'ALTER TABLE clienti ADD COLUMN anche_fornitore INTEGER DEFAULT 0',
+    'ALTER TABLE clienti ADD COLUMN fornitore_collegato_id INTEGER',
+    'ALTER TABLE fornitori ADD COLUMN anche_cliente INTEGER DEFAULT 0',
+    'ALTER TABLE fornitori ADD COLUMN cliente_collegato_id INTEGER',
+    // DDT verso fornitori (reso merce): tipo CLIENTE (default storico) o FORNITORE.
+    "ALTER TABLE ddt ADD COLUMN tipo TEXT DEFAULT 'CLIENTE'",
+    'ALTER TABLE ddt ADD COLUMN fornitore_id INTEGER',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

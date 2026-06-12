@@ -263,6 +263,15 @@ export class AziendaSearchDialogFComponent {
               Soggetto estero (incluso nell'esterometro / autofattura TD17-TD19)
             </mat-checkbox>
           </div>
+          <div class="form-row" style="align-items:flex-start">
+            <div>
+              <mat-checkbox formControlName="ancheCliente">È anche un cliente</mat-checkbox>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px;max-width:520px">
+                Crea (o collega) un'anagrafica cliente gemella con gli stessi dati, così potrai
+                emettergli preventivi, fatture e documenti di trasporto (es. resi). Le due schede restano sincronizzate.
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ── Sede ─────────────────────────────────────── -->
@@ -354,6 +363,7 @@ export class FornitoreDialogComponent implements OnInit {
       stato: [data?.stato ?? 'Italia'], pIva: [data?.pIva ?? '', pIvaValidator, this.pivaAsyncValidator('fornitori', data?.id)],
       sdi: [data?.sdi ?? ''], pec: [data?.pec ?? ''],
       estero: [data?.estero ?? false],
+      ancheCliente: [data?.ancheCliente ?? false],
     });
   }
 

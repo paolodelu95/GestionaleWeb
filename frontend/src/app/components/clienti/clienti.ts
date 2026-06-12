@@ -20,6 +20,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Observable, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
@@ -186,7 +187,7 @@ export class AziendaSearchDialogComponent {
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule,
             MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, MatTabsModule,
-            FieldHelpComponent],
+            MatSlideToggleModule, FieldHelpComponent],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -408,6 +409,15 @@ export class AziendaSearchDialogComponent {
                 <mat-hint>I prezzi del listino verranno applicati automaticamente</mat-hint>
               }
             </mat-form-field>
+          </div>
+          <div class="form-row" style="align-items:flex-start">
+            <div>
+              <mat-slide-toggle formControlName="ancheFornitore">È anche un fornitore</mat-slide-toggle>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px;max-width:520px">
+                Crea (o collega) un'anagrafica fornitore gemella con gli stessi dati, così potrai
+                registrarci acquisti e ordini fornitore. Le due schede restano sincronizzate.
+              </div>
+            </div>
           </div>
         </div>
       </form>
@@ -639,6 +649,7 @@ export class ClienteDialogComponent implements OnInit {
       cig:            [data?.cig ?? ''],
       cup:            [data?.cup ?? ''],
       aliquotaIvaId:  [data?.aliquotaIvaId ?? null],
+      ancheFornitore: [data?.ancheFornitore ?? false],
     });
   }
 

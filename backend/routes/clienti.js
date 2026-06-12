@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { applicaGemelloDaCliente, scollegaGemelloCliente } = require('../utils/anagraficaGemello');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
@@ -48,9 +49,10 @@ router.get('/check-piva', (req, res) => {
 router.post('/', (req, res) => {
   const c = req.body;
   const result = db.prepare(`INSERT INTO clienti
-    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id, listino_id, tipo_soggetto, cig, cup, aliquota_iva_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null);
+    (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id, listino_id, tipo_soggetto, cig, cup, aliquota_iva_id, anche_fornitore)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null, c.ancheFornitore ? 1 : 0);
+  applicaGemelloDaCliente(result.lastInsertRowid);
   res.json({ id: result.lastInsertRowid });
 });
 
@@ -96,8 +98,9 @@ router.put('/:id', (req, res) => {
   const c = req.body;
   db.prepare(`UPDATE clienti SET ragione_sociale=?, email=?, telefono=?, cellulare=?, via=?, cap=?,
     citta=?, provincia=?, stato=?, codice_fiscale=?, p_iva=?, sdi=?, pec=?, tipo_pagamento_id=?, listino_id=?,
-    tipo_soggetto=?, cig=?, cup=?, aliquota_iva_id=? WHERE id=?`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null, req.params.id);
+    tipo_soggetto=?, cig=?, cup=?, aliquota_iva_id=?, anche_fornitore=? WHERE id=?`)
+    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null, c.ancheFornitore ? 1 : 0, req.params.id);
+  applicaGemelloDaCliente(Number(req.params.id));
   res.json({ success: true });
 });
 
@@ -148,6 +151,7 @@ router.delete('/:id', (req, res) => {
     return res.status(409).json({ error: 'cliente_ha_documenti', counts: { fatture, ddt, preventivi, ordini, noteCredito } });
   }
 
+  scollegaGemelloCliente(id);
   db.prepare('DELETE FROM clienti WHERE id=?').run(id);
   res.json({ success: true });
 });
@@ -225,6 +229,8 @@ function toDto(r) {
     cig: r.cig || '',
     cup: r.cup || '',
     aliquotaIvaId: r.aliquota_iva_id || null,
+    ancheFornitore: r.anche_fornitore === 1,
+    fornitoreCollegatoId: r.fornitore_collegato_id || null,
   };
 }
 
