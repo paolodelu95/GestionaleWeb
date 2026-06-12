@@ -2375,6 +2375,27 @@ body.glass-ui {
     .mat-button-toggle-label-content { color: #fff !important; }
   }
 
+  // ── Toggle controparte (DDT: Cliente / Fornitore-reso) ──
+  // Senza vincoli il gruppo si stira a tutta larghezza mentre i due segmenti
+  // restano a contenuto e allineati a sinistra → enorme vuoto a destra (sembrava
+  // rotto). Lo rendiamo un segmented compatto a due metà uguali e centrate.
+  .tipo-controparte-toggle.mat-button-toggle-group {
+    display: flex;
+    width: 100%;
+    max-width: 360px;
+
+    .mat-button-toggle { flex: 1 1 0; }
+
+    .mat-button-toggle-label-content {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 0 16px; font-weight: 600;
+    }
+    .mat-button-toggle-label-content mat-icon,
+    .mat-button-toggle-label-content .mat-icon {
+      font-size: 18px; width: 18px; height: 18px; margin: 0;
+    }
+  }
+
   // ── Campi: angoli morbidi coerenti col vetro ──
   .mat-mdc-text-field-wrapper { border-radius: var(--radius-lg) !important; }
 
