@@ -698,7 +698,6 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() {
-    try { const s = JSON.parse(localStorage.getItem('filtri-ordini') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroTipo = s.tipo ?? null; } } catch {}
     this.load();
   }
 
@@ -745,12 +744,11 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     if (this.filtroTipo) data = data.filter(o => o.tipo === this.filtroTipo);
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
-    localStorage.setItem('filtri-ordini', JSON.stringify({ anno: this.filtroAnno, mese: this.filtroMese, tipo: this.filtroTipo }));
   }
 
   resetFiltri() {
     this.filtroAnno = null; this.filtroMese = null; this.filtroTipo = null;
-    this.dataSource.filter = ''; localStorage.removeItem('filtri-ordini'); this.applyFilters();
+    this.dataSource.filter = ''; this.applyFilters();
   }
 
   applyFilter(event: Event) {

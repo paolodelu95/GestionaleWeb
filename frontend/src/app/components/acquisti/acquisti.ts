@@ -530,7 +530,6 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   ) {}
 
   ngOnInit() {
-    try { const s = JSON.parse(localStorage.getItem('filtri-acquisti') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroFornitore = s.fornitore ?? null; } } catch {}
     // Apertura da scheda fornitore ("Acquisti" nel kebab): filtra subito su quel fornitore.
     const ff = consumePrefill<number>('filtroFornitore');
     if (ff) { this.filtroAnno = null; this.filtroMese = null; this.filtroFornitore = ff; }
@@ -578,12 +577,11 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     if (this.filtroFornitore) data = data.filter(a => a.fornitoreId === this.filtroFornitore);
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
-    localStorage.setItem('filtri-acquisti', JSON.stringify({ anno: this.filtroAnno, mese: this.filtroMese, fornitore: this.filtroFornitore }));
   }
 
   resetFiltri() {
     this.filtroAnno = null; this.filtroMese = null; this.filtroFornitore = null;
-    this.dataSource.filter = ''; localStorage.removeItem('filtri-acquisti'); this.applyFilters();
+    this.dataSource.filter = ''; this.applyFilters();
   }
 
   applyFilter(event: Event) {
