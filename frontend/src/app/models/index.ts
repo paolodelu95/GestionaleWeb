@@ -537,8 +537,14 @@ export interface Ddt {
   id?: number;
   numero: string;
   dataEmissione: string;
+  /** 'CLIENTE' (default) o 'FORNITORE' (reso merce a fornitore). */
+  tipo?: string;
   clienteId?: number | null;
   clienteNome?: string;
+  fornitoreId?: number | null;
+  fornitoreNome?: string | null;
+  /** Nome controparte (cliente o fornitore) calcolato dal backend per le liste. */
+  controparteNome?: string;
   note?: string;
   stato: string;
   totale?: number;

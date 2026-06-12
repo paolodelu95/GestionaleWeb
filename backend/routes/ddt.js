@@ -8,10 +8,11 @@ const { applicaRigheStock } = require('../utils/stock');
 
 router.get('/', (req, res) => {
   const rows = db.prepare(`
-    SELECT d.*, c.ragione_sociale as cliente_nome,
+    SELECT d.*, c.ragione_sociale as cliente_nome, fo.ragione_sociale as fornitore_nome,
            f.id as fattura_id, f.numero as fattura_numero
     FROM ddt d
     LEFT JOIN clienti c ON d.cliente_id = c.id
+    LEFT JOIN fornitori fo ON d.fornitore_id = fo.id
     LEFT JOIN fatture f ON f.ddt_id = d.id
     ORDER BY d.data_emissione DESC`).all();
   res.json(rows.map(r => toDto(r)));
@@ -24,6 +25,7 @@ router.get('/non-fatturati', (req, res) => {
     FROM ddt d
     LEFT JOIN clienti c ON d.cliente_id = c.id
     WHERE d.stato != 'ANNULLATO'
+      AND COALESCE(d.tipo,'CLIENTE') = 'CLIENTE'
       AND NOT EXISTS (SELECT 1 FROM fatture f WHERE f.ddt_id = d.id)
       AND NOT EXISTS (SELECT 1 FROM fatture_ddt fd WHERE fd.ddt_id = d.id)
     ORDER BY d.cliente_id, d.data_emissione`).all();
@@ -32,8 +34,10 @@ router.get('/non-fatturati', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const row = db.prepare(`
-    SELECT d.*, c.ragione_sociale as cliente_nome
-    FROM ddt d LEFT JOIN clienti c ON d.cliente_id = c.id
+    SELECT d.*, c.ragione_sociale as cliente_nome, fo.ragione_sociale as fornitore_nome
+    FROM ddt d
+    LEFT JOIN clienti c ON d.cliente_id = c.id
+    LEFT JOIN fornitori fo ON d.fornitore_id = fo.id
     WHERE d.id=?`).get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   const dto = toDto(row);
@@ -45,13 +49,16 @@ router.post('/', (req, res) => {
   const d = req.body;
   const dup = db.prepare('SELECT id FROM ddt WHERE numero=?').get(d.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${d.numero} è già utilizzato da un altro documento` });
+  const isForn = d.tipo === 'FORNITORE';
+  const clienteId = isForn ? null : (d.clienteId || null);
+  const fornitoreId = isForn ? (d.fornitoreId || null) : null;
   const result = db.prepare(`
-    INSERT INTO ddt (numero, data_emissione, cliente_id, causale, note, stato,
+    INSERT INTO ddt (numero, data_emissione, tipo, cliente_id, fornitore_id, causale, note, stato,
       data_ora_inizio_trasporto, aspetto_beni, porto, numero_colli, peso_lordo,
       incaricato_trasporto, vettore, destinazione_diversa, note_trasporto, destinazione_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(
-      d.numero, d.dataEmissione, d.clienteId || null,
+      d.numero, d.dataEmissione, isForn ? 'FORNITORE' : 'CLIENTE', clienteId, fornitoreId,
       d.causaleTrasporto || '', d.note || '', d.stato || 'EMESSO',
       d.dataOraInizioTrasporto || '', d.aspettoBeni || '',
       d.porto || 'Franco', d.numeroColli || 0, d.pesoLordo || 0,
@@ -62,15 +69,14 @@ router.post('/', (req, res) => {
   const ddtId = result.lastInsertRowid;
   if (d.righe?.length) {
     saveRighe(ddtId, d.righe);
-    const cliente = d.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(d.clienteId) : null;
     aggiornaQuantita(d.righe, -1, {
       data: d.dataEmissione, causale: 'DDT', documentoTipo: 'DDT',
       documentoId: ddtId, documentoNumero: d.numero,
-      clienteId: d.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
+      clienteId, clienteNome: controparteNome(d)
     });
     checkRiordino(d.righe.map(r => r.prodottoId).filter(Boolean));
   }
-  audit('ddt', ddtId, 'CREATE', { numero: d.numero, clienteId: d.clienteId, stato: d.stato || 'EMESSO', numRighe: d.righe?.length || 0 });
+  audit('ddt', ddtId, 'CREATE', { numero: d.numero, tipo: isForn ? 'FORNITORE' : 'CLIENTE', clienteId, fornitoreId, stato: d.stato || 'EMESSO', numRighe: d.righe?.length || 0 });
   res.json({ id: ddtId });
 });
 
@@ -88,13 +94,16 @@ router.put('/:id', (req, res) => {
       documentoNumero: old?.numero || '', clienteId: old?.cliente_id || null, clienteNome: oldCliente?.ragione_sociale || ''
     });
   }
+  const isForn = d.tipo === 'FORNITORE';
+  const clienteId = isForn ? null : (d.clienteId || null);
+  const fornitoreId = isForn ? (d.fornitoreId || null) : null;
   db.prepare(`
-    UPDATE ddt SET numero=?, data_emissione=?, cliente_id=?, causale=?, note=?, stato=?,
+    UPDATE ddt SET numero=?, data_emissione=?, tipo=?, cliente_id=?, fornitore_id=?, causale=?, note=?, stato=?,
       data_ora_inizio_trasporto=?, aspetto_beni=?, porto=?, numero_colli=?, peso_lordo=?,
       incaricato_trasporto=?, vettore=?, destinazione_diversa=?, note_trasporto=?, destinazione_id=?
     WHERE id=?`)
     .run(
-      d.numero, d.dataEmissione, d.clienteId || null,
+      d.numero, d.dataEmissione, isForn ? 'FORNITORE' : 'CLIENTE', clienteId, fornitoreId,
       d.causaleTrasporto || '', d.note || '', d.stato,
       d.dataOraInizioTrasporto || '', d.aspettoBeni || '',
       d.porto || 'Franco', d.numeroColli || 0, d.pesoLordo || 0,
@@ -106,11 +115,10 @@ router.put('/:id', (req, res) => {
   db.prepare('DELETE FROM ddt_righe WHERE ddt_id=?').run(req.params.id);
   if (d.righe?.length) {
     saveRighe(req.params.id, d.righe);
-    const cliente = d.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(d.clienteId) : null;
     aggiornaQuantita(d.righe, -1, {
       data: d.dataEmissione, causale: 'DDT', documentoTipo: 'DDT',
       documentoId: req.params.id, documentoNumero: d.numero,
-      clienteId: d.clienteId || null, clienteNome: cliente?.ragione_sociale || ''
+      clienteId, clienteNome: controparteNome(d)
     });
   }
   audit('ddt', Number(req.params.id), 'UPDATE', { before, after: { numero: d.numero, dataEmissione: d.dataEmissione, clienteId: d.clienteId, stato: d.stato, numRighe: d.righe?.length || 0 } });
@@ -139,6 +147,16 @@ router.delete('/:id', (req, res) => {
 
 // Movimentazione scorte centralizzata (utils/stock.js).
 const aggiornaQuantita = applicaRigheStock;
+
+// Nome della controparte (cliente o fornitore) dal body, per l'etichetta del movimento.
+function controparteNome(d) {
+  if (d.tipo === 'FORNITORE') {
+    const f = d.fornitoreId ? db.prepare('SELECT ragione_sociale FROM fornitori WHERE id=?').get(d.fornitoreId) : null;
+    return f?.ragione_sociale || '';
+  }
+  const c = d.clienteId ? db.prepare('SELECT ragione_sociale FROM clienti WHERE id=?').get(d.clienteId) : null;
+  return c?.ragione_sociale || '';
+}
 
 function saveRighe(ddtId, righe) {
   const stmt = db.prepare(`INSERT INTO ddt_righe
@@ -171,19 +189,31 @@ router.get('/:id/print', (req, res) => {
     SELECT d.*, c.ragione_sociale as c_nome, c.via as c_via, c.cap as c_cap,
            c.citta as c_citta, c.provincia as c_provincia, c.stato as c_stato,
            c.p_iva as c_p_iva, c.codice_fiscale as c_cod_fiscale,
-           c.email as c_email, c.telefono as c_telefono
+           c.email as c_email, c.telefono as c_telefono,
+           fo.ragione_sociale as f_nome, fo.via as f_via, fo.cap as f_cap,
+           fo.citta as f_citta, fo.provincia as f_provincia, fo.stato as f_stato,
+           fo.p_iva as f_p_iva, fo.email as f_email, fo.telefono as f_telefono
     FROM ddt d
     LEFT JOIN clienti c ON d.cliente_id = c.id
+    LEFT JOIN fornitori fo ON d.fornitore_id = fo.id
     WHERE d.id=?`).get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   const dto = toDto(row);
   dto.righe = getRighe(row.id);
-  dto.cliente = {
-    ragioneSociale: row.c_nome, via: row.c_via, cap: row.c_cap,
-    citta: row.c_citta, provincia: row.c_provincia, stato: row.c_stato,
-    pIva: row.c_p_iva, codFiscale: row.c_cod_fiscale,
-    email: row.c_email, telefono: row.c_telefono,
-  };
+  // Per un reso a fornitore il destinatario in stampa è il fornitore.
+  dto.cliente = (dto.tipo === 'FORNITORE')
+    ? {
+        ragioneSociale: row.f_nome, via: row.f_via, cap: row.f_cap,
+        citta: row.f_citta, provincia: row.f_provincia, stato: row.f_stato,
+        pIva: row.f_p_iva, codFiscale: '',
+        email: row.f_email, telefono: row.f_telefono,
+      }
+    : {
+        ragioneSociale: row.c_nome, via: row.c_via, cap: row.c_cap,
+        citta: row.c_citta, provincia: row.c_provincia, stato: row.c_stato,
+        pIva: row.c_p_iva, codFiscale: row.c_cod_fiscale,
+        email: row.c_email, telefono: row.c_telefono,
+      };
   res.json(dto);
 });
 
@@ -191,6 +221,7 @@ router.get('/:id/print', (req, res) => {
 router.post('/:id/to-fattura', (req, res) => {
   const ddt = db.prepare('SELECT * FROM ddt WHERE id=?').get(req.params.id);
   if (!ddt) return res.status(404).json({ error: 'Documento di trasporto non trovato' });
+  if ((ddt.tipo || 'CLIENTE') === 'FORNITORE') return res.status(400).json({ error: 'Un documento di trasporto verso un fornitore (reso) non può essere convertito in fattura' });
   const existing = db.prepare('SELECT id, numero FROM fatture WHERE ddt_id=?').get(req.params.id);
   if (existing) return res.status(409).json({ error: `Documento di trasporto già collegato alla fattura n. ${existing.numero}` });
   try {
@@ -238,9 +269,13 @@ router.patch('/:id/stato', (req, res) => {
 function toDto(r) {
   const totale = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100) * (1 + iva/100)), 0) as t FROM ddt_righe WHERE ddt_id=?`).get(r.id)?.t || 0;
   const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM ddt_righe WHERE ddt_id=?`).get(r.id)?.t || 0;
+  const tipo = r.tipo || 'CLIENTE';
   return {
     id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
+    tipo,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
+    fornitoreId: r.fornitore_id || null, fornitoreNome: r.fornitore_nome || null,
+    controparteNome: tipo === 'FORNITORE' ? (r.fornitore_nome || '') : (r.cliente_nome || ''),
     causaleTrasporto: r.causale || '',
     note: r.note, stato: r.stato,
     fatturaId: r.fattura_id || null, fatturaNumero: r.fattura_numero || null,

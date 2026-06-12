@@ -353,11 +353,12 @@ export class PrintService {
     this.resolved = this.normalizeConfig(this.getTemplateConfig(az), 'ddt');
     const logo = await this.logoFor(az);
     const pdf = new jsPDF('p', 'mm', 'a4');
-    let y = this.doHdr(pdf, az, 'DDT', 'Documento di Trasporto', doc.numero, doc.dataEmissione, logo);
+    const isReso = doc.tipo === 'FORNITORE';
+    let y = this.doHdr(pdf, az, 'DDT', isReso ? 'Documento di Trasporto · Reso a fornitore' : 'Documento di Trasporto', doc.numero, doc.dataEmissione, logo);
     y = this.runSections(pdf, y, 'ddt', {
       parti: (yy) => this.doParties(pdf, yy,
         { lbl: 'MITTENTE', name: az.ragioneSociale || '', lines: this.azLines(az) },
-        { lbl: 'DESTINATARIO', name: doc.cliente?.ragioneSociale || '—', lines: this.ddtDestLines(doc) }),
+        { lbl: isReso ? 'DESTINATARIO (FORNITORE)' : 'DESTINATARIO', name: doc.cliente?.ragioneSociale || '—', lines: this.ddtDestLines(doc) }),
       trasporto: (yy) => this.trasporto(pdf, yy, doc),
       tabella: (yy) => this.table(pdf, yy, doc.righe || []),
       totali: (yy) => this.totals(pdf, yy, doc),

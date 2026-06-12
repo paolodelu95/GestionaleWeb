@@ -25,7 +25,7 @@ import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 
-import { Ddt, Fattura, Cliente, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
+import { Ddt, Fattura, Cliente, Fornitore, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
@@ -87,22 +87,46 @@ import { DocLockService } from '../../services/doc-lock.service';
 
             <div class="form-section is-primary">
               <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+              <mat-button-toggle-group [value]="tipoControparte" (change)="setTipoControparte($event.value)"
+                                       [hideSingleSelectionIndicator]="true" class="tipo-controparte-toggle"
+                                       [disabled]="locked || !isNew" style="margin-bottom:12px">
+                <mat-button-toggle value="CLIENTE"><mat-icon>person</mat-icon> Cliente</mat-button-toggle>
+                <mat-button-toggle value="FORNITORE"><mat-icon>local_shipping</mat-icon> Fornitore (reso)</mat-button-toggle>
+              </mat-button-toggle-group>
               <div class="doc-field-grid" [formGroup]="documentoForm">
-                <mat-form-field>
-                  <mat-label>Cliente *</mat-label>
-                  <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                         (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
-                         [class.input-error]="submitted && !hasCliente">
-                  <mat-icon matSuffix>search</mat-icon>
-                  <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
-                    @for (c of filteredClienti; track c.id) {
-                      <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
+                @if (tipoControparte === 'CLIENTE') {
+                  <mat-form-field>
+                    <mat-label>Cliente *</mat-label>
+                    <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
+                           (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
+                           [class.input-error]="submitted && !hasCliente">
+                    <mat-icon matSuffix>search</mat-icon>
+                    <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
+                      @for (c of filteredClienti; track c.id) {
+                        <mat-option [value]="c">{{ c.ragioneSociale }}</mat-option>
+                      }
+                    </mat-autocomplete>
+                    @if (submitted && !hasCliente) {
+                      <mat-error>Seleziona un cliente</mat-error>
                     }
-                  </mat-autocomplete>
-                  @if (submitted && !hasCliente) {
-                    <mat-error>Seleziona un cliente</mat-error>
-                  }
-                </mat-form-field>
+                  </mat-form-field>
+                } @else {
+                  <mat-form-field>
+                    <mat-label>Fornitore *</mat-label>
+                    <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
+                           (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore per ragione sociale o P.IVA..."
+                           [class.input-error]="submitted && !hasFornitore">
+                    <mat-icon matSuffix>search</mat-icon>
+                    <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
+                      @for (f of filteredFornitori; track f.id) {
+                        <mat-option [value]="f">{{ f.ragioneSociale }}</mat-option>
+                      }
+                    </mat-autocomplete>
+                    @if (submitted && !hasFornitore) {
+                      <mat-error>Seleziona un fornitore</mat-error>
+                    }
+                  </mat-form-field>
+                }
                 <mat-form-field>
                   <mat-label>Numero *</mat-label>
                   <input matInput formControlName="numero">
@@ -466,6 +490,11 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
+  // Reso a fornitore: controparte fornitore al posto del cliente.
+  tipoControparte: 'CLIENTE' | 'FORNITORE' = 'CLIENTE';
+  fornitori: Fornitore[] = [];
+  filteredFornitori: Fornitore[] = [];
+  fornitoreCtrl = new FormControl<Fornitore | string | null>('');
   righe: RigaDocumento[] = [];
   noteRapideList: NotaRapida[] = [];
   prodotti: Prodotto[] = [];
@@ -481,6 +510,9 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
 
   submitted = false;
   get hasCliente(): boolean { const v = this.clienteCtrl.value; return !!(v && typeof v !== 'string'); }
+  get hasFornitore(): boolean { const v = this.fornitoreCtrl.value; return !!(v && typeof v !== 'string'); }
+  /** Controparte selezionata, qualunque sia il tipo. */
+  get hasControparte(): boolean { return this.tipoControparte === 'FORNITORE' ? this.hasFornitore : this.hasCliente; }
   get hasRighe(): boolean { return this.righe.length > 0 && this.righe.some(r => r.descrizione?.trim()); }
   get totalQuantita(): number { return this.righe.reduce((s, r) => s + (r.quantita ?? 0), 0); }
 
@@ -579,6 +611,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
   ) {
     this.isNew = !data?.id;
     this.locked = !!data?.id && this.docLockSvc.enabled;
+    this.tipoControparte = data?.tipo === 'FORNITORE' ? 'FORNITORE' : 'CLIENTE';
     this.destinazioneId = (data as any)?.destinazioneId ?? null;
     this.numeriEsistenti = setNumeriEsistenti((data as any)?.numeriEsistenti);
 
@@ -660,6 +693,20 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
       }
     });
 
+    this.fornitoreCtrl.valueChanges.subscribe(v => {
+      const q = typeof v === 'string' ? v.toLowerCase() : '';
+      this.filteredFornitori = this.fornitori.filter(f => f.ragioneSociale.toLowerCase().includes(q));
+    });
+
+    this.ds.getFornitori().subscribe(f => {
+      this.fornitori = f;
+      this.filteredFornitori = f;
+      if (this.data?.fornitoreId) {
+        const found = f.find(x => x.id === this.data!.fornitoreId);
+        if (found) this.fornitoreCtrl.setValue(found, { emitEvent: false });
+      }
+    });
+
     this.ds.getProdotti().subscribe(p => this.prodotti = p);
     this.ds.getUnitaMisura().subscribe(u => this.unitaMisura = u);
     this.ds.getNoteRapide().subscribe(n => this.noteRapideList = n);
@@ -675,6 +722,30 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
 
   autoSelectCliente() {
     if (this.filteredClienti.length > 0) this.clienteCtrl.setValue(this.filteredClienti[0]);
+  }
+
+  displayFornitore(f: Fornitore | string | null): string {
+    return f && typeof f !== 'string' ? (f as Fornitore).ragioneSociale : '';
+  }
+
+  autoSelectFornitore() {
+    if (this.filteredFornitori.length > 0) this.fornitoreCtrl.setValue(this.filteredFornitori[0]);
+  }
+
+  /** Cambia controparte tra Cliente e Fornitore (reso). Per i nuovi documenti
+   *  precompila una causale di reso quando si passa a Fornitore. */
+  setTipoControparte(tipo: 'CLIENTE' | 'FORNITORE') {
+    if (this.tipoControparte === tipo) return;
+    this.tipoControparte = tipo;
+    if (tipo === 'FORNITORE') {
+      this.clienteCtrl.setValue('', { emitEvent: false });
+      this.indirizziCliente = [];
+      this.destinazioneId = null;
+      if (this.isNew && !this.trasportoForm.get('causaleTrasporto')?.value)
+        this.trasportoForm.patchValue({ causaleTrasporto: 'Reso a fornitore' });
+    } else {
+      this.fornitoreCtrl.setValue('', { emitEvent: false });
+    }
   }
 
   @ViewChildren('rigaCodice') private codiceInputs!: QueryList<ElementRef<HTMLInputElement>>;
@@ -859,21 +930,27 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
 
   save() {
     this.submitted = true;
-    if (!this.documentoForm.valid || !this.hasCliente || !this.hasRighe) {
+    if (!this.documentoForm.valid || !this.hasControparte || !this.hasRighe) {
       return;
     }
     this.trasportoForm.markAllAsTouched();
     if (!this.trasportoForm.valid) return;
 
-    const v = this.clienteCtrl.value;
-    const clienteNome = v && typeof v !== 'string' ? (v as Cliente).ragioneSociale : (this.data?.clienteNome ?? '');
+    const isForn = this.tipoControparte === 'FORNITORE';
+    const cv = this.clienteCtrl.value;
+    const clienteNome = !isForn && cv && typeof cv !== 'string' ? (cv as Cliente).ragioneSociale : '';
+    const fv = this.fornitoreCtrl.value;
+    const fornitore = isForn && fv && typeof fv !== 'string' ? (fv as Fornitore) : null;
     this.dialogRef.close({
       ...this.data,
       ...this.documentoForm.value,
       ...this.trasportoForm.value,
-      clienteId: this.clienteId,
+      tipo: this.tipoControparte,
+      clienteId: isForn ? null : this.clienteId,
       clienteNome,
-      destinazioneId: this.destinazioneId && this.destinazioneId > 0 ? this.destinazioneId : null,
+      fornitoreId: fornitore?.id ?? null,
+      fornitoreNome: fornitore?.ragioneSociale ?? null,
+      destinazioneId: !isForn && this.destinazioneId && this.destinazioneId > 0 ? this.destinazioneId : null,
       stato: this.data?.stato ?? 'EMESSO',
       righe: this.righe,
     });
@@ -946,7 +1023,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
       }
     };
     this.dataSource.filterPredicate = (data, filter) =>
-      [data.numero, data.clienteNome, data.stato].some(v => v?.toLowerCase().includes(filter));
+      [data.numero, data.clienteNome, data.controparteNome, data.fornitoreNome, data.stato].some(v => v?.toLowerCase().includes(filter));
   }
 
   load() {
