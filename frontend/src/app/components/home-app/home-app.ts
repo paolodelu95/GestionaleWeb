@@ -8,7 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { ModuliService } from '../../services/moduli.service';
 import { DataService } from '../../services/data.service';
 import { OnboardingChecklistComponent } from '../shared/onboarding-checklist';
-import { StatsKpiAnno, ScadenzarioEntry, Ddt, Prodotto, Preventivo, StatsVenditeMensili } from '../../models';
+import { ScadenzarioEntry, Ddt, Prodotto, Preventivo } from '../../models';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
@@ -21,15 +21,6 @@ interface App {
   category: string;
 }
 
-interface StatCard {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: string;
-  tone: Tone;
-  route: string;
-}
-
 interface AttentionItem {
   label: string;
   count: number;
@@ -38,8 +29,6 @@ interface AttentionItem {
   tone: Tone;
   route: string;
 }
-
-interface TrendBar { label: string; value: string; pct: number; last: boolean; }
 
 @Component({
   selector: 'app-home-app',
@@ -58,32 +47,15 @@ interface TrendBar { label: string; value: string; pct: number; last: boolean; }
 
       <app-onboarding-checklist />
 
-      <!-- ── Strip KPI economici ─────────────────────────────────────────── -->
-      <section class="home-block">
-        <div class="stat-strip">
-          @if (!loaded) {
-            @for (s of [1,2,3,4]; track s) { <div class="stat-card skeleton"></div> }
-          } @else {
-            @for (s of stats; track s.label) {
-              <a class="stat-card" [class]="'tone-' + s.tone" [routerLink]="s.route">
-                <span class="stat-icon"><mat-icon>{{ s.icon }}</mat-icon></span>
-                <span class="stat-body">
-                  <span class="stat-label">{{ s.label }}</span>
-                  <span class="stat-value">{{ s.value }}</span>
-                  @if (s.sub) { <span class="stat-sub">{{ s.sub }}</span> }
-                </span>
-              </a>
-            }
-          }
-        </div>
-      </section>
-
-      <!-- ── Riga: Richiede attenzione | Andamento ───────────────────────── -->
+      <!-- ── Riga: Richiede attenzione | Dashboard (i numeri sono là) ─────── -->
       <div class="home-cols">
 
         <section class="home-panel">
           <div class="panel-head">
             <h2><mat-icon>notifications_active</mat-icon> Richiede attenzione</h2>
+            @if (loaded && attention.length > 0) {
+              <span class="panel-badge">{{ attention.length }}</span>
+            }
           </div>
           @if (!loaded) {
             <div class="att-list">
@@ -114,30 +86,14 @@ interface TrendBar { label: string; value: string; pct: number; last: boolean; }
           }
         </section>
 
-        @if (loaded && trend.length > 0) {
-          <section class="home-panel">
-            <div class="panel-head">
-              <h2><mat-icon>show_chart</mat-icon> Andamento fatturato</h2>
-              <a class="panel-link" routerLink="/dashboard">Dettagli</a>
-            </div>
-            <div class="trend">
-              <div class="trend-bars">
-                @for (b of trend; track b.label) {
-                  <div class="trend-col" [title]="b.label + ': ' + b.value">
-                    <div class="trend-bar-wrap">
-                      <span class="trend-bar" [class.is-last]="b.last" [style.height.%]="b.pct"></span>
-                    </div>
-                    <span class="trend-month">{{ b.label }}</span>
-                  </div>
-                }
-              </div>
-              <div class="trend-foot">
-                <span>Ultimo mese</span>
-                <strong>{{ trendLastValue }}</strong>
-              </div>
-            </div>
-          </section>
-        }
+        <!-- I KPI e i grafici vivono nella Dashboard: qui solo il rimando,
+             così Home (cosa fare) e Dashboard (come va) non si sovrappongono. -->
+        <a class="dash-cta" routerLink="/dashboard">
+          <span class="dash-cta-icon"><mat-icon>insights</mat-icon></span>
+          <span class="dash-cta-title">Apri la Dashboard</span>
+          <span class="dash-cta-text">Fatturato, margine, cashflow e grafici: l'andamento dell'azienda in un colpo d'occhio.</span>
+          <span class="dash-cta-go">Vai ai numeri <mat-icon>arrow_forward</mat-icon></span>
+        </a>
       </div>
 
       <!-- ── Azioni rapide ───────────────────────────────────────────────── -->
@@ -195,57 +151,29 @@ interface TrendBar { label: string; value: string; pct: number; last: boolean; }
       color: var(--text-tertiary); margin: 0 0 var(--sp-3);
     }
 
-    /* ── Strip KPI ── */
-    .stat-strip {
-      display: grid; gap: var(--sp-3);
-      grid-template-columns: repeat(4, 1fr);
-    }
-    .stat-card {
-      display: flex; align-items: center; gap: var(--sp-3);
-      padding: var(--sp-4); border-radius: var(--radius-xl);
-      background: var(--bg-surface); border: 1px solid var(--border-subtle);
-      box-shadow: var(--shadow-xs); text-decoration: none;
-      transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
-      min-width: 0;
-    }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-strong); }
-    .stat-icon {
-      width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-lg);
-      display: flex; align-items: center; justify-content: center;
-      background: var(--primary-soft); color: var(--primary);
-    }
-    .stat-icon mat-icon { font-size: 24px; width: 24px; height: 24px; }
-    .stat-body { display: flex; flex-direction: column; min-width: 0; }
-    .stat-label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .stat-value { font-size: 21px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.15; }
-    .stat-sub { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .stat-card.tone-primary .stat-icon { background: var(--primary-soft); color: var(--primary); }
-    .stat-card.tone-success .stat-icon { background: var(--success-soft); color: var(--success-on); }
-    .stat-card.tone-warning .stat-icon { background: var(--warning-soft); color: var(--warning-on); }
-    .stat-card.tone-danger  .stat-icon { background: var(--danger-soft);  color: var(--danger-on); }
-    .stat-card.tone-info    .stat-icon { background: var(--info-soft);    color: var(--info-on); }
-    .stat-card.tone-danger .stat-sub { color: var(--danger-on); font-weight: 600; }
-
-    /* ── Colonne: attenzione + andamento ── */
+    /* ── Colonne: attenzione + rimando dashboard ── */
     .home-cols {
       margin-top: var(--sp-6);
       display: grid; gap: var(--sp-4);
-      grid-template-columns: 1.4fr 1fr;
-      align-items: start;
+      grid-template-columns: 1.5fr 1fr;
+      align-items: stretch;
     }
     .home-panel {
       background: var(--bg-surface); border: 1px solid var(--border-subtle);
       border-radius: var(--radius-xl); padding: var(--sp-5); box-shadow: var(--shadow-xs);
     }
-    .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-3); }
+    .panel-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
     .panel-head h2 {
       display: flex; align-items: center; gap: var(--sp-2);
       font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0;
     }
     .panel-head h2 mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-tertiary); }
-    .panel-link { font-size: 12px; font-weight: 600; color: var(--primary); text-decoration: none; }
-    .panel-link:hover { text-decoration: underline; }
+    .panel-badge {
+      font-size: 12px; font-weight: 800; color: var(--primary);
+      background: var(--primary-soft); border-radius: var(--radius-full);
+      min-width: 22px; height: 22px; padding: 0 7px;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
 
     /* ── Lista "richiede attenzione" ── */
     .att-list { display: flex; flex-direction: column; gap: var(--sp-2); }
@@ -284,24 +212,29 @@ interface TrendBar { label: string; value: string; pct: number; last: boolean; }
     .all-clear strong { display: block; font-size: 14px; color: var(--text-primary); }
     .all-clear span { font-size: 12.5px; color: var(--text-secondary); }
 
-    /* ── Mini trend (barre CSS) ── */
-    .trend { display: flex; flex-direction: column; gap: var(--sp-3); }
-    .trend-bars { display: flex; align-items: flex-end; gap: var(--sp-2); height: 132px; }
-    .trend-col { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
-    .trend-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
-    .trend-bar {
-      width: 70%; max-width: 34px; min-height: 4px; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-      background: var(--primary); opacity: .34;
-      transition: height .4s cubic-bezier(.16,1,.3,1);
+    /* ── Rimando alla Dashboard (i numeri stanno là) ── */
+    .dash-cta {
+      display: flex; flex-direction: column; align-items: flex-start;
+      padding: var(--sp-5); border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--brand-teal) 100%);
+      color: #fff; text-decoration: none; box-shadow: var(--shadow-sm);
+      transition: transform .14s ease, box-shadow .14s ease;
     }
-    .trend-bar.is-last { background: linear-gradient(180deg, var(--primary) 0%, var(--brand-teal) 100%); opacity: 1; }
-    .trend-month { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: capitalize; }
-    .trend-foot {
-      display: flex; align-items: baseline; justify-content: space-between;
-      border-top: 1px solid var(--border-subtle); padding-top: var(--sp-2);
+    .dash-cta:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .dash-cta:hover .dash-cta-go mat-icon { transform: translateX(3px); }
+    .dash-cta-icon {
+      width: 46px; height: 46px; border-radius: var(--radius-lg); margin-bottom: var(--sp-3);
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.18);
     }
-    .trend-foot span { font-size: 12px; color: var(--text-tertiary); }
-    .trend-foot strong { font-size: 16px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .dash-cta-icon mat-icon { font-size: 26px; width: 26px; height: 26px; color: #fff; }
+    .dash-cta-title { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+    .dash-cta-text { font-size: 13px; line-height: 1.45; opacity: 0.92; margin-top: 4px; }
+    .dash-cta-go {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: var(--sp-4); font-size: 13px; font-weight: 700;
+    }
+    .dash-cta-go mat-icon { font-size: 18px; width: 18px; height: 18px; transition: transform .14s ease; }
 
     /* ── Azioni rapide ── */
     .qa-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
@@ -344,29 +277,21 @@ interface TrendBar { label: string; value: string; pct: number; last: boolean; }
     .mod-desc { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* ── Skeleton ── */
-    .skeleton, .skeleton-row {
+    .skeleton-row {
+      height: 60px; border-radius: var(--radius-lg);
       background: linear-gradient(90deg, var(--bg-surface-2) 25%, var(--bg-subtle) 50%, var(--bg-surface-2) 75%);
       background-size: 200% 100%; animation: shimmer 1.2s infinite;
     }
-    .stat-card.skeleton { height: 76px; border: 1px solid var(--border-subtle); }
-    .att-row.skeleton-row { height: 60px; border: none; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
     /* ── Responsive ── */
-    @media (max-width: 1000px) {
+    @media (max-width: 900px) {
       .home-cols { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 720px) {
-      .stat-strip { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
       .home { padding: var(--sp-4); }
       .home-hero h1 { font-size: 23px; }
-      .stat-value { font-size: 19px; }
       .qa-grid, .mod-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 380px) {
-      .stat-strip { grid-template-columns: 1fr; }
     }
   `],
 })
@@ -376,10 +301,7 @@ export class HomeAppComponent implements OnInit {
   oggi = new Date();
   loaded = false;
 
-  stats: StatCard[] = [];
   attention: AttentionItem[] = [];
-  trend: TrendBar[] = [];
-  trendLastValue = '';
 
   readonly categories = ['Anagrafica', 'Vendite', 'Acquisti', 'Magazzino', 'Contabilità', 'Operativo', 'Sistema'];
 
@@ -434,14 +356,12 @@ export class HomeAppComponent implements OnInit {
     { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', color: 'linear-gradient(135deg,#dc2626,#b91c1c)', category: 'Operativo' },
 
     // ── Sistema ──
-    { label: 'Dashboard',    description: 'KPI e grafici',         icon: 'dashboard',  route: '/dashboard',    color: 'linear-gradient(135deg,#475569,#334155)', category: 'Sistema' },
+    { label: 'Dashboard',    description: 'KPI, grafici e cashflow', icon: 'dashboard',  route: '/dashboard',    color: 'linear-gradient(135deg,#475569,#334155)', category: 'Sistema' },
     { label: 'Report',       description: 'Statistiche e analisi', icon: 'bar_chart',  route: '/report',       color: 'linear-gradient(135deg,#64748b,#475569)', category: 'Sistema' },
     { label: 'Storico',      description: 'Audit log',             icon: 'history',    route: '/storico',      color: 'linear-gradient(135deg,#94a3b8,#64748b)', category: 'Sistema' },
     { label: 'Aiuto',        description: 'Manuale + FAQ + scorciatoie', icon: 'menu_book', route: '/aiuto',     color: 'linear-gradient(135deg,#11769b,#15a4a2)', category: 'Sistema' },
     { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', color: 'linear-gradient(135deg,#3f3f46,#27272a)', category: 'Sistema' },
   ];
-
-  private readonly mesiBrevi = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
 
   constructor(auth: AuthService, private moduli: ModuliService, private ds: DataService) {
     const u = auth.getUser();
@@ -453,13 +373,11 @@ export class HomeAppComponent implements OnInit {
   ngOnInit() {
     const safe = <T>(o: Observable<T>, fb: T) => o.pipe(catchError(() => of(fb)));
     forkJoin({
-      kpi:     safe(this.ds.getKpiAnno(),            { fatturato: 0, costi: 0, margine: 0 } as StatsKpiAnno),
-      scad:    safe(this.ds.getScadenzario(),        [] as ScadenzarioEntry[]),
-      ddtNF:   safe(this.ds.getDdtNonFatturati(),    [] as Ddt[]),
-      sotto:   safe(this.ds.getProdottiSottoSoglia(),[] as Prodotto[]),
-      prev:    safe(this.ds.getPreventivi(),         [] as Preventivo[]),
-      ordini:  safe(this.ds.getOrdiniApertiCount(),  0),
-      vendite: safe(this.ds.getVenditeMensili(),     [] as StatsVenditeMensili[]),
+      scad:   safe(this.ds.getScadenzario(),         [] as ScadenzarioEntry[]),
+      ddtNF:  safe(this.ds.getDdtNonFatturati(),     [] as Ddt[]),
+      sotto:  safe(this.ds.getProdottiSottoSoglia(), [] as Prodotto[]),
+      prev:   safe(this.ds.getPreventivi(),          [] as Preventivo[]),
+      ordini: safe(this.ds.getOrdiniApertiCount(),   0),
     }).subscribe(r => {
       this.build(r);
       this.loaded = true;
@@ -471,34 +389,17 @@ export class HomeAppComponent implements OnInit {
     return this.apps.filter(a => a.category === categoria && this.moduli.routeAbilitata(a.route));
   }
 
-  private build(r: {
-    kpi: StatsKpiAnno; scad: ScadenzarioEntry[]; ddtNF: Ddt[]; sotto: Prodotto[];
-    prev: Preventivo[]; ordini: number; vendite: StatsVenditeMensili[];
-  }) {
-    const anno = new Date().getFullYear();
+  /** Costruisce la lista "richiede attenzione": solo cose che richiedono un'azione
+   *  (count > 0) e solo per i moduli attivi. Niente KPI/grafici: quelli sono in Dashboard. */
+  private build(r: { scad: ScadenzarioEntry[]; ddtNF: Ddt[]; sotto: Prodotto[]; prev: Preventivo[]; ordini: number; }) {
     const oggiIso = new Date().toISOString().slice(0, 10);
 
-    // ── Scadenzario: attive (da incassare) e passive (da pagare) ──
     const attive  = r.scad.filter(s => s.tipoEntry === 'FATTURA' && s.rimanente > 0.005);
-    const passive = r.scad.filter(s => s.tipoEntry === 'ACQUISTO' && s.rimanente > 0.005);
     const scadute = attive.filter(s => s.dataScadenza && s.dataScadenza < oggiIso);
-    const totIncassare = attive.reduce((a, s) => a + s.rimanente, 0);
-    const totPagare    = passive.reduce((a, s) => a + s.rimanente, 0);
-    const totScadute   = scadute.reduce((a, s) => a + s.rimanente, 0);
-
-    // ── KPI economici ──
-    this.stats = [
-      { label: 'Fatturato ' + anno, value: this.eur(r.kpi.fatturato), sub: 'Margine ' + this.eur(r.kpi.margine), icon: 'trending_up', tone: 'primary', route: '/dashboard' },
-      { label: 'Da incassare', value: this.eur(totIncassare),
-        sub: scadute.length ? scadute.length + ' scadut' + (scadute.length === 1 ? 'a' : 'e') : attive.length + ' in attesa',
-        icon: 'south_west', tone: scadute.length ? 'danger' : 'info', route: '/scadenzario' },
-      { label: 'Da pagare', value: this.eur(totPagare), sub: passive.length + ' fatture passive', icon: 'north_east', tone: 'warning', route: '/scadenzario' },
-      { label: 'Margine ' + anno, value: this.eur(r.kpi.margine), sub: 'su ' + this.eur(r.kpi.fatturato) + ' di ricavi', icon: 'savings', tone: 'success', route: '/report' },
-    ];
-
-    // ── Richiede attenzione: solo voci con count>0 e modulo attivo ──
+    const totScadute = scadute.reduce((a, s) => a + s.rimanente, 0);
     const totDdt = r.ddtNF.reduce((a, d) => a + (d.totale ?? 0), 0);
     const prevAttesa = r.prev.filter(p => p.stato === 'INVIATO').length;
+
     const items: AttentionItem[] = [
       { label: 'Fatture scadute da incassare', count: scadute.length, detail: this.eur(totScadute), icon: 'event_busy', tone: 'danger', route: '/scadenzario' },
       { label: 'DDT da fatturare', count: r.ddtNF.length, detail: totDdt > 0 ? this.eur(totDdt) : undefined, icon: 'local_shipping', tone: 'info', route: '/ddt' },
@@ -507,25 +408,9 @@ export class HomeAppComponent implements OnInit {
       { label: 'Prodotti sotto scorta', count: r.sotto.length, detail: r.sotto.length ? 'Riordino consigliato' : undefined, icon: 'inventory_2', tone: 'warning', route: '/magazzino' },
     ];
     this.attention = items.filter(it => it.count > 0 && this.moduli.routeAbilitata(it.route));
-
-    // ── Mini trend fatturato (ultimi 6 mesi disponibili) ──
-    const ultimi = r.vendite.slice(-6);
-    const max = Math.max(1, ...ultimi.map(v => v.totale));
-    this.trend = ultimi.map((v, i) => ({
-      label: this.meseLabel(v.mese),
-      value: this.eur(v.totale),
-      pct: Math.max(3, Math.round((v.totale / max) * 100)),
-      last: i === ultimi.length - 1,
-    }));
-    this.trendLastValue = ultimi.length ? this.eur(ultimi[ultimi.length - 1].totale) : '';
   }
 
   private eur(n: number): string {
     return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
-  }
-
-  private meseLabel(mese: string): string {
-    const m = parseInt((mese || '').slice(5, 7), 10);
-    return this.mesiBrevi[m - 1] ?? mese;
   }
 }
