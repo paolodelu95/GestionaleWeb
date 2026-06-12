@@ -312,13 +312,13 @@ const PRODOTTI_FIELDS: FieldDef[] = [
             <span class="section-hint">Peso, dimensioni e foto del prodotto</span>
           </div>
           <div class="form-row">
-            <mat-form-field>
+            <mat-form-field subscriptSizing="dynamic">
               <mat-label>Peso unitario (kg)</mat-label>
               <input matInput type="number" min="0" step="0.001" formControlName="peso" placeholder="es. 2,5">
               <mat-icon matSuffix>scale</mat-icon>
               <mat-hint>Usato per calcolare il peso lordo dei documenti di trasporto</mat-hint>
             </mat-form-field>
-            <mat-form-field>
+            <mat-form-field subscriptSizing="dynamic">
               <mat-label>Dimensioni</mat-label>
               <input matInput formControlName="dimensioni" placeholder="es. 120×80×40 cm">
               <mat-icon matSuffix>straighten</mat-icon>

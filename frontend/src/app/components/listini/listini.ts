@@ -357,6 +357,22 @@ export class ColonneListinoDialogComponent {
     .sp-price { color: #059669; font-weight: 600; font-size: 13px; min-width: 80px; text-align: right;
                 font-variant-numeric: tabular-nums; }
     .sp-empty { text-align: center; color: var(--text-tertiary); padding: 22px; font-size: 13px; margin: 0; }
+    @media (max-width: 767px) {
+      .sp-content { width: 100%; }
+      /* Filtri impilati: la ricerca prende tutta la larghezza (niente
+         collisione tra placeholder e icona) e la categoria va sotto. */
+      .sp-filters { flex-direction: column; gap: 4px; }
+      .sp-filters mat-form-field { width: 100%; flex: none; min-width: 0; }
+      /* Il touch-target della checkbox sborda di pochi px: niente scroll oriz. */
+      .sp-list { overflow-x: hidden; }
+      /* Riga prodotto compatta: codice e prezzo essenziali, categoria nascosta,
+         nome che si tronca. Evita overflow e prezzo tagliato. */
+      .sp-row { gap: 8px; }
+      .sp-cat { display: none; }
+      .sp-code { min-width: 0; flex: 0 0 auto; }
+      .sp-nome { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sp-price { min-width: 0; flex: 0 0 auto; }
+    }
   `],
 })
 export class SelezioneProdottiDialogComponent implements OnInit {

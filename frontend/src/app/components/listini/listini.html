@@ -42,21 +42,21 @@
                   <div class="lst-sub">{{ l.descrizione }}</div>
                 }
               </td>
-              <td class="num">
+              <td class="num" data-label="Sconto default">
                 @if (l.scontoDefault) {
                   <span class="stato-chip inviato">-{{ l.scontoDefault }}%</span>
                 } @else {
                   <span class="lst-muted">—</span>
                 }
               </td>
-              <td class="num">
+              <td class="num" data-label="Prodotti">
                 @if (l.prezziCount) {
                   <span class="lst-count"><mat-icon>sell</mat-icon>{{ l.prezziCount }}</span>
                 } @else {
                   <span class="lst-muted">—</span>
                 }
               </td>
-              <td>
+              <td data-label="Colonne extra">
                 @if (colonneExtraDi(l).length) {
                   <span class="lst-cols">
                     @for (c of colonneExtraDi(l); track c.key) {
@@ -67,7 +67,7 @@
                   <span class="lst-muted">—</span>
                 }
               </td>
-              <td>
+              <td data-label="Stato">
                 @if (l.attivo) { <span class="stato-chip pagata">Attivo</span> }
                 @else { <span class="stato-chip bozza">Disattivo</span> }
               </td>

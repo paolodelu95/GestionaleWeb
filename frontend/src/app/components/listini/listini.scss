@@ -288,4 +288,84 @@ tr.cdk-drag-placeholder { opacity: 0.3; }
   .lst-table th, .lst-table td { padding: 6px 6px; }
   .cell-input { min-width: 60px; &.num { width: 70px; } }
   .bulk-input { width: 80px; }
+
+  // La .page-header su mobile è una GRIGLIA (1fr auto), pensata per [titolo | kebab].
+  // L'editor però ha due WRAPPER come figli diretti (.ed-title e .header-actions):
+  // senza forzarli, .ed-title finisce nella cella 1fr (~70px) e il titolo si tronca
+  // a zero mentre i bottoni occupano la cella "auto". Li mettiamo ciascuno sulla
+  // propria riga a tutta larghezza.
+  .page-header > .ed-title {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .ed-title .page-title {
+    flex: 1 1 auto;       // dentro .ed-title (flex) il titolo prende lo spazio residuo
+    font-size: 18px;
+    min-width: 0;
+  }
+  .page-header > .header-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-header > .header-actions > button {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+
+  // Elenco listini: da tabella stretta (scroll orizzontale) a schede impilate,
+  // coerente con tutte le altre liste dell'app. La tabella editor (.ed-table)
+  // NON è toccata: lì lo scroll orizzontale del "foglio di calcolo" è corretto.
+  .lst-elenco { display: block; overflow: visible; }
+  .lst-elenco thead { display: none; }
+  .lst-elenco tbody { display: block; }
+  .lst-elenco tr.lst-row {
+    display: block;
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    margin-bottom: 10px;
+    padding: 10px 44px 8px 12px;   // spazio a destra per il kebab assoluto
+  }
+  .lst-elenco td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border: none;
+    text-align: right;
+  }
+  .lst-elenco td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-tertiary);
+  }
+  // Prima cella = nome listino: titolo a tutta larghezza, senza etichetta
+  .lst-elenco td:first-child {
+    display: block;
+    text-align: left;
+    font-size: 15px;
+    padding: 0 0 4px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 4px;
+  }
+  .lst-elenco td:first-child::before { content: none; }
+  // Colonna azioni: kebab ancorato in alto a destra della scheda
+  .lst-elenco td.table-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 0;
+  }
+  .lst-elenco td.table-actions::before { content: none; }
+  // I chip colonne extra restano a destra ma possono andare a capo
+  .lst-elenco .lst-cols { justify-content: flex-end; }
 }
