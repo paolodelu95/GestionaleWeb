@@ -727,6 +727,9 @@ function initTenantSchema(db) {
     'ALTER TABLE prodotti ADD COLUMN peso REAL',
     `ALTER TABLE prodotti ADD COLUMN dimensioni TEXT DEFAULT ''`,
     `ALTER TABLE prodotti ADD COLUMN immagine TEXT DEFAULT ''`,
+    // Preventivo: includere o no le miniature dei prodotti nella stampa PDF
+    // (toggle per-documento; default 1 = mostra).
+    'ALTER TABLE preventivi ADD COLUMN stampa_immagini INTEGER DEFAULT 1',
   ];
   for (const sql of migrations) { try { db.exec(sql); } catch(_) {} }
 

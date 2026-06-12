@@ -692,6 +692,8 @@ export interface Preventivo {
   totale?: number;
   imponibile?: number;
   righe?: RigaDocumento[];
+  /** Mostra le miniature dei prodotti nella stampa PDF (default true). */
+  stampaImmagini?: boolean;
 }
 
 export interface TipoPagamento {

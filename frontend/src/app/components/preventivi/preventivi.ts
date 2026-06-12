@@ -13,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -41,7 +42,7 @@ import { catchError } from 'rxjs/operators';
   selector: 'app-preventivo-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule,
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatSlideToggleModule,
             MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule],
   template: `
     <mat-dialog-content>
@@ -295,6 +296,16 @@ import { catchError } from 'rxjs/operators';
       </div>
 
       <div class="form-section is-flat" [formGroup]="form">
+        <div class="form-section-header"><mat-icon>picture_as_pdf</mat-icon><span>Opzioni stampa</span></div>
+        <mat-slide-toggle formControlName="stampaImmagini">
+          Mostra le immagini dei prodotti nella stampa PDF
+        </mat-slide-toggle>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px">
+          Le miniature compaiono accanto al codice, solo per i prodotti che hanno un'immagine.
+        </div>
+      </div>
+
+      <div class="form-section is-flat" [formGroup]="form">
         <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
         <mat-form-field>
           <mat-label>Note ad uso interno</mat-label>
@@ -467,6 +478,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
       validita: [data?.validita ?? 30],
       note: [data?.note ?? ''],
+      stampaImmagini: [data?.stampaImmagini ?? true],
     });
     if (data?.id) {
       this.ds.getPreventivoById(data.id).subscribe(p => { this.righe = p.righe ?? []; this.prezziRecenti = new Array(this.righe.length).fill([]); this.prezziRecentiTutti = new Array(this.righe.length).fill([]); this.tuttiCaricati = new Array(this.righe.length).fill(false); this.righe.forEach((r, i) => { if (r.prodottoId) this.loadPrezziRecenti(i); }); });

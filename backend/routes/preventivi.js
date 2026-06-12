@@ -24,9 +24,9 @@ router.post('/', (req, res) => {
   const p = req.body;
   const dup = db.prepare('SELECT id FROM preventivi WHERE numero=?').get(p.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${p.numero} è già utilizzato da un altro documento` });
-  const result = db.prepare(`INSERT INTO preventivi (numero, data_emissione, cliente_id, validita, stato, note)
-    VALUES (?,?,?,?,?,?)`)
-    .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita || 30, p.stato || 'INVIATO', p.note);
+  const result = db.prepare(`INSERT INTO preventivi (numero, data_emissione, cliente_id, validita, stato, note, stampa_immagini)
+    VALUES (?,?,?,?,?,?,?)`)
+    .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita || 30, p.stato || 'INVIATO', p.note, p.stampaImmagini === false ? 0 : 1);
   if (p.righe?.length) saveRighe(result.lastInsertRowid, p.righe);
   audit('preventivo', result.lastInsertRowid, 'CREATE', { numero: p.numero, clienteId: p.clienteId, stato: p.stato || 'INVIATO', numRighe: p.righe?.length || 0 });
   res.json({ id: result.lastInsertRowid });
@@ -37,8 +37,8 @@ router.put('/:id', (req, res) => {
   const dup = db.prepare('SELECT id FROM preventivi WHERE numero=? AND id!=?').get(p.numero, req.params.id);
   if (dup) return res.status(409).json({ error: `Il numero ${p.numero} è già utilizzato da un altro documento` });
   const before = db.prepare('SELECT numero, data_emissione, cliente_id, stato, validita, note FROM preventivi WHERE id=?').get(req.params.id);
-  db.prepare(`UPDATE preventivi SET numero=?, data_emissione=?, cliente_id=?, validita=?, stato=?, note=? WHERE id=?`)
-    .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita, p.stato, p.note, req.params.id);
+  db.prepare(`UPDATE preventivi SET numero=?, data_emissione=?, cliente_id=?, validita=?, stato=?, note=?, stampa_immagini=? WHERE id=?`)
+    .run(p.numero, p.dataEmissione, p.clienteId || null, p.validita, p.stato, p.note, p.stampaImmagini === false ? 0 : 1, req.params.id);
   db.prepare('DELETE FROM preventivi_righe WHERE preventivo_id=?').run(req.params.id);
   if (p.righe?.length) saveRighe(req.params.id, p.righe);
   audit('preventivo', Number(req.params.id), 'UPDATE', { before, after: { numero: p.numero, dataEmissione: p.dataEmissione, clienteId: p.clienteId, stato: p.stato, numRighe: p.righe?.length || 0 } });
@@ -79,7 +79,8 @@ function toDto(r) {
   const imponibile = db.prepare(`SELECT COALESCE(SUM(quantita * prezzo * (1 - COALESCE(sconto,0)/100)), 0) as t FROM preventivi_righe WHERE preventivo_id=?`).get(r.id)?.t || 0;
   return { id: r.id, numero: r.numero, dataEmissione: r.data_emissione,
     clienteId: r.cliente_id, clienteNome: r.cliente_nome,
-    validita: r.validita, stato: r.stato, note: r.note, totale, imponibile };
+    validita: r.validita, stato: r.stato, note: r.note, totale, imponibile,
+    stampaImmagini: r.stampa_immagini !== 0 };
 }
 
 router.get('/:id/print', (req, res) => {

@@ -404,8 +404,10 @@ export class PrintService {
     this.resolved = this.normalizeConfig(this.getTemplateConfig(az), 'preventivo');
     const logo = await this.logoFor(az);
     const pdf = new jsPDF('p', 'mm', 'a4');
-    // Miniature dei prodotti accanto al codice (attivabile da Impostazioni → Stampa).
-    const immagini = this.blockVisible('immaginiPreventivo')
+    // Miniature dei prodotti accanto al codice. Controllo per-documento (toggle nel
+    // dialog preventivo), con il blocco globale di Impostazioni → Stampa come
+    // interruttore generale. Mostra le immagini solo se entrambi attivi.
+    const immagini = (doc.stampaImmagini !== false && this.blockVisible('immaginiPreventivo'))
       ? await this.loadRigheImmagini(doc.righe || [])
       : undefined;
     let y = this.doHdr(pdf, az, 'PREVENTIVO', `Validità: ${doc.validita || 30} giorni`, doc.numero, doc.dataEmissione, logo);

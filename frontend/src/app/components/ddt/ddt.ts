@@ -368,8 +368,9 @@ import { DocLockService } from '../../services/doc-lock.service';
                     <input matInput type="number" min="0" formControlName="numeroColli">
                     <mat-hint>Somma quantità righe: {{ totalQuantita }}</mat-hint>
                   </mat-form-field>
-                  <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaColli()" title="Calcola da righe">
-                    <mat-icon>calculate</mat-icon>
+                  <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaColli()"
+                          matTooltip="Numero colli = somma delle quantità delle righe">
+                    <mat-icon>calculate</mat-icon> Calcola da righe
                   </button>
                   <mat-form-field>
                     <mat-label>Peso lordo (kg)</mat-label>
@@ -379,8 +380,8 @@ import { DocLockService } from '../../services/doc-lock.service';
                     }
                   </mat-form-field>
                   <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaPeso()"
-                          matTooltip="Calcola dal peso dei prodotti (quantità × peso unitario)">
-                    <mat-icon>scale</mat-icon>
+                          matTooltip="Peso lordo = somma di quantità × peso unitario dei prodotti">
+                    <mat-icon>scale</mat-icon> Calcola dai pesi
                   </button>
                 </div>
               </div>
