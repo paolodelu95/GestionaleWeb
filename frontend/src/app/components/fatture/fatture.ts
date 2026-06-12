@@ -1545,7 +1545,6 @@ export class FattureComponent implements OnInit, AfterViewInit {
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
 
   ngOnInit() {
-    try { const s = JSON.parse(localStorage.getItem('filtri-fatture') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroCliente = s.cliente ?? null; this.filtroStato = s.stato ?? null; this.filtroDaPagare = s.daPagare ?? false; } } catch {}
     // Apertura da scheda cliente ("Fatture" nel kebab): filtra subito su quel cliente.
     const fc = consumePrefill<number>('filtroCliente');
     if (fc) { this.filtroAnno = null; this.filtroMese = null; this.filtroStato = null; this.filtroDaPagare = false; this.filtroCliente = fc; }
@@ -1595,13 +1594,11 @@ export class FattureComponent implements OnInit, AfterViewInit {
     if (this.filtroDaPagare) data = data.filter(f => f.stato === 'EMESSA');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
-    localStorage.setItem('filtri-fatture', JSON.stringify({ anno: this.filtroAnno, mese: this.filtroMese, cliente: this.filtroCliente, stato: this.filtroStato, daPagare: this.filtroDaPagare }));
   }
 
   resetFiltri() {
     this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroStato = null; this.filtroDaPagare = false;
     this.dataSource.filter = '';
-    localStorage.removeItem('filtri-fatture');
     this.applyFilters();
   }
 
