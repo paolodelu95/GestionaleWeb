@@ -25,6 +25,7 @@ import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
 import { Fornitore } from '../../models';
+import { Router } from '@angular/router';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { pIvaValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
@@ -473,7 +474,13 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService, private router: Router) {}
+
+  /** Va agli acquisti già filtrati su questo fornitore. */
+  apriAcquisti(f: Fornitore) {
+    if (!f.id) return;
+    this.router.navigate(['/acquisti'], { state: { filtroFornitore: f.id } });
+  }
 
   private pendingOpenId: number | null = null;
 

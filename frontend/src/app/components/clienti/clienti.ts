@@ -26,6 +26,7 @@ import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService } from '../../services/excel.service';
 import { Cliente, ClienteIndirizzo, TipoPagamento, Listino, AliquotaIva } from '../../models';
+import { Router } from '@angular/router';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
@@ -784,10 +785,16 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService, private router: Router) {}
 
   /** Id elemento da aprire dopo il caricamento (apertura scheda da ricerca globale). */
   private pendingOpenId: number | null = null;
+
+  /** Va alle fatture già filtrate su questo cliente. */
+  apriFatture(c: Cliente) {
+    if (!c.id) return;
+    this.router.navigate(['/fatture'], { state: { filtroCliente: c.id } });
+  }
 
   ngOnInit() {
     this.pendingOpenId = consumePrefill<number>('openId');

@@ -120,6 +120,7 @@
       <mat-menu #menuC="matMenu">
         <ng-template matMenuContent let-c="c">
           <button mat-menu-item (click)="info(c)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
+          <button mat-menu-item (click)="apriFatture(c)"><mat-icon style="color:#16a34a">receipt</mat-icon> Fatture del cliente</button>
           <button mat-menu-item (click)="open(c)"><mat-icon>edit</mat-icon> Modifica</button>
           <button mat-menu-item (click)="delete(c)" style="color:#ef4444"><mat-icon style="color:#ef4444">delete</mat-icon> Elimina</button>
         </ng-template>

@@ -72,6 +72,7 @@
       <mat-menu #menuF="matMenu">
         <ng-template matMenuContent let-f="f">
           <button mat-menu-item (click)="info(f)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
+          <button mat-menu-item (click)="apriAcquisti(f)"><mat-icon style="color:#d97706">shopping_bag</mat-icon> Acquisti del fornitore</button>
           <button mat-menu-item (click)="open(f)"><mat-icon>edit</mat-icon> Modifica</button>
           <button mat-menu-item (click)="delete(f)" style="color:#ef4444"><mat-icon style="color:#ef4444">delete</mat-icon> Elimina</button>
         </ng-template>

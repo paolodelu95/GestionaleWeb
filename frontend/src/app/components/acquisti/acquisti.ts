@@ -25,6 +25,7 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
+import { consumePrefill } from '../../utils/nav-prefill';
 import { PrintService } from '../../services/print.service';
 import { Acquisto, Fornitore, Prodotto, RigaDocumento, TipoPagamento, UnitaMisura, NotaRapida } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
@@ -530,6 +531,9 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {
     try { const s = JSON.parse(localStorage.getItem('filtri-acquisti') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroFornitore = s.fornitore ?? null; } } catch {}
+    // Apertura da scheda fornitore ("Acquisti" nel kebab): filtra subito su quel fornitore.
+    const ff = consumePrefill<number>('filtroFornitore');
+    if (ff) { this.filtroAnno = null; this.filtroMese = null; this.filtroFornitore = ff; }
     this.load();
     this.ds.getFornitori().subscribe(f => this.fornitori = f);
   }

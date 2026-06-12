@@ -1546,6 +1546,9 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {
     try { const s = JSON.parse(localStorage.getItem('filtri-fatture') ?? 'null'); if (s) { this.filtroAnno = s.anno ?? null; this.filtroMese = s.mese ?? null; this.filtroCliente = s.cliente ?? null; this.filtroStato = s.stato ?? null; this.filtroDaPagare = s.daPagare ?? false; } } catch {}
+    // Apertura da scheda cliente ("Fatture" nel kebab): filtra subito su quel cliente.
+    const fc = consumePrefill<number>('filtroCliente');
+    if (fc) { this.filtroAnno = null; this.filtroMese = null; this.filtroStato = null; this.filtroDaPagare = false; this.filtroCliente = fc; }
     this.load();
     this.ds.getAzienda().subscribe(a => {
       this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
