@@ -42,11 +42,34 @@ button, input, select, textarea, [role="button"] { font-family: inherit; }
 [style*="color:#64748b"], [style*="color: #64748b"], [style*="color: rgb(100, 116, 139)"] { color: var(--text-secondary) !important; }
 
 // ── Target tattili sui dispositivi touch ────────────────────────────────────
-// Su mouse gli header ordinabili e i link compatti vanno bene; su touch devono
-// raggiungere l'area minima (erano ~20px, sotto il minimo WCAG di 24px).
+// Su mouse i controlli compatti vanno bene; su touch (mobile + tablet) devono
+// raggiungere l'area comoda di 44px (WCAG AAA). Qui si tocca SOLO la dimensione
+// minima: nessun effetto su desktop/mouse, il look resta invariato.
 @media (pointer: coarse) {
+  // Header di colonna ordinabili (erano ~20px)
   .mat-sort-header-container { min-height: 40px; align-items: center; }
-  a.section-link { display: inline-flex; align-items: center; min-height: 40px; }
+
+  // Bottoni Material (azioni header, filtri, dialog, azioni di riga)
+  button[mat-flat-button], button[mat-stroked-button], button[mat-raised-button],
+  button[mat-button], a[mat-flat-button], a[mat-stroked-button], a[mat-button],
+  .mat-button-toggle-button { min-height: 44px; }
+
+  // Icon-button: area quadrata piena
+  button.mat-mdc-icon-button { width: 44px; height: 44px; }
+
+  // Bottoni "compatti" custom (header dashboard, chiusura onboarding):
+  // !important per vincere sull'altezza fissa di design pensata per il mouse.
+  .dash-action { min-height: 44px !important; }
+  .onb-close { min-width: 44px !important; min-height: 44px !important; }
+
+  // Link-azione e chip con icona (dashboard, sezioni)
+  a.section-link, a.alert-chip {
+    display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box;
+  }
+
+  // Input/select "nudi" (fuori da mat-form-field, che ha già la sua altezza)
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.mat-mdc-input-element),
+  select:not(.mat-mdc-select-value) { min-height: 40px; }
 }
 
 // ── Design tokens ─────────────────────────────────────────────────────────────

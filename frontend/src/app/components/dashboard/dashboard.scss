@@ -599,3 +599,13 @@
   // Widget edit menu (count button): full text fit
   .widget-edit-label { display: none; }
 }
+
+// Su touch i bottoni compatti del page-header (Widget / Modifica) devono
+// comunque raggiungere l'area tattile minima. Qui, in scope componente, la
+// specificità supera la regola base .dash-action (altezza fissa per mouse).
+@media (pointer: coarse) {
+  .dash-action {
+    height: auto !important;
+    min-height: 44px !important;
+  }
+}

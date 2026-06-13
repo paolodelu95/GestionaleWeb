@@ -435,7 +435,21 @@ async function auditDialogs(page, vp) {
       const r = await dialog.evaluate((el, vw) => {
         const b = el.getBoundingClientRect();
         const sc = el.scrollWidth;
+        // L'<input>/<select> dentro una mat-form-field non è la superficie di
+        // tap: lo è il campo (alto ~48-56px). Si misurano solo i controlli "veri".
         const small = Array.from(el.querySelectorAll('button, input, select, [role="button"]'))
+          .filter(c => {
+            if (c.tagName === 'INPUT') {
+              const ty = (c.getAttribute('type') || 'text').toLowerCase();
+              if (['hidden', 'checkbox', 'radio', 'file', 'range'].includes(ty)) return false;
+            }
+            if ((c.tagName === 'INPUT' || c.tagName === 'SELECT') && c.closest('.mat-mdc-form-field, mat-form-field')) return false;
+            // switch/checkbox/radio Material: l'area di tap è l'intero controllo
+            // + etichetta, non il piccolo elemento interno.
+            if (c.getAttribute('role') === 'switch') return false;
+            if (c.closest('mat-slide-toggle, mat-checkbox, mat-radio-button, .mat-mdc-slide-toggle, .mat-mdc-checkbox')) return false;
+            return true;
+          })
           .map(c => c.getBoundingClientRect()).filter(x => x.height > 0 && x.height < 34).length;
         return { right: Math.round(b.right), width: Math.round(b.width), scrollW: sc, vw, small };
       }, vp.width).catch(() => null);
