@@ -875,7 +875,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
       if (!result) return;
       const op = result.id ? this.ds.updateCliente(result) : this.ds.createCliente(result);
       op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
-                     error: e => this.snack.open(e.message, '', { duration: 3000 }) });
+                     error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' }) });
     });
   }
 

@@ -21,10 +21,16 @@ router.get('/check-piva', (req, res) => {
 
 router.post('/', (req, res) => {
   const f = req.body;
+  if (!f.ragioneSociale?.trim()) return res.status(400).json({ error: 'La ragione sociale è obbligatoria' });
+  const piva = normalizePiva(f.pIva);
+  if (piva) {
+    const esiste = db.prepare('SELECT id FROM fornitori WHERE p_iva=? OR p_iva=?').get(piva, 'IT' + piva);
+    if (esiste) return res.status(409).json({ error: `Esiste già un fornitore con la P.IVA ${piva}`, duplicateId: esiste.id });
+  }
   const result = db.prepare(`INSERT INTO fornitori
     (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, p_iva, sdi, pec, estero, anche_cliente)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0, f.ancheCliente ? 1 : 0);
+    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, piva, f.sdi || '', f.pec || '', f.estero ? 1 : 0, f.ancheCliente ? 1 : 0);
   applicaGemelloDaFornitore(result.lastInsertRowid);
   res.json({ id: result.lastInsertRowid });
 });
@@ -77,9 +83,15 @@ router.get('/:id', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const f = req.body;
+  if (!f.ragioneSociale?.trim()) return res.status(400).json({ error: 'La ragione sociale è obbligatoria' });
+  const piva = normalizePiva(f.pIva);
+  if (piva) {
+    const esiste = db.prepare('SELECT id FROM fornitori WHERE (p_iva=? OR p_iva=?) AND id!=?').get(piva, 'IT' + piva, req.params.id);
+    if (esiste) return res.status(409).json({ error: `Esiste già un altro fornitore con la P.IVA ${piva}`, duplicateId: esiste.id });
+  }
   db.prepare(`UPDATE fornitori SET ragione_sociale=?, email=?, telefono=?, cellulare=?, via=?, cap=?,
     citta=?, provincia=?, stato=?, p_iva=?, sdi=?, pec=?, estero=?, anche_cliente=? WHERE id=?`)
-    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, normalizePiva(f.pIva), f.sdi || '', f.pec || '', f.estero ? 1 : 0, f.ancheCliente ? 1 : 0, req.params.id);
+    .run(f.ragioneSociale, f.email, f.telefono, f.cellulare || '', f.via, f.cap, f.citta, f.provincia, f.stato, piva, f.sdi || '', f.pec || '', f.estero ? 1 : 0, f.ancheCliente ? 1 : 0, req.params.id);
   applicaGemelloDaFornitore(Number(req.params.id));
   res.json({ success: true });
 });

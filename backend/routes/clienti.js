@@ -48,10 +48,16 @@ router.get('/check-piva', (req, res) => {
 
 router.post('/', (req, res) => {
   const c = req.body;
+  if (!c.ragioneSociale?.trim()) return res.status(400).json({ error: 'La ragione sociale è obbligatoria' });
+  const piva = normalizePiva(c.pIva);
+  if (piva) {
+    const esiste = db.prepare('SELECT id FROM clienti WHERE p_iva=? OR p_iva=?').get(piva, 'IT' + piva);
+    if (esiste) return res.status(409).json({ error: `Esiste già un cliente con la P.IVA ${piva}`, duplicateId: esiste.id });
+  }
   const result = db.prepare(`INSERT INTO clienti
     (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id, listino_id, tipo_soggetto, cig, cup, aliquota_iva_id, anche_fornitore)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null, c.ancheFornitore ? 1 : 0);
+    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, piva, c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null, c.ancheFornitore ? 1 : 0);
   applicaGemelloDaCliente(result.lastInsertRowid);
   res.json({ id: result.lastInsertRowid });
 });
@@ -96,10 +102,16 @@ router.post('/import', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const c = req.body;
+  if (!c.ragioneSociale?.trim()) return res.status(400).json({ error: 'La ragione sociale è obbligatoria' });
+  const piva = normalizePiva(c.pIva);
+  if (piva) {
+    const esiste = db.prepare('SELECT id FROM clienti WHERE (p_iva=? OR p_iva=?) AND id!=?').get(piva, 'IT' + piva, req.params.id);
+    if (esiste) return res.status(409).json({ error: `Esiste già un altro cliente con la P.IVA ${piva}`, duplicateId: esiste.id });
+  }
   db.prepare(`UPDATE clienti SET ragione_sociale=?, email=?, telefono=?, cellulare=?, via=?, cap=?,
     citta=?, provincia=?, stato=?, codice_fiscale=?, p_iva=?, sdi=?, pec=?, tipo_pagamento_id=?, listino_id=?,
     tipo_soggetto=?, cig=?, cup=?, aliquota_iva_id=?, anche_fornitore=? WHERE id=?`)
-    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, normalizePiva(c.pIva), c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null, c.ancheFornitore ? 1 : 0, req.params.id);
+    .run(c.ragioneSociale, c.email, c.telefono, c.cellulare || '', c.via, c.cap, c.citta, c.provincia, c.stato, c.codiceFiscale, piva, c.sdi || '', c.pec || '', c.tipoPagamentoId || null, c.listinoId || null, c.tipoSoggetto || 'PRIVATO', c.cig || '', c.cup || '', c.aliquotaIvaId || null, c.ancheFornitore ? 1 : 0, req.params.id);
   applicaGemelloDaCliente(Number(req.params.id));
   res.json({ success: true });
 });

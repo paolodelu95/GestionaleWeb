@@ -4,6 +4,7 @@ const db = require('../database');
 const { audit } = require('../utils/audit');
 const { calcolaTotaliFiscali, fiscFromRow } = require('../utils/fiscale');
 const { applicaRigheStock } = require('../utils/stock');
+const { validaRigheDocumento } = require('../utils/validazioni');
 
 const FISC_COLS = ['ritenuta_aliquota', 'ritenuta_causale', 'ritenuta_tipo', 'ritenuta_su_cassa',
   'cassa_tipo', 'cassa_aliquota', 'cassa_iva', 'bollo'];
@@ -39,6 +40,8 @@ const aggiornaQuantita = applicaRigheStock;
 
 router.post('/', (req, res) => {
   const n = req.body;
+  const errRighe = validaRigheDocumento(n.righe);
+  if (errRighe) return res.status(400).json({ error: errRighe });
   const dup = db.prepare('SELECT id FROM note_credito WHERE numero=?').get(n.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${n.numero} è già utilizzato da un altro documento` });
   try {
@@ -70,6 +73,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const n = req.body;
+  const errRighe = validaRigheDocumento(n.righe);
+  if (errRighe) return res.status(400).json({ error: errRighe });
   const dup = db.prepare('SELECT id FROM note_credito WHERE numero=? AND id!=?').get(n.numero, req.params.id);
   if (dup) return res.status(409).json({ error: `Il numero ${n.numero} è già utilizzato da un altro documento` });
   try {

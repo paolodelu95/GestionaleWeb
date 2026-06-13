@@ -5,6 +5,7 @@ const { getNextNumero } = require('../utils/nextNumero');
 const { audit } = require('../utils/audit');
 const { calcolaTotaliFiscali, fiscFromRow } = require('../utils/fiscale');
 const { applicaRigheStock } = require('../utils/stock');
+const { validaRigheDocumento } = require('../utils/validazioni');
 
 // Colonne e valori dei campi fiscali (ritenuta / cassa / bollo) per INSERT/UPDATE.
 const FISC_COLS = ['ritenuta_aliquota', 'ritenuta_causale', 'ritenuta_tipo', 'ritenuta_su_cassa',
@@ -115,6 +116,9 @@ const createFatturaTxBody = (f, ddtIds) => {
 
 router.post('/', (req, res) => {
   const f = req.body;
+  if (!f.clienteId) return res.status(400).json({ error: 'Il cliente è obbligatorio' });
+  const errRighe = validaRigheDocumento(f.righe);
+  if (errRighe) return res.status(400).json({ error: errRighe });
   const dup = db.prepare('SELECT id FROM fatture WHERE numero=?').get(f.numero);
   if (dup) return res.status(409).json({ error: `Il numero ${f.numero} è già utilizzato da un altro documento` });
   const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
@@ -162,6 +166,9 @@ const updateFatturaTxBody = (id, f, ddtIds) => {
 
 router.put('/:id', (req, res) => {
   const f = req.body;
+  if (!f.clienteId) return res.status(400).json({ error: 'Il cliente è obbligatorio' });
+  const errRighe = validaRigheDocumento(f.righe);
+  if (errRighe) return res.status(400).json({ error: errRighe });
   const dup = db.prepare('SELECT id FROM fatture WHERE numero=? AND id!=?').get(f.numero, req.params.id);
   if (dup) return res.status(409).json({ error: `Il numero ${f.numero} è già utilizzato da un altro documento` });
   const ddtIds = f.ddtIds?.length ? f.ddtIds : (f.ddtId ? [f.ddtId] : []);
