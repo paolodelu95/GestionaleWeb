@@ -17,12 +17,12 @@
 
   &.entrata {
     background: #dcfce7;
-    color: #16a34a;
+    color: #15803d;
   }
 
   &.uscita {
     background: #fee2e2;
-    color: #dc2626;
+    color: #b91c1c;
   }
 }
 
@@ -36,23 +36,23 @@
 
   &.badge-scaduto {
     background: #fee2e2;
-    color: #dc2626;
+    color: #b91c1c;
   }
 
   &.badge-warning {
     background: #fef3c7;
-    color: #d97706;
+    color: #b45309;
   }
 
   &.badge-ok {
     background: #dcfce7;
-    color: #16a34a;
+    color: #15803d;
   }
 }
 
 // Testo data scaduta
 .text-scaduto {
-  color: #dc2626;
+  color: #b91c1c;
   font-weight: 600;
 }
 
@@ -86,9 +86,11 @@
     }
 
     &.active-btn {
-      background: #11769b;
-      color: #fff;
-      border-color: #11769b;
+      // !important: vince sul layer MDC del bottone outlined (altrimenti lo
+      // sfondo resta trasparente e il testo bianco diventa invisibile).
+      background: #11769b !important;
+      color: #fff !important;
+      border-color: #11769b !important;
     }
   }
 }

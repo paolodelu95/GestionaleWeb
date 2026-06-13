@@ -413,13 +413,17 @@ export class AdminComponent implements OnInit {
   loadAll() {
     this.api.get<any[]>('tenants').subscribe(t => this.tenants = t);
     this.api.get<User[]>('utenti').subscribe(u => this.utenti = u);
-    this.api.get<TenantRow[]>('moduli/admin/all').subscribe(r => {
-      this.matrice = r;
-      // Calcola elenco unico moduli (slug) preservando l'ordine dal primo tenant
-      const seen = new Set<string>();
-      this.slugsOrdinati = [];
-      for (const t of r) for (const m of t.moduli) if (!seen.has(m.slug)) { seen.add(m.slug); this.slugsOrdinati.push(m.slug); }
-    });
+    // La matrice moduli cross-tenant è un'operazione SUPERADMIN: l'endpoint
+    // risponde 403 a un ADMIN di tenant ed è comunque visibile solo se isSuper.
+    if (this.isSuper) {
+      this.api.get<TenantRow[]>('moduli/admin/all').subscribe(r => {
+        this.matrice = r;
+        // Calcola elenco unico moduli (slug) preservando l'ordine dal primo tenant
+        const seen = new Set<string>();
+        this.slugsOrdinati = [];
+        for (const t of r) for (const m of t.moduli) if (!seen.has(m.slug)) { seen.add(m.slug); this.slugsOrdinati.push(m.slug); }
+      });
+    }
     this.loadGruppi();
   }
 

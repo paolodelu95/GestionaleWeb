@@ -59,7 +59,7 @@
   white-space: nowrap;
 }
 .m-card-num-sub {
-  font-size: 11px; color: var(--text-tertiary, #94a3b8);
+  font-size: 12px; color: var(--text-tertiary, #94a3b8);
   white-space: nowrap;
 }
 
@@ -278,7 +278,7 @@
 }
 
 .btn-fattura {
-  font-size: 11px !important;
+  font-size: 12px !important;
   min-width: 0 !important;
   padding: 0 12px !important;
   height: 30px !important;
@@ -349,7 +349,7 @@
     background: var(--primary-soft);
     color: var(--primary);
     border-radius: var(--radius-full);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -513,7 +513,7 @@
 }
 .widget-menu-header {
   padding: 8px 14px 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -592,7 +592,7 @@
   .cashflow-row { gap: 8px; }
 
   // Alert chip: ancora più compatto
-  .alert-chip { padding: 6px 10px; font-size: 11px;
+  .alert-chip { padding: 6px 10px; font-size: 12px;
     mat-icon { font-size: 14px; width: 14px; height: 14px; }
   }
 

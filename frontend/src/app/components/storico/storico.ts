@@ -80,9 +80,9 @@ interface AuditEntry {
     .when { white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
     .payload { color: var(--text-secondary); font-size: 12px; max-width: 480px; word-break: break-word; }
     .action-chip { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
-    .action-create { background: #dcfce7; color: #16a34a; }
+    .action-create { background: #dcfce7; color: #15803d; }
     .action-update { background: #dbeafe; color: #2563eb; }
-    .action-delete { background: #fee2e2; color: #dc2626; }
+    .action-delete { background: #fee2e2; color: #b91c1c; }
     @media (max-width: 600px) {
       .audit-table th, .audit-table td { padding: 8px 6px; }
       .payload { display: none; }

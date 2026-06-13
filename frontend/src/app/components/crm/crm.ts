@@ -195,7 +195,7 @@ export class CrmOppDialogComponent {
     .kanban-card-meta div { display: flex; align-items: center; gap: 4px; }
     .kanban-card-meta .mi { font-size: 14px; width: 14px; height: 14px; color: var(--text-tertiary, #64748b); }
     .kanban-card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border-subtle, #f1f5f9); }
-    .kanban-card-valore { font-weight: 700; font-size: 14px; color: #16a34a; }
+    .kanban-card-valore { font-weight: 700; font-size: 14px; color: #15803d; }
     .kanban-card-prob { font-size: 11px; color: var(--text-tertiary, #64748b); background: var(--bg-surface-2, #f1f5f9); padding: 2px 6px; border-radius: 10px; }
     .kanban-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text-tertiary, #94a3b8); border: 1px dashed var(--border-subtle, #cbd5e1); border-radius: 6px; }
     .cdk-drag-preview { box-shadow: 0 4px 14px rgba(0,0,0,0.15); }

@@ -146,7 +146,7 @@ interface ConteggioRiga {
     .inv-row-qty { display: flex; align-items: center; gap: 2px; }
     .inv-row-qty input { width: 64px; text-align: center; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px; font-size: 14px; background: var(--bg-surface); color: var(--text-primary); }
     .inv-delta { min-width: 42px; text-align: right; font-size: 13px; font-weight: 700; color: var(--text-tertiary); }
-    .inv-delta.up { color: #16a34a; }
+    .inv-delta.up { color: #15803d; }
     .inv-delta.down { color: #dc2626; }
     .inv-del { color: var(--text-tertiary); }
     .inv-empty { text-align: center; padding: 32px 16px; color: var(--text-tertiary); }

@@ -60,7 +60,7 @@
 
   .sidenav-sub {
     color: #64748b;
-    font-size: 11px;
+    font-size: 12px;
     margin-top: 3px;
     white-space: nowrap;
     font-weight: 500;
@@ -524,7 +524,7 @@
 
   .topbar-sub {
     color: var(--text-tertiary);
-    font-size: 11px;
+    font-size: 12px;
     flex-shrink: 1;
     white-space: nowrap;
     overflow: hidden;
@@ -715,7 +715,7 @@
     .smart-icon { color: var(--primary); }
     .smart-text { display: flex; flex-direction: column; min-width: 0; }
     .smart-detail {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-tertiary);
       white-space: nowrap;
       overflow: hidden;
@@ -856,7 +856,7 @@
   }
 
   .notif-tipo {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     padding: 2px 6px;
     border-radius: var(--radius-xs);
@@ -864,8 +864,8 @@
     background: var(--bg-subtle);
     color: var(--text-secondary);
 
-    &.notif-tipo-entrata { background: #dcfce7; color: #16a34a; }
-    &.notif-tipo-uscita  { background: #fee2e2; color: #dc2626; }
+    &.notif-tipo-entrata { background: #dcfce7; color: #15803d; }
+    &.notif-tipo-uscita  { background: #fee2e2; color: #b91c1c; }
   }
 
   .notif-controparte {
@@ -891,7 +891,7 @@
   }
 
   .notif-scadenza {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-tertiary);
     &.notif-scaduto { color: #dc2626; font-weight: 600; }
   }
@@ -902,7 +902,7 @@
     background: var(--primary-soft);
     color: var(--primary);
     font: inherit;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: none;
     letter-spacing: 0;

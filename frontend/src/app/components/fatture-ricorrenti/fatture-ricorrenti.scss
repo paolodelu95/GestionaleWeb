@@ -10,11 +10,11 @@
   &.freq-bimestrale  { background: #cffafe; color: #6d28d9; }
   &.freq-trimestrale { background: #dcfce7; color: #15803d; }
   &.freq-semestrale  { background: #fef9c3; color: #92400e; }
-  &.freq-annuale     { background: #fee2e2; color: #dc2626; }
+  &.freq-annuale     { background: #fee2e2; color: #b91c1c; }
 }
 
 .scaduta {
-  color: #dc2626;
+  color: #b91c1c;
   font-weight: 700;
 }
 
@@ -28,5 +28,5 @@
   height: 16px;
   vertical-align: middle;
   margin-left: 4px;
-  color: #dc2626;
+  color: #b91c1c;
 }

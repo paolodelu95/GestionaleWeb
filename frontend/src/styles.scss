@@ -14,6 +14,41 @@ html {
 *, *::before, *::after { box-sizing: border-box; }
 html, body { max-width: 100%; overflow-x: hidden; }
 
+// I pannelli overlay (select, menu, autocomplete) sono montati fuori dalla
+// shell: senza questo ereditano il font di sistema (Arial) invece di Inter.
+// mat-icon conserva il proprio font (Material Icons), non ereditando da qui.
+.cdk-overlay-container,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel,
+.mat-mdc-menu-panel { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+
+// I controlli nativi non ereditano il font: senza questo bottoni/input custom
+// (es. .metodo-btn) cadono su Arial di sistema invece di Inter.
+button, input, select, textarea, [role="button"] { font-family: inherit; }
+
+// ── Rete di sicurezza colori inline (vale in chiaro E scuro) ────────────────
+// I template usano hex semantici sia statici (`style="color:#16a34a"`) sia via
+// binding (`[style.color]`). Chrome serializza i binding in rgb(): copriamo
+// entrambe le forme e rimappiamo su token accessibili (≥ 4.5:1 / tema-aware).
+// Si matcha solo "color:"/"color: rgb(" per non toccare i background.
+[style*="color:#94a3b8"], [style*="color: #94a3b8"], [style*="color: rgb(148, 163, 184)"] { color: var(--text-tertiary) !important; }
+[style*="color:#16a34a"], [style*="color: #16a34a"], [style*="color: rgb(22, 163, 74)"],
+[style*="color:#22c55e"], [style*="color: #22c55e"], [style*="color: rgb(34, 197, 94)"] { color: var(--success-on) !important; }
+[style*="color:#dc2626"], [style*="color: #dc2626"], [style*="color: rgb(220, 38, 38)"],
+[style*="color:#ef4444"], [style*="color: #ef4444"], [style*="color: rgb(239, 68, 68)"] { color: var(--danger-on) !important; }
+[style*="color:#f59e0b"], [style*="color: #f59e0b"], [style*="color: rgb(245, 158, 11)"],
+[style*="color:#d97706"], [style*="color: #d97706"], [style*="color: rgb(217, 119, 6)"],
+[style*="color:#f97316"], [style*="color: #f97316"], [style*="color: rgb(249, 115, 22)"] { color: var(--warning-on) !important; }
+[style*="color:#64748b"], [style*="color: #64748b"], [style*="color: rgb(100, 116, 139)"] { color: var(--text-secondary) !important; }
+
+// ── Target tattili sui dispositivi touch ────────────────────────────────────
+// Su mouse gli header ordinabili e i link compatti vanno bene; su touch devono
+// raggiungere l'area minima (erano ~20px, sotto il minimo WCAG di 24px).
+@media (pointer: coarse) {
+  .mat-sort-header-container { min-height: 40px; align-items: center; }
+  a.section-link { display: inline-flex; align-items: center; min-height: 40px; }
+}
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
 :root {
   // Surfaces
@@ -28,12 +63,18 @@ html, body { max-width: 100%; overflow-x: hidden; }
   --border-strong: #d4d7df;
   --border-subtle: #eef0f4;
 
-  // Text
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #94a3b8;
-  --text-muted: #b6bdc9;
+  // Text — i livelli muted sono tarati per superare il contrasto WCAG AA (4.5:1)
+  // su sfondo chiaro pur restando otticamente più tenui del livello superiore.
+  --text-primary: #0f172a;   // ~16:1
+  --text-secondary: #475569; // ~7.6:1
+  --text-tertiary: #5f6b7a;  // ~5.4:1  (era #94a3b8 = 2.6:1, sotto soglia)
+  --text-muted: #646e7c;     // ~5.0:1  (era #b6bdc9 = 1.8:1, sotto soglia)
   --text-inverse: #ffffff;
+
+  // Allinea il token Material per testo/icone di media enfasi (mat-hint, label,
+  // header tabella, sottotitoli) alla nostra palette accessibile: di default è
+  // ~#94a3b8 (2.6:1), sotto soglia AA. In dark-mode viene riportato chiaro.
+  --mat-sys-on-surface-variant: #5f6b7a;
 
   // Brand / accents — Ordeva palette
   --primary: #11769b;
@@ -128,6 +169,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
   --text-secondary: #cbd5e1;
   --text-tertiary: #94a3b8;
   --text-muted: #64748b;
+  // su fondo scuro il testo di media enfasi torna chiaro (alto contrasto)
+  --mat-sys-on-surface-variant: #94a3b8;
 
   --primary: #15a4a2;
   --primary-hover: #2dd4cb;
@@ -374,7 +417,7 @@ button:focus:not(:focus-visible) { outline: none; }
 }
 
 th.mat-mdc-header-cell {
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
   color: var(--text-tertiary) !important;
   text-transform: uppercase;
@@ -545,7 +588,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
   align-items: center;
   gap: 10px;
   margin-bottom: 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -561,7 +604,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
 
   .section-hint {
     margin-left: auto;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-tertiary);
     text-transform: none;
@@ -648,7 +691,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
       &:hover { background: rgba(217,119,6,0.18); }
     }
     &.is-unlocked {
-      color: #16a34a;
+      color: #15803d;
       &:hover { background: rgba(22,163,74,0.12); }
     }
   }
@@ -657,7 +700,7 @@ td.mat-mdc-cell, th.mat-mdc-header-cell { vertical-align: middle; }
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     padding: 3px 10px;
     border-radius: 999px;
@@ -734,7 +777,7 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
     gap: 8px;
     padding-left: 18px;
     border-left: 1px solid var(--border);
-    .totals-label { font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
+    .totals-label { font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 12px; letter-spacing: 0.04em; }
     .totals-value { font-size: 18px; font-weight: 700; color: var(--primary); }
   }
   // Riga extra opzionale (es. Resto in vendita banco): occupa la sua riga
@@ -799,7 +842,7 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
 .doc-chip {
   display: inline-flex; align-items: center; gap: var(--sp-1);
   padding: 3px var(--sp-2); border-radius: var(--radius-full);
-  font-size: 11px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   background: var(--primary-soft); color: var(--primary);
   mat-icon { font-size: 14px; width: 14px; height: 14px; }
 }
@@ -853,14 +896,14 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
 }
 .rif-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .rif-grid .rif-field { display: flex; flex-direction: column; gap: 3px; }
-.rif-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.rif-label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
 .input-upper { text-transform: uppercase; }
 
 // Badge sui tab (conteggio / stato pagamento). Riusabile, tokenizzato.
 .tab-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
-  border-radius: var(--radius-full); font-size: 11px; font-weight: 700;
+  border-radius: var(--radius-full); font-size: 12px; font-weight: 700;
   background: var(--primary); color: var(--primary-on);
 }
 .tab-badge--warn { background: var(--warning); color: #3a2700; }
@@ -871,13 +914,13 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
 
 // Etichetta sezione dentro i menu (prezzi recenti, note rapide): niente colori inline
 .menu-section-label {
-  padding: var(--sp-1) var(--sp-4); font-size: 11px; font-weight: 700;
+  padding: var(--sp-1) var(--sp-4); font-size: 12px; font-weight: 700;
   letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary);
   pointer-events: none;
 }
 .menu-empty { padding: var(--sp-2) var(--sp-4); font-size: 12px; color: var(--text-tertiary); }
 .pr-value { font-weight: 700; color: var(--text-primary); margin-left: var(--sp-2); }
-.pr-discount { color: var(--danger); font-size: 11px; margin-left: var(--sp-1); }
+.pr-discount { color: var(--danger); font-size: 12px; margin-left: var(--sp-1); }
 
 // Icone con colore semantico via classe (sostituiscono style="color:#..." nei menu)
 .icon-primary { color: var(--primary) !important; }
@@ -1507,12 +1550,12 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
     button[mat-flat-button], button[mat-stroked-button] {
       font-size: 13px;
       padding: 0 10px !important;
-      height: 36px !important;
+      height: 40px !important;   // ≥ target tattile minimo (era 36px, sotto soglia)
       min-width: 0 !important;
       .mat-mdc-button-touch-target + mat-icon,
       mat-icon { margin-right: 4px !important; font-size: 18px; width: 18px; height: 18px; }
     }
-    button.mat-mdc-icon-button { width: 36px; height: 36px; }
+    button.mat-mdc-icon-button { width: 40px; height: 40px; }
     // I bottoni secondari overflow-item sono nascosti su mobile
     .header-overflow-item { display: none !important; }
     // Il kebab toggle prende la sua cella naturale
@@ -1537,7 +1580,7 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
     // nowrap + tabular: l'importo resta su una riga (il € non va a capo) e le
     // cifre lunghe (centinaia di migliaia / milioni) non si spezzano a metà.
     .kpi-value { font-size: 17px; padding-right: 32px; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-    .kpi-label { font-size: 11px; padding-right: 32px; }
+    .kpi-label { font-size: 12px; padding-right: 32px; }
     .kpi-icon { top: 12px; right: 12px; width: 30px; height: 30px;
       mat-icon { font-size: 16px; width: 16px; height: 16px; } }
     .kpi-accent { margin-bottom: 10px; }
@@ -1849,7 +1892,7 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
     margin-right: auto;
     padding-right: 12px;
     text-align: left;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -2075,7 +2118,7 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   }
 
   // Status chips più piccoli
-  .stato-chip { font-size: 11px; padding: 3px 8px 3px 7px;
+  .stato-chip { font-size: 12px; padding: 3px 8px 3px 7px;
     &::before { width: 5px; height: 5px; }
   }
 }
@@ -2239,7 +2282,7 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   .page-title { font-size: 17px !important; }
   button[mat-flat-button],
   button[mat-stroked-button] {
-    font-size: 11px !important;
+    font-size: 12px !important;
     padding: 0 8px !important;
     mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
   }
