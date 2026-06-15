@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const cron = require('node-cron');
 const rateLimit = require('express-rate-limit');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');   // puro JS: nessuna compilazione nativa (edizione offline/Electron)
 
 const { runWithContext } = require('./utils/tenantContext');
 const {

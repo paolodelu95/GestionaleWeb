@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');   // puro JS: nessuna compilazione nativa (edizione offline/Electron)
 const {
   listUsers, createUser, updateUser, deleteUser,
   getUserById, getTenant,
