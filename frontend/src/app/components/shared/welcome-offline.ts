@@ -53,6 +53,31 @@ import { environment } from '../../../environments/environment';
             @if (errore) { <div class="wel-err">{{ errore }}</div> }
           }
 
+          @else if (step === 'password') {
+            <h1 class="wel-title">Proteggi i tuoi dati</h1>
+            <p class="wel-sub">
+              Vuoi richiedere una password all'avvio del programma? Protegge i dati del
+              magazzino su un PC condiviso. È <b>opzionale</b> e potrai cambiarla in Impostazioni.
+            </p>
+            <div class="wel-form">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Password (lascia vuoto per non impostarla)</mat-label>
+                <input matInput [(ngModel)]="pwd1" type="password" autocomplete="new-password" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Ripeti password</mat-label>
+                <input matInput [(ngModel)]="pwd2" type="password" autocomplete="new-password" />
+              </mat-form-field>
+            </div>
+            @if (errore) { <div class="wel-err">{{ errore }}</div> }
+            <div class="wel-actions">
+              <button mat-button type="button" [disabled]="loading" (click)="completa()">Salta</button>
+              <button mat-flat-button color="primary" type="button" [disabled]="loading || !pwd1" (click)="impostaPassword()">
+                @if (loading) { <mat-spinner diameter="18"></mat-spinner> } @else { Imposta password }
+              </button>
+            </div>
+          }
+
           @else {
             <h1 class="wel-title">I dati della tua azienda</h1>
             <p class="wel-sub">Bastano pochi campi per iniziare; potrai completarli in Impostazioni.</p>
@@ -171,26 +196,31 @@ export class WelcomeOfflineComponent implements OnInit {
   @Output() done = new EventEmitter<void>();
 
   visible = false;
-  step: 'choice' | 'form' = 'choice';
+  step: 'choice' | 'form' | 'password' = 'choice';
   loading = false;
   errore = '';
   az: Azienda = { ragioneSociale: '' };
+  pwd1 = '';
+  pwd2 = '';
 
-  private readonly FLAG = 'ordeva_offline_setup_done';
+  /** Dismissione per la sola sessione corrente (dopo i dati demo): alla
+   *  riapertura del programma la richiesta dei dati azienda riappare finché
+   *  non vengono inseriti dati reali. Vive in sessionStorage, non localStorage. */
+  private readonly SESSION_SEEN = 'ordeva_offline_welcome_seen';
+  /** Hint per la lock screen: evita il flash all'avvio sapendo subito se c'è password. */
+  private readonly PWD_HINT = 'ordeva_app_password_enabled';
 
   constructor(private ds: DataService) {}
 
   ngOnInit(): void {
-    // Solo edizione offline e solo se non già completato.
     if (!environment.offline) return;
-    if (localStorage.getItem(this.FLAG) === '1') return;
+    if (sessionStorage.getItem(this.SESSION_SEEN) === '1') return;  // già gestito in questa sessione
 
     this.ds.getSetupStatus().pipe(catchError(() => of(null))).subscribe(st => {
-      if (!st) return;                              // backend non pronto: niente overlay
-      if (st.aziendaConfigurata || st.hasDati) {    // app già avviata in passato
-        localStorage.setItem(this.FLAG, '1');
-        return;
-      }
+      if (!st) return;                       // backend non pronto: niente overlay
+      // Si chiede SEMPRE finché non ci sono dati azienda reali (ragione sociale + P.IVA).
+      // I soli dati demo NON bastano a considerare l'azienda configurata.
+      if (st.aziendaConfigurata) return;
       this.visible = true;
     });
   }
@@ -199,8 +229,19 @@ export class WelcomeOfflineComponent implements OnInit {
     if (!this.az.ragioneSociale?.trim() || this.loading) return;
     this.loading = true; this.errore = '';
     this.ds.saveAzienda(this.az).subscribe({
-      next: () => this.completa(),
+      next: () => { this.loading = false; this.step = 'password'; },   // poi la password (opzionale)
       error: () => { this.errore = 'Salvataggio non riuscito. Riprova.'; this.loading = false; },
+    });
+  }
+
+  impostaPassword(): void {
+    if (this.loading) return;
+    if (!this.pwd1) { this.completa(); return; }
+    if (this.pwd1 !== this.pwd2) { this.errore = 'Le due password non coincidono.'; return; }
+    this.loading = true; this.errore = '';
+    this.ds.setAppPassword(this.pwd1).subscribe({
+      next: () => { localStorage.setItem(this.PWD_HINT, '1'); this.completa(); },
+      error: () => { this.errore = 'Impostazione password non riuscita. Riprova.'; this.loading = false; },
     });
   }
 
@@ -216,9 +257,12 @@ export class WelcomeOfflineComponent implements OnInit {
     });
   }
 
-  private completa(reload = false): void {
-    localStorage.setItem(this.FLAG, '1');
+  completa(reload = false): void {
+    // Solo dismissione di sessione: niente flag permanente, così i dati reali
+    // restano l'unica condizione che chiude definitivamente il benvenuto.
+    sessionStorage.setItem(this.SESSION_SEEN, '1');
     this.visible = false;
+    this.loading = false;
     this.done.emit();
     // Dopo i dati demo serve ricaricare per popolare tutte le liste già in memoria.
     if (reload) setTimeout(() => location.reload(), 50);

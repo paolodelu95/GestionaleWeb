@@ -31,6 +31,7 @@ function createWindow() {
     height: 900,
     minWidth: 360,
     title: 'Ordeva',
+    icon: path.join(__dirname, 'build', 'icon.png'),
     backgroundColor: '#0f172a',
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
@@ -41,6 +42,12 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^(https?|mailto|tel):/i.test(url)) { shell.openExternal(url); return { action: 'deny' }; }
     return { action: 'allow' };
+  });
+
+  // Click su <a href="mailto:|tel:"> (target _self): Electron proverebbe a
+  // navigare la finestra; lo intercettiamo e apriamo il client di sistema.
+  win.webContents.on('will-navigate', (e, url) => {
+    if (/^(mailto|tel):/i.test(url)) { e.preventDefault(); shell.openExternal(url); }
   });
 
   loadWhenReady(win, `http://localhost:${PORT}/`);

@@ -1,7 +1,9 @@
 @if (!offline) {
   <app-cookie-consent />
 }
-@if (publicRoute) {
+@if (locked) {
+  <app-lock-screen (unlocked)="onUnlocked()" />
+} @else if (publicRoute) {
   <router-outlet />
 } @else if (!loggedIn) {
   <app-login (loggedIn)="onLogin()" />
@@ -186,6 +188,9 @@
 
       <button mat-icon-button type="button" [title]="darkMode ? 'Modalità chiara' : 'Modalità scura'" (click)="toggleDark()">
         <mat-icon>{{ darkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+      <button mat-icon-button type="button" title="Segnala un problema" (click)="openBugReport()">
+        <mat-icon>report_problem</mat-icon>
       </button>
       <a mat-icon-button routerLink="/impostazioni" title="Impostazioni">
         <mat-icon>settings</mat-icon>

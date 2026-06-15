@@ -26,7 +26,7 @@ import { DocLockService } from './services/doc-lock.service';
 import { LayoutService } from './services/layout.service';
 import { LoginComponent } from './components/login/login';
 import { CookieConsentComponent } from './components/shared/cookie-consent';
-import { BugReportDialogComponent } from './components/shared/bug-report-dialog';
+import { LockScreenComponent } from './components/shared/lock-screen';
 import { Azienda } from './models';
 import { SwUpdate } from '@angular/service-worker';
 import { lsGet, lsSet } from './utils/safe-storage';
@@ -53,7 +53,7 @@ interface NavItem {
     MatToolbarModule, MatListModule,
     MatIconModule, MatExpansionModule, MatMenuModule, MatButtonModule, MatTooltipModule,
     MatBadgeModule, MatInputModule, MatFormFieldModule, FormsModule,
-    LoginComponent, CookieConsentComponent,
+    LoginComponent, CookieConsentComponent, LockScreenComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'
@@ -70,6 +70,14 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   loggedIn = false;
   /** Edizione offline desktop: nasconde le parti SaaS (logout, banner trial/verifica/installa). */
   readonly offline = environment.offline;
+  /**
+   * Edizione offline: app bloccata in attesa della password d'accesso.
+   * Stato iniziale ottimistico (da hint locale) per evitare il flash della UI;
+   * poi confermato/corretto col backend in ngOnInit.
+   */
+  locked = environment.offline
+    && lsGet('ordeva_app_password_enabled') === '1'
+    && sessionStorage.getItem('ordeva_unlocked') !== '1';
 
   /**
    * Data odierna nella topbar, dal formato più lungo al più corto. Lo spazio al
@@ -194,6 +202,19 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.darkMode = lsGet('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
 
+    // Offline: conferma col backend se serve la password d'accesso (corregge
+    // l'ipotesi iniziale basata sull'hint locale e mantiene sincronizzato l'hint).
+    if (this.offline && sessionStorage.getItem('ordeva_unlocked') !== '1') {
+      this.ds.getAppPasswordStatus().subscribe({
+        next: st => {
+          this.locked = st.enabled;
+          if (st.enabled) lsSet('ordeva_app_password_enabled', '1');
+          else lsSet('ordeva_app_password_enabled', '0');
+        },
+        error: () => {},
+      });
+    }
+
     // Quando cambiano i moduli attivi (login, caricamento, modifiche in Impostazioni)
     // cambia il numero di voci in barra: ricalcolo l'overflow del priority-nav.
     this.moduli.attivi$.subscribe(() =>
@@ -297,6 +318,9 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.notifSvc.start();
     this.remindersSvc.start();
   }
+
+  /** Sbloccata l'app dalla lock screen offline. */
+  onUnlocked() { this.locked = false; }
 
   logout() {
     this.authSvc.logout();
@@ -769,9 +793,27 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     });
   }
 
+  /** Apre il client di posta del sistema con una mail precompilata al supporto Ordeva. */
   openBugReport() {
-    const pagina = this.router.url.replace(/^\//, '').split('/')[0];
-    this.dialog.open(BugReportDialogComponent, { data: { pagina }, width: '540px' });
+    const pagina = this.router.url.replace(/^\//, '').split('/')[0] || 'home';
+    const enc = (s: string) => encodeURIComponent(s);
+    const subject = 'Segnalazione problema — Ordeva';
+    const body = [
+      'Descrivi il problema riscontrato:',
+      '',
+      '',
+      '------------------------------',
+      `Pagina: ${pagina}`,
+      `Sistema: ${navigator.platform || 'n/d'}`,
+      'Allega, se possibile, uno screenshot.',
+    ].join('\n');
+    const url = `mailto:contatti@ordeva.it?subject=${enc(subject)}&body=${enc(body)}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   readonly navItems: NavItem[] = [

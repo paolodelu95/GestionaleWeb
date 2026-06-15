@@ -464,8 +464,6 @@ export class ImpostazioniComponent implements OnInit {
   notaRapidaColumns = ['testo', 'ordine', 'azioni'];
   causaliColumns = ['nome', 'azioni'];
 
-  bugReports: any[] = [];
-  bugColumns = ['priorita', 'titolo', 'pagina', 'stato', 'data', 'azioni'];
 
   emailTesting = false;
 
@@ -570,7 +568,6 @@ export class ImpostazioniComponent implements OnInit {
     this.loadUtenti();
     this.loadNoteRapide();
     this.loadCausali();
-    this.loadBugReports();
     this.loadModuli();
   }
 
@@ -1085,31 +1082,6 @@ export class ImpostazioniComponent implements OnInit {
     if (!await this.confirm.delete(`Eliminare la causale "${c.nome}"?`)) return;
     this.ds.deleteCausale(c.id!).subscribe({
       next: () => { this.loadCausali(); this.snack.open('Eliminato', '', { duration: 2000 }); },
-      error: e => this.snack.open(e.message, '', { duration: 3000 })
-    });
-  }
-
-  // ── Bug Reports ─────────────────────────────────────────────────────────────
-  loadBugReports() { this.ds.getBugReports().subscribe(r => { this.bugReports = r; }); }
-
-  resolveBug(r: any) {
-    this.ds.resolveBugReport(r.id).subscribe({
-      next: () => { this.loadBugReports(); this.snack.open('Segnalazione risolta', '', { duration: 2000 }); },
-      error: e => this.snack.open(e.message, '', { duration: 3000 })
-    });
-  }
-
-  reopenBug(r: any) {
-    this.ds.reopenBugReport(r.id).subscribe({
-      next: () => { this.loadBugReports(); this.snack.open('Segnalazione riaperta', '', { duration: 2000 }); },
-      error: e => this.snack.open(e.message, '', { duration: 3000 })
-    });
-  }
-
-  async deleteBug(r: any) {
-    if (!await this.confirm.delete(`Eliminare la segnalazione "${r.titolo}"?`)) return;
-    this.ds.deleteBugReport(r.id).subscribe({
-      next: () => { this.loadBugReports(); this.snack.open('Eliminata', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
     });
   }

@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const bcrypt = require('bcryptjs');
 
 const PRODOTTI = [
   { nome: 'Carta A4 80g', categoria: 'Cancelleria', prezzo: 4.90, quantita: 150, soglia: 50, um: 'risma', codice: 'CAR001', iva: 22 },
@@ -67,6 +68,41 @@ router.post('/seed-demo', (req, res) => {
   tx();
 
   res.json({ success: true, prodotti: PRODOTTI.length, clienti: CLIENTI.length, fornitori: FORNITORI.length });
+});
+
+// ── Password opzionale d'accesso al programma ───────────────────────────────
+function currentHash() {
+  const row = db.prepare('SELECT app_password_hash FROM azienda WHERE id=1').get();
+  return (row && row.app_password_hash) || '';
+}
+
+// GET /api/setup/password/status — il frontend sa se mostrare il blocco all'avvio.
+router.get('/password/status', (req, res) => {
+  res.json({ enabled: currentHash().length > 0 });
+});
+
+// POST /api/setup/password — imposta (o rimuove con password vuota) la password.
+// Se ne esiste già una, richiede quella attuale in `current` per cambiarla.
+router.post('/password', (req, res) => {
+  const { password, current } = req.body || {};
+  const existing = currentHash();
+  if (existing) {
+    if (!bcrypt.compareSync(String(current || ''), existing)) {
+      return res.status(403).json({ error: 'Password attuale errata.' });
+    }
+  }
+  const next = String(password || '');
+  const hash = next ? bcrypt.hashSync(next, 10) : '';
+  db.prepare('UPDATE azienda SET app_password_hash=? WHERE id=1').run(hash);
+  res.json({ success: true, enabled: hash.length > 0 });
+});
+
+// POST /api/setup/unlock — verifica la password per sbloccare l'app.
+router.post('/unlock', (req, res) => {
+  const existing = currentHash();
+  if (!existing) return res.json({ ok: true });           // nessuna password impostata
+  const ok = bcrypt.compareSync(String((req.body && req.body.password) || ''), existing);
+  res.json({ ok });
 });
 
 module.exports = router;

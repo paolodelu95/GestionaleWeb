@@ -1204,6 +1204,9 @@ function initTenantSchema(db) {
   // Provider per l'invio/ricezione e-fatture allo SDI (FIC=Fatture in Cloud,
   // ARUBA, o GENERICO per un intermediario qualsiasi via URL+chiave).
   try { db.exec("ALTER TABLE azienda ADD COLUMN sdi_provider TEXT DEFAULT 'GENERICO'"); } catch(_) {}
+  // Edizione offline: password opzionale d'accesso al programma (protegge i dati
+  // del magazzino su un PC condiviso). Hash bcrypt; vuoto/NULL = nessuna password.
+  try { db.exec("ALTER TABLE azienda ADD COLUMN app_password_hash TEXT DEFAULT ''"); } catch(_) {}
   try {
     const row = db.prepare('SELECT email_corpo_documento FROM azienda WHERE id=1').get();
     if (row && (row.email_corpo_documento == null || row.email_corpo_documento === '')) {

@@ -28,6 +28,10 @@ export class DataService {
   // Setup primo avvio (solo edizione offline desktop)
   getSetupStatus(): Observable<{ aziendaConfigurata: boolean; hasDati: boolean }> { return this.api.get('setup/status'); }
   seedDemo(): Observable<{ success: boolean; prodotti: number; clienti: number; fornitori: number }> { return this.api.post('setup/seed-demo', {}); }
+  // Password opzionale d'accesso (offline)
+  getAppPasswordStatus(): Observable<{ enabled: boolean }> { return this.api.get('setup/password/status'); }
+  setAppPassword(password: string, current?: string): Observable<{ success: boolean; enabled: boolean }> { return this.api.post('setup/password', { password, current }); }
+  unlockApp(password: string): Observable<{ ok: boolean }> { return this.api.post('setup/unlock', { password }); }
 
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }
