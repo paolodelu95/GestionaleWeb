@@ -6,6 +6,7 @@
   "main": "main.js",
   "author": "Paolo De Luca <info@ordeva.it>",
   "license": "AGPL-3.0-or-later",
+  "repository": { "type": "git", "url": "git+https://github.com/paolodelu95/GestionaleWeb.git" },
   "scripts": {
     "build": "node build.mjs",
     "start": "electron .",
@@ -22,6 +23,7 @@
     "appId": "it.ordeva.desktop",
     "productName": "Ordeva",
     "files": ["main.js"],
+    "publish": [{ "provider": "github", "owner": "paolodelu95", "repo": "GestionaleWeb" }],
     "extraResources": [
       {
         "from": "../backend",
