@@ -1,0 +1,30 @@
+{
+  "name": "ordeva-desktop",
+  "productName": "Ordeva",
+  "version": "1.0.0",
+  "description": "Ordeva — edizione offline desktop (gestionale locale, single-user)",
+  "main": "main.js",
+  "author": "",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "electron .",
+    "rebuild": "electron-rebuild -m ../backend",
+    "postinstall": "electron-rebuild -m ../backend",
+    "dist": "npm run build && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "@electron/rebuild": "^3.7.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "it.ordeva.desktop",
+    "productName": "Ordeva",
+    "files": ["main.js", "../backend/**/*", "!../backend/tenants/**", "!../backend/*.db"],
+    "asarUnpack": ["**/node_modules/better-sqlite3/**"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  }
+}

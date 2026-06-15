@@ -12,3 +12,8 @@ node_modules/
 
 # Output degli script di audit (screenshot/report generati)
 scripts/audit-output/
+
+# Edizione offline/Electron: artefatti di build
+backend/public/
+electron/dist/
+dist/
