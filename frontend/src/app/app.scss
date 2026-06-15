@@ -617,6 +617,12 @@
     font-size: 14px;
     /* max-width rimosso: ora si adatta allo spazio disponibile con ellipsis */
   }
+  // La data odierna è centrata in assoluto sull'intera topbar (left:50%,
+  // pointer-events:none). Su mobile la search-box che ne delimita lo spazio a
+  // destra è nascosta: la misura (updateDateLabel) non ha più un confine valido
+  // e la data, prima/oltre la misura, finisce sopra le icone a destra. Su telefono
+  // non c'è comunque spazio per la data centrata → la nascondiamo del tutto.
+  .topbar .topbar-date { display: none !important; }
 }
 
 @keyframes fade-in {
