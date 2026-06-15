@@ -1,7 +1,7 @@
 // Ordeva — edizione offline desktop (Electron).
 // Avvia il backend Express in-process in OFFLINE_MODE e carica la SPA servita
 // dallo stesso backend su http://localhost:<porta> (niente file://, niente CORS).
-const { app, BrowserWindow, shell, Menu } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -33,7 +33,11 @@ function createWindow() {
     title: 'Ordeva',
     icon: path.join(__dirname, 'build', 'icon.png'),
     backgroundColor: '#0f172a',
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js'),
+    },
   });
 
   Menu.setApplicationMenu(null);
@@ -61,6 +65,19 @@ function loadWhenReady(win, url, attempt = 0) {
     }
   });
 }
+
+// ── IPC desktop: selezione/apertura cartella di backup ───────────────────────
+ipcMain.handle('ordeva:pick-folder', async () => {
+  const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  const r = await dialog.showOpenDialog(win, {
+    title: 'Scegli la cartella di backup',
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  return (r.canceled || !r.filePaths.length) ? null : r.filePaths[0];
+});
+ipcMain.handle('ordeva:open-path', async (_e, p) => {
+  if (p) await shell.openPath(p);
+});
 
 app.whenReady().then(createWindow);
 

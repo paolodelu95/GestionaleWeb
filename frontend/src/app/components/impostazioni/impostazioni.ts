@@ -32,7 +32,8 @@ import { SectionKey, ColumnKey } from '../../models';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { Azienda, TipoPagamento, CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, ModuloDto } from '../../models';
+import { Azienda, TipoPagamento, CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, ModuloDto, BackupConfig } from '../../models';
+import { DesktopService } from '../../services/desktop.service';
 import { ModuliService } from '../../services/moduli.service';
 import { DocLockService } from '../../services/doc-lock.service';
 import { pIvaValidator, codiceFiscaleValidator, ibanValidator } from '../../validators/italian-validators';
@@ -416,9 +417,16 @@ export class ImpostazioniComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private layout = inject(LayoutService);
   private authSvc = inject(AuthService);
+  private desktop = inject(DesktopService);
 
   /** Edizione offline: nasconde le schede SaaS (Email/SMTP, Moduli, Utenti, Amministrazione, Console SaaS). */
   readonly offline = environment.offline;
+
+  // ── Backup (offline) ──────────────────────────────────────────────────────
+  backupCfg: BackupConfig | null = null;
+  backupFiles: { name: string; encrypted: boolean; size: number; mtime: string }[] = [];
+  backupBusy = false;
+  get isDesktop(): boolean { return this.desktop.isDesktop; }
 
   /** Ruolo utente: le schede Amministrazione e Console SaaS sono qui dentro, gated per ruolo. */
   get isSuper(): boolean { return this.authSvc.getUser()?.ruolo === 'SUPERADMIN'; }
@@ -518,6 +526,7 @@ export class ImpostazioniComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (this.offline) this.loadBackupConfig();
     this.ds.getAzienda().subscribe(a => {
       if (a) {
         this.form.patchValue(a);
@@ -1084,5 +1093,51 @@ export class ImpostazioniComponent implements OnInit {
       next: () => { this.loadCausali(); this.snack.open('Eliminato', '', { duration: 2000 }); },
       error: e => this.snack.open(e.message, '', { duration: 3000 })
     });
+  }
+
+  // ── Backup (offline) ──────────────────────────────────────────────────────
+  loadBackupConfig() {
+    this.ds.getBackupConfig().subscribe({ next: c => { this.backupCfg = c; this.loadBackupFiles(); }, error: () => {} });
+  }
+  private loadBackupFiles() {
+    this.ds.listBackups().subscribe({ next: r => this.backupFiles = r.files, error: () => this.backupFiles = [] });
+  }
+  private saveBackup(patch: Partial<BackupConfig>) {
+    this.ds.saveBackupConfig(patch).subscribe({ next: c => this.backupCfg = c, error: e => this.snack.open(e.error?.error || 'Errore', '', { duration: 3000 }) });
+  }
+
+  async pickBackupFolder() {
+    const dir = await this.desktop.pickFolder();
+    if (dir) this.saveBackup({ dir });
+  }
+  openBackupFolder() { if (this.backupCfg?.dir) this.desktop.openPath(this.backupCfg.dir); }
+  setBackupEnabled(v: boolean) { this.saveBackup({ enabled: v }); }
+  setBackupEncrypt(v: boolean) { this.saveBackup({ encrypt: v }); }
+  setBackupAlertDays(v: number) { if (Number.isFinite(v)) this.saveBackup({ alertDays: v }); }
+  /** Riattiva gli avvisi di backup disattivati con "non mostrare più". */
+  reenableBackupAlert() { this.saveBackup({ alertDisabled: false }); }
+
+  runBackupNow() {
+    if (this.backupBusy) return;
+    this.backupBusy = true;
+    this.ds.runBackup().subscribe({
+      next: c => { this.backupCfg = c; this.backupBusy = false; this.loadBackupFiles(); this.snack.open('Backup eseguito', '', { duration: 2500 }); },
+      error: e => { this.backupBusy = false; this.snack.open(e.error?.error || 'Backup non riuscito', '', { duration: 4000 }); },
+    });
+  }
+
+  async restoreBackup(name: string) {
+    if (!await this.confirm.delete(`Ripristinare il backup "${name}"? I dati attuali verranno sostituiti (ne salvo prima una copia di sicurezza).`)) return;
+    this.ds.restoreBackup(name).subscribe({
+      next: () => { this.snack.open('Ripristino completato. Ricarico…', '', { duration: 2500 }); setTimeout(() => location.reload(), 1200); },
+      error: e => this.snack.open(e.error?.error || 'Ripristino non riuscito', '', { duration: 5000 }),
+    });
+  }
+
+  fmtBytes(n: number): string {
+    if (!n) return '0 B';
+    const u = ['B', 'KB', 'MB', 'GB']; let i = 0; let v = n;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "ordeva-desktop",
   "productName": "Ordeva",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Ordeva — edizione offline desktop (gestionale locale, single-user)",
   "main": "main.js",
   "author": "Paolo De Luca <info@ordeva.it>",
@@ -22,7 +22,7 @@
   "build": {
     "appId": "it.ordeva.desktop",
     "productName": "Ordeva",
-    "files": ["main.js", "build/icon.png"],
+    "files": ["main.js", "preload.js", "build/icon.png"],
     "afterPack": "afterPack.cjs",
     "publish": [{ "provider": "github", "owner": "paolodelu95", "repo": "GestionaleWeb" }],
     "extraResources": [
@@ -33,7 +33,7 @@
       }
     ],
     "win": { "target": ["nsis", "portable"], "icon": "build/icon.png" },
-    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.business", "identity": null, "icon": "build/icon.png" },
+    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.business", "identity": null, "icon": "build/icon-mac.png" },
     "linux": { "target": ["deb", "AppImage"], "category": "Office", "icon": "build/icon.png" }
   }
 }

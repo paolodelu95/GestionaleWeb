@@ -1207,6 +1207,9 @@ function initTenantSchema(db) {
   // Edizione offline: password opzionale d'accesso al programma (protegge i dati
   // del magazzino su un PC condiviso). Hash bcrypt; vuoto/NULL = nessuna password.
   try { db.exec("ALTER TABLE azienda ADD COLUMN app_password_hash TEXT DEFAULT ''"); } catch(_) {}
+  // Edizione offline: configurazione del backup giornaliero (cartella, cifratura,
+  // alert, ultimo backup) come JSON. Vedi routes/backup.js.
+  try { db.exec("ALTER TABLE azienda ADD COLUMN backup_config TEXT DEFAULT NULL"); } catch(_) {}
   try {
     const row = db.prepare('SELECT email_corpo_documento FROM azienda WHERE id=1').get();
     if (row && (row.email_corpo_documento == null || row.email_corpo_documento === '')) {

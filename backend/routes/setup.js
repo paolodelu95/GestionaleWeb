@@ -6,6 +6,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const bcrypt = require('bcryptjs');
+const appSession = require('../utils/appSession');
+const backupConfig = require('../utils/backupConfig');
 
 const PRODOTTI = [
   { nome: 'Carta A4 80g', categoria: 'Cancelleria', prezzo: 4.90, quantita: 150, soglia: 50, um: 'risma', codice: 'CAR001', iva: 22 },
@@ -94,6 +96,9 @@ router.post('/password', (req, res) => {
   const next = String(password || '');
   const hash = next ? bcrypt.hashSync(next, 10) : '';
   db.prepare('UPDATE azienda SET app_password_hash=? WHERE id=1').run(hash);
+  // Aggiorna la chiave di cifratura backup tenuta in memoria di sessione.
+  if (next) appSession.setBackupKeyFromPassword(next, backupConfig.ensureSalt());
+  else appSession.clearBackupKey();
   res.json({ success: true, enabled: hash.length > 0 });
 });
 
@@ -101,7 +106,10 @@ router.post('/password', (req, res) => {
 router.post('/unlock', (req, res) => {
   const existing = currentHash();
   if (!existing) return res.json({ ok: true });           // nessuna password impostata
-  const ok = bcrypt.compareSync(String((req.body && req.body.password) || ''), existing);
+  const pwd = String((req.body && req.body.password) || '');
+  const ok = bcrypt.compareSync(pwd, existing);
+  // Sblocco riuscito: deriva e memorizza la chiave per i backup cifrati.
+  if (ok) appSession.setBackupKeyFromPassword(pwd, backupConfig.ensureSalt());
   res.json({ ok });
 });
 

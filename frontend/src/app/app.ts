@@ -214,6 +214,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         error: () => {},
       });
     }
+    // Se non c'è blocco password, valuta subito l'avviso di backup scaduto.
+    if (this.offline && !this.locked) this.checkBackupAlert();
 
     // Quando cambiano i moduli attivi (login, caricamento, modifiche in Impostazioni)
     // cambia il numero di voci in barra: ricalcolo l'overflow del priority-nav.
@@ -320,7 +322,23 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   /** Sbloccata l'app dalla lock screen offline. */
-  onUnlocked() { this.locked = false; }
+  onUnlocked() { this.locked = false; this.checkBackupAlert(); }
+
+  /** Edizione offline: banner che ricorda di eseguire il backup se scaduto. */
+  backupAlert = false;
+
+  private checkBackupAlert() {
+    if (!this.offline) return;
+    this.ds.getBackupConfig().subscribe({
+      next: c => { this.backupAlert = !!c.alertDue; },
+      error: () => {},
+    });
+  }
+  /** "Più tardi": l'avviso riapparirà dopo i giorni configurati. */
+  dismissBackupAlert() { this.backupAlert = false; this.ds.dismissBackupAlert().subscribe({ next: () => {}, error: () => {} }); }
+  /** "Non mostrare più": riattivabile da Impostazioni → Backup. */
+  disableBackupAlert() { this.backupAlert = false; this.ds.saveBackupConfig({ alertDisabled: true }).subscribe({ next: () => {}, error: () => {} }); }
+  goBackupSettings() { this.backupAlert = false; this.router.navigate(['/impostazioni']); }
 
   logout() {
     this.authSvc.logout();

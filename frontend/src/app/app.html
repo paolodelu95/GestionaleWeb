@@ -208,6 +208,15 @@
           <span>Server non raggiungibile — controlla la connessione o che il backend sia attivo.</span>
         </div>
       }
+      @if (backupAlert) {
+        <div class="pwa-banner pwa-banner--update">
+          <mat-icon>backup</mat-icon>
+          <span>È da un po' che non esegui un backup dei tuoi dati.</span>
+          <button mat-button type="button" (click)="goBackupSettings()">Esegui backup</button>
+          <button mat-button type="button" (click)="dismissBackupAlert()">Più tardi</button>
+          <button mat-button type="button" (click)="disableBackupAlert()">Non mostrare più</button>
+        </div>
+      }
       @if (showUpdateBanner) {
         <div class="pwa-banner pwa-banner--update">
           <mat-icon>system_update</mat-icon>

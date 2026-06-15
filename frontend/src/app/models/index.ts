@@ -158,6 +158,21 @@ export interface Azienda {
   cassaIvaDefault?: number;
 }
 
+/** Configurazione e stato del backup giornaliero (edizione offline). */
+export interface BackupConfig {
+  dir: string;
+  enabled: boolean;
+  encrypt: boolean;
+  alertDays: number;
+  alertDisabled: boolean;
+  lastAt: string | null;
+  alertDismissedAt: string | null;
+  daysSinceLast: number | null;
+  alertDue: boolean;
+  passwordSet: boolean;
+  keyReady: boolean;
+}
+
 export interface Prodotto {
   id?: number;
   nome: string;

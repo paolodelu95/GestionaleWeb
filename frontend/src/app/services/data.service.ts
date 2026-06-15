@@ -13,7 +13,7 @@ import {
   Magazzino, Giacenza, ScadenzaLotto,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
-  NotaRapida
+  NotaRapida, BackupConfig
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -32,6 +32,14 @@ export class DataService {
   getAppPasswordStatus(): Observable<{ enabled: boolean }> { return this.api.get('setup/password/status'); }
   setAppPassword(password: string, current?: string): Observable<{ success: boolean; enabled: boolean }> { return this.api.post('setup/password', { password, current }); }
   unlockApp(password: string): Observable<{ ok: boolean }> { return this.api.post('setup/unlock', { password }); }
+
+  // Backup (offline)
+  getBackupConfig(): Observable<BackupConfig> { return this.api.get('backup/config'); }
+  saveBackupConfig(c: Partial<BackupConfig>): Observable<BackupConfig> { return this.api.put('backup/config', c); }
+  runBackup(): Observable<BackupConfig & { success: boolean; file: string; encrypted: boolean }> { return this.api.post('backup/run', {}); }
+  dismissBackupAlert(): Observable<BackupConfig> { return this.api.post('backup/alert-dismiss', {}); }
+  listBackups(): Observable<{ files: { name: string; encrypted: boolean; size: number; mtime: string }[] }> { return this.api.get('backup/list'); }
+  restoreBackup(name: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { name }); }
 
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }

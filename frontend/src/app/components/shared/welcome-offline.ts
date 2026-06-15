@@ -6,9 +6,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
+import { DesktopService } from '../../services/desktop.service';
 import { Azienda } from '../../models';
 import { environment } from '../../../environments/environment';
 
@@ -26,7 +28,7 @@ import { environment } from '../../../environments/environment';
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatIconModule, MatButtonModule,
-    MatInputModule, MatFormFieldModule, MatProgressSpinnerModule,
+    MatInputModule, MatFormFieldModule, MatProgressSpinnerModule, MatCheckboxModule,
   ],
   template: `
     @if (visible) {
@@ -71,9 +73,38 @@ import { environment } from '../../../environments/environment';
             </div>
             @if (errore) { <div class="wel-err">{{ errore }}</div> }
             <div class="wel-actions">
-              <button mat-button type="button" [disabled]="loading" (click)="completa()">Salta</button>
+              <button mat-button type="button" [disabled]="loading" (click)="vaiBackup()">Salta</button>
               <button mat-flat-button color="primary" type="button" [disabled]="loading || !pwd1" (click)="impostaPassword()">
                 @if (loading) { <mat-spinner diameter="18"></mat-spinner> } @else { Imposta password }
+              </button>
+            </div>
+          }
+
+          @else if (step === 'backup') {
+            <h1 class="wel-title">Backup automatico</h1>
+            <p class="wel-sub">
+              Ogni giorno Ordeva può salvare una copia dei tuoi dati in una cartella a tua scelta.
+              Se scegli una cartella di <b>Google Drive</b> o <b>Dropbox</b>, la copia finisce anche nel cloud.
+            </p>
+            <div class="wel-form">
+              <div class="wel-folder">
+                <button mat-stroked-button type="button" (click)="scegliCartella()">
+                  <mat-icon>folder_open</mat-icon> Scegli cartella
+                </button>
+                @if (backupDir) { <span class="wel-folder-path" [title]="backupDir">{{ backupDir }}</span> }
+                @else { <span class="wel-folder-empty">Nessuna cartella selezionata</span> }
+              </div>
+              @if (hadPassword) {
+                <mat-checkbox [(ngModel)]="backupEncrypt" name="bkEnc">Cifra i backup con la password d'accesso</mat-checkbox>
+              } @else {
+                <p class="wel-note">Per cifrare i backup serve una password d'accesso (impostabile più tardi in Impostazioni).</p>
+              }
+            </div>
+            @if (errore) { <div class="wel-err">{{ errore }}</div> }
+            <div class="wel-actions">
+              <button mat-button type="button" [disabled]="loading" (click)="completa()">Salta</button>
+              <button mat-flat-button color="primary" type="button" [disabled]="loading || !backupDir" (click)="attivaBackup()">
+                @if (loading) { <mat-spinner diameter="18"></mat-spinner> } @else { Attiva backup }
               </button>
             </div>
           }
@@ -181,6 +212,10 @@ import { environment } from '../../../environments/environment';
     .wel-row mat-form-field { flex: 1; }
     .wel-row .cap { max-width: 110px; }
     .wel-row .prov { max-width: 88px; }
+    .wel-folder { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+    .wel-folder-path { font-size: 12.5px; color: #0f172a; word-break: break-all; max-width: 100%; }
+    .wel-folder-empty { font-size: 12.5px; color: #94a3b8; }
+    .wel-note { font-size: 12.5px; color: #64748b; margin: 2px 0 0; }
     .wel-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
     .wel-actions button mat-spinner { display: inline-block; }
     .wel-err { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #fef2f2; color: #b91c1c; font-size: 13px; }
@@ -196,12 +231,15 @@ export class WelcomeOfflineComponent implements OnInit {
   @Output() done = new EventEmitter<void>();
 
   visible = false;
-  step: 'choice' | 'form' | 'password' = 'choice';
+  step: 'choice' | 'form' | 'password' | 'backup' = 'choice';
   loading = false;
   errore = '';
   az: Azienda = { ragioneSociale: '' };
   pwd1 = '';
   pwd2 = '';
+  hadPassword = false;
+  backupDir = '';
+  backupEncrypt = false;
 
   /** Dismissione per la sola sessione corrente (dopo i dati demo): alla
    *  riapertura del programma la richiesta dei dati azienda riappare finché
@@ -210,7 +248,7 @@ export class WelcomeOfflineComponent implements OnInit {
   /** Hint per la lock screen: evita il flash all'avvio sapendo subito se c'è password. */
   private readonly PWD_HINT = 'ordeva_app_password_enabled';
 
-  constructor(private ds: DataService) {}
+  constructor(private ds: DataService, private desktop: DesktopService) {}
 
   ngOnInit(): void {
     if (!environment.offline) return;
@@ -236,12 +274,37 @@ export class WelcomeOfflineComponent implements OnInit {
 
   impostaPassword(): void {
     if (this.loading) return;
-    if (!this.pwd1) { this.completa(); return; }
+    if (!this.pwd1) { this.vaiBackup(); return; }
     if (this.pwd1 !== this.pwd2) { this.errore = 'Le due password non coincidono.'; return; }
     this.loading = true; this.errore = '';
     this.ds.setAppPassword(this.pwd1).subscribe({
-      next: () => { localStorage.setItem(this.PWD_HINT, '1'); this.completa(); },
+      next: () => {
+        localStorage.setItem(this.PWD_HINT, '1');
+        this.hadPassword = true;
+        this.loading = false;
+        this.vaiBackup();
+      },
       error: () => { this.errore = 'Impostazione password non riuscita. Riprova.'; this.loading = false; },
+    });
+  }
+
+  vaiBackup(): void { this.errore = ''; this.step = 'backup'; }
+
+  async scegliCartella(): Promise<void> {
+    const dir = await this.desktop.pickFolder();
+    if (dir) this.backupDir = dir;
+  }
+
+  attivaBackup(): void {
+    if (this.loading || !this.backupDir) return;
+    this.loading = true; this.errore = '';
+    this.ds.saveBackupConfig({
+      dir: this.backupDir,
+      enabled: true,
+      encrypt: this.hadPassword && this.backupEncrypt,
+    }).subscribe({
+      next: () => { this.ds.runBackup().subscribe({ next: () => {}, error: () => {} }); this.completa(); },
+      error: () => { this.errore = 'Attivazione backup non riuscita. Riprova.'; this.loading = false; },
     });
   }
 

@@ -683,8 +683,11 @@ app.get('/api/next-number/:tipo', (req, res) => {
 // SaaS-only: abbonamenti/pagamenti Stripe non esistono nell'edizione offline.
 if (!OFFLINE_MODE) app.use('/api/billing', require('./routes/billing').router);
 app.use('/api/azienda',          require('./routes/azienda'));
-// Edizione offline: setup di primo avvio (caricamento dati demo).
-if (OFFLINE_MODE) app.use('/api/setup', require('./routes/setup'));
+// Edizione offline: setup di primo avvio (dati demo) e backup giornaliero.
+if (OFFLINE_MODE) {
+  app.use('/api/setup', require('./routes/setup'));
+  app.use('/api/backup', require('./routes/backup'));
+}
 app.use('/api/prodotti',         require('./routes/prodotti'));
 app.use('/api/clienti',          require('./routes/clienti'));
 app.use('/api/fornitori',        require('./routes/fornitori'));
@@ -787,7 +790,30 @@ cron.schedule('0 2 * * *', async () => {
   for (const t of listTenants({ activeOnly: true })) {
     await runBackup(t.slug);   // runBackup non rilancia (gestisce gli errori internamente)
   }
+  if (OFFLINE_MODE) await runExternalBackupIfDue();
 });
+
+// Edizione offline: backup nella cartella scelta dall'utente (anche Drive/Dropbox),
+// se configurato e "scaduto" (>= 1 giorno dall'ultimo). Cifra se richiesto e se la
+// chiave (derivata dalla password d'accesso) è disponibile in sessione.
+async function runExternalBackupIfDue() {
+  try {
+    const backupConfig = require('./utils/backupConfig');
+    const appSession = require('./utils/appSession');
+    const { runExternalBackup } = require('./utils/backup');
+    const cfg = backupConfig.read();
+    if (!cfg.enabled || !cfg.dir) return;
+    const days = cfg.lastAt ? (Date.now() - new Date(cfg.lastAt).getTime()) / 86400000 : Infinity;
+    if (days < 1) return;
+    const key = appSession.getBackupKey();
+    if (cfg.encrypt && !key) { console.log('[Backup esterno] rinviato: cifratura attiva ma app bloccata'); return; }
+    await runExternalBackup('default', { dir: cfg.dir, encrypt: cfg.encrypt, key });
+    backupConfig.write({ lastAt: new Date().toISOString() });
+    console.log('[Backup esterno] completato in', cfg.dir);
+  } catch (e) {
+    console.error('[Backup esterno] errore:', e.message);
+  }
+}
 setTimeout(async () => {
   for (const t of listTenants({ activeOnly: true })) {
     await runBackup(t.slug);
