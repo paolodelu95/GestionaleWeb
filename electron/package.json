@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Ordeva — edizione offline desktop (gestionale locale, single-user)",
   "main": "main.js",
-  "author": "",
+  "author": "Paolo De Luca",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build": "node build.mjs",
@@ -23,8 +23,8 @@
     "productName": "Ordeva",
     "files": ["main.js", "../backend/**/*", "!../backend/tenants/**", "!../backend/*.db"],
     "asarUnpack": ["**/node_modules/better-sqlite3/**"],
-    "win": { "target": "nsis" },
-    "mac": { "target": "dmg", "category": "public.app-category.business" },
+    "win": { "target": ["nsis", "portable"] },
+    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.business" },
     "linux": { "target": ["deb", "AppImage"], "category": "Office" }
   }
 }

@@ -52,6 +52,7 @@ jobs:
           path: |
             electron/dist/*.exe
             electron/dist/*.dmg
+            electron/dist/*.zip
             electron/dist/*.deb
             electron/dist/*.AppImage
           if-no-files-found: ignore

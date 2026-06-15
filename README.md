@@ -57,3 +57,13 @@ L'app parte su **http://localhost:4200**.
 - Lo stato delle fatture si aggiorna automaticamente a `PAGATA` quando i pagamenti coprono il totale
 - Lo scadenzario mostra solo fatture con stato `EMESSA` e saldo rimanente > 0
 - I campi città nella scheda clienti/fornitori supportano autocomplete con normalizzazione degli accenti
+
+## Edizione offline (desktop)
+
+Il branch `offline-electron` contiene una versione **locale, single-user, senza login né cloud** (Electron) — backend + frontend sul PC dell'utente, dati in un file SQLite locale, email tramite il client di sistema. Vedi [`electron/README.md`](electron/README.md).
+
+## Licenza
+
+**AGPL-3.0-or-later** — © Paolo De Luca. Vedi [`LICENSE`](LICENSE).
+
+Se distribuisci il software o lo offri come servizio in rete, devi rendere disponibile il codice sorgente (modifiche incluse). Per usi commerciali senza gli obblighi della AGPL è disponibile una **licenza commerciale separata** (dual-licensing): contatta l'autore.

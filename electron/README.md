@@ -35,14 +35,34 @@ npm run build   # compila il frontend (config offline) e lo copia in backend/pub
 npm start       # avvia l'app desktop
 ```
 
-## Creare gli installer
+## Creare gli pacchetti
 ```bash
 cd electron
-npm run dist     # genera in electron/dist/ (NSIS su Windows, dmg su mac, AppImage su Linux)
+npm run dist     # genera in electron/dist/
 ```
-Nota: per **non** mostrare l'avviso "editore sconosciuto" serve firmare il codice
+Per ogni sistema vengono prodotti **sia l'installer sia una versione portatile**:
+
+| OS | Installer | Portatile (senza installazione) |
+|----|-----------|---------------------------------|
+| Windows | `Ordeva Setup x.y.z.exe` (NSIS) | `Ordeva x.y.z.exe` (**portable**: un singolo .exe, doppio clic) |
+| macOS | `Ordeva-x.y.z.dmg` | `Ordeva-x.y.z-mac.zip` (estrai e avvia il `.app`) |
+| Linux | `ordeva_x.y.z_amd64.deb` | `Ordeva-x.y.z.AppImage` (rendi eseguibile e avvia) |
+
+> La versione **portatile** non installa nulla: si avvia direttamente. I dati restano
+> comunque nella cartella utente del sistema (vedi sotto), quindi sono condivisi tra
+> versione portatile e installata.
+
+Nota firma: per **non** mostrare l'avviso "editore sconosciuto" serve firmare il codice
 (certificato a pagamento). Senza firma l'app funziona ugualmente, con un avviso al
 primo avvio.
+
+### Build multi-OS automatica (GitHub Actions)
+macOS e Linux non si possono compilare da Windows. Il workflow
+`.github/workflows/desktop-release.yml` builda tutti i formati (installer +
+portatili) su Windows/macOS/Linux a ogni tag `v*`:
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
 
 ## Dove sono i dati
 Nella cartella `userData` di Electron:
@@ -57,9 +77,12 @@ Contiene `auth.db` e `tenants/default.db`. Per il backup basta copiare questa ca
   richiede un intermediario online (funzione opzionale).
 - **OCR fatture**: richiede una chiave Mindee (`MINDEE_API_KEY`), opzionale.
 
-## Prima di pubblicare come open source
-- Scegliere la **licenza** (in `package.json` è indicata `AGPL-3.0-or-later` come
-  ipotesi: AGPL mantiene aperte le modifiche, MIT massimizza l'adozione). Aggiungere
-  un file `LICENSE`.
-- Verificare che nessun **segreto** sia finito nella history dei commit
-  (`.env` è in `.gitignore` e non risulta committato).
+## Licenza
+**AGPL-3.0-or-later** — © Paolo De Luca. Vedi il file [`LICENSE`](../LICENSE).
+Chi distribuisce il software o lo offre come servizio in rete deve rendere
+disponibile il codice sorgente (incluse le modifiche). Per usi commerciali senza
+gli obblighi AGPL è possibile una **licenza commerciale separata** (dual-licensing):
+contatta l'autore.
+
+> Prima di rendere pubblico il repo, verifica che nessun **segreto** sia finito nella
+> history dei commit (`.env` è in `.gitignore` e non risulta committato).

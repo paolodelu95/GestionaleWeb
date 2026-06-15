@@ -1,7 +1,9 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Ordeva — backend gestionale",
+  "author": "Paolo De Luca",
+  "license": "AGPL-3.0-or-later",
   "main": "index.js",
   "engines": {
     "node": "24.15.0",
