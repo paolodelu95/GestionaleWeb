@@ -17,9 +17,13 @@ process.env.DATA_DIR = dataDir;
 process.env.PORT = PORT;
 process.env.NODE_ENV = 'production';
 
-// Avvia il backend (require → bootstrap + app.listen). Il percorso punta al
-// backend del repo; in pacchetto va incluso (vedi build/asarUnpack).
-require(path.join(__dirname, '..', 'backend', 'server.js'));
+// Avvia il backend (require → bootstrap + app.listen).
+// - in sviluppo: backend del repo (../backend)
+// - impacchettato: copiato in resources/backend (vedi build.extraResources)
+const backendEntry = app.isPackaged
+  ? path.join(process.resourcesPath, 'backend', 'server.js')
+  : path.join(__dirname, '..', 'backend', 'server.js');
+require(backendEntry);
 
 function createWindow() {
   const win = new BrowserWindow({
