@@ -56,6 +56,23 @@ Nota firma: per **non** mostrare l'avviso "editore sconosciuto" serve firmare il
 (certificato a pagamento). Senza firma l'app funziona ugualmente, con un avviso al
 primo avvio.
 
+#### macOS — primo avvio
+Il `.app` viene firmato **ad-hoc** (vedi `afterPack.cjs`): è una firma valida ma
+**non notarizzata** (la notarizzazione richiede un account Apple Developer). Per
+questo macOS, su un'app **scaricata**, mostra al primo avvio l'avviso
+"sviluppatore non identificato". Per aprirla:
+
+- **tasto destro sull'app → Apri** (poi conferma), oppure
+- da terminale rimuovi la quarantena una volta sola:
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Ordeva.app
+  ```
+
+> Se compare invece *«"Ordeva" è danneggiato e dovresti spostarlo nel Cestino»*
+> significa che il bundle è stato impacchettato **senza** la ri-firma ad-hoc
+> (firma invalida). Il comando `xattr` qui sopra risolve comunque; le build
+> prodotte dal workflow corrente sono già ri-firmate.
+
 ### Build multi-OS automatica (GitHub Actions)
 macOS e Linux non si possono compilare da Windows. Il workflow
 `.github/workflows/desktop-release.yml` builda tutti i formati (installer +
