@@ -187,6 +187,7 @@
     </mat-tab>
 
     <!-- ── Moduli (Livello 2: attivazione moduli per tenant) ──────────────────── -->
+    @if (!offline) {
     <mat-tab label="Moduli">
       <div class="tab-content">
         <div class="card" style="max-width:760px">
@@ -224,8 +225,10 @@
         </div>
       </div>
     </mat-tab>
+    }
 
     <!-- ── Email / SMTP ───────────────────────────────────────────────────────── -->
+    @if (!offline) {
     <mat-tab label="Email">
       <div class="tab-content">
 
@@ -331,6 +334,7 @@
         </div>
       </div>
     </mat-tab>
+    }
 
     <!-- ── SDI ────────────────────────────────────────────────────────────────── -->
     <mat-tab label="SDI / e-Fattura">
@@ -373,6 +377,7 @@
                 (richiede: fornitore preferito impostato sul prodotto).
               </p>
             </div>
+            @if (!offline) {
             <div style="padding:12px 0;border-bottom:1px solid #e2e8f0">
               <mat-slide-toggle formControlName="multiUtenteAttivo">
                 <span style="font-weight:600">Multi-utente</span>
@@ -382,6 +387,7 @@
                 Gestisci gli utenti nel tab "Utenti".
               </p>
             </div>
+            }
           </form>
           <div style="display:flex;justify-content:flex-end;padding:8px 0 0">
             <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
@@ -440,6 +446,7 @@
     </mat-tab>
 
     <!-- ── Utenti ─────────────────────────────────────────────────────────────── -->
+    @if (!offline) {
     <mat-tab label="Utenti">
       <div class="tab-content">
         <div class="card" style="max-width:800px">
@@ -491,6 +498,7 @@
         </div>
       </div>
     </mat-tab>
+    }
 
     <!-- ── Tipi di Pagamento ────────────────────────────────────────────────── -->
     <mat-tab label="Pagamenti">
@@ -1007,7 +1015,7 @@
     </mat-tab>
 
     <!-- ── Amministrazione (solo ADMIN/SUPERADMIN) ─────────────────────────── -->
-    @if (isAdmin) {
+    @if (isAdmin && !offline) {
       <mat-tab label="Amministrazione">
         <div class="tab-content">
           <app-admin [embedded]="true"></app-admin>
@@ -1016,7 +1024,7 @@
     }
 
     <!-- ── Console SaaS (solo SUPERADMIN) ──────────────────────────────────── -->
-    @if (isSuper) {
+    @if (isSuper && !offline) {
       <mat-tab label="Console SaaS">
         <div class="tab-content">
           <app-super-admin [embedded]="true"></app-super-admin>

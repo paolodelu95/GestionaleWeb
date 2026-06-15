@@ -188,9 +188,11 @@
       <a mat-icon-button routerLink="/impostazioni" title="Impostazioni">
         <mat-icon>settings</mat-icon>
       </a>
-      <button mat-icon-button type="button" title="Esci" (click)="logout()">
-        <mat-icon>logout</mat-icon>
-      </button>
+      @if (!offline) {
+        <button mat-icon-button type="button" title="Esci" (click)="logout()">
+          <mat-icon>logout</mat-icon>
+        </button>
+      }
     </mat-toolbar>
     <div class="content-area">
       @if (isOffline) {
@@ -207,7 +209,7 @@
           <button mat-icon-button type="button" (click)="showUpdateBanner = false"><mat-icon>close</mat-icon></button>
         </div>
       }
-      @if (showInstallBanner) {
+      @if (showInstallBanner && !offline) {
         <div class="pwa-banner pwa-banner--install">
           <mat-icon>install_mobile</mat-icon>
           <span>Installa Ordeva sul tuo dispositivo per accedervi come app.</span>
@@ -215,7 +217,7 @@
           <button mat-icon-button type="button" (click)="dismissInstall()"><mat-icon>close</mat-icon></button>
         </div>
       }
-      @if (showEmailVerifyBanner) {
+      @if (showEmailVerifyBanner && !offline) {
         <div class="pwa-banner pwa-banner--verify">
           <mat-icon>mark_email_unread</mat-icon>
           <span>Conferma il tuo indirizzo email per attivare tutte le funzioni.</span>
@@ -226,7 +228,7 @@
           <button mat-icon-button type="button" (click)="dismissVerifyBanner()"><mat-icon>close</mat-icon></button>
         </div>
       }
-      @if (trialDaysLeft !== null && trialDaysLeft >= 0 && trialDaysLeft <= 7) {
+      @if (!offline && trialDaysLeft !== null && trialDaysLeft >= 0 && trialDaysLeft <= 7) {
         <div class="pwa-banner pwa-banner--trial">
           <mat-icon>schedule</mat-icon>
           <span>

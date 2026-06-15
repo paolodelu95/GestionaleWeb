@@ -1,0 +1,57 @@
+# Build degli installer desktop (edizione offline) su Windows, macOS e Linux.
+# Si attiva a ogni tag "v*" (es. v1.0.0) o manualmente. Ogni runner builda il
+# proprio formato nativo: NSIS (.exe), .dmg, .deb + .AppImage. better-sqlite3
+# viene ricompilato per l'ABI di Electron su ciascun OS.
+name: desktop-release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci || npm install
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci || npm install
+
+      - name: Install desktop deps (+ rebuild better-sqlite3 per Electron)
+        working-directory: electron
+        run: npm install
+
+      - name: Build frontend offline -> backend/public
+        working-directory: electron
+        run: npm run build
+
+      - name: Package installer
+        working-directory: electron
+        run: npx electron-builder --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordeva-${{ matrix.os }}
+          path: |
+            electron/dist/*.exe
+            electron/dist/*.dmg
+            electron/dist/*.deb
+            electron/dist/*.AppImage
+          if-no-files-found: ignore

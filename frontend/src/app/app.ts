@@ -30,6 +30,7 @@ import { BugReportDialogComponent } from './components/shared/bug-report-dialog'
 import { Azienda } from './models';
 import { SwUpdate } from '@angular/service-worker';
 import { lsGet, lsSet } from './utils/safe-storage';
+import { environment } from '../environments/environment';
 
 interface NavItem {
   label: string;
@@ -65,6 +66,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   azienda: Azienda | null = null;
   collapsed = false;
   loggedIn = false;
+  /** Edizione offline desktop: nasconde le parti SaaS (logout, banner trial/verifica/installa). */
+  readonly offline = environment.offline;
 
   /**
    * Data odierna nella topbar, dal formato più lungo al più corto. Lo spazio al

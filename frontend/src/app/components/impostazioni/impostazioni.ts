@@ -1,4 +1,5 @@
 import { inject, Component, OnInit, Inject } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { LayoutService, NavLayout } from '../../services/layout.service';
@@ -415,6 +416,9 @@ export class ImpostazioniComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private layout = inject(LayoutService);
   private authSvc = inject(AuthService);
+
+  /** Edizione offline: nasconde le schede SaaS (Email/SMTP, Moduli, Utenti, Amministrazione, Console SaaS). */
+  readonly offline = environment.offline;
 
   /** Ruolo utente: le schede Amministrazione e Console SaaS sono qui dentro, gated per ruolo. */
   get isSuper(): boolean { return this.authSvc.getUser()?.ruolo === 'SUPERADMIN'; }

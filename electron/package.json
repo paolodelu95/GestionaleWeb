@@ -24,7 +24,7 @@
     "files": ["main.js", "../backend/**/*", "!../backend/tenants/**", "!../backend/*.db"],
     "asarUnpack": ["**/node_modules/better-sqlite3/**"],
     "win": { "target": "nsis" },
-    "mac": { "target": "dmg" },
-    "linux": { "target": "AppImage" }
+    "mac": { "target": "dmg", "category": "public.app-category.business" },
+    "linux": { "target": ["deb", "AppImage"], "category": "Office" }
   }
 }
