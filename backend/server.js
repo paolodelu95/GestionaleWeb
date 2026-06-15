@@ -145,16 +145,20 @@ app.set('trust proxy', 1);
 app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // ── Stripe webhook (DEVE ricevere body raw, prima di express.json()) ─────────
-const { stripeWebhookHandler } = require('./routes/payLink');
-app.post('/api/pay-link/webhook',
-  express.raw({ type: 'application/json' }),
-  stripeWebhookHandler);
+// Solo SaaS: l'edizione offline desktop non ha abbonamenti né pagamenti online,
+// quindi niente Stripe (nessun webhook da registrare).
+if (!OFFLINE_MODE) {
+  const { stripeWebhookHandler } = require('./routes/payLink');
+  app.post('/api/pay-link/webhook',
+    express.raw({ type: 'application/json' }),
+    stripeWebhookHandler);
 
-// Webhook billing (subscription Pro). Pubblico, validato via firma Stripe.
-const { handleStripeWebhook: billingWebhook } = require('./routes/billing');
-app.post('/api/billing/webhook',
-  express.raw({ type: 'application/json' }),
-  billingWebhook);
+  // Webhook billing (subscription Pro). Pubblico, validato via firma Stripe.
+  const { handleStripeWebhook: billingWebhook } = require('./routes/billing');
+  app.post('/api/billing/webhook',
+    express.raw({ type: 'application/json' }),
+    billingWebhook);
+}
 
 // ── Feed ICS pubblico (signed via HMAC nel query, pre-auth) ──────────────────
 // Permette a Google Calendar / Outlook / Apple Calendar di sottoscriversi al
@@ -676,8 +680,11 @@ app.get('/api/next-number/:tipo', (req, res) => {
   res.json({ numero });
 });
 
-app.use('/api/billing',          require('./routes/billing').router);
+// SaaS-only: abbonamenti/pagamenti Stripe non esistono nell'edizione offline.
+if (!OFFLINE_MODE) app.use('/api/billing', require('./routes/billing').router);
 app.use('/api/azienda',          require('./routes/azienda'));
+// Edizione offline: setup di primo avvio (caricamento dati demo).
+if (OFFLINE_MODE) app.use('/api/setup', require('./routes/setup'));
 app.use('/api/prodotti',         require('./routes/prodotti'));
 app.use('/api/clienti',          require('./routes/clienti'));
 app.use('/api/fornitori',        require('./routes/fornitori'));
@@ -705,14 +712,19 @@ app.use('/api/arrivi-merce',     require('./routes/arriviMerce'));
 app.use('/api/email',            require('./routes/email'));
 app.use('/api/stats',            heavyLimiter, require('./routes/stats'));
 app.use('/api/utenti',           require('./routes/utenti'));
-app.use('/api/tenants',          require('./routes/tenants'));
-app.use('/api/admin',            require('./routes/admin'));
+// SaaS-only: gestione multi-tenant e console amministrativa globale.
+if (!OFFLINE_MODE) {
+  app.use('/api/tenants',        require('./routes/tenants'));
+  app.use('/api/admin',          require('./routes/admin'));
+}
 app.use('/api/moduli',           require('./routes/moduli'));
 app.use('/api/reports',          heavyLimiter, require('./routes/reports'));
-app.use('/api/ocr',              require('./routes/ocr'));
+// OCR fatture (Mindee, servizio cloud): rimosso nell'edizione offline.
+if (!OFFLINE_MODE) app.use('/api/ocr', require('./routes/ocr'));
 app.use('/api/agenda',           require('./routes/agenda'));
 app.use('/api/gruppi',           require('./routes/gruppi'));
-app.use('/api/pay-link',         require('./routes/payLink'));
+// SaaS-only: link di pagamento Stripe sulle fatture.
+if (!OFFLINE_MODE) app.use('/api/pay-link', require('./routes/payLink'));
 app.use('/api/sdi-passive',      heavyLimiter, require('./routes/sdiPassive'));
 app.use('/api/riconciliazione',  require('./routes/riconciliazione'));
 app.use('/api/crm',              require('./routes/crm'));

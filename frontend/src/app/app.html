@@ -1,4 +1,6 @@
-<app-cookie-consent />
+@if (!offline) {
+  <app-cookie-consent />
+}
 @if (publicRoute) {
   <router-outlet />
 } @else if (!loggedIn) {

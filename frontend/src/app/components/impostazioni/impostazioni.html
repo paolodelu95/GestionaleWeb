@@ -347,6 +347,21 @@
           </p>
           <form [formGroup]="form" class="dialog-form">
             <mat-form-field style="width:100%">
+              <mat-label>Provider</mat-label>
+              <mat-select formControlName="sdiProvider" (selectionChange)="onSdiProviderChange($event.value)">
+                <mat-option value="FIC">Fatture in Cloud</mat-option>
+                <mat-option value="ARUBA">Aruba</mat-option>
+                <mat-option value="GENERICO">Altro intermediario (URL + chiave)</mat-option>
+              </mat-select>
+            </mat-form-field>
+            @if (form.get('sdiProvider')?.value === 'FIC') {
+              <p style="color:#64748b;font-size:12.5px;margin:-4px 0 12px">
+                L'integrazione automatica completa con Fatture in Cloud (login e invio/ricezione
+                con un clic) arriverà a breve. Per ora puoi usare l'invio generico inserendo
+                l'endpoint API e la chiave del tuo account.
+              </p>
+            }
+            <mat-form-field style="width:100%">
               <mat-label>URL API SDI</mat-label>
               <input matInput formControlName="sdiApiUrl" placeholder="https://api.intermediario.it/v1/fatture">
             </mat-form-field>

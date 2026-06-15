@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { ModuliService } from '../../services/moduli.service';
 import { DataService } from '../../services/data.service';
 import { OnboardingChecklistComponent } from '../shared/onboarding-checklist';
+import { WelcomeOfflineComponent } from '../shared/welcome-offline';
 import { ScadenzarioEntry, Ddt, Prodotto, Preventivo } from '../../models';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -33,8 +34,9 @@ interface AttentionItem {
 @Component({
   selector: 'app-home-app',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatIconModule, OnboardingChecklistComponent],
+  imports: [CommonModule, RouterLink, MatIconModule, OnboardingChecklistComponent, WelcomeOfflineComponent],
   template: `
+    <app-welcome-offline (done)="ngOnInit()" />
     <div class="home">
 
       <!-- ── Hero: saluto + data ─────────────────────────────────────────── -->

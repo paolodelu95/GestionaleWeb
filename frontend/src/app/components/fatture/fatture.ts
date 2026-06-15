@@ -1,4 +1,5 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
@@ -1516,6 +1517,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 })
 export class FattureComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  /** Edizione offline desktop: nasconde i pezzi SaaS (es. link pagamento Stripe). */
+  readonly offline = environment.offline;
   private allFatture: Fattura[] = [];
   dataSource = new MatTableDataSource<Fattura>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];

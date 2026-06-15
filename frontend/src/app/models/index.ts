@@ -134,6 +134,8 @@ export interface Azienda {
   emailMode?: 'SMTP' | 'MAILTO' | 'WEBMAIL_GMAIL' | 'WEBMAIL_OUTLOOK';
   sdiApiUrl?: string;
   sdiApiKey?: string;
+  /** Provider per invio/ricezione e-fatture SDI: Fatture in Cloud, Aruba o intermediario generico. */
+  sdiProvider?: 'FIC' | 'ARUBA' | 'GENERICO';
   riordinoAutomatico?: boolean;
   multiUtenteAttivo?: boolean;
   numerazioneAnnuale?: boolean;

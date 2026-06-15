@@ -25,6 +25,10 @@ export class DataService {
   updateAzienda(a: Azienda): Observable<any> { return this.api.put('azienda', a); }
   saveAzienda(a: Azienda): Observable<any> { return this.api.put('azienda', a); }
 
+  // Setup primo avvio (solo edizione offline desktop)
+  getSetupStatus(): Observable<{ aziendaConfigurata: boolean; hasDati: boolean }> { return this.api.get('setup/status'); }
+  seedDemo(): Observable<{ success: boolean; prodotti: number; clienti: number; fornitori: number }> { return this.api.post('setup/seed-demo', {}); }
+
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }
   /** Dettaglio singolo prodotto: include l'immagine (esclusa dalla lista). */

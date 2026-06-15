@@ -1201,6 +1201,9 @@ function initTenantSchema(db) {
   // Quando attivo, i documenti già salvati si aprono in modalità "bloccato"
   // (campi readonly + bottone lucchetto per sbloccare). Default: attivo.
   try { db.exec('ALTER TABLE azienda ADD COLUMN lock_documenti_default INTEGER NOT NULL DEFAULT 1'); } catch(_) {}
+  // Provider per l'invio/ricezione e-fatture allo SDI (FIC=Fatture in Cloud,
+  // ARUBA, o GENERICO per un intermediario qualsiasi via URL+chiave).
+  try { db.exec("ALTER TABLE azienda ADD COLUMN sdi_provider TEXT DEFAULT 'GENERICO'"); } catch(_) {}
   try {
     const row = db.prepare('SELECT email_corpo_documento FROM azienda WHERE id=1').get();
     if (row && (row.email_corpo_documento == null || row.email_corpo_documento === '')) {

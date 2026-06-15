@@ -505,7 +505,7 @@ export class ImpostazioniComponent implements OnInit {
       smtpHost: [''], smtpPort: [587, [Validators.min(1), Validators.max(65535)]], smtpUser: [''], smtpPass: [''], smtpFrom: [''], smtpSecure: [false],
       emailCorpoDocumento: [''],
       emailMode: ['SMTP'],
-      sdiApiUrl: [''], sdiApiKey: [''],
+      sdiProvider: ['GENERICO'], sdiApiUrl: [''], sdiApiKey: [''],
       riordinoAutomatico: [false], multiUtenteAttivo: [false],
       numerazioneAnnuale: [true],
       lockDocumentiDefault: [true],
@@ -632,6 +632,22 @@ export class ImpostazioniComponent implements OnInit {
   removeLogo() {
     this.logoPreview = '';
     this.form.patchValue({ logo: '' });
+  }
+
+  /** Endpoint suggerito per i provider noti (l'utente può comunque modificarlo). */
+  private readonly SDI_ENDPOINT: Record<string, string> = {
+    ARUBA: 'https://ws.fatturazioneelettronica.aruba.it',
+    FIC:   'https://api-v2.fattureincloud.it',
+  };
+
+  /** Al cambio provider, precompila l'URL noto se il campo è vuoto o standard. */
+  onSdiProviderChange(provider: string) {
+    const known = Object.values(this.SDI_ENDPOINT);
+    const cur = (this.form.get('sdiApiUrl')?.value || '').trim();
+    if (provider === 'GENERICO') return;            // URL libero: non tocco
+    if (!cur || known.includes(cur)) {
+      this.form.patchValue({ sdiApiUrl: this.SDI_ENDPOINT[provider] || '' });
+    }
   }
 
   save() {

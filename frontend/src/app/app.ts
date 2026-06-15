@@ -41,6 +41,8 @@ interface NavItem {
   superadminOnly?: boolean;
   /** Se true, la voce è visibile a SUPERADMIN o ADMIN. */
   adminOnly?: boolean;
+  /** Se true, la voce è nascosta nell'edizione offline desktop (parti SaaS/cloud). */
+  hideOffline?: boolean;
 }
 
 @Component({
@@ -801,7 +803,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Acquisti',          icon: 'shopping_bag',     route: '/acquisti' },
         { label: 'Ordini fornitore',  icon: 'shopping_cart',    route: '/ordini-fornitore' },
         { label: 'Arrivi merce',      icon: 'move_to_inbox',    route: '/arrivi-merce' },
-        { label: 'OCR fatture (PDF)', icon: 'document_scanner', route: '/ocr-fatture' },
+        { label: 'OCR fatture (PDF)', icon: 'document_scanner', route: '/ocr-fatture', hideOffline: true },
       ]
     },
     {
@@ -843,8 +845,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     {
       label: 'Sistema', icon: 'tune',
       children: [
-        { label: 'Account',      icon: 'person',   route: '/account' },
-        { label: 'Abbonamento',  icon: 'credit_card', route: '/billing' },
+        { label: 'Account',      icon: 'person',   route: '/account', hideOffline: true },
+        { label: 'Abbonamento',  icon: 'credit_card', route: '/billing', hideOffline: true },
         { label: 'Aiuto',        icon: 'menu_book', route: '/aiuto' },
         { label: 'Storico',      icon: 'history',  route: '/storico' },
         // Impostazioni è ora accessibile dall'icona ingranaggio nella topbar (vicino a Esci).
@@ -863,6 +865,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     const allowed = (it: NavItem) => {
       if (it.superadminOnly && !isSuper) return false;
       if (it.adminOnly && !isAdmin) return false;
+      if (it.hideOffline && this.offline) return false;
       return true;
     };
     return this.navItems
