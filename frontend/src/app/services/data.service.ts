@@ -40,6 +40,7 @@ export class DataService {
   dismissBackupAlert(): Observable<BackupConfig> { return this.api.post('backup/alert-dismiss', {}); }
   listBackups(): Observable<{ files: { name: string; encrypted: boolean; size: number; mtime: string }[] }> { return this.api.get('backup/list'); }
   restoreBackup(name: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { name }); }
+  restoreBackupFromFile(filePath: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { filePath }); }
 
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }

@@ -22,6 +22,12 @@ export class DesktopService {
     try { return await this.api.pickFolder(); } catch { return null; }
   }
 
+  /** Apre il selettore di un file di backup; ritorna il percorso scelto o null. */
+  async pickBackupFile(): Promise<string | null> {
+    if (!this.api?.pickBackupFile) return null;
+    try { return await this.api.pickBackupFile(); } catch { return null; }
+  }
+
   /** Apre una cartella nel file manager del sistema. */
   async openPath(path: string): Promise<void> {
     if (!this.api?.openPath || !path) return;

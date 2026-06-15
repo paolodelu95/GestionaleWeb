@@ -75,6 +75,15 @@ ipcMain.handle('ordeva:pick-folder', async () => {
   });
   return (r.canceled || !r.filePaths.length) ? null : r.filePaths[0];
 });
+ipcMain.handle('ordeva:pick-backup-file', async () => {
+  const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  const r = await dialog.showOpenDialog(win, {
+    title: 'Scegli il file di backup da ripristinare',
+    properties: ['openFile'],
+    filters: [{ name: 'Backup Ordeva', extensions: ['db', 'enc'] }, { name: 'Tutti i file', extensions: ['*'] }],
+  });
+  return (r.canceled || !r.filePaths.length) ? null : r.filePaths[0];
+});
 ipcMain.handle('ordeva:open-path', async (_e, p) => {
   if (p) await shell.openPath(p);
 });

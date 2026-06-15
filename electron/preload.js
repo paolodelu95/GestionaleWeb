@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('ordevaDesktop', {
   isDesktop: true,
   /** Apre il selettore di cartelle del sistema. Ritorna il percorso scelto o null. */
   pickFolder: () => ipcRenderer.invoke('ordeva:pick-folder'),
+  /** Apre il selettore di file di backup (.db/.db.enc). Ritorna il percorso o null. */
+  pickBackupFile: () => ipcRenderer.invoke('ordeva:pick-backup-file'),
   /** Apre una cartella nel file manager del sistema. */
   openPath: (p) => ipcRenderer.invoke('ordeva:open-path', p),
 });

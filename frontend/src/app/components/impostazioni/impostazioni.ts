@@ -1134,6 +1134,18 @@ export class ImpostazioniComponent implements OnInit {
     });
   }
 
+  /** Ripristina da un file scelto dall'utente (anche fuori dalla cartella di backup). */
+  async restoreBackupFromFile() {
+    const filePath = await this.desktop.pickBackupFile();
+    if (!filePath) return;
+    const nome = filePath.split(/[\\/]/).pop() || filePath;
+    if (!await this.confirm.delete(`Ripristinare da "${nome}"? I dati attuali verranno sostituiti (ne salvo prima una copia di sicurezza).`)) return;
+    this.ds.restoreBackupFromFile(filePath).subscribe({
+      next: () => { this.snack.open('Ripristino completato. Ricarico…', '', { duration: 2500 }); setTimeout(() => location.reload(), 1200); },
+      error: e => this.snack.open(e.error?.error || 'Ripristino non riuscito', '', { duration: 5000 }),
+    });
+  }
+
   fmtBytes(n: number): string {
     if (!n) return '0 B';
     const u = ['B', 'KB', 'MB', 'GB']; let i = 0; let v = n;
