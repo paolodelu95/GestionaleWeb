@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { DataService } from './data.service';
 import { ModuloDto } from '../models';
+import { environment } from '../../environments/environment';
 
 /**
  * Stato globale dei moduli attivi per il tenant corrente.
@@ -43,8 +44,8 @@ export class ModuliService {
   /** Reset (es. al logout). */
   reset() { this._attivi$.next(new Set()); }
 
-  /** Snapshot sincrono dei moduli attivi. */
-  isAttivo(slug: string): boolean { return this._attivi$.value.has(slug); }
+  /** Snapshot sincrono dei moduli attivi. Offline: tutto sbloccato (single-user). */
+  isAttivo(slug: string): boolean { return environment.offline || this._attivi$.value.has(slug); }
 
   /** Mappa route → modulo slug. Restituisce '' se la route non è gestita (= sempre visibile). */
   routeModulo(route: string): string {

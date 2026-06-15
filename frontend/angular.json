@@ -94,6 +94,21 @@
               "extractLicenses": false,
               "sourceMap": true,
               "serviceWorker": false
+            },
+            "offline": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.offline.ts"
+                }
+              ],
+              "budgets": [
+                { "type": "initial", "maximumWarning": "1MB", "maximumError": "3MB" },
+                { "type": "anyComponentStyle", "maximumWarning": "16kB", "maximumError": "40kB" }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "serviceWorker": false
             }
           },
           "defaultConfiguration": "production"

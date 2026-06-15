@@ -41,6 +41,19 @@ export class AuthService {
   ];
 
   constructor(private http: HttpClient) {
+    // Edizione offline: nessun login. Sintetizziamo una sessione locale persistente
+    // così la shell parte diretta e l'interceptor invia un token fittizio (il
+    // backend OFFLINE_MODE lo ignora e autentica come utente locale).
+    if (environment.offline) {
+      if (!lsGet(this.KEY)) lsSet(this.KEY, 'offline-local');
+      if (!lsGet(this.USER_KEY)) {
+        lsSet(this.USER_KEY, JSON.stringify({
+          id: 1, username: 'local', nome: 'Utente locale', email: '',
+          ruolo: 'OWNER', tenant: 'default', emailVerified: true, tenantAttivo: true,
+        }));
+      }
+      return;
+    }
     // Migrazione storage dalle chiavi precedenti per non sloggare gli utenti esistenti.
     for (const legacy of this.LEGACY_KEYS) {
       const lt = lsGet(legacy.token);

@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, switchMap, shareReplay, map } from 'rxjs';
+import { Observable, switchMap, shareReplay, map, of } from 'rxjs';
 import { ModuloDto } from '../models';
 import { ApiService } from './api.service';
+import { environment } from '../../environments/environment';
 import {
   Azienda, Prodotto, ProdottoVariante, ProdottoFornitore, Cliente, ClienteIndirizzo, Fornitore,
   Ddt, Fattura, NotaCredito, Ordine, Preventivo,
@@ -455,6 +456,8 @@ export class DataService {
   private emailMode$: Observable<Azienda['emailMode']> | null = null;
   /** Modalità invio (cache breve, evita una GET azienda per ogni invio). */
   getEmailMode(force = false): Observable<Azienda['emailMode']> {
+    // Offline: niente SMTP, si usa sempre il client di sistema (mailto:).
+    if (environment.offline) return of('MAILTO' as Azienda['emailMode']);
     if (force || !this.emailMode$) {
       this.emailMode$ = this.getAzienda().pipe(
         map(a => {
