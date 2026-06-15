@@ -50,25 +50,46 @@ const crypto = require('crypto');
 const os = require('os');
 
 const EXT_MAX = parseInt(process.env.BACKUP_EXT_MAX || '30');
-const ENC_MAGIC = Buffer.from('ORDEVA1\0'); // header file cifrato: magic(8)|iv(12)|tag(16)|dati
+// V2: magic(8)|salt(16)|iv(12)|tag(16)|dati — il salt è incorporato così il backup
+// si può ripristinare anche su un altro PC (basta la password usata per crearlo).
+// V1 (legacy): magic(8)|iv(12)|tag(16)|dati — senza salt (ripristino solo stesso PC).
+const ENC_MAGIC = Buffer.from('ORDEVA2\0');
+const ENC_MAGIC_V1 = Buffer.from('ORDEVA1\0');
 
-function encryptBuffer(buf, key) {
+function deriveKey(password, salt) {
+  return crypto.scryptSync(String(password), salt, 32);
+}
+
+function encryptBuffer(buf, key, salt) {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const enc = Buffer.concat([cipher.update(buf), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return Buffer.concat([ENC_MAGIC, iv, tag, enc]);
+  return Buffer.concat([ENC_MAGIC, salt, iv, tag, enc]);
 }
 
-function decryptBuffer(buf, key) {
-  if (!buf.subarray(0, ENC_MAGIC.length).equals(ENC_MAGIC)) {
-    throw new Error('File non cifrato o formato non riconosciuto');
+function isEncrypted(buf) {
+  return buf.subarray(0, 8).equals(ENC_MAGIC) || buf.subarray(0, 8).equals(ENC_MAGIC_V1);
+}
+
+/** Decifra; con `password` ricava la chiave dal salt incorporato (V2, cross-PC). */
+function decryptBuffer(buf, { key = null, password = null } = {}) {
+  const v2 = buf.subarray(0, 8).equals(ENC_MAGIC);
+  const v1 = buf.subarray(0, 8).equals(ENC_MAGIC_V1);
+  if (!v2 && !v1) throw new Error('File non cifrato o formato non riconosciuto');
+  let p = 8, k = key;
+  if (v2) {
+    const salt = buf.subarray(p, p += 16);
+    if (password) k = deriveKey(password, salt);
+  } else if (password && !key) {
+    // V1 non ha salt incorporato: senza la chiave di sessione non è ripristinabile altrove.
+    throw new Error('Backup in formato precedente: ripristinabile solo sullo stesso PC che lo ha creato.');
   }
-  let p = ENC_MAGIC.length;
+  if (!k) throw new Error('Password mancante per decifrare il backup');
   const iv = buf.subarray(p, p += 12);
   const tag = buf.subarray(p, p += 16);
   const data = buf.subarray(p);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', k, iv);
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(data), decipher.final()]);
 }
@@ -89,9 +110,9 @@ function pruneExternal(dir) {
  * Crea un backup del DB nel `dir` indicato. Se `encrypt` è true e c'è una `key`,
  * il file viene cifrato (estensione .db.enc). Ritorna { file, encrypted }.
  */
-async function runExternalBackup(tenantSlug = 'default', { dir, encrypt = false, key = null } = {}) {
+async function runExternalBackup(tenantSlug = 'default', { dir, encrypt = false, key = null, salt = null } = {}) {
   if (!dir) throw new Error('Cartella di backup non impostata');
-  if (encrypt && !key) throw new Error('Cifratura richiesta ma password d\'accesso non sbloccata');
+  if (encrypt && (!key || !salt)) throw new Error('Cifratura richiesta ma password d\'accesso non sbloccata');
   fs.mkdirSync(dir, { recursive: true });
 
   const src = tenantDbPath(tenantSlug);
@@ -107,7 +128,8 @@ async function runExternalBackup(tenantSlug = 'default', { dir, encrypt = false,
   let dest;
   if (encrypt && key) {
     dest = path.join(dir, `ordeva-${ts}.db.enc`);
-    fs.writeFileSync(dest, encryptBuffer(fs.readFileSync(tmp), key));
+    const saltBuf = Buffer.isBuffer(salt) ? salt : Buffer.from(salt, 'hex');
+    fs.writeFileSync(dest, encryptBuffer(fs.readFileSync(tmp), key, saltBuf));
   } else {
     dest = path.join(dir, `ordeva-${ts}.db`);
     fs.copyFileSync(tmp, dest);
@@ -122,13 +144,16 @@ async function runExternalBackup(tenantSlug = 'default', { dir, encrypt = false,
  * Ripristina un backup: legge `filePath` (.db o .db.enc), lo decifra se serve e
  * sostituisce il DB del tenant. Crea prima un backup di sicurezza dell'attuale.
  */
-async function restoreBackup(tenantSlug = 'default', { filePath, key = null } = {}) {
+async function restoreBackup(tenantSlug = 'default', { filePath, key = null, password = null } = {}) {
   if (!filePath || !fs.existsSync(filePath)) throw new Error('File di backup non trovato');
   let data = fs.readFileSync(filePath);
-  const isEnc = data.subarray(0, ENC_MAGIC.length).equals(ENC_MAGIC) || filePath.endsWith('.db.enc');
-  if (isEnc) {
-    if (!key) throw new Error('Backup cifrato: sblocca con la password d\'accesso per ripristinarlo');
-    data = decryptBuffer(data, key);
+  if (isEncrypted(data)) {
+    if (!key && !password) throw new Error('Backup cifrato: inserisci la password usata per crearlo.');
+    try {
+      data = decryptBuffer(data, { key, password });
+    } catch (_) {
+      throw new Error('Impossibile decifrare il backup: password errata o file danneggiato.');
+    }
   }
   // Validazione minima: header SQLite.
   if (data.subarray(0, 16).toString('latin1') !== 'SQLite format 3\0') {

@@ -807,7 +807,7 @@ async function runExternalBackupIfDue() {
     if (days < 1) return;
     const key = appSession.getBackupKey();
     if (cfg.encrypt && !key) { console.log('[Backup esterno] rinviato: cifratura attiva ma app bloccata'); return; }
-    await runExternalBackup('default', { dir: cfg.dir, encrypt: cfg.encrypt, key });
+    await runExternalBackup('default', { dir: cfg.dir, encrypt: cfg.encrypt, key, salt: backupConfig.ensureSalt() });
     backupConfig.write({ lastAt: new Date().toISOString() });
     console.log('[Backup esterno] completato in', cfg.dir);
   } catch (e) {

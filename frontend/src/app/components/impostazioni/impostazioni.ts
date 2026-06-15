@@ -1139,8 +1139,10 @@ export class ImpostazioniComponent implements OnInit {
     const filePath = await this.desktop.pickBackupFile();
     if (!filePath) return;
     const nome = filePath.split(/[\\/]/).pop() || filePath;
+    // Se il file è cifrato (.enc) chiedo la password usata per crearlo.
+    const password = /\.enc$/i.test(filePath) ? (window.prompt('Il backup è cifrato. Inserisci la password usata per crearlo:') || '') : undefined;
     if (!await this.confirm.delete(`Ripristinare da "${nome}"? I dati attuali verranno sostituiti (ne salvo prima una copia di sicurezza).`)) return;
-    this.ds.restoreBackupFromFile(filePath).subscribe({
+    this.ds.restoreBackupFromFile(filePath, password).subscribe({
       next: () => { this.snack.open('Ripristino completato. Ricarico…', '', { duration: 2500 }); setTimeout(() => location.reload(), 1200); },
       error: e => this.snack.open(e.error?.error || 'Ripristino non riuscito', '', { duration: 5000 }),
     });

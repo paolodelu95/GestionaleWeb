@@ -67,7 +67,7 @@ router.post('/run', async (req, res) => {
     return res.status(409).json({ error: 'La cifratura è attiva ma manca la password d\'accesso sbloccata. Imposta/inserisci la password e riprova.' });
   }
   try {
-    const out = await runExternalBackup(TENANT, { dir: cfg.dir, encrypt: cfg.encrypt, key });
+    const out = await runExternalBackup(TENANT, { dir: cfg.dir, encrypt: cfg.encrypt, key, salt: backupConfig.ensureSalt() });
     const updated = backupConfig.write({ lastAt: new Date().toISOString() });
     res.json({ success: true, file: path.basename(out.file), encrypted: out.encrypted, ...publicCfg(updated) });
   } catch (e) {
@@ -98,14 +98,15 @@ router.get('/list', (req, res) => {
   }
 });
 
-// POST /api/backup/restore — ripristina un backup dalla cartella { name } o da { filePath }.
+// POST /api/backup/restore — ripristina da { name } (cartella) o { filePath }.
+// Per i backup cifrati creati su un altro PC, accetta { password }.
 router.post('/restore', async (req, res) => {
   const cfg = backupConfig.read();
   const b = req.body || {};
   const filePath = b.filePath || (b.name && cfg.dir ? path.join(cfg.dir, b.name) : null);
   if (!filePath) return res.status(400).json({ error: 'Backup da ripristinare non indicato.' });
   try {
-    await restoreBackup(TENANT, { filePath, key: appSession.getBackupKey() });
+    await restoreBackup(TENANT, { filePath, key: appSession.getBackupKey(), password: b.password || null });
     res.json({ success: true });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Ripristino non riuscito.' });

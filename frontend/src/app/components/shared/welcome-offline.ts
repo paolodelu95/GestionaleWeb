@@ -51,8 +51,40 @@ import { environment } from '../../../environments/environment';
                 <span class="wel-choice-h">Prova con dati demo</span>
                 <span class="wel-choice-t">Clienti, fornitori e prodotti di esempio per esplorare subito l'app.</span>
               </button>
+              <button class="wel-choice" type="button" (click)="step = 'restore'">
+                <span class="wel-choice-ic restore"><mat-icon>settings_backup_restore</mat-icon></span>
+                <span class="wel-choice-h">Ripristina da un backup</span>
+                <span class="wel-choice-t">Cambi PC? Recupera tutto (azienda, logo, fatture, DDT…) da un file di backup.</span>
+              </button>
             </div>
             @if (errore) { <div class="wel-err">{{ errore }}</div> }
+          }
+
+          @else if (step === 'restore') {
+            <h1 class="wel-title">Ripristina i tuoi dati</h1>
+            <p class="wel-sub">Seleziona un file di backup di Ordeva (.db o .db.enc). I dati verranno ripristinati così com'erano.</p>
+            <div class="wel-form">
+              <div class="wel-folder">
+                <button mat-stroked-button type="button" (click)="scegliFileRipristino()">
+                  <mat-icon>upload_file</mat-icon> Scegli file di backup
+                </button>
+                @if (restoreFile) { <span class="wel-folder-path" [title]="restoreFile">{{ restoreFileName }}</span> }
+                @else { <span class="wel-folder-empty">Nessun file selezionato</span> }
+              </div>
+              @if (restoreEncrypted) {
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>Password del backup (se cifrato)</mat-label>
+                  <input matInput [(ngModel)]="restorePwd" type="password" autocomplete="off" />
+                </mat-form-field>
+              }
+            </div>
+            @if (errore) { <div class="wel-err">{{ errore }}</div> }
+            <div class="wel-actions">
+              <button mat-button type="button" [disabled]="loading" (click)="step = 'choice'">Indietro</button>
+              <button mat-flat-button color="primary" type="button" [disabled]="loading || !restoreFile" (click)="ripristina()">
+                @if (loading) { <mat-spinner diameter="18"></mat-spinner> } @else { Ripristina }
+              </button>
+            </div>
           }
 
           @else if (step === 'password') {
@@ -204,6 +236,7 @@ import { environment } from '../../../environments/environment';
       background: linear-gradient(135deg, #11769b, #15a4a2);
     }
     .wel-choice-ic.demo { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+    .wel-choice-ic.restore { background: linear-gradient(135deg, #0891b2, #0e7490); }
     .wel-choice-h { font-size: 15px; font-weight: 700; color: #0f172a; }
     .wel-choice-t { font-size: 12.5px; color: #64748b; line-height: 1.4; }
     .wel-form { display: flex; flex-direction: column; gap: 2px; }
@@ -231,7 +264,7 @@ export class WelcomeOfflineComponent implements OnInit {
   @Output() done = new EventEmitter<void>();
 
   visible = false;
-  step: 'choice' | 'form' | 'password' | 'backup' = 'choice';
+  step: 'choice' | 'form' | 'password' | 'backup' | 'restore' = 'choice';
   loading = false;
   errore = '';
   az: Azienda = { ragioneSociale: '' };
@@ -240,6 +273,10 @@ export class WelcomeOfflineComponent implements OnInit {
   hadPassword = false;
   backupDir = '';
   backupEncrypt = false;
+  restoreFile = '';
+  restorePwd = '';
+  get restoreFileName(): string { return this.restoreFile.split(/[\\/]/).pop() || this.restoreFile; }
+  get restoreEncrypted(): boolean { return /\.enc$/i.test(this.restoreFile); }
 
   /** Dismissione per la sola sessione corrente (dopo i dati demo): alla
    *  riapertura del programma la richiesta dei dati azienda riappare finché
@@ -289,6 +326,21 @@ export class WelcomeOfflineComponent implements OnInit {
   }
 
   vaiBackup(): void { this.errore = ''; this.step = 'backup'; }
+
+  async scegliFileRipristino(): Promise<void> {
+    const f = await this.desktop.pickBackupFile();
+    if (f) { this.restoreFile = f; this.errore = ''; }
+  }
+
+  ripristina(): void {
+    if (this.loading || !this.restoreFile) return;
+    if (this.restoreEncrypted && !this.restorePwd) { this.errore = 'Il backup è cifrato: inserisci la password.'; return; }
+    this.loading = true; this.errore = '';
+    this.ds.restoreBackupFromFile(this.restoreFile, this.restorePwd || undefined).subscribe({
+      next: () => { sessionStorage.setItem(this.SESSION_SEEN, '1'); this.visible = false; setTimeout(() => location.reload(), 400); },
+      error: (e) => { this.errore = e?.error?.error || 'Ripristino non riuscito.'; this.loading = false; },
+    });
+  }
 
   async scegliCartella(): Promise<void> {
     const dir = await this.desktop.pickFolder();

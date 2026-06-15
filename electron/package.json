@@ -1,7 +1,7 @@
 {
   "name": "ordeva-desktop",
   "productName": "Ordeva",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Ordeva — edizione offline desktop (gestionale locale, single-user)",
   "main": "main.js",
   "author": "Paolo De Luca <info@ordeva.it>",
