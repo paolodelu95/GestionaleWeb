@@ -35,6 +35,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DIST = path.join(__dirname, 'public');
 
+// Edizione offline (desktop/Electron): nessun login, quindi nessun segreto da
+// configurare. Se manca, ne generiamo uno effimero (i token non servono: l'auth
+// è bypassata dallo shim offline).
+const OFFLINE_MODE = process.env.OFFLINE_MODE === '1' || process.env.OFFLINE_MODE === 'true';
+if (OFFLINE_MODE && !process.env.AUTH_SECRET) {
+  process.env.AUTH_SECRET = crypto.randomBytes(32).toString('hex');
+}
+
 if (!process.env.AUTH_SECRET) {
   console.error('FATAL: AUTH_SECRET è obbligatorio. Configura il file .env / i secrets su Fly.');
   process.exit(1);
@@ -88,7 +96,14 @@ function bootstrap() {
   if (countUsers() === 0) {
     const u = process.env.AUTH_USER;
     const p = process.env.AUTH_PASS;
-    if (u && p) {
+    if (OFFLINE_MODE) {
+      // Edizione offline: utente locale OWNER senza password (login bypassato).
+      createUser({
+        username: 'local', password_hash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
+        nome: 'Utente locale', email: '', ruolo: 'OWNER', tenant_slug: 'default',
+      });
+      console.log('[bootstrap] Edizione offline: utente "local" creato (OWNER, tenant=default)');
+    } else if (u && p) {
       const hash = bcrypt.hashSync(p, 10);
       createUser({
         username: u, password_hash: hash, nome: 'Amministratore',
@@ -105,7 +120,9 @@ bootstrap();
 
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
   .split(',').map(s => s.trim()).filter(Boolean);
-app.use(cors({ origin: allowedOrigins }));
+// Offline (desktop/Electron): app locale single-user, il renderer può caricarsi
+// da file:///custom-protocol → nessun vincolo di origine.
+app.use(cors(OFFLINE_MODE ? { origin: true } : { origin: allowedOrigins }));
 
 // ── Header di sicurezza (equivalenti a helmet, senza dipendenza extra) ───────
 // Niente CSP qui: andrebbe testata in Report-Only per non rompere SPA/Stripe.

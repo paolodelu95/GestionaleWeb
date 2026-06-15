@@ -2,7 +2,17 @@ const { verify } = require('../utils/authToken');
 const { runWithContext } = require('../utils/tenantContext');
 const { getUserById, getTenant } = require('../utils/authDb');
 
+// Edizione offline (desktop/Electron, single-user): niente login né multi-tenant.
+// Ogni richiesta è autenticata come utente locale OWNER sul tenant "default".
+const OFFLINE_MODE = process.env.OFFLINE_MODE === '1' || process.env.OFFLINE_MODE === 'true';
+const LOCAL_USER = { id: 1, username: 'local', nome: 'Utente locale', email: '', ruolo: 'OWNER', tenant: 'default' };
+
 function authMiddleware(req, res, next) {
+  if (OFFLINE_MODE) {
+    req.user = { ...LOCAL_USER };
+    req.tenant = 'default';
+    return runWithContext({ tenant: 'default', user: req.user }, () => next());
+  }
   const header = req.headers['authorization'];
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token mancante' });
@@ -86,6 +96,7 @@ function isBillingPath(reqPath) {
 }
 
 function trialEnforcement(req, res, next) {
+  if (OFFLINE_MODE) return next();   // niente trial/billing nell'edizione offline
   if (!req.user || !req.tenant) return next();
   if (req.user.ruolo === 'SUPERADMIN') return next();
   // Route sempre accessibili anche in read-only:
