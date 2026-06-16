@@ -2,6 +2,7 @@
 //! Fase 0: me/auth. Fase 1: anagrafiche (in corso — tabelle base completate).
 
 mod acquisti;
+mod agenda;
 mod aliquote_iva;
 mod arrivi_merce;
 mod audit;
@@ -88,6 +89,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/gruppi", gruppi::routes())
         .nest("/utenti", utenti::routes())
         .nest("/fatture-ricorrenti", fatture_ricorrenti::routes())
+        .nest("/agenda", agenda::routes())
         // Offline-only (Fase 6)
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())

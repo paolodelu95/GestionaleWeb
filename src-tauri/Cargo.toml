@@ -35,6 +35,9 @@ bcrypt = "0.15"
 scrypt = { version = "0.11", default-features = false }
 aes-gcm = "0.10"
 getrandom = "0.2"
+# Feed ICS firmato (parità con HMAC-SHA256 di routes/agenda.js)
+hmac = "0.12"
+sha2 = "0.10"
 regex = "1"
 unicode-normalization = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
