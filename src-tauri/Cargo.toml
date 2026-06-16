@@ -16,7 +16,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 
 # Server HTTP locale (sostituisce Express)
-axum = "0.7"
+axum = { version = "0.7", features = ["multipart"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "cors", "trace"] }
 tokio = { version = "1", features = ["full"] }

@@ -3,6 +3,7 @@
 
 mod acquisti;
 mod agenda;
+mod allegati;
 mod aliquote_iva;
 mod arrivi_merce;
 mod audit;
@@ -90,6 +91,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/utenti", utenti::routes())
         .nest("/fatture-ricorrenti", fatture_ricorrenti::routes())
         .nest("/agenda", agenda::routes())
+        .nest("/allegati", allegati::routes())
         // Offline-only (Fase 6)
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())
