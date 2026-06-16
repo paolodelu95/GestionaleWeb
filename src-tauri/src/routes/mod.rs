@@ -10,6 +10,7 @@ mod causali;
 mod clienti;
 mod conti_acquisto;
 mod ddt;
+mod fattura_xml;
 mod fatture;
 pub(crate) mod fornitori;
 mod note_credito;
@@ -52,6 +53,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/vendite-banco", vendite_banco::routes())
         .nest("/fatture", fatture::routes())
         .nest("/note-credito", note_credito::routes())
+        .nest("/fattura-xml", fattura_xml::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())

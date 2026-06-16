@@ -24,6 +24,7 @@ pub struct Fisc {
 pub struct Totali {
     pub imponibile: f64,
     pub cassa_importo: f64,
+    pub iva_cassa: f64,
     pub iva: f64,
     pub ritenuta_importo: f64,
     pub bollo_importo: f64,
@@ -69,6 +70,7 @@ pub fn calcola_totali_fiscali(righe: &[(f64, f64, f64, f64)], fisc: &Fisc) -> To
     Totali {
         imponibile,
         cassa_importo,
+        iva_cassa,
         iva,
         ritenuta_importo,
         bollo_importo,

@@ -14,6 +14,7 @@ mod routes;
 mod server;
 mod stock;
 mod web;
+mod xml;
 
 use std::path::PathBuf;
 
