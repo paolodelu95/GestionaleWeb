@@ -131,10 +131,18 @@ L'app Electron legacy non si è nemmeno avviata pulita in questo ambiente (richi
 cargo install tauri-cli      # una volta
 cd src-tauri && cargo tauri build   # → target/release/bundle (.dmg / .nsis / .AppImage)
 ```
-macOS/Windows richiedono firma per la distribuzione (come oggi per Electron). Rimane da
-fare: workflow CI dedicato per Tauri (analogo a `desktop-release.yml`) e i tre background
-job schedulati di Node (fatture ricorrenti 7:00, solleciti 8:00; il backup giornaliero è
-già coperto da `run_if_due` all'avvio).
+macOS/Windows richiedono firma per la distribuzione (come oggi per Electron).
+
+**Fatti dopo le misure:**
+- ✅ Workflow CI `tauri-release.yml` (matrix Win/macOS Intel+ARM/Linux, build frontend
+  offline + `tauri-action`, draft release su tag `v*`).
+- ✅ Scheduler offline `jobs.rs` (catch-up all'avvio + ogni 6h): emissione fatture
+  ricorrenti dovute (verificato e2e) e solleciti automatici via SMTP (no-op senza config).
+  Insieme a `run_if_due`, copre tutti e tre i cron di Node.
+
+Resta solo, lato utente: `cargo tauri build` per produrre i bundle firmati (o un push
+di tag `v*` per farli generare dalla CI), e la dismissione fisica della cartella
+`electron/` una volta pubblicato e validato il primo bundle Tauri.
 
 ## Note di parità critiche (non regredire)
 - **XML FatturaPA byte-compatibile**: ordine elementi e formattazione numeri devono
