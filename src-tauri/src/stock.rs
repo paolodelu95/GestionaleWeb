@@ -151,6 +151,83 @@ pub fn applica_righe_stock(
     Ok(())
 }
 
+/// Riordino automatico (parità con utils/riordino.js checkRiordino): se attivo,
+/// crea un ordine fornitore APERTO per ogni prodotto sceso sotto soglia che non
+/// abbia già un ordine aperto col fornitore preferito.
+pub fn check_riordino(conn: &Connection, prodotto_ids: &[i64]) -> rusqlite::Result<()> {
+    let attivo: i64 = conn
+        .query_row("SELECT COALESCE(riordino_automatico,0) FROM azienda WHERE id=1", [], |r| r.get(0))
+        .optional()?
+        .unwrap_or(0);
+    if attivo == 0 {
+        return Ok(());
+    }
+    for &pid in prodotto_ids {
+        if pid == 0 {
+            continue;
+        }
+        let prod = conn
+            .query_row(
+                "SELECT nome, COALESCE(soglia_minima,0), COALESCE(quantita,0), fornitore_id_preferito, \
+                        COALESCE(riordino_quantita,0), prezzo, iva FROM prodotti WHERE id=?1",
+                [pid],
+                |r| {
+                    Ok((
+                        r.get::<_, Option<String>>(0)?,
+                        r.get::<_, f64>(1)?,
+                        r.get::<_, f64>(2)?,
+                        r.get::<_, Option<i64>>(3)?,
+                        r.get::<_, f64>(4)?,
+                        r.get::<_, Option<f64>>(5)?,
+                        r.get::<_, Option<f64>>(6)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let (nome, soglia, quantita, forn_pref, riordino_q, prezzo, iva) = match prod {
+            Some(p) => p,
+            None => continue,
+        };
+        if soglia <= 0.0 || quantita >= soglia {
+            continue;
+        }
+        let forn = match forn_pref {
+            Some(f) => f,
+            None => continue,
+        };
+        let existing: Option<i64> = conn
+            .query_row(
+                "SELECT o.id FROM ordini o JOIN ordini_righe r ON r.ordine_id = o.id \
+                 WHERE o.tipo='FORNITORE' AND o.fornitore_id=?1 AND r.prodotto_id=?2 AND o.stato='APERTO' LIMIT 1",
+                params![forn, pid],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if existing.is_some() {
+            continue;
+        }
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM ordini", [], |r| r.get(0))?;
+        let numero = format!("RO-{}", count + 1);
+        let data = crate::web::oggi();
+        let qta = if riordino_q > 0.0 { riordino_q } else { soglia - quantita };
+        conn.execute(
+            "INSERT INTO ordini (numero, data_ordine, fornitore_id, tipo, stato, note) VALUES (?1,?2,?3,'FORNITORE','APERTO',?4)",
+            params![
+                numero,
+                data,
+                forn,
+                format!("Riordino automatico – scorta {} < soglia {}", crate::web::fmt_num(quantita), crate::web::fmt_num(soglia))
+            ],
+        )?;
+        let ordine_id = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO ordini_righe (ordine_id, prodotto_id, descrizione, quantita, prezzo, iva) VALUES (?1,?2,?3,?4,?5,?6)",
+            params![ordine_id, pid, nome.unwrap_or_default(), qta, prezzo, iva.unwrap_or(22.0)],
+        )?;
+    }
+    Ok(())
+}
+
 fn num_loose(v: Option<&Value>) -> f64 {
     match v {
         Some(Value::Number(n)) => n.as_f64().unwrap_or(0.0),

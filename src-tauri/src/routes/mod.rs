@@ -8,6 +8,7 @@ mod categorie_prodotto;
 mod causali;
 mod clienti;
 mod conti_acquisto;
+mod ddt;
 pub(crate) mod fornitori;
 mod listini;
 mod magazzini;
@@ -37,6 +38,8 @@ pub fn api_router() -> Router<AppState> {
         .nest("/movimenti-magazzino", movimenti_magazzino::routes())
         .nest("/arrivi-merce", arrivi_merce::routes())
         .nest("/riordino", riordino::routes())
+        // Documenti (Fase 3)
+        .nest("/ddt", ddt::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())

@@ -111,6 +111,14 @@ pub fn oggi_plus(days: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
+/// Anno corrente (UTC). Parità sufficiente con `new Date().getFullYear()` salvo
+/// l'istante a cavallo di capodanno con fuso non-UTC.
+pub fn anno() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    civil_from_days(secs / 86400).0
+}
+
 /// Formatta un numero come JS (`5.0` → "5", `5.5` → "5.5"), per i messaggi.
 pub fn fmt_num(x: f64) -> String {
     if x.fract() == 0.0 {

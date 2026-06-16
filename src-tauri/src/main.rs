@@ -8,6 +8,7 @@ mod db;
 mod error;
 mod gemello;
 mod match_prodotti;
+mod numerazione;
 mod routes;
 mod server;
 mod stock;
