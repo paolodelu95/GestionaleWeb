@@ -9,6 +9,7 @@ mod error;
 mod fiscale;
 mod gemello;
 mod match_prodotti;
+mod moduli;
 mod numerazione;
 mod routes;
 mod server;

@@ -68,6 +68,10 @@ impl AppState {
              VALUES ('local', 'offline', 'Locale', 'OWNER', ?1, 1)",
             [DEFAULT_TENANT],
         )?;
+        // Catalogo moduli + righe tenant_moduli per il tenant default (come seedModuli +
+        // ensureTenantModuli del bootstrap Node).
+        crate::moduli::seed_catalog(&auth)?;
+        crate::moduli::ensure_tenant_moduli(&auth, DEFAULT_TENANT)?;
         Ok(())
     }
 

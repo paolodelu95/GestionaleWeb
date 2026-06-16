@@ -4,7 +4,9 @@
 mod acquisti;
 mod aliquote_iva;
 mod arrivi_merce;
+mod audit;
 mod azienda;
+mod bug_reports;
 mod categorie_prodotto;
 mod causali;
 mod clienti;
@@ -13,7 +15,10 @@ mod ddt;
 mod fattura_xml;
 mod fatture;
 pub(crate) mod fornitori;
+mod moduli;
 mod note_credito;
+mod note_rapide;
+mod notifications;
 mod listini;
 mod magazzini;
 mod me;
@@ -23,6 +28,7 @@ mod pagamenti;
 mod preventivi;
 mod prima_nota;
 mod prodotti;
+mod prodotto_varianti;
 mod reports;
 mod riconciliazione;
 mod riordino;
@@ -67,6 +73,13 @@ pub fn api_router() -> Router<AppState> {
         .nest("/riconciliazione", riconciliazione::routes())
         .nest("/stats", stats::routes())
         .nest("/reports", reports::routes())
+        // Trasversali offline (Fase 6)
+        .nest("/audit", audit::routes())
+        .nest("/notifications", notifications::routes())
+        .nest("/note-rapide", note_rapide::routes())
+        .nest("/bug-reports", bug_reports::routes())
+        .nest("/prodotto-varianti", prodotto_varianti::routes())
+        .nest("/moduli", moduli::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
