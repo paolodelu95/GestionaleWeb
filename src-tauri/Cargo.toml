@@ -1,0 +1,45 @@
+[package]
+name = "ordeva-desktop"
+version = "1.1.0"
+description = "Ordeva — edizione offline desktop (Tauri + backend Rust)"
+authors = ["Paolo De Luca <info@ordeva.it>"]
+license = "AGPL-3.0-or-later"
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
+
+# Server HTTP locale (sostituisce Express)
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "cors", "trace"] }
+tokio = { version = "1", features = ["full"] }
+
+# Database (sostituisce better-sqlite3) — bundled = compila SQLite, nessuna dipendenza di sistema
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Serializzazione JSON (DTO camelCase ↔ DB snake_case)
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[features]
+# di default Tauri abilita il custom-protocol per il bundling di produzione
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
