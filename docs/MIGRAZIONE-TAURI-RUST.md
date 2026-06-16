@@ -1,14 +1,16 @@
 # Migrazione Electron → Tauri (riscrittura backend in Rust)
 
-> Stato: **Fase 1 in corso** (tabelle base fatte) · Avviata 2026-06-16 · Branch: `offline-electron`
+> Stato: **Fase 2 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
 >
 > Avanzamento:
 > - ✅ Fase 0 completata e verificata (app apre, /healthz, /api/me, serve SPA, DB+schema).
-> - 🔨 Fase 1: infrastruttura route (error.rs, web.rs, gemello.rs, seed.sql) +
->   6 tabelle base + **azienda, clienti(+indirizzi+stats), fornitori** (con logica
->   gemello cliente↔fornitore) — **output JSON byte-identico a Node** (diff verificato
->   con scenario CRUD: create+gemello, duplicato 409, validazione, indirizzi, PUT azienda 40 campi).
->   Restano: prodotti(+varianti,fornitori,alias,import), listini.
+> - ✅ Fase 1 COMPLETA: infrastruttura (error.rs, web.rs, gemello.rs, stock.rs,
+>   match_prodotti.rs, seed.sql) + 6 tabelle base + azienda + clienti(+indirizzi+stats)
+>   + fornitori + **prodotti** (varianti, fornitori, alias, import, import-listino con
+>   **fuzzy matching**) + **listini** (sanitizer, upsert, sezioni, resolve).
+>   **Tutto verificato byte-identico a Node** con scenari CRUD diffati endpoint per endpoint.
+> - 🔨 Fase 2: magazzino. `stock.rs` ha già magazzino_default_id/adj_giacenza/
+>   riallinea_giacenze; resta applicaRigheStock, magazzini, movimenti, arrivi, riordino.
 >
 > Metodo di verifica adottato: avviare Node e Rust sugli stessi dati seed e diffare
 > le risposte JSON degli endpoint (script in cronologia). Aggiunto helper `web::num()`

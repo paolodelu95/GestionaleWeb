@@ -6,8 +6,10 @@ mod auth;
 mod db;
 mod error;
 mod gemello;
+mod match_prodotti;
 mod routes;
 mod server;
+mod stock;
 mod web;
 
 use std::path::PathBuf;

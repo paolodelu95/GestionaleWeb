@@ -8,7 +8,9 @@ mod causali;
 mod clienti;
 mod conti_acquisto;
 pub(crate) mod fornitori;
+mod listini;
 mod me;
+mod prodotti;
 mod tipi_pagamento;
 mod unita_misura;
 
@@ -24,6 +26,8 @@ pub fn api_router() -> Router<AppState> {
         .nest("/azienda", azienda::routes())
         .nest("/clienti", clienti::routes())
         .nest("/fornitori", fornitori::routes())
+        .nest("/prodotti", prodotti::routes())
+        .nest("/listini", listini::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
