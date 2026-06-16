@@ -38,6 +38,10 @@ fn main() {
 
             let state = AppState::init(data_dir)
                 .map_err(|e| format!("init database: {e:#}"))?;
+            // Backup esterno automatico se "dovuto" (parità con runExternalBackupIfDue
+            // all'avvio di server.js in OFFLINE_MODE). In un thread per non bloccare.
+            let bk_state = state.clone();
+            std::thread::spawn(move || backup::run_if_due(&bk_state));
             server::spawn(state).map_err(|e| format!("avvio server: {e:#}"))?;
 
             // La WebView carica la SPA servita da axum (niente file://, niente CORS).

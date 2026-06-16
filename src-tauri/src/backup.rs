@@ -291,6 +291,59 @@ pub fn restore_backup(
     Ok(())
 }
 
+/// Backup esterno automatico all'avvio se "dovuto" (parità con runExternalBackupIfDue
+/// di server.js): abilitato, cartella impostata, ≥1 giorno dall'ultimo, e — se cifrato —
+/// con la chiave sbloccata. Best-effort: non propaga errori.
+pub fn run_if_due(state: &AppState) {
+    let cfg = match read_config(state) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    let enabled = cfg.get("enabled").and_then(Value::as_bool).unwrap_or(false);
+    let dir = cfg.get("dir").and_then(Value::as_str).unwrap_or("").to_string();
+    if !enabled || dir.is_empty() {
+        return;
+    }
+    let days = match cfg.get("lastAt").and_then(Value::as_str) {
+        Some(iso) => days_since_iso(iso),
+        None => f64::INFINITY,
+    };
+    if days < 1.0 {
+        return;
+    }
+    let encrypt = cfg.get("encrypt").and_then(Value::as_bool).unwrap_or(false);
+    let key = get_key(state);
+    if encrypt && key.is_none() {
+        return; // cifratura attiva ma app bloccata: rinviato
+    }
+    let salt = ensure_salt(state).unwrap_or_default();
+    if run_external_backup(state, &dir, encrypt, key, &salt).is_ok() {
+        let _ = write_config(state, json!({ "lastAt": iso_now_ms() }));
+    }
+}
+
+/// Secondi epoch da una ISO; +∞ non gestito qui (vedi chiamante).
+fn days_since_iso(iso: &str) -> f64 {
+    let date = match web::days_of(iso) {
+        Some(d) => d,
+        None => return f64::INFINITY,
+    };
+    let mut secs = date * 86400;
+    if let Some(tpos) = iso.find('T') {
+        let parts: Vec<&str> = iso[tpos + 1..].splitn(3, ':').collect();
+        let h: i64 = parts.first().and_then(|x| x.parse().ok()).unwrap_or(0);
+        let mi: i64 = parts.get(1).and_then(|x| x.parse().ok()).unwrap_or(0);
+        let s: i64 = parts.get(2).map(|x| x.chars().take_while(|c| c.is_ascii_digit()).collect::<String>()).and_then(|x| x.parse().ok()).unwrap_or(0);
+        secs += h * 3600 + mi * 60 + s;
+    }
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    (now - secs) as f64 / 86400.0
+}
+
+fn iso_now_ms() -> String {
+    iso_utc(SystemTime::now())
+}
+
 /// Elenco backup nella cartella, ordinati per mtime desc.
 pub fn list_external(dir: &str) -> Vec<Value> {
     let mut out = Vec::new();
