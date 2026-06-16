@@ -43,6 +43,8 @@ fancy-regex = "0.13"
 roxmltree = "0.20"
 unicode-normalization = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+# Invio email SMTP (parità con nodemailer di routes/email.js)
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "rustls-tls", "builder"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 

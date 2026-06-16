@@ -17,6 +17,7 @@ mod comandi;
 mod conti_acquisto;
 mod crm;
 mod ddt;
+mod email;
 mod fattura_xml;
 mod fatture;
 mod fatture_ricorrenti;
@@ -100,6 +101,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/timesheet", timesheet::routes())
         .nest("/sdi-passive", sdi_passive::routes())
         .nest("/comandi", comandi::routes())
+        .nest("/email", email::routes())
         // Offline-only (Fase 6)
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())
