@@ -6,6 +6,7 @@ mod audit;
 mod auth;
 mod db;
 mod error;
+mod fiscale;
 mod gemello;
 mod match_prodotti;
 mod numerazione;

@@ -485,6 +485,9 @@ CREATE TABLE IF NOT EXISTS vendite_banco_righe (
         sconto      REAL DEFAULT 0,
         iva         REAL DEFAULT 22,
         unita_misura TEXT DEFAULT '',
+        variante_id     INTEGER,
+        variante_taglia TEXT DEFAULT '',
+        variante_colore TEXT DEFAULT '',
         FOREIGN KEY (vendita_id)  REFERENCES vendite_banco(id) ON DELETE CASCADE,
         FOREIGN KEY (prodotto_id) REFERENCES prodotti(id)
       );

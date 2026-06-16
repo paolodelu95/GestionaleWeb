@@ -1,6 +1,6 @@
 # Migrazione Electron → Tauri (riscrittura backend in Rust)
 
-> Stato: **Fase 3 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
+> Stato: **Fase 4 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
 >
 > Avanzamento:
 > - ✅ Fase 0 completata e verificata (app apre, /healthz, /api/me, serve SPA, DB+schema).
@@ -13,7 +13,13 @@
 >   (depositi, giacenze, trasferimento, scadenze), movimenti-magazzino, arrivi-merce
 >   (carico/storno PUT/PATCH/DELETE), riordino (proposte/genera), audit.rs.
 >   Verificato byte-identico a Node (carico, storno, trasferimento, movimenti, ordini RO).
-> - 🔨 Fase 3: documenti.
+> - ✅ Fase 3 COMPLETA: numerazione (get_next_numero), riordino auto, e i 7 documenti
+>   (ddt, preventivi, ordini, acquisti, vendite_banco, fatture, note_credito) con
+>   conversioni, scarico/storno, campi fiscali (fiscale.rs: ritenuta/cassa/bollo),
+>   pagamento immediato, da-ddt, stato-sdi. Verificato byte-identico a Node + tabelle.
+>   Corretto un bug Node preesistente: colonne variante_* mancanti in
+>   vendite_banco_righe su DB nuovo (ALTER prima del CREATE) — fix in entrambi i backend.
+> - 🔨 Fase 4: FatturaPA XML/SDI.
 >
 > Metodo di verifica adottato: avviare Node e Rust sugli stessi dati seed e diffare
 > le risposte JSON degli endpoint (script in cronologia). Aggiunto helper `web::num()`
