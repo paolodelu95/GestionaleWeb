@@ -155,6 +155,12 @@ pub fn days_of(date: &str) -> Option<i64> {
     parse_ymd(date).map(|(y, m, d)| days_from_civil(y, m, d))
 }
 
+/// Ultimo giorno del mese (y, m) [m 1-indexed].
+pub fn days_in_month(y: i64, m: i64) -> i64 {
+    let (ny, nm) = if m == 12 { (y + 1, 1) } else { (y, m + 1) };
+    days_from_civil(ny, nm, 1) - days_from_civil(y, m, 1)
+}
+
 /// giorni-epoch → "YYYY-MM-DD".
 pub fn iso_of_days(days: i64) -> String {
     let (y, m, d) = civil_from_days(days);

@@ -1,6 +1,6 @@
 # Migrazione Electron → Tauri (riscrittura backend in Rust)
 
-> Stato: **Fase 5 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
+> Stato: **Fase 6 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
 >
 > Avanzamento:
 > - ✅ Fase 0 completata e verificata (app apre, /healthz, /api/me, serve SPA, DB+schema).
@@ -22,7 +22,10 @@
 > - ✅ Fase 4 COMPLETA: xml.rs (build_fattura_pa TD01/TD04) + fattura_xml.rs
 >   (XML, validate con 40+ regole SDI, invia-sdi via reqwest). **XML byte-identico
 >   a Node** (fattura e nota credito confrontate carattere per carattere); validate identico.
-> - 🔨 Fase 5: contabilità.
+> - ✅ Fase 5 COMPLETA: pagamenti, scadenzario, prima nota, riconciliazione (OFX/CSV),
+>   stats (14 endpoint, incl. LIPE-XML e esterometro-CSV byte-identici, cashflow
+>   timezone-aware) e reports (8 template). Verificato byte-identico a Node.
+> - 🔨 Fase 6: trasversali offline.
 >
 > Metodo di verifica adottato: avviare Node e Rust sugli stessi dati seed e diffare
 > le risposte JSON degli endpoint (script in cronologia). Aggiunto helper `web::num()`

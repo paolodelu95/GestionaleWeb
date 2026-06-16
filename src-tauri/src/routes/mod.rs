@@ -23,9 +23,11 @@ mod pagamenti;
 mod preventivi;
 mod prima_nota;
 mod prodotti;
+mod reports;
 mod riconciliazione;
 mod riordino;
 mod scadenzario;
+mod stats;
 mod tipi_pagamento;
 mod unita_misura;
 mod vendite_banco;
@@ -63,6 +65,8 @@ pub fn api_router() -> Router<AppState> {
         .nest("/scadenzario", scadenzario::routes())
         .nest("/prima-nota", prima_nota::routes())
         .nest("/riconciliazione", riconciliazione::routes())
+        .nest("/stats", stats::routes())
+        .nest("/reports", reports::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
