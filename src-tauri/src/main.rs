@@ -9,6 +9,7 @@ mod db;
 mod error;
 mod fiscale;
 mod gemello;
+mod jobs;
 mod match_prodotti;
 mod moduli;
 mod numerazione;
@@ -42,6 +43,9 @@ fn main() {
             // all'avvio di server.js in OFFLINE_MODE). In un thread per non bloccare.
             let bk_state = state.clone();
             std::thread::spawn(move || backup::run_if_due(&bk_state));
+            // Scheduler job offline (fatture ricorrenti dovute, solleciti automatici):
+            // catch-up all'avvio + ogni 6h (parità con i cron 7:00/8:00 di server.js).
+            jobs::spawn_scheduler(state.clone());
             server::spawn(state).map_err(|e| format!("avvio server: {e:#}"))?;
 
             // La WebView carica la SPA servita da axum (niente file://, niente CORS).

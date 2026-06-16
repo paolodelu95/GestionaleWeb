@@ -162,8 +162,14 @@ fn from_header(s: &Smtp) -> String {
     }
 }
 
-/// Invia via SMTP. Err(msg) replica i messaggi di Node ("SMTP non configurato…" ecc).
+/// Invia via SMTP (HTML). Err(msg) replica i messaggi di Node ("SMTP non configurato…").
 fn smtp_send(c: &Connection, to: &Value, subject: &str, html: &str) -> Result<(), String> {
+    send_mail(c, to, subject, html, true)
+}
+
+/// Invio email generico via SMTP dalla config azienda. `is_html` sceglie il content-type.
+/// Riusato dallo scheduler (solleciti automatici). Err(msg) come i throw di Node.
+pub(crate) fn send_mail(c: &Connection, to: &Value, subject: &str, body: &str, is_html: bool) -> Result<(), String> {
     use lettre::message::header::ContentType;
     use lettre::transport::smtp::authentication::Credentials;
     use lettre::{Message, SmtpTransport, Transport};
@@ -185,10 +191,8 @@ fn smtp_send(c: &Connection, to: &Value, subject: &str, html: &str) -> Result<()
     for r in &recipients {
         builder = builder.to(r.parse().map_err(|_| format!("Indirizzo email non valido: {r}"))?);
     }
-    let email = builder
-        .header(ContentType::TEXT_HTML)
-        .body(html.to_string())
-        .map_err(|e| e.to_string())?;
+    let ctype = if is_html { ContentType::TEXT_HTML } else { ContentType::TEXT_PLAIN };
+    let email = builder.header(ctype).body(body.to_string()).map_err(|e| e.to_string())?;
 
     let creds = Credentials::new(cfg.user.clone(), cfg.pass.clone());
     let tport = if cfg.secure {

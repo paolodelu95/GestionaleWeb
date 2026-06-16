@@ -8,7 +8,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use rusqlite::params;
+use rusqlite::{params, Connection};
 use serde_json::{json, Value};
 
 use crate::db::AppState;
@@ -147,8 +147,20 @@ async fn remove(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResult
 async fn emetti(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
     let conn = tenant_conn(&state)?;
     let mut conn = conn.lock().unwrap();
+    match emetti_template(&mut conn, id)? {
+        Some((fattura_id, numero, nuova_prossima)) => {
+            Ok(Json(json!({ "id": fattura_id, "numero": numero, "nuovaProssima": nuova_prossima })))
+        }
+        None => Err(ApiError::Status(axum::http::StatusCode::NOT_FOUND, "Non trovato".into())),
+    }
+}
 
-    // Carica il template (404 se assente).
+/// Emette una fattura reale da un template ricorrente (transazionale) e avanza il
+/// periodo. None se il template non esiste. Riusato dall'endpoint e dallo scheduler.
+pub fn emetti_template(
+    conn: &mut Connection,
+    id: i64,
+) -> rusqlite::Result<Option<(i64, String, String)>> {
     let tpl = conn
         .query_row(
             "SELECT cliente_id, frequenza, giorno_emissione, prossima_emissione, righe, tipo_pagamento_id, note
@@ -169,7 +181,7 @@ async fn emetti(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResult
         .ok();
     let (cliente_id, frequenza, giorno, prossima, righe_json, tipo_pag, note) = match tpl {
         Some(t) => t,
-        None => return Err(ApiError::Status(axum::http::StatusCode::NOT_FOUND, "Non trovato".into())),
+        None => return Ok(None),
     };
 
     let righe: Vec<Value> = serde_json::from_str(&righe_json).unwrap_or_default();
@@ -205,6 +217,5 @@ async fn emetti(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResult
         params![nuova_prossima, id],
     )?;
     tx.commit()?;
-
-    Ok(Json(json!({ "id": fattura_id, "numero": numero, "nuovaProssima": nuova_prossima })))
+    Ok(Some((fattura_id, numero, nuova_prossima)))
 }
