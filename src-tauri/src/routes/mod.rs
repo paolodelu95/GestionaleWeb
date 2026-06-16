@@ -39,6 +39,7 @@ mod reports;
 mod riconciliazione;
 mod riordino;
 mod scadenzario;
+mod sdi_passive;
 mod setup;
 mod stats;
 mod timesheet;
@@ -96,6 +97,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/allegati", allegati::routes())
         .nest("/crm", crm::routes())
         .nest("/timesheet", timesheet::routes())
+        .nest("/sdi-passive", sdi_passive::routes())
         // Offline-only (Fase 6)
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())
