@@ -1,4 +1,11 @@
-# Ordeva — edizione offline (desktop)
+# Ordeva — edizione offline (desktop) · ⚠️ Electron (legacy)
+
+> **Deprecato a favore di Tauri + Rust.** L'edizione offline è stata riscritta
+> con backend in **Rust (axum)** impacchettato con **Tauri** (cartella
+> [`../src-tauri`](../src-tauri)) per ridurre la RAM. Questo pacchetto Electron
+> (backend Node/Express + Chromium bundled) resta come fallback finché il
+> bundle Tauri non è pubblicato, poi verrà rimosso. Vedi
+> [`../docs/MIGRAZIONE-TAURI-RUST.md`](../docs/MIGRAZIONE-TAURI-RUST.md).
 
 Versione **locale e single-user** di Ordeva: backend + frontend girano sul PC
 dell'utente, i dati restano in un file SQLite locale. Niente login, niente

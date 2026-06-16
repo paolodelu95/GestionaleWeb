@@ -3,7 +3,11 @@
 Gestionale completo per piccole imprese: anagrafiche, magazzino, ciclo attivo e
 passivo, fatturazione elettronica, listini, contabilità e report.
 **Versione locale, single-user, senza login né cloud** — i dati restano sul PC.
-**Angular 21 + Node.js (Express) + SQLite, impacchettato con Electron.**
+**Angular 21 + backend Rust (axum) + SQLite, impacchettato con Tauri** — riscrittura
+del backend (prima Node/Express su Electron) per ridurre drasticamente la RAM.
+Il backend Rust replica byte-per-byte le risposte di quello Node (verificato
+endpoint per endpoint). L'edizione Electron resta come fallback finché il
+pacchetto Tauri non è pubblicato.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
@@ -143,11 +147,22 @@ cd frontend && npm install && ng serve            # http://localhost:4200
 ```
 Il database SQLite viene creato al primo avvio.
 
-### App desktop (Electron)
+### App desktop (Tauri + Rust) — edizione corrente
+```bash
+cd frontend && ng build --configuration offline   # SPA → frontend/dist/frontend/browser
+cd ../src-tauri
+cargo build                # build di sviluppo del backend Rust + finestra Tauri
+cargo install tauri-cli    # una volta sola
+cargo tauri build          # genera il pacchetto (.dmg / .nsis / .AppImage) in target/release/bundle
+```
+Il backend Rust (axum) gira in-process su `127.0.0.1:3000` e serve sia `/api/*`
+sia la SPA; la WebView di sistema (WKWebView/WebView2/WebKitGTK) carica da lì.
+
+### App desktop (Electron) — legacy/fallback
 ```bash
 cd electron
 npm install      # scarica Electron + ricompila better-sqlite3 per il suo ABI
-npm run build    # compila il frontend (config "offline") e lo serve dal backend
+npm run build    # compila il frontend (config "offline") e lo serve dal backend Node
 npm start        # avvia l'app desktop
 npm run dist     # genera installer + portatili in electron/dist/
 ```
