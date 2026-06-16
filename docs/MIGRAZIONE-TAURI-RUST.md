@@ -1,6 +1,6 @@
 # Migrazione Electron → Tauri (riscrittura backend in Rust)
 
-> Stato: **Fase 6 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
+> Stato: **Fase 6 COMPLETA** · Avviata 2026-06-16 · Branch: `offline-electron`
 >
 > Avanzamento:
 > - ✅ Fase 0 completata e verificata (app apre, /healthz, /api/me, serve SPA, DB+schema).
@@ -25,7 +25,25 @@
 > - ✅ Fase 5 COMPLETA: pagamenti, scadenzario, prima nota, riconciliazione (OFX/CSV),
 >   stats (14 endpoint, incl. LIPE-XML e esterometro-CSV byte-identici, cashflow
 >   timezone-aware) e reports (8 template). Verificato byte-identico a Node.
-> - 🔨 Fase 6: trasversali offline.
+> - ✅ Fase 6 COMPLETA: **tutti i 54 mount offline** portati e verificati contro Node.
+>   Domini DB: audit, notifications, note-rapide, bug-reports, prodotto-varianti,
+>   moduli (catalogo+seed in auth.db), gruppi, utenti (bcrypt), fatture-ricorrenti
+>   (quirk setUTCMonth), setup (demo+password), agenda (CRUD+calendario+ICS+feed HMAC),
+>   allegati (multipart upload/download), crm, timesheet (genera-fattura), sdi-passive
+>   (import FatturaPA via roxmltree), comandi (parser NLP IT, fancy-regex+valuta it-IT).
+>   **Backup cifrato cross-compatibile col formato Node** (scrypt+AES-256-GCM ORDEVA2,
+>   verificato in entrambe le direzioni con test) + run-if-due all'avvio.
+>   Moduli network (email SMTP via lettre, piva openapi/VIES via reqwest, ecommerce):
+>   path deterministici (config/validazione/preview-mailto/error) verificati; le sole
+>   chiamate di rete reali (invio SMTP, lookup, sync store) non sono byte-verificabili
+>   offline ma sono implementate (lettre/reqwest) o documentate come fuori scope.
+>   Corretto un secondo bug Fase 0: nome utente locale 'Locale' → 'Utente locale'
+>   (parità con LOCAL_USER + seed di server.js), emerso portando /api/utenti.
+> - 🔨 Fase 7: packaging Tauri, misura RAM, dismissione Electron.
+>
+> Background job ancora da pianificare (cron in Node): emissione fatture ricorrenti
+> dovute (7:00) e solleciti automatici (8:00). Il backup giornaliero è già coperto
+> da run-if-due all'avvio; gli altri due richiedono uno scheduler nel runtime Tauri.
 >
 > Metodo di verifica adottato: avviare Node e Rust sugli stessi dati seed e diffare
 > le risposte JSON degli endpoint (script in cronologia). Aggiunto helper `web::num()`
