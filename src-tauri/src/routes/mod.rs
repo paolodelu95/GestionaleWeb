@@ -13,6 +13,7 @@ mod bug_reports;
 mod categorie_prodotto;
 mod causali;
 mod clienti;
+mod comandi;
 mod conti_acquisto;
 mod crm;
 mod ddt;
@@ -98,6 +99,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/crm", crm::routes())
         .nest("/timesheet", timesheet::routes())
         .nest("/sdi-passive", sdi_passive::routes())
+        .nest("/comandi", comandi::routes())
         // Offline-only (Fase 6)
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())
