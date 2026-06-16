@@ -1,8 +1,13 @@
-//! Router /api. In Fase 0 sono presenti solo gli endpoint necessari a far
-//! partire e autenticare la SPA offline; le fasi successive aggiungono i moduli
-//! di dominio (anagrafiche, magazzino, documenti, fiscale, ...).
+//! Router /api. Le fasi aggiungono progressivamente i moduli di dominio.
+//! Fase 0: me/auth. Fase 1: anagrafiche (in corso — tabelle base completate).
 
+mod aliquote_iva;
+mod categorie_prodotto;
+mod causali;
+mod conti_acquisto;
 mod me;
+mod tipi_pagamento;
+mod unita_misura;
 
 use axum::Router;
 
@@ -10,5 +15,13 @@ use crate::db::AppState;
 
 /// Costruisce il sotto-router montato su `/api`.
 pub fn api_router() -> Router<AppState> {
-    Router::new().merge(me::routes())
+    Router::new()
+        .merge(me::routes())
+        // Tabelle base (Fase 1)
+        .nest("/unita-misura", unita_misura::routes())
+        .nest("/aliquote-iva", aliquote_iva::routes())
+        .nest("/causali", causali::routes())
+        .nest("/conti-acquisto", conti_acquisto::routes())
+        .nest("/categorie-prodotto", categorie_prodotto::routes())
+        .nest("/tipi-pagamento", tipi_pagamento::routes())
 }

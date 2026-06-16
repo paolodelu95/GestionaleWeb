@@ -1,6 +1,17 @@
 # Migrazione Electron → Tauri (riscrittura backend in Rust)
 
-> Stato: **Fase 0 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
+> Stato: **Fase 1 in corso** (tabelle base fatte) · Avviata 2026-06-16 · Branch: `offline-electron`
+>
+> Avanzamento:
+> - ✅ Fase 0 completata e verificata (app apre, /healthz, /api/me, serve SPA, DB+schema).
+> - 🔨 Fase 1: infrastruttura route (error.rs, web.rs, seed.sql) + 6 tabelle base
+>   (unita-misura, aliquote-iva, causali, conti-acquisto, categorie-prodotto,
+>   tipi-pagamento) — **output JSON byte-identico a Node** (diff verificato su dati seed).
+>   Restano: azienda, clienti(+indirizzi), fornitori, prodotti(+varianti,fornitori,alias), listini.
+>
+> Metodo di verifica adottato: avviare Node e Rust sugli stessi dati seed e diffare
+> le risposte JSON degli endpoint (script in cronologia). Aggiunto helper `web::num()`
+> per la parità di formattazione dei REAL (4.0 → 4, come better-sqlite3+JSON.stringify).
 
 ## Obiettivo
 Ridurre la RAM dell'edizione desktop offline (oggi ~350-450 MB: Chromium + Node)

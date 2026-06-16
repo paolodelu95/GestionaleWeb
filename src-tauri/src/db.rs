@@ -18,6 +18,9 @@ pub const DEFAULT_TENANT: &str = "default";
 
 const AUTH_SCHEMA: &str = include_str!("schema/auth.sql");
 const TENANT_SCHEMA: &str = include_str!("schema/tenant.sql");
+/// Dati preset (aliquote IVA, unità, tipi pagamento, conti, causali, crm stage,
+/// magazzino e azienda di default) applicati solo su tenant nuovo.
+const TENANT_SEED: &str = include_str!("schema/seed.sql");
 
 /// Stato condiviso dell'app: cartella dati + connessioni cache.
 #[derive(Clone)]
@@ -88,6 +91,13 @@ impl AppState {
         let conn = open_db(&path)?;
         conn.execute_batch(TENANT_SCHEMA)
             .with_context(|| format!("init schema tenant {slug}"))?;
+        // Seed solo su DB fresco (azienda vuota), come il bootstrap di server.js.
+        let already_seeded: i64 =
+            conn.query_row("SELECT COUNT(*) FROM azienda", [], |r| r.get(0))?;
+        if already_seeded == 0 {
+            conn.execute_batch(TENANT_SEED)
+                .with_context(|| format!("seed tenant {slug}"))?;
+        }
         let conn = Arc::new(Mutex::new(conn));
         cache.insert(slug.to_string(), conn.clone());
         Ok(conn)

@@ -4,8 +4,10 @@
 
 mod auth;
 mod db;
+mod error;
 mod routes;
 mod server;
+mod web;
 
 use std::path::PathBuf;
 
