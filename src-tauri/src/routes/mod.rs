@@ -6,6 +6,7 @@ mod aliquote_iva;
 mod arrivi_merce;
 mod audit;
 mod azienda;
+mod backup;
 mod bug_reports;
 mod categorie_prodotto;
 mod causali;
@@ -35,6 +36,7 @@ mod reports;
 mod riconciliazione;
 mod riordino;
 mod scadenzario;
+mod setup;
 mod stats;
 mod tipi_pagamento;
 mod unita_misura;
@@ -86,6 +88,9 @@ pub fn api_router() -> Router<AppState> {
         .nest("/gruppi", gruppi::routes())
         .nest("/utenti", utenti::routes())
         .nest("/fatture-ricorrenti", fatture_ricorrenti::routes())
+        // Offline-only (Fase 6)
+        .nest("/setup", setup::routes())
+        .nest("/backup", backup::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())

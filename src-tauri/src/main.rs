@@ -4,6 +4,7 @@
 
 mod audit;
 mod auth;
+mod backup;
 mod db;
 mod error;
 mod fiscale;

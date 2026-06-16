@@ -28,6 +28,9 @@ pub struct AppState {
     pub data_dir: PathBuf,
     auth: Arc<Mutex<Connection>>,
     tenants: Arc<Mutex<HashMap<String, Arc<Mutex<Connection>>>>>,
+    /// Chiave AES-256 dei backup, derivata dalla password d'accesso (scrypt) e
+    /// tenuta SOLO in memoria (parità con utils/appSession.js). None = bloccata.
+    pub backup_key: Arc<Mutex<Option<[u8; 32]>>>,
 }
 
 impl AppState {
@@ -46,6 +49,7 @@ impl AppState {
             data_dir,
             auth: Arc::new(Mutex::new(auth_conn)),
             tenants: Arc::new(Mutex::new(HashMap::new())),
+            backup_key: Arc::new(Mutex::new(None)),
         };
 
         state.bootstrap_offline()?;
@@ -79,6 +83,17 @@ impl AppState {
     pub fn with_auth<T>(&self, f: impl FnOnce(&Connection) -> Result<T>) -> Result<T> {
         let conn = self.auth.lock().unwrap();
         f(&conn)
+    }
+
+    /// Percorso del file DB di un tenant (parità con tenantDbPath()).
+    pub fn tenant_db_path(&self, slug: &str) -> PathBuf {
+        self.data_dir.join("tenants").join(format!("{slug}.db"))
+    }
+
+    /// Rimuove dalla cache la connessione del tenant (la chiude se è l'ultimo
+    /// riferimento). Serve prima di sovrascrivere il file in un ripristino.
+    pub fn evict_tenant(&self, slug: &str) {
+        self.tenants.lock().unwrap().remove(slug);
     }
 
     /// Restituisce la connessione (cache) per un tenant, aprendola e applicando
