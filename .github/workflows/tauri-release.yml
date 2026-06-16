@@ -1,0 +1,89 @@
+# Build dei pacchetti desktop dell'edizione offline **Tauri + Rust** su Windows,
+# macOS (Intel + Apple Silicon) e Linux. Si attiva a ogni tag "v*" o manualmente.
+# Ogni runner builda il proprio formato nativo: NSIS (.exe) + MSI, .dmg, .deb +
+# .AppImage. SQLite è compilato nel binario (rusqlite "bundled"): nessun modulo
+# nativo da ricompilare, a differenza dell'edizione Electron.
+name: tauri-release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: ''
+          - os: windows-latest
+            target: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # Dipendenze di sistema per la WebView Tauri (solo Linux: WebKitGTK).
+      - name: Linux deps (WebKitGTK)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+            patchelf build-essential file
+
+      - name: Frontend deps + build (config offline → frontend/dist/frontend/browser)
+        working-directory: frontend
+        run: |
+          npm ci || npm install
+          npx ng build --configuration offline
+
+      # tauri-action compila il backend Rust + finestra, impacchetta e — su tag —
+      # crea/aggiorna una GitHub Release in BOZZA con i bundle allegati.
+      - name: Build & release (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: src-tauri
+          args: ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }}
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: 'Ordeva __VERSION__'
+          releaseDraft: true
+          generateReleaseNotes: true
+
+      # Run manuale (workflow_dispatch, senza tag): i bundle restano come artifact
+      # scaricabili dalla pagina del run.
+      - name: Upload artifacts
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordeva-tauri-${{ matrix.os }}-${{ matrix.target }}
+          path: |
+            src-tauri/target/**/release/bundle/dmg/*.dmg
+            src-tauri/target/**/release/bundle/nsis/*.exe
+            src-tauri/target/**/release/bundle/msi/*.msi
+            src-tauri/target/**/release/bundle/deb/*.deb
+            src-tauri/target/**/release/bundle/appimage/*.AppImage
+          if-no-files-found: ignore
