@@ -14,6 +14,7 @@ mod conti_acquisto;
 mod ddt;
 mod fattura_xml;
 mod fatture;
+mod fatture_ricorrenti;
 pub(crate) mod fornitori;
 mod gruppi;
 mod moduli;
@@ -84,6 +85,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/moduli", moduli::routes())
         .nest("/gruppi", gruppi::routes())
         .nest("/utenti", utenti::routes())
+        .nest("/fatture-ricorrenti", fatture_ricorrenti::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
