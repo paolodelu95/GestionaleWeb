@@ -4,10 +4,11 @@
 >
 > Avanzamento:
 > - ✅ Fase 0 completata e verificata (app apre, /healthz, /api/me, serve SPA, DB+schema).
-> - 🔨 Fase 1: infrastruttura route (error.rs, web.rs, seed.sql) + 6 tabelle base
->   (unita-misura, aliquote-iva, causali, conti-acquisto, categorie-prodotto,
->   tipi-pagamento) — **output JSON byte-identico a Node** (diff verificato su dati seed).
->   Restano: azienda, clienti(+indirizzi), fornitori, prodotti(+varianti,fornitori,alias), listini.
+> - 🔨 Fase 1: infrastruttura route (error.rs, web.rs, gemello.rs, seed.sql) +
+>   6 tabelle base + **azienda, clienti(+indirizzi+stats), fornitori** (con logica
+>   gemello cliente↔fornitore) — **output JSON byte-identico a Node** (diff verificato
+>   con scenario CRUD: create+gemello, duplicato 409, validazione, indirizzi, PUT azienda 40 campi).
+>   Restano: prodotti(+varianti,fornitori,alias,import), listini.
 >
 > Metodo di verifica adottato: avviare Node e Rust sugli stessi dati seed e diffare
 > le risposte JSON degli endpoint (script in cronologia). Aggiunto helper `web::num()`

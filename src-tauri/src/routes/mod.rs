@@ -2,9 +2,12 @@
 //! Fase 0: me/auth. Fase 1: anagrafiche (in corso — tabelle base completate).
 
 mod aliquote_iva;
+mod azienda;
 mod categorie_prodotto;
 mod causali;
+mod clienti;
 mod conti_acquisto;
+pub(crate) mod fornitori;
 mod me;
 mod tipi_pagamento;
 mod unita_misura;
@@ -17,6 +20,10 @@ use crate::db::AppState;
 pub fn api_router() -> Router<AppState> {
     Router::new()
         .merge(me::routes())
+        // Anagrafiche (Fase 1)
+        .nest("/azienda", azienda::routes())
+        .nest("/clienti", clienti::routes())
+        .nest("/fornitori", fornitori::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())

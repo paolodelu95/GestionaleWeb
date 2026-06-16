@@ -5,6 +5,7 @@
 mod auth;
 mod db;
 mod error;
+mod gemello;
 mod routes;
 mod server;
 mod web;

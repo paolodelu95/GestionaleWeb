@@ -11,6 +11,8 @@ pub type ApiResult<T> = Result<T, ApiError>;
 
 pub enum ApiError {
     Status(StatusCode, String),
+    /// Risposta con body JSON arbitrario (es. 409 con `duplicateId`, o `counts`).
+    Body(StatusCode, serde_json::Value),
     Internal(anyhow::Error),
 }
 
@@ -30,6 +32,7 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, msg) = match self {
             ApiError::Status(s, m) => (s, m),
+            ApiError::Body(s, body) => return (s, Json(body)).into_response(),
             ApiError::Internal(e) => {
                 tracing::error!("errore interno: {e:#}");
                 (

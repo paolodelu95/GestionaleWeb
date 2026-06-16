@@ -62,6 +62,20 @@ pub fn opt_i64(body: &Value, key: &str) -> Option<i64> {
     body.get(key).and_then(Value::as_i64)
 }
 
+/// Stringa grezza NON trimmata (`a.campo`): Some se stringa presente, altrimenti None
+/// (assente/null → bind NULL, come `undefined` in better-sqlite3).
+pub fn raw_opt(body: &Value, key: &str) -> Option<String> {
+    match body.get(key) {
+        Some(Value::String(s)) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+/// `a.campo || ''` senza trim: stringa presente o "".
+pub fn str_def(body: &Value, key: &str) -> String {
+    body.get(key).and_then(Value::as_str).unwrap_or("").to_string()
+}
+
 /// Serializza un REAL come fa better-sqlite3 + JSON.stringify: intero se senza
 /// parte frazionaria (4.0 → 4), altrimenti float (4.5 → 4.5). Serve per la parità
 /// byte dei numeri (prezzi, quantità, aliquote, importi) col backend Node.
