@@ -103,6 +103,39 @@ reali); Chromium è il resto. Il rewrite Rust elimina entrambi.
   (Stripe billing/paylink, ecommerce) degradate offline.
 - **Fase 7** — Packaging Tauri (dmg/nsis/AppImage), misura RAM reale, dismissione Electron.
 
+## Fase 7 — Misure e packaging (2026-06-16)
+
+**Build release** `cargo build --release` (LTO, opt-level "s", strip): OK in ~2m41s.
+
+**Footprint su disco**
+| | Tauri + Rust | Electron + Node |
+|---|---|---|
+| Binario/app | **13 MB** (binario, SQLite incluso) | Chromium bundled ~150 MB+ |
+| Dipendenze dev | rust target (cache) | `electron/node_modules` **538 MB** + `backend/node_modules` 31 MB |
+| Modulo nativo | nessuno (SQLite compilato nel binario) | `better-sqlite3` da ricompilare per l'ABI (`electron-rebuild`) — fragile |
+
+**RAM (RSS misurato lanciando l'app, macOS, WKWebView)**
+- processo `ordeva-desktop` (Rust backend + host WebView): **~98 MB**
+- WKWebView (rendering SPA Angular): WebContent ~111 MB, GPU ~38 MB, Networking ~24 MB —
+  **XPC di sistema, in larga parte condivisi** tra le app che usano WKWebView.
+
+Nota onesta: su macOS il rendering usa il WebView di sistema (come WebView2 su Windows e
+WebKitGTK su Linux), quindi l'RSS "doppio-conta" framework condivisi e il confronto a
+runtime è meno netto del disco. I guadagni certi: **niente runtime Node/V8 in-process,
+niente Chromium impacchettato, niente ricompilazione di moduli nativi**, binario 13 MB.
+L'app Electron legacy non si è nemmeno avviata pulita in questo ambiente (richiede
+`electron-rebuild`), a riprova del costo di manutenzione che il port elimina.
+
+**Packaging (passo manuale, sulla macchina dell'utente o in CI)**
+```bash
+cargo install tauri-cli      # una volta
+cd src-tauri && cargo tauri build   # → target/release/bundle (.dmg / .nsis / .AppImage)
+```
+macOS/Windows richiedono firma per la distribuzione (come oggi per Electron). Rimane da
+fare: workflow CI dedicato per Tauri (analogo a `desktop-release.yml`) e i tre background
+job schedulati di Node (fatture ricorrenti 7:00, solleciti 8:00; il backup giornaliero è
+già coperto da `run_if_due` all'avvio).
+
 ## Note di parità critiche (non regredire)
 - **XML FatturaPA byte-compatibile**: ordine elementi e formattazione numeri devono
   combaciare con l'output Node; testare con fatture reali e XMLValidator/SDI.
