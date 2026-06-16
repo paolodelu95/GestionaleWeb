@@ -19,9 +19,13 @@ mod magazzini;
 mod me;
 mod movimenti_magazzino;
 mod ordini;
+mod pagamenti;
 mod preventivi;
+mod prima_nota;
 mod prodotti;
+mod riconciliazione;
 mod riordino;
+mod scadenzario;
 mod tipi_pagamento;
 mod unita_misura;
 mod vendite_banco;
@@ -54,6 +58,11 @@ pub fn api_router() -> Router<AppState> {
         .nest("/fatture", fatture::routes())
         .nest("/note-credito", note_credito::routes())
         .nest("/fattura-xml", fattura_xml::routes())
+        // Contabilità (Fase 5)
+        .nest("/pagamenti", pagamenti::routes())
+        .nest("/scadenzario", scadenzario::routes())
+        .nest("/prima-nota", prima_nota::routes())
+        .nest("/riconciliazione", riconciliazione::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())

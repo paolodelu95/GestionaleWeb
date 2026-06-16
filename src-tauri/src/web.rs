@@ -128,6 +128,63 @@ pub fn fmt_num(x: f64) -> String {
     }
 }
 
+fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400;
+    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146097 + doe - 719468
+}
+
+/// Parsa i primi 10 char "YYYY-MM-DD" in (y,m,d). None se non valido.
+pub fn parse_ymd(s: &str) -> Option<(i64, i64, i64)> {
+    let head: String = s.chars().take(10).collect();
+    let p: Vec<&str> = head.split('-').collect();
+    if p.len() != 3 {
+        return None;
+    }
+    match (p[0].parse(), p[1].parse(), p[2].parse()) {
+        (Ok(y), Ok(m), Ok(d)) => Some((y, m, d)),
+        _ => None,
+    }
+}
+
+/// Numero di giorni-epoch della data YYYY-MM-DD (None se non valida).
+pub fn days_of(date: &str) -> Option<i64> {
+    parse_ymd(date).map(|(y, m, d)| days_from_civil(y, m, d))
+}
+
+/// giorni-epoch → "YYYY-MM-DD".
+pub fn iso_of_days(days: i64) -> String {
+    let (y, m, d) = civil_from_days(days);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// Giorni-epoch di oggi (UTC).
+pub fn today_days() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64 / 86400
+}
+
+/// calcolaDataScadenza: data + giorni; se fine_mese → ultimo giorno del mese
+/// (con la semantica di overflow JS Date.setMonth). None se data vuota.
+pub fn data_scadenza(data: &str, giorni: i64, fine_mese: bool) -> Option<String> {
+    let (y, m, d) = parse_ymd(data)?;
+    let days = days_from_civil(y, m, d) + giorni;
+    let (y2, m2, d2) = civil_from_days(days);
+    if !fine_mese {
+        return Some(format!("{y2:04}-{m2:02}-{d2:02}"));
+    }
+    // setMonth(m2+1) mantenendo il giorno d2 (con overflow JS), poi setDate(0).
+    let (ny, nm) = if m2 == 12 { (y2 + 1, 1) } else { (y2, m2 + 1) };
+    let landed = days_from_civil(ny, nm, 1) + (d2 - 1);
+    let (y3, m3, _) = civil_from_days(landed);
+    let last = days_from_civil(y3, m3, 1) - 1;
+    let (y4, m4, d4) = civil_from_days(last);
+    Some(format!("{y4:04}-{m4:02}-{d4:02}"))
+}
+
 /// Conversione giorni-epoch → data civile (algoritmo di Howard Hinnant).
 fn civil_from_days(z: i64) -> (i64, i64, i64) {
     let z = z + 719468;
