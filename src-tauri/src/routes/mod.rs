@@ -1,6 +1,7 @@
 //! Router /api. Le fasi aggiungono progressivamente i moduli di dominio.
 //! Fase 0: me/auth. Fase 1: anagrafiche (in corso — tabelle base completate).
 
+mod acquisti;
 mod aliquote_iva;
 mod arrivi_merce;
 mod azienda;
@@ -20,6 +21,7 @@ mod prodotti;
 mod riordino;
 mod tipi_pagamento;
 mod unita_misura;
+mod vendite_banco;
 
 use axum::Router;
 
@@ -44,6 +46,8 @@ pub fn api_router() -> Router<AppState> {
         .nest("/ddt", ddt::routes())
         .nest("/preventivi", preventivi::routes())
         .nest("/ordini", ordini::routes())
+        .nest("/acquisti", acquisti::routes())
+        .nest("/vendite-banco", vendite_banco::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
