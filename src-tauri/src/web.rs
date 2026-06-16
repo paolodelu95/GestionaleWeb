@@ -52,6 +52,17 @@ pub fn bool_or_true(body: &Value, key: &str) -> bool {
     !matches!(body.get(key), Some(Value::Bool(false)))
 }
 
+/// Verità JS (`x ? 1 : 0`) su un valore opzionale: false/0/""/null/assente → false.
+pub fn truthy(v: Option<&Value>) -> bool {
+    match v {
+        Some(Value::Bool(b)) => *b,
+        Some(Value::Number(n)) => n.as_f64().map(|x| x != 0.0).unwrap_or(false),
+        Some(Value::String(s)) => !s.is_empty(),
+        Some(Value::Array(_)) | Some(Value::Object(_)) => true,
+        _ => false,
+    }
+}
+
 /// Numero da `body[key]` (default `d`).
 pub fn num_or(body: &Value, key: &str, d: f64) -> f64 {
     body.get(key).and_then(Value::as_f64).unwrap_or(d)

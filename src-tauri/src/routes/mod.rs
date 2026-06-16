@@ -14,6 +14,7 @@ mod categorie_prodotto;
 mod causali;
 mod clienti;
 mod conti_acquisto;
+mod crm;
 mod ddt;
 mod fattura_xml;
 mod fatture;
@@ -40,6 +41,7 @@ mod riordino;
 mod scadenzario;
 mod setup;
 mod stats;
+mod timesheet;
 mod tipi_pagamento;
 mod unita_misura;
 mod utenti;
@@ -92,6 +94,8 @@ pub fn api_router() -> Router<AppState> {
         .nest("/fatture-ricorrenti", fatture_ricorrenti::routes())
         .nest("/agenda", agenda::routes())
         .nest("/allegati", allegati::routes())
+        .nest("/crm", crm::routes())
+        .nest("/timesheet", timesheet::routes())
         // Offline-only (Fase 6)
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())
