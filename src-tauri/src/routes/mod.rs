@@ -2,6 +2,7 @@
 //! Fase 0: me/auth. Fase 1: anagrafiche (in corso — tabelle base completate).
 
 mod aliquote_iva;
+mod arrivi_merce;
 mod azienda;
 mod categorie_prodotto;
 mod causali;
@@ -9,8 +10,11 @@ mod clienti;
 mod conti_acquisto;
 pub(crate) mod fornitori;
 mod listini;
+mod magazzini;
 mod me;
+mod movimenti_magazzino;
 mod prodotti;
+mod riordino;
 mod tipi_pagamento;
 mod unita_misura;
 
@@ -28,6 +32,11 @@ pub fn api_router() -> Router<AppState> {
         .nest("/fornitori", fornitori::routes())
         .nest("/prodotti", prodotti::routes())
         .nest("/listini", listini::routes())
+        // Magazzino (Fase 2)
+        .nest("/magazzini", magazzini::routes())
+        .nest("/movimenti-magazzino", movimenti_magazzino::routes())
+        .nest("/arrivi-merce", arrivi_merce::routes())
+        .nest("/riordino", riordino::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())

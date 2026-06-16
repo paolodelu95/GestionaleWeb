@@ -1,6 +1,6 @@
 # Migrazione Electron → Tauri (riscrittura backend in Rust)
 
-> Stato: **Fase 2 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
+> Stato: **Fase 3 in corso** · Avviata 2026-06-16 · Branch: `offline-electron`
 >
 > Avanzamento:
 > - ✅ Fase 0 completata e verificata (app apre, /healthz, /api/me, serve SPA, DB+schema).
@@ -9,8 +9,11 @@
 >   + fornitori + **prodotti** (varianti, fornitori, alias, import, import-listino con
 >   **fuzzy matching**) + **listini** (sanitizer, upsert, sezioni, resolve).
 >   **Tutto verificato byte-identico a Node** con scenari CRUD diffati endpoint per endpoint.
-> - 🔨 Fase 2: magazzino. `stock.rs` ha già magazzino_default_id/adj_giacenza/
->   riallinea_giacenze; resta applicaRigheStock, magazzini, movimenti, arrivi, riordino.
+> - ✅ Fase 2 COMPLETA: stock.rs (applicaRigheStock con movimenti+giacenze), magazzini
+>   (depositi, giacenze, trasferimento, scadenze), movimenti-magazzino, arrivi-merce
+>   (carico/storno PUT/PATCH/DELETE), riordino (proposte/genera), audit.rs.
+>   Verificato byte-identico a Node (carico, storno, trasferimento, movimenti, ordini RO).
+> - 🔨 Fase 3: documenti.
 >
 > Metodo di verifica adottato: avviare Node e Rust sugli stessi dati seed e diffare
 > le risposte JSON degli endpoint (script in cronologia). Aggiunto helper `web::num()`

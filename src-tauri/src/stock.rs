@@ -3,6 +3,25 @@
 //! upsert giacenza, riallineo. `applicaRigheStock` arriverà in Fase 2 coi documenti.
 
 use rusqlite::{params, Connection, OptionalExtension};
+use serde_json::Value;
+
+/// Contesto del movimento (parità con il `ctx` di applicaRigheStock in stock.js).
+#[derive(Default)]
+pub struct StockCtx {
+    pub data: Option<String>,
+    pub causale: String,
+    pub documento_tipo: String,
+    pub documento_id: Option<i64>,
+    pub documento_numero: String,
+    pub cliente_id: Option<i64>,
+    pub cliente_nome: String,
+    pub fornitore_id: Option<i64>,
+    pub fornitore_nome: String,
+    pub note: String,
+    pub magazzino_id: Option<i64>,
+    pub lotto: Option<String>,
+    pub scadenza: Option<String>,
+}
 
 /// Id del deposito predefinito (o il primo attivo/esistente). None se nessuno.
 pub fn magazzino_default_id(conn: &Connection) -> rusqlite::Result<Option<i64>> {
@@ -52,6 +71,99 @@ pub fn adj_giacenza(
         }
     }
     Ok(())
+}
+
+/// Applica un movimento di stock a una lista di righe documento.
+/// delta = -1 (scarico) | +1 (carico). Salta righe senza prodotto, qty 0 o
+/// scaricaMagazzino === false. Parità con applicaRigheStock di stock.js.
+pub fn applica_righe_stock(
+    conn: &Connection,
+    righe: &[Value],
+    delta: i64,
+    ctx: &StockCtx,
+) -> rusqlite::Result<()> {
+    let oggi = crate::web::oggi();
+    let mag_def = ctx.magazzino_id.or(magazzino_default_id(conn)?);
+
+    for r in righe {
+        let prodotto_id = match r.get("prodottoId").and_then(Value::as_i64) {
+            Some(p) if p != 0 => p,
+            _ => continue,
+        };
+        if matches!(r.get("scaricaMagazzino"), Some(Value::Bool(false))) {
+            continue;
+        }
+        let qty = num_loose(r.get("quantita"));
+        if qty == 0.0 {
+            continue;
+        }
+        let mag = r.get("magazzinoId").and_then(Value::as_i64).or(mag_def);
+        let lotto = str_or(r.get("lotto"), ctx.lotto.as_deref(), "");
+        let scad = str_or(r.get("scadenza"), ctx.scadenza.as_deref(), "");
+        let signed = delta as f64 * qty;
+
+        conn.execute("UPDATE prodotti SET quantita = quantita + ?1 WHERE id = ?2", params![signed, prodotto_id])?;
+        if let Some(vid) = r.get("varianteId").and_then(Value::as_i64).filter(|&v| v != 0) {
+            conn.execute("UPDATE prodotto_varianti SET quantita = quantita + ?1 WHERE id = ?2", params![signed, vid])?;
+        }
+        let variante_id = r.get("varianteId").and_then(Value::as_i64).filter(|&v| v != 0);
+        adj_giacenza(conn, prodotto_id, variante_id, mag, &lotto, &scad, signed)?;
+
+        let nome: String = conn
+            .query_row("SELECT nome FROM prodotti WHERE id=?1", [prodotto_id], |r| r.get::<_, Option<String>>(0))
+            .optional()?
+            .flatten()
+            .filter(|s| !s.is_empty())
+            .or_else(|| r.get("descrizione").and_then(Value::as_str).map(str::to_string))
+            .unwrap_or_default();
+
+        conn.execute(
+            "INSERT INTO movimenti_magazzino \
+             (data,prodotto_id,prodotto_nome,tipo,quantita,causale,documento_tipo,documento_id,documento_numero,\
+              cliente_id,cliente_nome,fornitore_id,fornitore_nome,note,variante_id,variante_taglia,variante_colore,\
+              magazzino_id,magazzino_dest_id,lotto,scadenza) \
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
+            params![
+                ctx.data.clone().unwrap_or(oggi.clone()),
+                prodotto_id,
+                nome,
+                if delta > 0 { "CARICO" } else { "SCARICO" },
+                signed.abs(),
+                ctx.causale,
+                ctx.documento_tipo,
+                ctx.documento_id,
+                ctx.documento_numero,
+                ctx.cliente_id,
+                ctx.cliente_nome,
+                ctx.fornitore_id,
+                ctx.fornitore_nome,
+                ctx.note,
+                variante_id,
+                r.get("varianteTaglia").and_then(Value::as_str).unwrap_or(""),
+                r.get("varianteColore").and_then(Value::as_str).unwrap_or(""),
+                mag,
+                Option::<i64>::None,
+                lotto,
+                scad,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+fn num_loose(v: Option<&Value>) -> f64 {
+    match v {
+        Some(Value::Number(n)) => n.as_f64().unwrap_or(0.0),
+        Some(Value::String(s)) => s.replace(',', ".").parse().unwrap_or(0.0),
+        _ => 0.0,
+    }
+}
+
+fn str_or(field: Option<&Value>, ctx_val: Option<&str>, default: &str) -> String {
+    if let Some(s) = field.and_then(Value::as_str).filter(|s| !s.is_empty()) {
+        return s.to_string();
+    }
+    ctx_val.filter(|s| !s.is_empty()).unwrap_or(default).to_string()
 }
 
 /// Riallinea le giacenze ai totali "master" riversando la differenza nel deposito

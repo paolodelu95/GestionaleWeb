@@ -95,6 +95,45 @@ pub fn opt_num(v: Option<f64>) -> Value {
     }
 }
 
+/// Data odierna UTC in formato YYYY-MM-DD (come `new Date().toISOString().slice(0,10)`).
+pub fn oggi() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    let (y, m, d) = civil_from_days(secs / 86400);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// Data odierna UTC + `days` giorni, formato YYYY-MM-DD.
+pub fn oggi_plus(days: i64) -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    let (y, m, d) = civil_from_days(secs / 86400 + days);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// Formatta un numero come JS (`5.0` → "5", `5.5` → "5.5"), per i messaggi.
+pub fn fmt_num(x: f64) -> String {
+    if x.fract() == 0.0 {
+        (x as i64).to_string()
+    } else {
+        x.to_string()
+    }
+}
+
+/// Conversione giorni-epoch → data civile (algoritmo di Howard Hinnant).
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
 /// Connessione del tenant corrente. In offline è sempre "default" (auth bypassata).
 pub fn tenant_conn(state: &AppState) -> ApiResult<Arc<Mutex<Connection>>> {
     state.tenant_conn(DEFAULT_TENANT).map_err(ApiError::from)
