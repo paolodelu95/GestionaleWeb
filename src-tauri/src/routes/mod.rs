@@ -14,6 +14,8 @@ mod listini;
 mod magazzini;
 mod me;
 mod movimenti_magazzino;
+mod ordini;
+mod preventivi;
 mod prodotti;
 mod riordino;
 mod tipi_pagamento;
@@ -40,6 +42,8 @@ pub fn api_router() -> Router<AppState> {
         .nest("/riordino", riordino::routes())
         // Documenti (Fase 3)
         .nest("/ddt", ddt::routes())
+        .nest("/preventivi", preventivi::routes())
+        .nest("/ordini", ordini::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
