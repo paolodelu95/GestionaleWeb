@@ -6,8 +6,8 @@ passivo, fatturazione elettronica, listini, contabilità e report.
 **Angular 21 + backend Rust (axum) + SQLite, impacchettato con Tauri** — riscrittura
 del backend (prima Node/Express su Electron) per ridurre drasticamente la RAM.
 Il backend Rust replica byte-per-byte le risposte di quello Node (verificato
-endpoint per endpoint). L'edizione Electron resta come fallback finché il
-pacchetto Tauri non è pubblicato.
+endpoint per endpoint). Il packaging Electron è stato **rimosso**; i sorgenti
+restano recuperabili dalla storia git (vedi [`electron/README.md`](electron/README.md)).
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
@@ -158,15 +158,8 @@ cargo tauri build          # genera il pacchetto (.dmg / .nsis / .AppImage) in t
 Il backend Rust (axum) gira in-process su `127.0.0.1:3000` e serve sia `/api/*`
 sia la SPA; la WebView di sistema (WKWebView/WebView2/WebKitGTK) carica da lì.
 
-### App desktop (Electron) — legacy/fallback
-```bash
-cd electron
-npm install      # scarica Electron + ricompila better-sqlite3 per il suo ABI
-npm run build    # compila il frontend (config "offline") e lo serve dal backend Node
-npm start        # avvia l'app desktop
-npm run dist     # genera installer + portatili in electron/dist/
-```
-Dettagli completi in [`electron/README.md`](electron/README.md).
+> L'edizione **Electron** (backend Node/Express + Chromium bundled) è stata
+> rimossa a favore di Tauri. Storia e ripristino in [`electron/README.md`](electron/README.md).
 
 ---
 
@@ -180,13 +173,15 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Il workflow [`.github/workflows/desktop-release.yml`](.github/workflows/desktop-release.yml)
-builda su **Windows, macOS e Linux** (matrix), ricompila `better-sqlite3` per Electron
-su ciascun OS e crea una **Release in bozza** con tutti gli allegati (installer +
-portatili). Controlli e premi **Publish**.
+Il workflow [`.github/workflows/tauri-release.yml`](.github/workflows/tauri-release.yml)
+builda su **Windows, macOS (Intel + Apple Silicon) e Linux** (matrix), compila il
+frontend offline + il backend Rust e crea una **Release in bozza** con i bundle
+(NSIS/MSI, `.dmg`, `.deb`/`.AppImage`). Controlli e premi **Publish**. Nessun modulo
+nativo da ricompilare: SQLite è dentro il binario.
 
 > macOS e Linux si compilano **solo** sui rispettivi runner: per questo la build gira
 > in CI. Richiede *Settings → Actions → General → Workflow permissions* = **Read and write**.
+> La firma (macOS/Windows) va aggiunta come secret se serve la distribuzione fuori CI.
 
 ---
 
