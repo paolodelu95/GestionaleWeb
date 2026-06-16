@@ -65,7 +65,7 @@ impl AppState {
         )?;
         auth.execute(
             "INSERT OR IGNORE INTO users (username, password_hash, nome, ruolo, tenant_slug, attivo) \
-             VALUES ('local', 'offline', 'Locale', 'OWNER', ?1, 1)",
+             VALUES ('local', 'offline', 'Utente locale', 'OWNER', ?1, 1)",
             [DEFAULT_TENANT],
         )?;
         // Catalogo moduli + righe tenant_moduli per il tenant default (come seedModuli +

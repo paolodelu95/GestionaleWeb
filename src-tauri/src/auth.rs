@@ -24,7 +24,7 @@ impl CurrentUser {
         CurrentUser {
             id: 1,
             username: "local".into(),
-            nome: "Locale".into(),
+            nome: "Utente locale".into(),
             email: "".into(),
             ruolo: "OWNER".into(),
             tenant: DEFAULT_TENANT.into(),

@@ -15,6 +15,7 @@ mod ddt;
 mod fattura_xml;
 mod fatture;
 pub(crate) mod fornitori;
+mod gruppi;
 mod moduli;
 mod note_credito;
 mod note_rapide;
@@ -36,6 +37,7 @@ mod scadenzario;
 mod stats;
 mod tipi_pagamento;
 mod unita_misura;
+mod utenti;
 mod vendite_banco;
 
 use axum::Router;
@@ -80,6 +82,8 @@ pub fn api_router() -> Router<AppState> {
         .nest("/bug-reports", bug_reports::routes())
         .nest("/prodotto-varianti", prodotto_varianti::routes())
         .nest("/moduli", moduli::routes())
+        .nest("/gruppi", gruppi::routes())
+        .nest("/utenti", utenti::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
