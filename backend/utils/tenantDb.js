@@ -730,6 +730,9 @@ function initTenantSchema(db) {
     // Preventivo: includere o no le miniature dei prodotti nella stampa PDF
     // (toggle per-documento; default 1 = mostra).
     'ALTER TABLE preventivi ADD COLUMN stampa_immagini INTEGER DEFAULT 1',
+    // Bacheca post-it: un singolo blob JSON per tenant (posizioni, colori,
+    // contenuti). Nel DB del tenant → incluso nei backup.
+    `CREATE TABLE IF NOT EXISTS lavagna (id INTEGER PRIMARY KEY CHECK (id = 1), dati TEXT NOT NULL DEFAULT '{}')`,
     // Doppio ruolo anagrafica: un cliente può essere anche fornitore e viceversa.
     // Il flag crea/collega un'anagrafica "gemella" nell'altra tabella, tenuta in
     // sync sui campi condivisi (vedi utils/anagraficaGemello.js).

@@ -355,6 +355,7 @@ export class HomeAppComponent implements OnInit {
 
     // ── Operativo ──
     { label: 'Agenda',           description: 'Appuntamenti, todo, calendario', icon: 'event_note', route: '/agenda',     color: 'linear-gradient(135deg,#4f46e5,#4338ca)', category: 'Operativo' },
+    { label: 'Lavagna',          description: 'Bacheca di post-it', icon: 'sticky_note_2', route: '/lavagna', color: 'linear-gradient(135deg,#6366f1,#4f46e5)', category: 'Operativo' },
     { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', color: 'linear-gradient(135deg,#dc2626,#b91c1c)', category: 'Operativo' },
 
     // ── Sistema ──

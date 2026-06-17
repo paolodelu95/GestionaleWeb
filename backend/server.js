@@ -741,6 +741,7 @@ app.use('/api/comandi',          require('./routes/comandi'));
 app.use('/api/fatture-ricorrenti', require('./routes/fattureRicorrenti').router);
 app.use('/api/allegati',          require('./routes/allegati'));
 app.use('/api/note-rapide',       require('./routes/noteRapide'));
+app.use('/api/lavagna',           require('./routes/lavagna'));
 app.use('/api/bug-reports',       require('./routes/bugReports'));
 app.use('/api/audit',             require('./routes/audit'));
 

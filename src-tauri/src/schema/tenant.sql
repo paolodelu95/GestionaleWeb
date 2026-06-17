@@ -637,3 +637,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_giac_chiave
         ON giacenze(prodotto_id, IFNULL(variante_id,0), magazzino_id, lotto, scadenza);
 CREATE INDEX IF NOT EXISTS idx_giac_prodotto ON giacenze(prodotto_id);
 CREATE INDEX IF NOT EXISTS idx_giac_magazzino ON giacenze(magazzino_id);
+
+-- Bacheca post-it (un singolo blob JSON per tenant: posizioni, colori, contenuti).
+-- Incluso nei backup perché vive nel DB del tenant.
+CREATE TABLE IF NOT EXISTS lavagna (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        dati TEXT NOT NULL DEFAULT '{}'
+      );

@@ -582,6 +582,10 @@ export class DataService {
   inviaFatturaSdi(id: number): Observable<any> { return this.api.post(`fattura-xml/${id}/invia-sdi`, {}); }
 
   // Note Rapide
+  // Lavagna post-it (un blob JSON per tenant)
+  getLavagna(): Observable<{ note?: any[] }> { return this.api.get('lavagna'); }
+  saveLavagna(board: { note: any[] }): Observable<any> { return this.api.put('lavagna', board); }
+
   getNoteRapide(): Observable<NotaRapida[]> { return this.api.get('note-rapide'); }
   createNotaRapida(n: NotaRapida): Observable<any> { return this.api.post('note-rapide', n); }
   updateNotaRapida(n: NotaRapida): Observable<any> { return this.api.put(`note-rapide/${n.id}`, n); }

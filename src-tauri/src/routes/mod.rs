@@ -24,6 +24,7 @@ mod fatture;
 pub(crate) mod fatture_ricorrenti;
 pub(crate) mod fornitori;
 mod gruppi;
+mod lavagna;
 mod moduli;
 mod note_credito;
 mod note_rapide;
@@ -91,6 +92,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/audit", audit::routes())
         .nest("/notifications", notifications::routes())
         .nest("/note-rapide", note_rapide::routes())
+        .nest("/lavagna", lavagna::routes())
         .nest("/bug-reports", bug_reports::routes())
         .nest("/prodotto-varianti", prodotto_varianti::routes())
         .nest("/moduli", moduli::routes())
