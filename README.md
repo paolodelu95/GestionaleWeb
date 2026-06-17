@@ -11,7 +11,7 @@ restano recuperabili dalla storia git (vedi [`electron/README.md`](electron/READ
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
-> Repo: `GestionaleWeb` · Prodotto: **Ordeva** · Branch: `offline-electron`
+> Repo: `Ordeva` · Prodotto: **Ordeva** · Branch: `offline-electron`
 > (la versione Cloud/SaaS vive sul branch `main`).
 
 ---
@@ -56,7 +56,7 @@ proprio computer senza account, abbonamenti o server:
 ## ⬇️ Download
 
 Versioni pronte all'uso dalla pagina
-**[Releases](https://github.com/paolodelu95/GestionaleWeb/releases)**:
+**[Releases](https://github.com/paolodelu95/Ordeva/releases)**:
 
 | Sistema | Installer | Portatile (senza installazione) |
 |---|---|---|
@@ -142,7 +142,7 @@ Versioni pronte all'uso dalla pagina
 ## Aggiornamenti
 
 L'app **controlla all'avvio** se c'è una versione più recente sulla pagina
-[Releases](https://github.com/paolodelu95/GestionaleWeb/releases) e mostra un
+[Releases](https://github.com/paolodelu95/Ordeva/releases) e mostra un
 avviso con il pulsante **Scarica** (apre la release su GitHub). È attivo da subito,
 non richiede configurazione.
 
@@ -154,7 +154,7 @@ reinstallare a mano), Tauri offre l'updater firmato. Attivazione una tantum:
    `cargo tauri signer generate -w ~/.tauri/ordeva.key` (oppure `npx @tauri-apps/cli signer generate`).
 2. Metti la **chiave pubblica** in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`
    e abilita `bundle.createUpdaterArtifacts: true`; aggiungi l'endpoint
-   `https://github.com/paolodelu95/GestionaleWeb/releases/latest/download/latest.json`.
+   `https://github.com/paolodelu95/Ordeva/releases/latest/download/latest.json`.
 3. Aggiungi il crate `tauri-plugin-updater` e registralo in `main.rs`.
 4. Salva su GitHub (Settings → Secrets → Actions) `TAURI_SIGNING_PRIVATE_KEY` e
    `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; `tauri-action` genererà `latest.json` e i

@@ -8,7 +8,7 @@ export interface UpdateInfo {
   url: string;
 }
 
-const REPO = 'paolodelu95/GestionaleWeb';
+const REPO = 'paolodelu95/Ordeva';
 const LATEST_RELEASE_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 
 /**
