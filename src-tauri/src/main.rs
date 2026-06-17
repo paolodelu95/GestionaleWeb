@@ -41,6 +41,24 @@ fn main() {
 
             let state = AppState::init(data_dir)
                 .map_err(|e| format!("init database: {e:#}"))?;
+
+            // SPA: nell'app impacchettata i file Angular sono una risorsa del
+            // bundle (vedi bundle.resources). Puntiamo il server lì via
+            // ORDEVA_SPA_DIR; in sviluppo la var resta vuota e il server usa il
+            // percorso del repo. Senza questo, nel pacchetto localhost:3000 non
+            // troverebbe la SPA (errore all'avvio su un PC diverso da quello di build).
+            if std::env::var_os("ORDEVA_SPA_DIR").is_none() {
+                if let Ok(res) = app.path().resource_dir() {
+                    for cand in ["spa", "spa/browser", "browser", "."] {
+                        let dir = res.join(cand);
+                        if dir.join("index.html").is_file() {
+                            std::env::set_var("ORDEVA_SPA_DIR", &dir);
+                            tracing::info!("ORDEVA_SPA_DIR = {:?}", dir);
+                            break;
+                        }
+                    }
+                }
+            }
             // Backup esterno automatico se "dovuto" (parità con runExternalBackupIfDue
             // all'avvio di server.js in OFFLINE_MODE). In un thread per non bloccare.
             let bk_state = state.clone();
