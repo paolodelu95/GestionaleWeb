@@ -3,10 +3,26 @@
     <h1 class="page-title">Impostazioni</h1>
   </div>
 
-  <mat-tab-group animationDuration="0ms">
+  <div class="settings-layout">
+    <nav class="settings-nav">
+      @for (g of navGroups; track g.label) {
+        <div class="nav-group">
+          <div class="nav-group-title">{{ g.label }}</div>
+          @for (it of g.items; track it.id) {
+            <button type="button" class="nav-item" [class.nav-item--active]="sezione === it.id"
+                    (click)="sezione = it.id">
+              <mat-icon>{{ it.icon }}</mat-icon><span>{{ it.label }}</span>
+            </button>
+          }
+        </div>
+      }
+    </nav>
 
-    <!-- ── Azienda ─────────────────────────────────────────────────────────── -->
-    <mat-tab label="Azienda">
+    <div class="settings-content">
+      @switch (sezione) {
+
+      <!-- ── Azienda ─────────────────────────────────────────────────────────── -->
+      @case ('azienda') {
       <div class="tab-content">
         <div class="card" style="max-width:800px">
           <form [formGroup]="form" class="dialog-form">
@@ -161,10 +177,10 @@
           </div>
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Aspetto (preferenze UI: layout navigazione) ────────────────────────── -->
-    <mat-tab label="Aspetto">
+      <!-- ── Aspetto (preferenze UI: layout navigazione) ────────────────────────── -->
+      @case ('aspetto') {
       <div class="tab-content">
         <div class="card" style="max-width:600px">
           <h3 class="section-title">Navigazione</h3>
@@ -184,11 +200,10 @@
           </mat-button-toggle-group>
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Moduli (Livello 2: attivazione moduli per tenant) ──────────────────── -->
-    @if (!offline) {
-    <mat-tab label="Moduli">
+      <!-- ── Moduli (Livello 2: attivazione moduli per tenant) ──────────────────── -->
+      @case ('moduli') {
       <div class="tab-content">
         <div class="card" style="max-width:760px">
           <h3 class="section-title">Moduli attivi</h3>
@@ -224,12 +239,10 @@
           }
         </div>
       </div>
-    </mat-tab>
-    }
+      }
 
-    <!-- ── Email / SMTP ───────────────────────────────────────────────────────── -->
-    @if (!offline) {
-    <mat-tab label="Email">
+      <!-- ── Email / SMTP ───────────────────────────────────────────────────────── -->
+      @case ('email') {
       <div class="tab-content">
 
         <div class="card" style="max-width:700px;margin-bottom:16px">
@@ -333,11 +346,10 @@
           </div>
         </div>
       </div>
-    </mat-tab>
-    }
+      }
 
-    <!-- ── SDI ────────────────────────────────────────────────────────────────── -->
-    <mat-tab label="SDI / e-Fattura">
+      <!-- ── SDI ────────────────────────────────────────────────────────────────── -->
+      @case ('sdi') {
       <div class="tab-content">
         <div class="card" style="max-width:700px">
           <h3 class="section-title">API intermediario SDI</h3>
@@ -375,11 +387,11 @@
           </div>
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Backup (solo edizione offline desktop) ──────────────────────────────── -->
-    @if (offline && backupCfg) {
-    <mat-tab label="Backup">
+      <!-- ── Backup (solo edizione offline desktop) ──────────────────────────────── -->
+      @case ('backup') {
+      @if (backupCfg) {
       <div class="tab-content">
         <div class="card" style="max-width:760px">
           <h3 class="section-title">Backup automatico giornaliero</h3>
@@ -480,11 +492,11 @@
           }
         </div>
       </div>
-    </mat-tab>
-    }
+      }
+      }
 
-    <!-- ── Avanzate ───────────────────────────────────────────────────────────── -->
-    <mat-tab label="Avanzate">
+      <!-- ── Avanzate ───────────────────────────────────────────────────────────── -->
+      @case ('avanzate') {
       <div class="tab-content">
         <div class="card" style="max-width:600px">
           <h3 class="section-title">Funzionalità opzionali</h3>
@@ -564,11 +576,10 @@
           </div>
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Utenti ─────────────────────────────────────────────────────────────── -->
-    @if (!offline) {
-    <mat-tab label="Utenti">
+      <!-- ── Utenti ─────────────────────────────────────────────────────────────── -->
+      @case ('utenti') {
       <div class="tab-content">
         <div class="card" style="max-width:800px">
           <div class="tab-section-header">
@@ -618,11 +629,10 @@
           @if (!utenti.length) { <app-empty-state compact icon="group" title="Nessun utente" /> }
         </div>
       </div>
-    </mat-tab>
-    }
+      }
 
-    <!-- ── Tipi di Pagamento ────────────────────────────────────────────────── -->
-    <mat-tab label="Pagamenti">
+      <!-- ── Tipi di Pagamento ────────────────────────────────────────────────── -->
+      @case ('pagamenti') {
       <div class="tab-content">
         <div class="card" style="max-width:860px">
           <div class="tab-section-header">
@@ -678,10 +688,10 @@
           @if (!tipiPagamento.length) { <app-empty-state compact icon="payments" title="Nessun tipo di pagamento" /> }
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Categorie Prodotto ───────────────────────────────────────────────── -->
-    <mat-tab label="Categorie prodotto">
+      <!-- ── Categorie Prodotto ───────────────────────────────────────────────── -->
+      @case ('categorie') {
       <div class="tab-content">
         <div class="card" style="max-width:500px">
           <div class="tab-section-header">
@@ -711,10 +721,10 @@
           @if (!categorie.length) { <app-empty-state compact icon="category" title="Nessuna categoria" /> }
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Unità di Misura ──────────────────────────────────────────────────── -->
-    <mat-tab label="Unità di misura">
+      <!-- ── Unità di Misura ──────────────────────────────────────────────────── -->
+      @case ('unita') {
       <div class="tab-content">
         <div class="card" style="max-width:560px">
           <div class="tab-section-header">
@@ -750,10 +760,10 @@
           @if (!unitaMisura.length) { <app-empty-state compact icon="straighten" title="Nessuna unità di misura" /> }
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Aliquote IVA ──────────────────────────────────────────────────────── -->
-    <mat-tab label="Aliquote IVA">
+      <!-- ── Aliquote IVA ──────────────────────────────────────────────────────── -->
+      @case ('iva') {
       <div class="tab-content">
         <div class="card" style="max-width:560px">
           <div class="tab-section-header">
@@ -794,10 +804,10 @@
           @if (!aliquoteIva.length) { <app-empty-state compact icon="percent" title="Nessuna aliquota IVA" /> }
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Note Rapide ──────────────────────────────────────────────────────── -->
-    <mat-tab label="Note rapide">
+      <!-- ── Note Rapide ──────────────────────────────────────────────────────── -->
+      @case ('note') {
       <div class="tab-content">
         <div class="card" style="max-width:560px">
           <div class="tab-section-header">
@@ -834,10 +844,10 @@
           @if (!noteRapide.length) { <app-empty-state compact icon="sticky_note_2" title="Nessuna nota rapida" message="Aggiungine una per velocizzare la compilazione dei documenti." /> }
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Causali pagamento ────────────────────────────────────────────────── -->
-    <mat-tab label="Causali pagamento">
+      <!-- ── Causali pagamento ────────────────────────────────────────────────── -->
+      @case ('causali') {
       <div class="tab-content">
         <div class="card" style="max-width:560px">
           <div class="tab-section-header">
@@ -870,10 +880,10 @@
           @if (!causali.length) { <app-empty-state compact icon="receipt_long" title="Nessuna causale" message="Aggiungine una per velocizzare la registrazione dei pagamenti." /> }
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Grafica documenti ───────────────────────────────────────────────── -->
-    <mat-tab label="Grafica documenti">
+      <!-- ── Grafica documenti ───────────────────────────────────────────────── -->
+      @case ('grafica') {
       <div class="tab-content">
         <div class="grafica-editor">
           <!-- ── Pannello controlli ─────────────────────────────────────────── -->
@@ -1027,10 +1037,10 @@
           </div>
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Avvisi ────────────────────────────────────────────────────────────── -->
-    <mat-tab label="Avvisi">
+      <!-- ── Avvisi ────────────────────────────────────────────────────────────── -->
+      @case ('avvisi') {
       <div class="tab-content">
         <div class="card" style="max-width:600px">
           <h3 class="section-title">Avvisi documenti</h3>
@@ -1063,25 +1073,23 @@
           </div>
         </div>
       </div>
-    </mat-tab>
+      }
 
-    <!-- ── Amministrazione (solo ADMIN/SUPERADMIN) ─────────────────────────── -->
-    @if (isAdmin && !offline) {
-      <mat-tab label="Amministrazione">
+      <!-- ── Amministrazione (solo ADMIN/SUPERADMIN) ─────────────────────────── -->
+      @case ('admin') {
         <div class="tab-content">
           <app-admin [embedded]="true"></app-admin>
         </div>
-      </mat-tab>
-    }
+      }
 
-    <!-- ── Console SaaS (solo SUPERADMIN) ──────────────────────────────────── -->
-    @if (isSuper && !offline) {
-      <mat-tab label="Console SaaS">
+      <!-- ── Console SaaS (solo SUPERADMIN) ──────────────────────────────────── -->
+      @case ('console') {
         <div class="tab-content">
           <app-super-admin [embedded]="true"></app-super-admin>
         </div>
-      </mat-tab>
-    }
+      }
 
-  </mat-tab-group>
+      }
+    </div>
+  </div>
 </div>

@@ -17,6 +17,8 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
+import { UpdateService } from '../../services/update.service';
+import { environment } from '../../../environments/environment';
 import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento,
          StatsVenditeMensili, StatsTopProdotto, StatsCashflow, StatsKpiAnno } from '../../models';
 import { getSdiSeenIds } from '../../utils/sdi-letture';
@@ -127,6 +129,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   widgets: DashboardWidget[] = [];
   editMode = false;
 
+  /** Edizione offline/desktop: solo lì ha senso il tasto "Verifica aggiornamenti". */
+  readonly offline = environment.offline;
+  /** Controllo aggiornamenti manuale in corso (disabilita il tasto). */
+  verificaInCorso = false;
+
   private venditeMensili: StatsVenditeMensili[] = [];
   private topProdotti: StatsTopProdotto[] = [];
   private chartsReady = false;
@@ -134,8 +141,26 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private chartVendite?: Chart;
   private chartTop?: Chart;
 
-  constructor(private ds: DataService, private snack: MatSnackBar) {
+  constructor(private ds: DataService, private snack: MatSnackBar, public update: UpdateService) {
     this.loadWidgets();
+  }
+
+  /** Verifica manuale aggiornamenti (tasto in Home). Dà sempre un riscontro. */
+  async verificaAggiornamenti() {
+    if (this.verificaInCorso) return;
+    this.verificaInCorso = true;
+    try {
+      const esito = await this.update.check();
+      if (esito === 'disponibile') {
+        this.snack.open(`Aggiornamento disponibile: versione ${this.update.disponibile()?.version}. Usa "Aggiorna ora" nel banner in alto.`, 'OK', { duration: 6000 });
+      } else if (esito === 'aggiornato') {
+        this.snack.open('Ordeva è già all\'ultima versione disponibile.', '', { duration: 3500 });
+      } else {
+        this.snack.open('Impossibile verificare gli aggiornamenti ora (controlla la connessione).', '', { duration: 4000 });
+      }
+    } finally {
+      this.verificaInCorso = false;
+    }
   }
 
   ngOnInit() {

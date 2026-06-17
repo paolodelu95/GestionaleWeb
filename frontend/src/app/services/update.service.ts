@@ -32,9 +32,13 @@ export class UpdateService {
   /** Oggetto Update di Tauri tenuto da parte tra check e install. */
   private pending: { version: string; currentVersion?: string; downloadAndInstall: (cb?: unknown) => Promise<void> } | null = null;
 
-  /** Controllo all'avvio. No-op fuori dall'edizione offline. */
-  async check(): Promise<void> {
-    if (!environment.offline) return;
+  /**
+   * Controllo aggiornamenti. No-op fuori dall'edizione offline.
+   * Ritorna l'esito così la UI (es. il tasto "Verifica aggiornamenti" nella Home)
+   * può dare un riscontro anche quando non c'è nulla da scaricare.
+   */
+  async check(): Promise<'disponibile' | 'aggiornato' | 'non-disponibile'> {
+    if (!environment.offline) return 'non-disponibile';
     this.corrente.set(await this.versioneCorrente());
     try {
       const { check } = await import('@tauri-apps/plugin-updater');
@@ -43,9 +47,12 @@ export class UpdateService {
         this.pending = update as any;
         if (update.currentVersion) this.corrente.set(update.currentVersion);
         this.disponibile.set({ version: update.version, url: RELEASES_URL });
+        return 'disponibile';
       }
+      return 'aggiornato';
     } catch {
       /* non in Tauri / updater non configurato / nessuna rete: nessun avviso in-app */
+      return 'non-disponibile';
     }
   }
 

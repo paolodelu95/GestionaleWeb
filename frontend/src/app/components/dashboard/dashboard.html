@@ -2,6 +2,15 @@
   <div class="page-header">
     <h1 class="page-title">Dashboard</h1>
 
+    @if (offline) {
+      <button mat-stroked-button type="button" (click)="verificaAggiornamenti()"
+              [disabled]="verificaInCorso" matTooltip="Controlla se è disponibile una nuova versione"
+              class="dash-action">
+        <mat-icon>{{ verificaInCorso ? 'sync' : 'system_update' }}</mat-icon>
+        <span>{{ verificaInCorso ? 'Controllo…' : 'Aggiornamenti' }}</span>
+      </button>
+    }
+
     <button mat-stroked-button type="button" [matMenuTriggerFor]="widgetMenu"
             matTooltip="Mostra/nascondi widget" class="dash-action">
       <mat-icon>view_module</mat-icon>

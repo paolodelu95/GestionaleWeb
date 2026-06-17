@@ -422,6 +422,46 @@ export class ImpostazioniComponent implements OnInit {
   /** Edizione offline: nasconde le schede SaaS (Email/SMTP, Moduli, Utenti, Amministrazione, Console SaaS). */
   readonly offline = environment.offline;
 
+  /** Sezione attiva del menu laterale delle impostazioni. */
+  sezione = 'azienda';
+
+  /**
+   * Voci del menu laterale, raggruppate per area. La visibilità delle voci che
+   * dipendono dall'edizione/ruolo è filtrata qui, così il menu mostra solo ciò
+   * che è davvero disponibile (i gruppi vuoti spariscono).
+   */
+  get navGroups(): { label: string; items: { id: string; label: string; icon: string }[] }[] {
+    const groups = [
+      { label: 'Azienda', items: [
+        { id: 'azienda',  label: 'Anagrafica azienda', icon: 'business' },
+        { id: 'aspetto',  label: 'Aspetto',            icon: 'palette' },
+        { id: 'avanzate', label: 'Avanzate',           icon: 'tune' },
+      ] },
+      { label: 'Documenti', items: [
+        { id: 'grafica', label: 'Grafica documenti', icon: 'auto_awesome' },
+        { id: 'sdi',     label: 'SDI / e-Fattura',   icon: 'cloud_upload' },
+        { id: 'avvisi',  label: 'Avvisi documenti',  icon: 'notifications' },
+      ] },
+      { label: 'Anagrafiche', items: [
+        { id: 'pagamenti', label: 'Tipi di pagamento',  icon: 'payments' },
+        { id: 'causali',   label: 'Causali pagamento',  icon: 'receipt_long' },
+        { id: 'categorie', label: 'Categorie prodotto', icon: 'category' },
+        { id: 'unita',     label: 'Unità di misura',    icon: 'straighten' },
+        { id: 'iva',       label: 'Aliquote IVA',       icon: 'percent' },
+        { id: 'note',      label: 'Note rapide',        icon: 'sticky_note_2' },
+      ] },
+      { label: 'Sistema', items: [
+        ...(!this.offline ? [{ id: 'moduli', label: 'Moduli', icon: 'extension' }] : []),
+        ...(!this.offline ? [{ id: 'email',  label: 'Email', icon: 'mail' }] : []),
+        ...(!this.offline ? [{ id: 'utenti', label: 'Utenti', icon: 'group' }] : []),
+        ...(this.offline && this.backupCfg ? [{ id: 'backup', label: 'Backup', icon: 'backup' }] : []),
+        ...(this.isAdmin && !this.offline ? [{ id: 'admin', label: 'Amministrazione', icon: 'admin_panel_settings' }] : []),
+        ...(this.isSuper && !this.offline ? [{ id: 'console', label: 'Console SaaS', icon: 'dns' }] : []),
+      ] },
+    ];
+    return groups.filter(g => g.items.length > 0);
+  }
+
   // ── Backup (offline) ──────────────────────────────────────────────────────
   backupCfg: BackupConfig | null = null;
   backupFiles: { name: string; encrypted: boolean; size: number; mtime: string }[] = [];
