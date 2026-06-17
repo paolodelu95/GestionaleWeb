@@ -219,9 +219,9 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     // Se non c'è blocco password, valuta subito l'avviso di backup scaduto.
     if (this.offline && !this.locked) this.checkBackupAlert();
 
-    // Controllo aggiornamenti (edizione offline): confronta la versione installata
-    // con l'ultima release su GitHub e, se più recente, mostra l'avviso in topbar.
-    if (this.offline) this.update.check();
+    // Controllo aggiornamenti (edizione offline): rispetta la frequenza scelta in
+    // Impostazioni → Aggiornamenti; se attiva l'auto-installazione, aggiorna da solo.
+    if (this.offline) this.update.checkAuto();
 
     // Quando cambiano i moduli attivi (login, caricamento, modifiche in Impostazioni)
     // cambia il numero di voci in barra: ricalcolo l'overflow del priority-nav.

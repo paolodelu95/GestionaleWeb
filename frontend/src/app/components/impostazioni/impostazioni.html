@@ -495,6 +495,64 @@
       }
       }
 
+      <!-- ── Aggiornamenti (solo edizione offline desktop) ───────────────────────── -->
+      @case ('aggiornamenti') {
+      <div class="tab-content">
+        <div class="card" style="max-width:640px">
+          <h3 class="section-title">Versione</h3>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+            <mat-icon style="color:#11769b">verified</mat-icon>
+            <span style="font-size:14px;color:#0f172a">Versione installata: <b>{{ update.corrente() || '—' }}</b></span>
+          </div>
+
+          @if (update.disponibile(); as upd) {
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #bfdbe7;background:#eef6f9;border-radius:10px;margin:6px 0 14px">
+              <mat-icon style="color:#0e6480">system_update</mat-icon>
+              <span style="flex:1;min-width:200px;font-size:14px;color:#0f172a">È disponibile la versione <b>{{ upd.version }}</b>.</span>
+              @if (update.inCorso()) {
+                <span style="font-size:13px;color:#475569"><mat-spinner diameter="16" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner> Scaricamento e installazione… l'app si riavvierà.</span>
+              } @else {
+                <button mat-flat-button color="primary" type="button" (click)="update.installaERiavvia()"><mat-icon>system_update</mat-icon> Aggiorna e riavvia</button>
+                <a mat-stroked-button [href]="upd.url" target="_blank" rel="noopener"><mat-icon>open_in_new</mat-icon> Scarica a mano</a>
+              }
+            </div>
+          }
+
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0 4px">
+            <button mat-stroked-button type="button" (click)="verificaAggiornamenti()" [disabled]="verificaInCorso || update.inCorso()">
+              @if (verificaInCorso) { <mat-spinner diameter="16" style="display:inline-block;margin-right:6px"></mat-spinner> }
+              <mat-icon>refresh</mat-icon> {{ verificaInCorso ? 'Controllo…' : 'Verifica ora' }}
+            </button>
+            <span style="font-size:12.5px;color:#94a3b8">Controlla subito se è uscita una versione più recente.</span>
+          </div>
+
+          <h3 class="section-title" style="margin-top:22px">Controllo automatico</h3>
+          <p style="color:#64748b;font-size:13px;margin:0 0 14px">
+            Ogni quanto Ordeva controlla da solo la presenza di aggiornamenti all'avvio.
+          </p>
+          <mat-form-field appearance="outline" style="width:260px" subscriptSizing="dynamic">
+            <mat-label>Frequenza</mat-label>
+            <mat-select [value]="update.intervallo()" (selectionChange)="update.setIntervallo($event.value)">
+              <mat-option value="avvio">Ad ogni avvio</mat-option>
+              <mat-option value="giorno">Una volta al giorno</mat-option>
+              <mat-option value="settimana">Una volta a settimana</mat-option>
+              <mat-option value="mai">Mai (solo manuale)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div style="padding:16px 0 4px;margin-top:8px;border-top:1px solid #e2e8f0">
+            <mat-slide-toggle [checked]="update.autoInstall()" (change)="update.setAutoInstall($event.checked)">
+              <span style="font-weight:600">Scarica e installa automaticamente</span>
+            </mat-slide-toggle>
+            <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
+              Quando viene trovato un aggiornamento, l'app lo installa e si riavvia da sola, senza chiedere conferma.
+              Se disattivato, ti viene solo mostrato l'avviso e decidi tu quando aggiornare.
+            </p>
+          </div>
+        </div>
+      </div>
+      }
+
       <!-- ── Avanzate ───────────────────────────────────────────────────────────── -->
       @case ('avanzate') {
       <div class="tab-content">

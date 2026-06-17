@@ -11,6 +11,18 @@ export interface UpdateInfo {
 const REPO = 'paolodelu95/Ordeva';
 const RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
 
+/** Frequenza del controllo automatico aggiornamenti. */
+export type UpdateInterval = 'avvio' | 'giorno' | 'settimana' | 'mai';
+
+interface UpdatePrefs {
+  intervallo: UpdateInterval;
+  autoInstall: boolean;
+  lastCheck: number;
+}
+
+const PREFS_KEY = 'ordeva-update-prefs';
+const GIORNO_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Controllo + installazione aggiornamenti per l'edizione offline (Tauri).
  *
@@ -29,8 +41,71 @@ export class UpdateService {
   /** Download/installazione in corso. */
   readonly inCorso = signal(false);
 
+  /** Preferenze (persistite in localStorage): frequenza controllo + auto-installazione. */
+  readonly intervallo = signal<UpdateInterval>('avvio');
+  readonly autoInstall = signal(false);
+  private lastCheck = 0;
+
   /** Oggetto Update di Tauri tenuto da parte tra check e install. */
   private pending: { version: string; currentVersion?: string; downloadAndInstall: (cb?: unknown) => Promise<void> } | null = null;
+
+  constructor() {
+    this.loadPrefs();
+  }
+
+  private loadPrefs() {
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw) as Partial<UpdatePrefs>;
+      if (p.intervallo) this.intervallo.set(p.intervallo);
+      this.autoInstall.set(!!p.autoInstall);
+      this.lastCheck = typeof p.lastCheck === 'number' ? p.lastCheck : 0;
+    } catch {
+      /* preferenze illeggibili: si resta sui default */
+    }
+  }
+
+  private savePrefs() {
+    try {
+      const prefs: UpdatePrefs = { intervallo: this.intervallo(), autoInstall: this.autoInstall(), lastCheck: this.lastCheck };
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+      /* localStorage non disponibile: amen, le preferenze non persistono */
+    }
+  }
+
+  setIntervallo(v: UpdateInterval) { this.intervallo.set(v); this.savePrefs(); }
+  setAutoInstall(v: boolean) { this.autoInstall.set(v); this.savePrefs(); }
+
+  /**
+   * Controllo all'avvio dell'app: rispetta la frequenza scelta e, se l'utente ha
+   * attivato l'auto-installazione, scarica e riavvia da solo quando trova una
+   * versione nuova. Aggiorna comunque la versione installata mostrata in UI.
+   */
+  async checkAuto(): Promise<void> {
+    if (!environment.offline) return;
+    this.corrente.set(await this.versioneCorrente());
+    if (!this.dovrebbeControllare()) return;
+    const esito = await this.check();
+    this.lastCheck = Date.now();
+    this.savePrefs();
+    if (esito === 'disponibile' && this.autoInstall()) {
+      await this.installaERiavvia();
+    }
+  }
+
+  /** Vero se è scaduto l'intervallo scelto dall'ultimo controllo automatico. */
+  private dovrebbeControllare(): boolean {
+    const trascorso = Date.now() - this.lastCheck;
+    switch (this.intervallo()) {
+      case 'mai':       return false;
+      case 'giorno':    return trascorso >= GIORNO_MS;
+      case 'settimana': return trascorso >= 7 * GIORNO_MS;
+      case 'avvio':
+      default:          return true;
+    }
+  }
 
   /**
    * Controllo aggiornamenti. No-op fuori dall'edizione offline.

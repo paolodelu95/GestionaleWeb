@@ -31,6 +31,7 @@ import { TEMPLATE_PRESETS, TemplatePreset } from '../../services/template-preset
 import { SectionKey, ColumnKey } from '../../models';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
+import { UpdateService } from '../../services/update.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { Azienda, TipoPagamento, CategoriaProdotto, CausalePagamento, UnitaMisura, AliquotaIva, Utente, NotaRapida, TemplateConfig, NotificheConfig, ModuloDto, BackupConfig } from '../../models';
 import { DesktopService } from '../../services/desktop.service';
@@ -418,6 +419,26 @@ export class ImpostazioniComponent implements OnInit {
   private layout = inject(LayoutService);
   private authSvc = inject(AuthService);
   private desktop = inject(DesktopService);
+  readonly update = inject(UpdateService);
+
+  /** Verifica manuale aggiornamenti (sezione Impostazioni → Aggiornamenti). */
+  verificaInCorso = false;
+  async verificaAggiornamenti() {
+    if (this.verificaInCorso) return;
+    this.verificaInCorso = true;
+    try {
+      const esito = await this.update.check();
+      if (esito === 'disponibile') {
+        this.snack.open(`Aggiornamento disponibile: versione ${this.update.disponibile()?.version}.`, 'OK', { duration: 6000 });
+      } else if (esito === 'aggiornato') {
+        this.snack.open('Ordeva è già all\'ultima versione disponibile.', '', { duration: 3500 });
+      } else {
+        this.snack.open('Impossibile verificare gli aggiornamenti ora (controlla la connessione).', '', { duration: 4000 });
+      }
+    } finally {
+      this.verificaInCorso = false;
+    }
+  }
 
   /** Edizione offline: nasconde le schede SaaS (Email/SMTP, Moduli, Utenti, Amministrazione, Console SaaS). */
   readonly offline = environment.offline;
@@ -455,6 +476,7 @@ export class ImpostazioniComponent implements OnInit {
         ...(!this.offline ? [{ id: 'email',  label: 'Email', icon: 'mail' }] : []),
         ...(!this.offline ? [{ id: 'utenti', label: 'Utenti', icon: 'group' }] : []),
         ...(this.offline && this.backupCfg ? [{ id: 'backup', label: 'Backup', icon: 'backup' }] : []),
+        ...(this.offline ? [{ id: 'aggiornamenti', label: 'Aggiornamenti', icon: 'system_update' }] : []),
         ...(this.isAdmin && !this.offline ? [{ id: 'admin', label: 'Amministrazione', icon: 'admin_panel_settings' }] : []),
         ...(this.isSuper && !this.offline ? [{ id: 'console', label: 'Console SaaS', icon: 'dns' }] : []),
       ] },
