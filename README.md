@@ -132,7 +132,37 @@ Versioni pronte all'uso dalla pagina
   con **restore cross-PC** (decifratura tramite password d'accesso).
 - **Password d'accesso** opzionale all'apertura dell'app.
 - **Segnalazioni / bug report via email** direttamente dall'app.
+- **Controllo aggiornamenti**: all'avvio l'app confronta la versione installata
+  (esposta da `/healthz`) con l'ultima release su GitHub e, se più recente, mostra
+  un avviso in alto con il link per scaricarla.
 - Icona app nativa (incluso lo stile macOS).
+
+---
+
+## Aggiornamenti
+
+L'app **controlla all'avvio** se c'è una versione più recente sulla pagina
+[Releases](https://github.com/paolodelu95/GestionaleWeb/releases) e mostra un
+avviso con il pulsante **Scarica** (apre la release su GitHub). È attivo da subito,
+non richiede configurazione.
+
+### (Opzionale) Auto-aggiornamento in-app "che sostituisce i file"
+Per far sì che l'app **scarichi e installi** la nuova versione da sola (senza
+reinstallare a mano), Tauri offre l'updater firmato. Attivazione una tantum:
+
+1. Genera la coppia di chiavi: `npm create tauri-app` non serve — usa
+   `cargo tauri signer generate -w ~/.tauri/ordeva.key` (oppure `npx @tauri-apps/cli signer generate`).
+2. Metti la **chiave pubblica** in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`
+   e abilita `bundle.createUpdaterArtifacts: true`; aggiungi l'endpoint
+   `https://github.com/paolodelu95/GestionaleWeb/releases/latest/download/latest.json`.
+3. Aggiungi il crate `tauri-plugin-updater` e registralo in `main.rs`.
+4. Salva su GitHub (Settings → Secrets → Actions) `TAURI_SIGNING_PRIVATE_KEY` e
+   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; `tauri-action` genererà `latest.json` e i
+   file `.sig` nella release automaticamente.
+
+> Richiede la chiave di firma (passo 1) perché Tauri **rifiuta** aggiornamenti non
+> firmati: è una misura di sicurezza, non aggirabile. Su macOS l'auto-install
+> richiede inoltre un'app firmata Apple.
 
 ---
 

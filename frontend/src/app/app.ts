@@ -31,6 +31,7 @@ import { Azienda } from './models';
 import { SwUpdate } from '@angular/service-worker';
 import { lsGet, lsSet } from './utils/safe-storage';
 import { environment } from '../environments/environment';
+import { UpdateService } from './services/update.service';
 
 interface NavItem {
   label: string;
@@ -177,6 +178,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     private docLockSvc: DocLockService,
     public layout: LayoutService,
     private zone: NgZone,
+    public update: UpdateService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -216,6 +218,10 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     }
     // Se non c'è blocco password, valuta subito l'avviso di backup scaduto.
     if (this.offline && !this.locked) this.checkBackupAlert();
+
+    // Controllo aggiornamenti (edizione offline): confronta la versione installata
+    // con l'ultima release su GitHub e, se più recente, mostra l'avviso in topbar.
+    if (this.offline) this.update.check();
 
     // Quando cambiano i moduli attivi (login, caricamento, modifiche in Impostazioni)
     // cambia il numero di voci in barra: ricalcolo l'overflow del priority-nav.

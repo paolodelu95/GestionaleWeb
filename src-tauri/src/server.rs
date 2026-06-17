@@ -35,8 +35,10 @@ pub fn build_router(state: AppState) -> Router {
 }
 
 /// GET /healthz — parità con server.js (liveness, niente DB).
+/// Espone anche la versione dell'app (fonte unica: Cargo.toml) per il
+/// controllo aggiornamenti lato frontend.
 async fn healthz() -> Json<Value> {
-    Json(json!({ "ok": true }))
+    Json(json!({ "ok": true, "version": env!("CARGO_PKG_VERSION") }))
 }
 
 /// Cartella della SPA: override via ORDEVA_SPA_DIR, altrimenti la build Angular del repo.
