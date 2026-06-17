@@ -31,6 +31,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // I dati vivono fuori dall'app (persistono tra aggiornamenti), come
             // faceva main.js con app.getPath('userData')/data. Override via DATA_DIR.

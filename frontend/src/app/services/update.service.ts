@@ -4,49 +4,62 @@ import { environment } from '../../environments/environment';
 export interface UpdateInfo {
   /** Versione disponibile (es. "1.2.0"). */
   version: string;
-  /** Pagina della release su GitHub da cui scaricare. */
+  /** Pagina della release su GitHub (fallback "scarica a mano"). */
   url: string;
 }
 
 const REPO = 'paolodelu95/Ordeva';
-const LATEST_RELEASE_API = `https://api.github.com/repos/${REPO}/releases/latest`;
+const RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
 
 /**
- * Controllo aggiornamenti per l'edizione offline (desktop).
- * Confronta la versione installata (esposta da /healthz, fonte: Cargo.toml) con
- * l'ultima release pubblicata su GitHub. Se ce n'è una più recente, espone le
- * info così la shell può mostrare un avviso con il link per scaricarla.
+ * Controllo + installazione aggiornamenti per l'edizione offline (Tauri).
  *
- * Usa `fetch` (non HttpClient) di proposito: evita l'interceptor che aggiunge il
- * Bearer token, che GitHub rifiuterebbe.
+ * Usa il plugin updater di Tauri: `check()` legge `latest.json` dalla release più
+ * recente (endpoint in tauri.conf.json), verifica la firma con la chiave pubblica
+ * e, se c'è una versione più nuova, permette `downloadAndInstall()` + riavvio —
+ * l'app si aggiorna da sola. Se non siamo in Tauri (es. dev su browser) o manca
+ * la rete, fallisce in silenzio e resta il link "scarica a mano".
  */
 @Injectable({ providedIn: 'root' })
 export class UpdateService {
   /** Aggiornamento disponibile (null = nessuno / non ancora controllato). */
   readonly disponibile = signal<UpdateInfo | null>(null);
-  /** Versione attualmente installata. */
+  /** Versione attualmente installata (per il messaggio). */
   readonly corrente = signal<string>('');
+  /** Download/installazione in corso. */
+  readonly inCorso = signal(false);
 
-  /** Esegue il controllo. No-op fuori dall'edizione offline. */
+  /** Oggetto Update di Tauri tenuto da parte tra check e install. */
+  private pending: { version: string; currentVersion?: string; downloadAndInstall: (cb?: unknown) => Promise<void> } | null = null;
+
+  /** Controllo all'avvio. No-op fuori dall'edizione offline. */
   async check(): Promise<void> {
     if (!environment.offline) return;
+    this.corrente.set(await this.versioneCorrente());
     try {
-      const current = await this.versioneCorrente();
-      if (!current) return;
-      this.corrente.set(current);
-
-      const res = await fetch(LATEST_RELEASE_API, {
-        headers: { Accept: 'application/vnd.github+json' },
-      });
-      if (!res.ok) return;                       // nessuna release pubblicata o offline
-      const rel = await res.json();
-      const tag: string = (rel?.tag_name ?? '').toString();
-      const latest = tag.replace(/^v/i, '').trim();
-      if (latest && this.isNewer(latest, current)) {
-        this.disponibile.set({ version: latest, url: rel?.html_url || `https://github.com/${REPO}/releases/latest` });
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const update = await check();
+      if (update) {
+        this.pending = update as any;
+        if (update.currentVersion) this.corrente.set(update.currentVersion);
+        this.disponibile.set({ version: update.version, url: RELEASES_URL });
       }
     } catch {
-      /* nessuna connessione / GitHub irraggiungibile: silenzioso */
+      /* non in Tauri / updater non configurato / nessuna rete: nessun avviso in-app */
+    }
+  }
+
+  /** Scarica e installa l'aggiornamento, poi riavvia l'app. */
+  async installaERiavvia(): Promise<void> {
+    if (!this.pending || this.inCorso()) return;
+    this.inCorso.set(true);
+    try {
+      await this.pending.downloadAndInstall();
+      const { relaunch } = await import('@tauri-apps/plugin-process');
+      await relaunch();
+    } catch {
+      // Fallito (es. macOS non firmato): l'utente usa il link "scarica a mano".
+      this.inCorso.set(false);
     }
   }
 
@@ -61,16 +74,5 @@ export class UpdateService {
     } catch {
       return '';
     }
-  }
-
-  /** Confronto "semver-lite": true se `latest` > `current`. */
-  private isNewer(latest: string, current: string): boolean {
-    const a = latest.split('.').map(n => parseInt(n, 10) || 0);
-    const b = current.split('.').map(n => parseInt(n, 10) || 0);
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-      const x = a[i] || 0, y = b[i] || 0;
-      if (x !== y) return x > y;
-    }
-    return false;
   }
 }

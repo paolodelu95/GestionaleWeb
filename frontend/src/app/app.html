@@ -220,9 +220,14 @@
       @if (offline && update.disponibile(); as upd) {
         <div class="pwa-banner pwa-banner--update">
           <mat-icon>system_update</mat-icon>
-          <span>È disponibile la versione <b>{{ upd.version }}</b> di Ordeva@if (update.corrente()) { (installata: {{ update.corrente() }})}. Scaricala da GitHub.</span>
-          <a mat-flat-button color="primary" [href]="upd.url" target="_blank" rel="noopener">Scarica</a>
-          <button mat-icon-button type="button" (click)="update.disponibile.set(null)"><mat-icon>close</mat-icon></button>
+          <span>È disponibile la versione <b>{{ upd.version }}</b> di Ordeva@if (update.corrente()) { (installata: {{ update.corrente() }})}.</span>
+          @if (update.inCorso()) {
+            <span>Scaricamento e installazione in corso… l'app si riavvierà.</span>
+          } @else {
+            <button mat-flat-button color="primary" type="button" (click)="update.installaERiavvia()">Aggiorna ora</button>
+            <a mat-button [href]="upd.url" target="_blank" rel="noopener">Scarica a mano</a>
+            <button mat-icon-button type="button" (click)="update.disponibile.set(null)"><mat-icon>close</mat-icon></button>
+          }
         </div>
       }
       @if (showUpdateBanner) {

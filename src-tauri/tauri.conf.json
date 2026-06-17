@@ -12,9 +12,18 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/paolodelu95/Ordeva/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlEMzVDMDdCRTRCQjZCNTgKUldSWWE3dmtlOEExblkxd2FZSnlWNGs3VUlmUjhzTXlqemIyd0g3d0dnVFptZ3NxRVdUNVBTU2QK"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "category": "Business",
     "icon": [
       "icons/32x32.png",
