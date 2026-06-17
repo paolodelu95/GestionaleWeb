@@ -132,37 +132,39 @@ Versioni pronte all'uso dalla pagina
   con **restore cross-PC** (decifratura tramite password d'accesso).
 - **Password d'accesso** opzionale all'apertura dell'app.
 - **Segnalazioni / bug report via email** direttamente dall'app.
-- **Controllo aggiornamenti**: all'avvio l'app confronta la versione installata
-  (esposta da `/healthz`) con l'ultima release su GitHub e, se più recente, mostra
-  un avviso in alto con il link per scaricarla.
+- **Aggiornamento automatico in-app** (firmato): all'avvio l'app verifica se c'è
+  una versione più recente e, con un clic, la **scarica, installa e si riavvia da
+  sola** (updater Tauri con firma). Su macOS, finché l'app non è firmata Apple,
+  resta il download manuale.
 - Icona app nativa (incluso lo stile macOS).
 
 ---
 
 ## Aggiornamenti
 
-L'app **controlla all'avvio** se c'è una versione più recente sulla pagina
-[Releases](https://github.com/paolodelu95/Ordeva/releases) e mostra un
-avviso con il pulsante **Scarica** (apre la release su GitHub). È attivo da subito,
-non richiede configurazione.
+L'app si aggiorna **da sola**. All'avvio l'updater di Tauri controlla la
+[Releases](https://github.com/paolodelu95/Ordeva/releases): se c'è una versione più
+recente, compare un avviso con **Aggiorna ora** → l'app scarica il pacchetto, ne
+**verifica la firma**, lo installa e si **riavvia** già aggiornata. È attivo dalla
+**1.1.2** in poi; non serve alcuna configurazione lato utente.
 
-### (Opzionale) Auto-aggiornamento in-app "che sostituisce i file"
-Per far sì che l'app **scarichi e installi** la nuova versione da sola (senza
-reinstallare a mano), Tauri offre l'updater firmato. Attivazione una tantum:
+- I dati restano intatti (vivono fuori dall'app, vedi [Dove sono i dati](#dove-sono-i-dati--backup)).
+- **Windows e Linux**: aggiornamento automatico completo.
+- **macOS**: finché l'app non è firmata Apple (Developer ID), l'auto-install non è
+  possibile → l'avviso offre il **download manuale** dalla release.
 
-1. Genera la coppia di chiavi: `npm create tauri-app` non serve — usa
-   `cargo tauri signer generate -w ~/.tauri/ordeva.key` (oppure `npx @tauri-apps/cli signer generate`).
-2. Metti la **chiave pubblica** in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`
-   e abilita `bundle.createUpdaterArtifacts: true`; aggiungi l'endpoint
-   `https://github.com/paolodelu95/Ordeva/releases/latest/download/latest.json`.
-3. Aggiungi il crate `tauri-plugin-updater` e registralo in `main.rs`.
-4. Salva su GitHub (Settings → Secrets → Actions) `TAURI_SIGNING_PRIVATE_KEY` e
-   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; `tauri-action` genererà `latest.json` e i
-   file `.sig` nella release automaticamente.
-
-> Richiede la chiave di firma (passo 1) perché Tauri **rifiuta** aggiornamenti non
-> firmati: è una misura di sicurezza, non aggirabile. Su macOS l'auto-install
-> richiede inoltre un'app firmata Apple.
+### Come funziona / per chi pubblica
+- Gli aggiornamenti sono **firmati** con una chiave privata (minisign) custodita
+  nei *GitHub Secrets* (`TAURI_SIGNING_PRIVATE_KEY` + `…_PASSWORD`); la **chiave
+  pubblica** è in `src-tauri/tauri.conf.json` e serve all'app per verificarli.
+  Tauri rifiuta per sicurezza ogni aggiornamento non firmato.
+- A ogni tag `v*`, la CI compila, **firma** i bundle e pubblica nella release anche
+  `latest.json` e i file `.sig` (è ciò che l'updater legge dall'endpoint
+  `releases/latest/download/latest.json`).
+- **Pubblicare una nuova versione**: bump della versione in `src-tauri/tauri.conf.json`
+  e `Cargo.toml`, poi `git tag vX.Y.Z && git push origin vX.Y.Z`; quando la CI ha
+  finito, pubblica la release in bozza. Le installazioni esistenti si aggiorneranno
+  da sole.
 
 ---
 
@@ -198,16 +200,16 @@ sia la SPA; la WebView di sistema (WKWebView/WebView2/WebKitGTK) carica da lì.
 Gli eseguibili si pubblicano come **GitHub Releases**, generate da un **tag**:
 
 ```bash
-git checkout offline-electron
-git tag v1.0.0
-git push origin v1.0.0
+git tag vX.Y.Z        # es. v1.1.3 — allinea prima la versione in tauri.conf.json e Cargo.toml
+git push origin vX.Y.Z
 ```
 
 Il workflow [`.github/workflows/tauri-release.yml`](.github/workflows/tauri-release.yml)
 builda su **Windows, macOS (Intel + Apple Silicon) e Linux** (matrix), compila il
 frontend offline + il backend Rust e crea una **Release in bozza** con i bundle
-(NSIS/MSI, `.dmg`, `.deb`/`.AppImage`). Controlli e premi **Publish**. Nessun modulo
-nativo da ricompilare: SQLite è dentro il binario.
+(NSIS/MSI, `.dmg`, `.deb`/`.AppImage`) **più** gli artefatti firmati dell'updater
+(`latest.json` + `.sig`). Controlli e premi **Publish**. Nessun modulo nativo da
+ricompilare: SQLite è dentro il binario.
 
 > macOS e Linux si compilano **solo** sui rispettivi runner: per questo la build gira
 > in CI. Richiede *Settings → Actions → General → Workflow permissions* = **Read and write**.
