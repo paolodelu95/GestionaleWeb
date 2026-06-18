@@ -1,6 +1,9 @@
 // ── App Shell ─────────────────────────────────────────────────────────────────
 .shell {
-  height: 100vh;
+  // 100% (catena html/body/app-root tutti a 100%) invece di 100vh: nella WebView
+  // il 100vh può risultare più alto dell'area visibile e far scrollare l'intera
+  // pagina. Con 100% la shell combacia esatta con la finestra.
+  height: 100%;
   display: flex;
   background: var(--bg-page);
   overflow: hidden;

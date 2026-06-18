@@ -14,6 +14,14 @@ html {
 *, *::before, *::after { box-sizing: border-box; }
 html, body { max-width: 100%; overflow-x: hidden; }
 
+// app-root è un custom element: senza 'display:block' resta inline e aggiunge
+// uno "strut" di line-height SOTTO la shell alta quanto la finestra. Risultato:
+// il documento diventa più alto della finestra e scrolla di qualche pixel — la
+// topbar sparisce in alto e le ultime voci (es. in Impostazioni) restano sotto
+// il bordo. Reso block e ancorato all'altezza piena così la shell combacia
+// esattamente con la finestra e l'unico a scrollare è il contenuto.
+app-root { display: block; height: 100%; }
+
 // I pannelli overlay (select, menu, autocomplete) sono montati fuori dalla
 // shell: senza questo ereditano il font di sistema (Arial) invece di Inter.
 // mat-icon conserva il proprio font (Material Icons), non ereditando da qui.
