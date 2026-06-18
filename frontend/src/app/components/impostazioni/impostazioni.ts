@@ -433,7 +433,8 @@ export class ImpostazioniComponent implements OnInit {
       } else if (esito === 'aggiornato') {
         this.snack.open('Ordeva è già all\'ultima versione disponibile.', '', { duration: 3500 });
       } else {
-        this.snack.open('Impossibile verificare gli aggiornamenti ora (controlla la connessione).', '', { duration: 4000 });
+        const dett = this.update.ultimoErrore();
+        this.snack.open(`Impossibile verificare gli aggiornamenti ora${dett ? ` (${dett})` : ' (controlla la connessione)'}.`, '', { duration: 6000 });
       }
     } finally {
       this.verificaInCorso = false;

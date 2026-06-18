@@ -40,6 +40,8 @@ export class UpdateService {
   readonly corrente = signal<string>('');
   /** Download/installazione in corso. */
   readonly inCorso = signal(false);
+  /** Dettaglio tecnico dell'ultimo errore di controllo (per diagnosi in UI). */
+  readonly ultimoErrore = signal<string>('');
 
   /** Preferenze (persistite in localStorage): frequenza controllo + auto-installazione. */
   readonly intervallo = signal<UpdateInterval>('avvio');
@@ -114,6 +116,7 @@ export class UpdateService {
    */
   async check(): Promise<'disponibile' | 'aggiornato' | 'non-disponibile'> {
     if (!environment.offline) return 'non-disponibile';
+    this.ultimoErrore.set('');
     this.corrente.set(await this.versioneCorrente());
     try {
       const { check } = await import('@tauri-apps/plugin-updater');
@@ -125,8 +128,10 @@ export class UpdateService {
         return 'disponibile';
       }
       return 'aggiornato';
-    } catch {
-      /* non in Tauri / updater non configurato / nessuna rete: nessun avviso in-app */
+    } catch (e) {
+      /* non in Tauri / updater non configurato / nessuna rete: nessun avviso in-app,
+         ma teniamo il dettaglio tecnico per mostrarlo a richiesta (diagnosi). */
+      this.ultimoErrore.set(String((e as { message?: string })?.message ?? e));
       return 'non-disponibile';
     }
   }

@@ -1,8 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permessi base della finestra principale: dialoghi e apertura percorsi per backup.",
+  "description": "Permessi base della finestra principale: dialoghi, apertura percorsi per backup e auto-aggiornamento. La SPA è servita da axum su http://localhost:3000, che per Tauri è un'origine 'remote': senza il campo 'remote' qui sotto l'IPC verso quell'origine viene bloccato e il plugin updater fallisce (errore 'controlla la connessione').",
   "windows": ["main"],
+  "remote": {
+    "urls": ["http://localhost:3000", "http://localhost:3000/*"]
+  },
   "permissions": [
     "core:default",
     "dialog:default",
