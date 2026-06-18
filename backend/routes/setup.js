@@ -44,7 +44,9 @@ function count(table) {
 router.get('/status', (req, res) => {
   const az = db.prepare('SELECT ragione_sociale, p_iva FROM azienda WHERE id=1').get();
   res.json({
-    aziendaConfigurata: !!(az && az.ragione_sociale && (az.p_iva || '').trim()),
+    // Basta la ragione sociale (unico campo richiesto nel form di benvenuto):
+    // così, una volta inseriti i dati azienda, il benvenuto non si ripresenta.
+    aziendaConfigurata: !!(az && (az.ragione_sociale || '').trim()),
     hasDati: count('prodotti') > 0 || count('clienti') > 0 || count('fornitori') > 0,
   });
 });

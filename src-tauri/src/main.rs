@@ -78,6 +78,7 @@ fn main() {
             .title("Ordeva")
             .inner_size(1440.0, 900.0)
             .min_inner_size(360.0, 600.0)
+            .maximized(true)
             .build()?;
 
             Ok(())

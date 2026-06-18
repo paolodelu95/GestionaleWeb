@@ -61,8 +61,10 @@ async fn status(State(state): State<AppState>) -> ApiResult<Json<Value>> {
             Ok((r.get(0)?, r.get(1)?))
         })
         .unwrap_or((None, None));
-    let azienda_configurata = rs.as_deref().map(|s| !s.is_empty()).unwrap_or(false)
-        && !piva.as_deref().unwrap_or("").trim().is_empty();
+    // Basta la ragione sociale (unico campo richiesto nel form di benvenuto):
+    // così, inseriti i dati azienda, il benvenuto non si ripresenta.
+    let _ = &piva;
+    let azienda_configurata = rs.as_deref().map(|s| !s.trim().is_empty()).unwrap_or(false);
     let has_dati = count(&conn, "prodotti") > 0 || count(&conn, "clienti") > 0 || count(&conn, "fornitori") > 0;
     Ok(Json(json!({ "aziendaConfigurata": azienda_configurata, "hasDati": has_dati })))
 }

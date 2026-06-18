@@ -93,6 +93,9 @@
             </span>
           }
         </div>
+        @if (offline && update.corrente()) {
+          <span class="topbar-ver" title="Versione installata">v{{ update.corrente() }}</span>
+        }
       </div>
       <span class="topbar-spacer"></span>
 

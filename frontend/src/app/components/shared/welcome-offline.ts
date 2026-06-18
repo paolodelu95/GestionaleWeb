@@ -282,6 +282,8 @@ export class WelcomeOfflineComponent implements OnInit {
    *  riapertura del programma la richiesta dei dati azienda riappare finché
    *  non vengono inseriti dati reali. Vive in sessionStorage, non localStorage. */
   private readonly SESSION_SEEN = 'ordeva_offline_welcome_seen';
+  /** Una volta scelto come partire (azienda / demo / ripristino) non si ripresenta più. */
+  private readonly SETUP_DONE = 'ordeva_offline_setup_done';
   /** Hint per la lock screen: evita il flash all'avvio sapendo subito se c'è password. */
   private readonly PWD_HINT = 'ordeva_app_password_enabled';
 
@@ -289,13 +291,15 @@ export class WelcomeOfflineComponent implements OnInit {
 
   ngOnInit(): void {
     if (!environment.offline) return;
-    if (sessionStorage.getItem(this.SESSION_SEEN) === '1') return;  // già gestito in questa sessione
+    if (sessionStorage.getItem(this.SESSION_SEEN) === '1') return;   // già gestito in questa sessione
+    if (localStorage.getItem(this.SETUP_DONE) === '1') return;       // scelta già fatta in passato
 
     this.ds.getSetupStatus().pipe(catchError(() => of(null))).subscribe(st => {
       if (!st) return;                       // backend non pronto: niente overlay
-      // Si chiede SEMPRE finché non ci sono dati azienda reali (ragione sociale + P.IVA).
-      // I soli dati demo NON bastano a considerare l'azienda configurata.
-      if (st.aziendaConfigurata) return;
+      // Mostra il benvenuto solo su un'app davvero "vergine": nessuna azienda
+      // configurata E nessun dato. Se ci sono dati (azienda o demo già caricati)
+      // non si ripresenta — evita anche il blocco "non posso sovrascrivere".
+      if (st.aziendaConfigurata || st.hasDati) { localStorage.setItem(this.SETUP_DONE, '1'); return; }
       this.visible = true;
     });
   }
@@ -373,8 +377,9 @@ export class WelcomeOfflineComponent implements OnInit {
   }
 
   completa(reload = false): void {
-    // Solo dismissione di sessione: niente flag permanente, così i dati reali
-    // restano l'unica condizione che chiude definitivamente il benvenuto.
+    // Scelta effettuata (azienda / demo / ripristino): non riproporre il benvenuto
+    // ai prossimi avvii. Flag persistente + dismissione di sessione.
+    localStorage.setItem(this.SETUP_DONE, '1');
     sessionStorage.setItem(this.SESSION_SEEN, '1');
     this.visible = false;
     this.loading = false;
