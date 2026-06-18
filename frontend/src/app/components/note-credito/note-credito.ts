@@ -635,9 +635,10 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   selection = new SelectionModel<NotaCredito>(true, []);
 
   readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
-  filtroAnno: number | null = null;
-  filtroMese: number | null = null;
-  filtroCliente: number | null = null;
+  // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi/clienti).
+  filtroAnni: number[] = [];
+  filtroMesi: number[] = [];
+  filtroClienti: number[] = [];
 
   get anni() { return [...new Set(this.allNoteCredito.map(n => +n.dataEmissione.substring(0, 4)))].sort().reverse(); }
   get clientiList() {
@@ -691,15 +692,15 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
 
   applyFilters() {
     let data = this.allNoteCredito;
-    if (this.filtroAnno) data = data.filter(n => +n.dataEmissione.substring(0, 4) === this.filtroAnno);
-    if (this.filtroMese) data = data.filter(n => +n.dataEmissione.substring(5, 7) === this.filtroMese);
-    if (this.filtroCliente) data = data.filter(n => n.clienteId === this.filtroCliente);
+    if (this.filtroAnni.length) data = data.filter(n => this.filtroAnni.includes(+n.dataEmissione.substring(0, 4)));
+    if (this.filtroMesi.length) data = data.filter(n => this.filtroMesi.includes(+n.dataEmissione.substring(5, 7)));
+    if (this.filtroClienti.length) data = data.filter(n => n.clienteId != null && this.filtroClienti.includes(n.clienteId));
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {
-    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null;
+    this.filtroAnni = []; this.filtroMesi = []; this.filtroClienti = [];
     this.dataSource.filter = ''; this.applyFilters();
   }
 

@@ -1525,10 +1525,12 @@ export class FattureComponent implements OnInit, AfterViewInit {
   selection = new SelectionModel<Fattura>(true, []);
 
   readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
-  filtroAnno: number | null = null;
-  filtroMese: number | null = null;
-  filtroCliente: number | null = null;
-  filtroStato: string | null = null;
+  // Filtri multipli: ogni select tiene una lista di valori (array vuoto = "tutti").
+  // Così si possono vedere insieme più clienti, più anni, più stati, ecc.
+  filtroAnni: number[] = [];
+  filtroMesi: number[] = [];
+  filtroClienti: number[] = [];
+  filtroStati: string[] = [];
   filtroDaPagare = false;
   busy = false;
 
@@ -1550,7 +1552,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
   ngOnInit() {
     // Apertura da scheda cliente ("Fatture" nel kebab): filtra subito su quel cliente.
     const fc = consumePrefill<number>('filtroCliente');
-    if (fc) { this.filtroAnno = null; this.filtroMese = null; this.filtroStato = null; this.filtroDaPagare = false; this.filtroCliente = fc; }
+    if (fc) { this.filtroAnni = []; this.filtroMesi = []; this.filtroStati = []; this.filtroDaPagare = false; this.filtroClienti = [fc]; }
     this.load();
     this.ds.getAzienda().subscribe(a => {
       this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
@@ -1590,17 +1592,17 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   applyFilters() {
     let data = this.allFatture;
-    if (this.filtroAnno) data = data.filter(f => +f.dataEmissione.substring(0, 4) === this.filtroAnno);
-    if (this.filtroMese) data = data.filter(f => +f.dataEmissione.substring(5, 7) === this.filtroMese);
-    if (this.filtroCliente) data = data.filter(f => f.clienteId === this.filtroCliente);
-    if (this.filtroStato) data = data.filter(f => f.stato === this.filtroStato);
+    if (this.filtroAnni.length) data = data.filter(f => this.filtroAnni.includes(+f.dataEmissione.substring(0, 4)));
+    if (this.filtroMesi.length) data = data.filter(f => this.filtroMesi.includes(+f.dataEmissione.substring(5, 7)));
+    if (this.filtroClienti.length) data = data.filter(f => f.clienteId != null && this.filtroClienti.includes(f.clienteId));
+    if (this.filtroStati.length) data = data.filter(f => this.filtroStati.includes(f.stato));
     if (this.filtroDaPagare) data = data.filter(f => f.stato === 'EMESSA');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {
-    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroStato = null; this.filtroDaPagare = false;
+    this.filtroAnni = []; this.filtroMesi = []; this.filtroClienti = []; this.filtroStati = []; this.filtroDaPagare = false;
     this.dataSource.filter = '';
     this.applyFilters();
   }
@@ -1619,7 +1621,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   get fatture() { return this.dataSource.data; }
-  hasActiveFilters() { return !!(this.filtroAnno || this.filtroMese || this.filtroCliente || this.filtroStato || this.filtroDaPagare || this.dataSource.filter); }
+  hasActiveFilters() { return !!(this.filtroAnni.length || this.filtroMesi.length || this.filtroClienti.length || this.filtroStati.length || this.filtroDaPagare || this.dataSource.filter); }
   isAllSelected() { return this.allFatture.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
   toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }
 

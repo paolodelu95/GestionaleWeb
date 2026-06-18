@@ -685,9 +685,10 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   selection = new SelectionModel<Ordine>(true, []);
 
   readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
-  filtroAnno: number | null = null;
-  filtroMese: number | null = null;
-  filtroTipo: string | null = null;
+  // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi).
+  filtroAnni: number[] = [];
+  filtroMesi: number[] = [];
+  filtroTipi: string[] = [];
 
   get anni() { return [...new Set(this.allOrdini.map(o => +o.dataOrdine.substring(0, 4)))].sort().reverse(); }
   get ordini() { return this.dataSource.data; }
@@ -739,15 +740,15 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   applyFilters() {
     let data = this.allOrdini;
-    if (this.filtroAnno) data = data.filter(o => +o.dataOrdine.substring(0, 4) === this.filtroAnno);
-    if (this.filtroMese) data = data.filter(o => +o.dataOrdine.substring(5, 7) === this.filtroMese);
-    if (this.filtroTipo) data = data.filter(o => o.tipo === this.filtroTipo);
+    if (this.filtroAnni.length) data = data.filter(o => this.filtroAnni.includes(+o.dataOrdine.substring(0, 4)));
+    if (this.filtroMesi.length) data = data.filter(o => this.filtroMesi.includes(+o.dataOrdine.substring(5, 7)));
+    if (this.filtroTipi.length) data = data.filter(o => this.filtroTipi.includes(o.tipo));
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {
-    this.filtroAnno = null; this.filtroMese = null; this.filtroTipo = null;
+    this.filtroAnni = []; this.filtroMesi = []; this.filtroTipi = [];
     this.dataSource.filter = ''; this.applyFilters();
   }
 

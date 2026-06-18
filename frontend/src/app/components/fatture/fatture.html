@@ -24,20 +24,16 @@
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnno" (selectionChange)="applyFilters()" placeholder="Anno">
-      <mat-option [value]="null">Tutti gli anni</mat-option>
+    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" placeholder="Anno" multiple>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMese" (selectionChange)="applyFilters()" placeholder="Mese">
-      <mat-option [value]="null">Tutti i mesi</mat-option>
+    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" placeholder="Mese" multiple>
       @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroCliente" (selectionChange)="applyFilters()" placeholder="Cliente">
-      <mat-option [value]="null">Tutti i clienti</mat-option>
+    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" placeholder="Cliente" multiple>
       @for (c of clientiList; track c.id) { <mat-option [value]="c.id">{{ c.nome }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroStato" (selectionChange)="applyFilters()" placeholder="Stato">
-      <mat-option [value]="null">Tutti gli stati</mat-option>
+    <mat-select [(ngModel)]="filtroStati" (selectionChange)="applyFilters()" placeholder="Stato" multiple>
       <mat-option value="EMESSA">Emessa</mat-option>
       <mat-option value="PAGATA">Pagata</mat-option>
       <mat-option value="ANNULLATA">Annullata</mat-option>
@@ -53,7 +49,7 @@
         <span style="background:#dc2626;color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">{{ daPagareCount }}</span>
       }
     </button>
-    @if (filtroAnno || filtroMese || filtroCliente || filtroStato || filtroDaPagare) {
+    @if (filtroAnni.length || filtroMesi.length || filtroClienti.length || filtroStati.length || filtroDaPagare) {
       <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>

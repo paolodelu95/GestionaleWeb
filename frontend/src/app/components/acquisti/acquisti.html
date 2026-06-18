@@ -30,19 +30,16 @@
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnno" (selectionChange)="applyFilters()" placeholder="Anno">
-      <mat-option [value]="null">Tutti gli anni</mat-option>
+    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" placeholder="Anno" multiple>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMese" (selectionChange)="applyFilters()" placeholder="Mese">
-      <mat-option [value]="null">Tutti i mesi</mat-option>
+    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" placeholder="Mese" multiple>
       @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroFornitore" (selectionChange)="applyFilters()" placeholder="Fornitore">
-      <mat-option [value]="null">Tutti i fornitori</mat-option>
+    <mat-select [(ngModel)]="filtroFornitori" (selectionChange)="applyFilters()" placeholder="Fornitore" multiple>
       @for (f of fornitoriList; track f.id) { <mat-option [value]="f.id">{{ f.nome }}</mat-option> }
     </mat-select>
-    @if (filtroAnno || filtroMese || filtroFornitore) {
+    @if (filtroAnni.length || filtroMesi.length || filtroFornitori.length) {
       <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>

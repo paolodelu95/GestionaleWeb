@@ -974,9 +974,10 @@ export class DdtComponent implements OnInit, AfterViewInit {
   selection = new SelectionModel<Ddt>(true, []);
 
   readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
-  filtroAnno: number | null = null;
-  filtroMese: number | null = null;
-  filtroCliente: number | null = null;
+  // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi/clienti).
+  filtroAnni: number[] = [];
+  filtroMesi: number[] = [];
+  filtroClienti: number[] = [];
   filtroDaFatturare = false;
 
   get anni() { return [...new Set(this.allDdt.map(d => +d.dataEmissione.substring(0, 4)))].sort().reverse(); }
@@ -1031,16 +1032,16 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   applyFilters() {
     let data = this.allDdt;
-    if (this.filtroAnno) data = data.filter(d => +d.dataEmissione.substring(0, 4) === this.filtroAnno);
-    if (this.filtroMese) data = data.filter(d => +d.dataEmissione.substring(5, 7) === this.filtroMese);
-    if (this.filtroCliente) data = data.filter(d => d.clienteId === this.filtroCliente);
+    if (this.filtroAnni.length) data = data.filter(d => this.filtroAnni.includes(+d.dataEmissione.substring(0, 4)));
+    if (this.filtroMesi.length) data = data.filter(d => this.filtroMesi.includes(+d.dataEmissione.substring(5, 7)));
+    if (this.filtroClienti.length) data = data.filter(d => d.clienteId != null && this.filtroClienti.includes(d.clienteId));
     if (this.filtroDaFatturare) data = data.filter(d => !d.fatturaId && d.stato !== 'ANNULLATO');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {
-    this.filtroAnno = null; this.filtroMese = null; this.filtroCliente = null; this.filtroDaFatturare = false;
+    this.filtroAnni = []; this.filtroMesi = []; this.filtroClienti = []; this.filtroDaFatturare = false;
     this.dataSource.filter = ''; this.applyFilters();
   }
 

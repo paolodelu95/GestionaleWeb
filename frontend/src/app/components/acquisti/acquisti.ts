@@ -506,9 +506,10 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   selection = new SelectionModel<Acquisto>(true, []);
 
   readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
-  filtroAnno: number | null = null;
-  filtroMese: number | null = null;
-  filtroFornitore: number | null = null;
+  // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi/fornitori).
+  filtroAnni: number[] = [];
+  filtroMesi: number[] = [];
+  filtroFornitori: number[] = [];
 
   get anni() { return [...new Set(this.allAcquisti.map(a => +a.dataEmissione.substring(0, 4)))].sort().reverse(); }
   get fornitoriList() {
@@ -532,7 +533,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   ngOnInit() {
     // Apertura da scheda fornitore ("Acquisti" nel kebab): filtra subito su quel fornitore.
     const ff = consumePrefill<number>('filtroFornitore');
-    if (ff) { this.filtroAnno = null; this.filtroMese = null; this.filtroFornitore = ff; }
+    if (ff) { this.filtroAnni = []; this.filtroMesi = []; this.filtroFornitori = [ff]; }
     this.load();
     this.ds.getFornitori().subscribe(f => this.fornitori = f);
   }
@@ -572,15 +573,15 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
 
   applyFilters() {
     let data = this.allAcquisti;
-    if (this.filtroAnno) data = data.filter(a => +a.dataEmissione.substring(0, 4) === this.filtroAnno);
-    if (this.filtroMese) data = data.filter(a => +a.dataEmissione.substring(5, 7) === this.filtroMese);
-    if (this.filtroFornitore) data = data.filter(a => a.fornitoreId === this.filtroFornitore);
+    if (this.filtroAnni.length) data = data.filter(a => this.filtroAnni.includes(+a.dataEmissione.substring(0, 4)));
+    if (this.filtroMesi.length) data = data.filter(a => this.filtroMesi.includes(+a.dataEmissione.substring(5, 7)));
+    if (this.filtroFornitori.length) data = data.filter(a => a.fornitoreId != null && this.filtroFornitori.includes(a.fornitoreId));
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
   }
 
   resetFiltri() {
-    this.filtroAnno = null; this.filtroMese = null; this.filtroFornitore = null;
+    this.filtroAnni = []; this.filtroMesi = []; this.filtroFornitori = [];
     this.dataSource.filter = ''; this.applyFilters();
   }
 
