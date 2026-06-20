@@ -369,3 +369,12 @@ tr.cdk-drag-placeholder { opacity: 0.3; }
   // I chip colonne extra restano a destra ma possono andare a capo
   .lst-elenco .lst-cols { justify-content: flex-end; }
 }
+
+// ── Modalità compatta desktop (toggle Impostazioni → Aspetto) ───────────────
+:host-context(html.density-compact) {
+  .lst-table th, .lst-table td { padding: 6px 8px; }
+  .ed-anagrafica { gap: 10px; }
+  .ed-toolbar { gap: 8px; }
+  .ed-hint { padding: 8px 12px; }
+  .sez-input, .cell-input { padding: 4px 6px; }
+}

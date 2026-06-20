@@ -609,3 +609,17 @@
     min-height: 44px !important;
   }
 }
+
+// ── Modalità compatta desktop (toggle Impostazioni → Aspetto) ───────────────
+:host-context(html.density-compact) {
+  .dash-tables, .agenda-todo-row, .chart-row, .table-row, .widget-list { gap: 12px; }
+  .m-card { padding: 8px; }
+  .section-title { margin-bottom: 10px; }
+  .empty-msg { padding: 16px 8px; }
+  .chart-container, .chart-container-centered { height: 200px; }
+  .cashflow-card { padding: 12px 16px; gap: 8px; }
+  .cashflow-val-pos, .cashflow-val-neg { font-size: 16px; }
+  .alert-strip { margin-bottom: 16px; }
+  .alert-chip { padding: 8px 12px; }
+  .edit-banner { padding: 10px 12px; }
+}

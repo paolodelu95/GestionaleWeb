@@ -198,6 +198,22 @@
               <mat-icon>view_sidebar</mat-icon> Barra laterale
             </mat-button-toggle>
           </mat-button-toggle-group>
+
+          <h3 class="section-title" style="margin-top:24px">Densità</h3>
+          <p style="color:#64748b;font-size:13px;margin:0 0 14px">
+            La modalità <b>compatta</b> riduce altezze e spaziature per un uso da
+            software desktop (più dati a schermo); la <b>comoda</b> usa spaziature
+            ampie in stile web.
+          </p>
+          <mat-button-toggle-group [value]="density" (change)="setDensity($event.value)"
+                                   aria-label="Densità interfaccia" hideSingleSelectionIndicator>
+            <mat-button-toggle value="compatto">
+              <mat-icon>density_small</mat-icon> Compatta
+            </mat-button-toggle>
+            <mat-button-toggle value="comodo">
+              <mat-icon>density_large</mat-icon> Comoda
+            </mat-button-toggle>
+          </mat-button-toggle-group>
         </div>
       </div>
       }

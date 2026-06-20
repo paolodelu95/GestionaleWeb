@@ -1104,3 +1104,41 @@
 
 // NB: gli stili del dock fluttuante e del layout "floating" stanno in styles.scss
 // (globali) per non sforare il budget del foglio di stile di questo componente.
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODALITÀ COMPATTA DESKTOP — shell (sidenav + topbar)
+// Reagisce alla classe `density-compact` su <html> via :host-context, l'idioma
+// Angular per superare la view-encapsulation (stesso pattern di
+// :host-context(body.dark-mode) già usato altrove). Le altezze guidate da
+// variabili (--sidenav-width, --topbar-height) sono già ridotte in styles.scss;
+// qui si compattano padding/altezze/font degli elementi della shell.
+// ═══════════════════════════════════════════════════════════════════════════
+:host-context(html.density-compact) {
+  // ── Header sidenav ──
+  .sidenav .sidenav-header { min-height: 52px; padding: 14px 14px 12px; }
+  .sidenav .sidenav-title { font-size: 16px; }
+  .sidenav .sidenav-sub { font-size: 10px; }
+
+  // ── Voci di menu (override degli !important originali) ──
+  .sidenav mat-nav-list { padding: 8px 8px 18px !important; }
+  .sidenav mat-nav-list a[mat-list-item] {
+    height: 36px !important;
+    margin: 1px 0;
+    .mdc-list-item__primary-text, span[matListItemTitle] { font-size: 13px; }
+    &.sub-item { height: 32px !important; padding-left: 12px !important; }
+  }
+
+  // ── Pannelli espandibili (gruppi) ──
+  .sidenav .sidenav-panel mat-expansion-panel-header { height: 36px !important; padding: 0 10px !important; }
+  .sidenav .sidenav-panel mat-panel-title { gap: 10px; }
+  .sidenav .sidenav-panel .panel-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  // ── Footer sidenav ──
+  .sidenav .sidenav-footer { padding: 8px 8px 10px; }
+  .sidenav .sidenav-footer-btn { padding: 6px 10px; }
+
+  // ── Topbar ──
+  .topbar { padding: 0 14px; }
+  .topbar .company-avatar { width: 30px; height: 30px; }
+  .search-box { height: 34px; }
+}

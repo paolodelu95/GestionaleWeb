@@ -322,3 +322,16 @@
   .grafica-editor { grid-template-columns: 1fr; }
   .grafica-preview { position: static; height: 70vh; max-height: none; order: -1; }
 }
+
+// ── Modalità compatta desktop (toggle Impostazioni → Aspetto) ───────────────
+:host-context(html.density-compact) {
+  .settings-layout { gap: 20px; }
+  .settings-nav { gap: 12px; }
+  .nav-item { padding: 6px 10px; }
+  .nav-group-title { padding: 4px 8px 2px; }
+  .tab-content { padding: 16px 0; }
+  .preset-card { padding: 10px; }
+  .tmpl-preview { height: 70px; }
+  .grafica-editor { gap: 16px; }
+  .preview-head { padding: 8px 12px; }
+}

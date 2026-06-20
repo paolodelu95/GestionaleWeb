@@ -2,7 +2,7 @@ import { inject, Component, OnInit, Inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
-import { LayoutService, NavLayout } from '../../services/layout.service';
+import { LayoutService, NavLayout, Density } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -498,6 +498,10 @@ export class ImpostazioniComponent implements OnInit {
   /** Layout di navigazione corrente (barra laterale / superiore). */
   get navLayout(): NavLayout { return this.layout.navLayout(); }
   setNavLayout(v: NavLayout) { this.layout.setNavLayout(v); }
+
+  /** Densità dell'interfaccia (compatta desktop / comoda). */
+  get density(): Density { return this.layout.density(); }
+  setDensity(v: Density) { this.layout.setDensity(v); }
   form: FormGroup;
   filteredCities: CityResult[] = [];
   private cityMap = new Map<string, CityResult>();

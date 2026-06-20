@@ -2614,3 +2614,55 @@ body.glass-ui .mat-mdc-snack-bar-container { margin-bottom: 92px; }
     max-height: calc(100dvh - var(--topbar-height) - 100px) !important;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODALITÀ COMPATTA DESKTOP  (html.density-compact)
+// Attivata dal toggle Impostazioni → Aspetto → Densità (LayoutService, default
+// "compatto"). La classe è su <html>, quindi raggiunge anche i layer della
+// CDK overlay (dialog, menu, select, autocomplete, tooltip).
+//
+// 1) Densità Material -2: riscrive SOLO i token --mat-* di densità (altezze di
+//    form-field, list-item, righe tabella, menu, chip, toolbar, bottoni…).
+//    `mat.theme((density: -2))` emette esclusivamente i token density (niente
+//    colore/tipografia ricompilati) → costo minimo.
+// 2) Override custom px sugli elementi NON-Material (shell, card, dock, dialog).
+//    Prefisso `html.density-compact` → vince per specificità sui valori base.
+// ═══════════════════════════════════════════════════════════════════════════
+html.density-compact {
+  @include mat.theme((density: -2));
+
+  // ── Variabili di layout (cascata ovunque, anche dentro i componenti) ──
+  --sidenav-width: 210px;
+  --sidenav-collapsed-width: 60px;
+  --topbar-height: 52px;
+
+  // ── Contenitori di pagina ──
+  .page { padding: 20px 24px; }
+  .card { padding: 16px; }
+  .kpi-card { padding: 14px 16px; }
+
+  // ── Tabelle: celle più basse (oltre alla densità Material) ──
+  th.mat-mdc-header-cell { padding: 8px 12px !important; }
+  td.mat-mdc-cell { padding: 8px 12px !important; }
+
+  // ── Sezioni form / strisce totali nei dialog documento ──
+  .form-section { padding: 12px 14px; }
+  .doc-totals-strip { padding: 10px 14px; }
+
+  // ── Dialog: meno respiro interno ──
+  .mat-mdc-dialog-content { padding-left: 20px !important; padding-right: 20px !important; padding-bottom: 14px !important; }
+  .mat-mdc-dialog-surface { padding-top: 16px !important; }
+  .mat-mdc-dialog-actions { padding: 8px 16px 14px !important; }
+
+  // ── Hero dei dialog ──
+  .dialog-hero { padding: 1px 0 7px; }
+  .dialog-hero-icon { width: 28px; height: 28px;
+    mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+
+  // ── Chip di stato ──
+  .stato-chip { padding: 3px 8px 3px 7px; }
+
+  // ── Dock fluttuante (nav in basso) ──
+  .dock-btn { min-width: 56px; padding: 7px 10px 5px;
+    mat-icon { font-size: 21px; width: 21px; height: 21px; } }
+}

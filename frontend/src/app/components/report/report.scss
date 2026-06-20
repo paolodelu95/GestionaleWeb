@@ -374,3 +374,17 @@
   .kpi-grid { grid-template-columns: 1fr; }
   .kpi-value { font-size: 20px !important; }
 }
+
+// ── Modalità compatta desktop (toggle Impostazioni → Aspetto) ───────────────
+:host-context(html.density-compact) {
+  .kpi-grid, .highlight-grid { gap: 12px; }
+  .kpi-card { padding: 12px; gap: 10px; }
+  .kpi-value { font-size: 20px; }
+  .tab-content { padding: 16px 0; }
+  .report-grid { gap: 16px; }
+  .card { padding: 16px; }
+  .card-title { margin-bottom: 12px; }
+  .highlight-card { padding: 14px 16px; }
+  .highlight-header { margin-bottom: 8px; }
+  .highlight-amount { font-size: 14px; }
+}
