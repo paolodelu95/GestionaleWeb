@@ -34,6 +34,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -675,7 +676,8 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent,
+            TableKeyboardNavDirective],
   templateUrl: './ordini.html',
   styleUrl: './ordini.scss'
 })
@@ -702,6 +704,16 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {
     this.load();
+  }
+
+  // Cmd/Ctrl+N = nuovo ordine (disabilitato quando un dialog è aperto).
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      if (this.dialog.openDialogs.length) return;
+      e.preventDefault();
+      this.open();
+    }
   }
 
   ngAfterViewInit() {

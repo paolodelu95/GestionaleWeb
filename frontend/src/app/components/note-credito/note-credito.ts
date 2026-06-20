@@ -34,6 +34,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -625,7 +626,8 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent,
+            TableKeyboardNavDirective],
   templateUrl: './note-credito.html',
   styleUrl: './note-credito.scss'
 })
@@ -654,6 +656,16 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
+
+  // Scorciatoia: Ctrl/Cmd+N apre una nuova nota di credito (disabilitata se un dialog è già aperto).
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      if (this.dialog.openDialogs.length) return;
+      e.preventDefault();
+      this.open();
+    }
+  }
 
   ngOnInit() {
     this.load();

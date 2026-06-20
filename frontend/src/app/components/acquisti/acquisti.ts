@@ -39,6 +39,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 
 @Component({
   selector: 'app-acquisto-dialog',
@@ -495,7 +496,8 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
-            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent],
+            MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent,
+            TableKeyboardNavDirective],
   templateUrl: './acquisti.html',
   styleUrl: './acquisti.scss'
 })
@@ -532,6 +534,16 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     private api: ApiService,
     private excel: ExcelService,
   ) {}
+
+  // Scorciatoia: Ctrl/Cmd+N apre un nuovo acquisto (solo se non c'è già un dialog aperto).
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      if (this.dialog.openDialogs.length) return;
+      e.preventDefault();
+      this.open();
+    }
+  }
 
   ngOnInit() {
     // Apertura da scheda fornitore ("Acquisti" nel kebab): filtra subito su quel fornitore.

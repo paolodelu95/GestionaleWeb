@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, HostListener } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
@@ -30,6 +30,7 @@ import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 import { QuickAddProdottoDialogComponent } from './quick-add-prodotto-dialog';
 import { ImportListinoDialogComponent } from './import-listino-dialog';
 import { BarcodeScannerDialogComponent } from '../shared/barcode-scanner-dialog';
+import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { unitaFrazionabile, stepPerUnita, arrotondaPerUnita } from '../../utils/unita';
 
 const PRODOTTI_FIELDS: FieldDef[] = [
@@ -740,7 +741,7 @@ export class RettificaGiacenzaDialogComponent {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
-            ColumnPickerComponent, EmptyStateComponent],
+            ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
@@ -792,6 +793,15 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
+
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      if (this.dialog.openDialogs.length) return;
+      e.preventDefault();
+      this.open();
+    }
+  }
 
   private pendingOpenId: number | null = null;
 

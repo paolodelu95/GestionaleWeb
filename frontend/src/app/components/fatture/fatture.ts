@@ -44,6 +44,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 
 interface DdtItem { ddt: any; checked: boolean; }
 interface ClienteGroup { clienteId: number | null; clienteNome: string; items: DdtItem[]; tipoPagamentoId: number | null; }
@@ -1513,7 +1514,8 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, EmptyStateComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, EmptyStateComponent,
+            TableKeyboardNavDirective],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
@@ -1550,6 +1552,15 @@ export class FattureComponent implements OnInit, AfterViewInit {
   notificheConfig: NotificheConfig = {};
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
+
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      if (this.dialog.openDialogs.length) return;
+      e.preventDefault();
+      this.open();
+    }
+  }
 
   ngOnInit() {
     // Apertura da scheda cliente ("Fatture" nel kebab): filtra subito su quel cliente.

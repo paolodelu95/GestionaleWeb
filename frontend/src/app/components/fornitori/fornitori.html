@@ -22,7 +22,7 @@
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
-    <table mat-table [dataSource]="dataSource" matSort class="mat-mdc-table">
+    <table mat-table [dataSource]="dataSource" matSort class="mat-mdc-table" appKbdRows>
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">ID</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.id }}</td>

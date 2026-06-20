@@ -36,6 +36,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -700,7 +701,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent, TableKeyboardNavDirective],
   templateUrl: './preventivi.html',
   styleUrl: './preventivi.scss'
 })
@@ -729,6 +730,15 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
+
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      if (this.dialog.openDialogs.length) return;
+      e.preventDefault();
+      this.open();
+    }
+  }
 
   ngOnInit() {
     this.load();

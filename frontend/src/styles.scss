@@ -2631,6 +2631,13 @@ body.glass-ui .mat-mdc-snack-bar-container { margin-bottom: 92px; }
   }
 }
 
+// Riga attiva da tastiera (direttiva appKbdRows): contorno ben visibile.
+tr.mat-mdc-row:focus-visible,
+tr.mat-mdc-row:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
 // ── Striscia totali sotto le liste documento ──────────────────────────────────
 // Riepilogo (conteggio + somma importi) delle righe visibili: l'utente vede il
 // totale senza scorrere fino in fondo. Allineata a destra come i totali tabellari.

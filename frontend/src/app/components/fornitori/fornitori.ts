@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, HostListener } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { FieldHelpComponent } from '../shared/field-help';
@@ -31,6 +31,7 @@ import { pIvaValidator, telefonoValidator, capValidator, normalizePiva } from '.
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
+import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 
 const FORNITORI_FIELDS: FieldDef[] = [
   { key: 'ragioneSociale', label: 'Ragione Sociale', required: true, aliases: [
@@ -459,7 +460,8 @@ export class FornitoreDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
-            MatTooltipModule, MatMenuModule, ColumnPickerComponent, EmptyStateComponent],
+            MatTooltipModule, MatMenuModule, ColumnPickerComponent, EmptyStateComponent,
+            TableKeyboardNavDirective],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
@@ -485,6 +487,15 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService, private router: Router) {}
+
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      if (this.dialog.openDialogs.length) return;
+      e.preventDefault();
+      this.open();
+    }
+  }
 
   /** Va agli acquisti già filtrati su questo fornitore. */
   apriAcquisti(f: Fornitore) {

@@ -51,7 +51,7 @@
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
-    <table mat-table [dataSource]="dataSource" matSort matSortActive="numero" matSortDirection="desc" matSortDisableClear class="mat-mdc-table">
+    <table mat-table appKbdRows [dataSource]="dataSource" matSort matSortActive="numero" matSortDirection="desc" matSortDisableClear class="mat-mdc-table">
 
       <ng-container matColumnDef="select">
         <th mat-header-cell *matHeaderCellDef style="width:48px">
