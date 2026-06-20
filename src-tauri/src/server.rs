@@ -4,10 +4,13 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
+use axum::http::{header::CACHE_CONTROL, HeaderValue};
 use axum::{routing::get, Json, Router};
 use serde_json::{json, Value};
+use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
+use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::db::AppState;
 use crate::routes;
@@ -23,8 +26,20 @@ pub fn build_router(state: AppState) -> Router {
     // SPA Angular buildata, con fallback su index.html per il routing client-side.
     // .fallback() (non not_found_service) preserva lo status 200, come faceva
     // res.sendFile(index.html) in Express per le rotte non-API.
+    //
+    // Cache-Control: no-cache su TUTTE le risorse della SPA. La WebView di macOS
+    // (WKWebView) altrimenti applica il caching euristico (manca Cache-Control):
+    // dopo un aggiornamento riusa la index.html/asset vecchi in cache, che
+    // referenziano chunk non più esistenti → UI rotta (placeholder mancanti,
+    // pagine che non si aprono) finché non si svuotano i dati. Con "no-cache" la
+    // WebView rivalida sempre (304 se invariato, 200 col nuovo dopo l'update).
     let spa_dir = spa_dir();
-    let spa = ServeDir::new(&spa_dir).fallback(ServeFile::new(spa_dir.join("index.html")));
+    let spa = ServiceBuilder::new()
+        .layer(SetResponseHeaderLayer::overriding(
+            CACHE_CONTROL,
+            HeaderValue::from_static("no-cache"),
+        ))
+        .service(ServeDir::new(&spa_dir).fallback(ServeFile::new(spa_dir.join("index.html"))));
 
     Router::new()
         .route("/healthz", get(healthz))
