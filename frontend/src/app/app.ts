@@ -24,6 +24,7 @@ import { OfflineService } from './services/offline.service';
 import { ModuliService } from './services/moduli.service';
 import { DocLockService } from './services/doc-lock.service';
 import { LayoutService } from './services/layout.service';
+import { WindowTitleService } from './services/window-title.service';
 import { LoginComponent } from './components/login/login';
 import { CookieConsentComponent } from './components/shared/cookie-consent';
 import { LockScreenComponent } from './components/shared/lock-screen';
@@ -179,6 +180,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     public layout: LayoutService,
     private zone: NgZone,
     public update: UpdateService,
+    private windowTitle: WindowTitleService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -250,6 +252,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.ds.getAzienda().subscribe({
       next: a => {
         this.azienda = a;
+        this.windowTitle.setAzienda(a?.ragioneSociale);
         // La ragione sociale cambia la larghezza occupata a sinistra: ricalcolo
         // il formato della data (dopo il render del nuovo nome).
         requestAnimationFrame(() => this.zone.run(() => this.updateDateLabel()));
@@ -320,7 +323,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   onLogin() {
     this.loggedIn = true;
-    this.ds.getAzienda().subscribe({ next: a => this.azienda = a, error: () => {} });
+    this.ds.getAzienda().subscribe({ next: a => { this.azienda = a; this.windowTitle.setAzienda(a?.ragioneSociale); }, error: () => {} });
     this.moduli.load(true).subscribe();
     if (window.innerWidth < 768) this.collapsed = true;
     this.notifSvc.start();

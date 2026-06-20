@@ -22,6 +22,7 @@ mod xml;
 use std::path::PathBuf;
 
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 use db::AppState;
 
@@ -33,6 +34,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             // I dati vivono fuori dall'app (persistono tra aggiornamenti), come
             // faceva main.js con app.getPath('userData')/data. Override via DATA_DIR.
@@ -70,7 +72,7 @@ fn main() {
 
             // La WebView carica la SPA servita da axum (niente file://, niente CORS).
             let url = format!("http://localhost:{}/", server::PORT);
-            WebviewWindowBuilder::new(
+            let window = WebviewWindowBuilder::new(
                 app,
                 "main",
                 WebviewUrl::External(url.parse().expect("url valido")),
@@ -80,6 +82,11 @@ fn main() {
             .min_inner_size(360.0, 600.0)
             .maximized(true)
             .build()?;
+
+            // Ripristina dimensione/posizione/stato salvati dalla sessione
+            // precedente (il plugin window-state li salva alla chiusura). Al
+            // primo avvio non c'è nulla da ripristinare: resta massimizzata.
+            let _ = window.restore_state(StateFlags::all());
 
             Ok(())
         })
