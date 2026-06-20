@@ -25,6 +25,7 @@ import { ModuliService } from './services/moduli.service';
 import { DocLockService } from './services/doc-lock.service';
 import { LayoutService } from './services/layout.service';
 import { WindowTitleService } from './services/window-title.service';
+import { NativeMenuService } from './services/native-menu.service';
 import { LoginComponent } from './components/login/login';
 import { CookieConsentComponent } from './components/shared/cookie-consent';
 import { LockScreenComponent } from './components/shared/lock-screen';
@@ -181,6 +182,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     private zone: NgZone,
     public update: UpdateService,
     private windowTitle: WindowTitleService,
+    private nativeMenu: NativeMenuService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -203,6 +205,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   ngOnInit() {
+    this.nativeMenu.start();   // ponte menu nativo → azioni SPA (no-op su web)
     this.darkMode = lsGet('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
 

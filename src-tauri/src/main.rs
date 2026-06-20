@@ -21,7 +21,8 @@ mod xml;
 
 use std::path::PathBuf;
 
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::menu::{MenuBuilder, SubmenuBuilder};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 use db::AppState;
@@ -88,10 +89,69 @@ fn main() {
             // primo avvio non c'è nulla da ripristinare: resta massimizzata.
             let _ = window.restore_state(StateFlags::all());
 
+            // ── Menu nativo dell'applicazione ──────────────────────────────
+            // Le voci app-specifiche NON hanno acceleratore (le scorciatoie
+            // Cmd+N/Cmd+S sono già gestite dalla SPA): qui il menu serve da via
+            // mouse/discoverability. Al click emettono l'evento "menu" che il
+            // frontend traduce nell'azione corrispondente.
+            if let Err(e) = setup_menu(app) {
+                tracing::warn!("menu nativo non disponibile: {e}");
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("errore nell'avvio di Ordeva");
+}
+
+/// Costruisce e installa il menu nativo (File / Modifica / Visualizza / Aiuto).
+/// Le voci custom emettono l'evento "menu" con il proprio id verso la WebView.
+fn setup_menu(app: &tauri::App) -> tauri::Result<()> {
+    let file = SubmenuBuilder::new(app, "File")
+        .text("new", "Nuovo documento")
+        .text("save", "Salva")
+        .separator()
+        .text("backup", "Backup dati…")
+        .separator()
+        .quit()
+        .build()?;
+
+    let edit = SubmenuBuilder::new(app, "Modifica")
+        .undo()
+        .redo()
+        .separator()
+        .cut()
+        .copy()
+        .paste()
+        .select_all()
+        .build()?;
+
+    let view = SubmenuBuilder::new(app, "Visualizza")
+        .text("density", "Densità: Comoda / Compatta")
+        .separator()
+        .minimize()
+        .build()?;
+
+    let help = SubmenuBuilder::new(app, "Aiuto")
+        .text("help", "Guida")
+        .text("about", "Informazioni su Ordeva")
+        .build()?;
+
+    let menu = MenuBuilder::new(app)
+        .items(&[&file, &edit, &view, &help])
+        .build()?;
+    app.set_menu(menu)?;
+
+    app.on_menu_event(move |app, event| {
+        let id = event.id().as_ref().to_string();
+        // Le voci predefinite (copy/paste/quit…) sono gestite dal sistema; per
+        // quelle custom inoltriamo l'id alla SPA che esegue l'azione.
+        if let Some(win) = app.get_webview_window("main") {
+            let _ = win.emit("menu", id);
+        }
+    });
+
+    Ok(())
 }
 
 fn resolve_data_dir(app: &tauri::App) -> Result<PathBuf, Box<dyn std::error::Error>> {
