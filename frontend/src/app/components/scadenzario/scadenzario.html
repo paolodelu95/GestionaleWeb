@@ -180,6 +180,7 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"
           [class.row-scaduto]="row.scaduto"
+          [class.row-urgente]="!row.scaduto && row.giorniMancanti !== null && row.giorniMancanti <= 7"
           [class.row-selected]="selection.isSelected(row)"
           (click)="selection.toggle(row)"
           style="cursor:pointer">

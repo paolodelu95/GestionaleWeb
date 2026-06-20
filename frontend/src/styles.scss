@@ -2631,6 +2631,23 @@ body.glass-ui .mat-mdc-snack-bar-container { margin-bottom: 92px; }
   }
 }
 
+// ── Striscia totali sotto le liste documento ──────────────────────────────────
+// Riepilogo (conteggio + somma importi) delle righe visibili: l'utente vede il
+// totale senza scorrere fino in fondo. Allineata a destra come i totali tabellari.
+.list-totals {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  font-variant-numeric: tabular-nums;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MODALITÀ COMPATTA DESKTOP  (html.density-compact)
 // Attivata dal toggle Impostazioni → Aspetto → Densità (LayoutService, default

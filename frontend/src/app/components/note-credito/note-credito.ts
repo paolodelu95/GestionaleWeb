@@ -22,6 +22,7 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
+import { ExcelService } from '../../services/excel.service';
 import { NotaCredito, Cliente, Fattura, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
@@ -652,7 +653,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
 
   ngOnInit() {
     this.load();
@@ -716,6 +717,21 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     const body = rows.map(n=>`<tr><td>${n.numero}</td><td>${d(n.dataEmissione)}</td><td>${n.clienteNome||'—'}</td><td class="r">${e(n.totale)}</td><td>${n.stato}</td></tr>`).join('');
     const html = `<!DOCTYPE html><html><head><title>Note di Credito</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Note di Credito</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
+
+  esporta() {
+    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
+    this.excel.export(rows, [
+      { header: 'Numero',  field: 'numero',        width: 14 },
+      { header: 'Data',    field: 'dataEmissione', width: 14 },
+      { header: 'Cliente', field: 'clienteNome',   width: 30 },
+      { header: 'Importo', field: 'totale',        width: 14 },
+      { header: 'Stato',   field: 'stato',         width: 14 },
+    ], 'note-credito');
+  }
+
+  get totaleLista(): number {
+    return this.dataSource.data.reduce((s, r) => s + (Number((r as any).totale) || 0), 0);
   }
 
   isAllSelected() { return this.dataSource.data.length > 0 && this.selection.selected.length === this.dataSource.data.length; }

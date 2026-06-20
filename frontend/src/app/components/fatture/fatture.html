@@ -12,6 +12,7 @@
     }
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuova fattura</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> Genera da documenti di trasporto</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
 
     <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFatt" title="Altre azioni">
@@ -19,6 +20,7 @@
     </button>
     <mat-menu #overflowMenuFatt="matMenu">
       <button mat-menu-item type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> Genera da documenti di trasporto</button>
+      <button mat-menu-item type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
       <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
     </mat-menu>
   </div>
@@ -165,6 +167,7 @@
         </td>
       </tr>
     </table>
+    <div class="list-totals">{{ dataSource.data.length }} documenti · Totale {{ totaleLista | number:'1.2-2' }} €</div>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
   </div>
 </div>

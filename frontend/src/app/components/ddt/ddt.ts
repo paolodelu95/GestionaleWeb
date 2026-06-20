@@ -24,6 +24,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
+import { ExcelService } from '../../services/excel.service';
 
 import { Ddt, Fattura, Cliente, Fornitore, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
 import { consumePrefill } from '../../utils/nav-prefill';
@@ -995,7 +996,20 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   notificheConfig: NotificheConfig = {};
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
+
+  get totaleLista(): number { return this.dataSource.data.reduce((s, r) => s + (Number((r as any).totale) || 0), 0); }
+
+  esporta() {
+    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
+    this.excel.export(rows, [
+      { header: 'Numero',  field: 'numero',         width: 14 },
+      { header: 'Data',    field: 'dataEmissione',  width: 14 },
+      { header: 'Cliente / Fornitore', field: 'clienteNome', width: 30 },
+      { header: 'Importo', field: 'totale',         width: 14 },
+      { header: 'Stato',   field: 'stato',          width: 14 },
+    ], 'ddt');
+  }
 
   ngOnInit() {
     this.load();

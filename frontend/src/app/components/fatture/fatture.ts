@@ -28,6 +28,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
+import { ExcelService } from '../../services/excel.service';
 import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, ProdottoVariante, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
@@ -1548,7 +1549,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   notificheConfig: NotificheConfig = {};
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
 
   ngOnInit() {
     // Apertura da scheda cliente ("Fatture" nel kebab): filtra subito su quel cliente.
@@ -1619,6 +1620,22 @@ export class FattureComponent implements OnInit, AfterViewInit {
     const body = rows.map(f=>`<tr><td>${f.numero}</td><td>${d(f.dataEmissione)}</td><td>${f.clienteNome||'—'}</td><td class="r">${e(f.totale)}</td><td>${f.stato}</td></tr>`).join('');
     const html = `<!DOCTYPE html><html><head><title>Fatture</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Fatture</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+  }
+
+  esporta() {
+    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
+    this.excel.export(rows, [
+      { header: 'Numero',     field: 'numero',        width: 16 },
+      { header: 'Data',       field: 'dataEmissione', width: 14 },
+      { header: 'Cliente',    field: 'clienteNome',   width: 30 },
+      { header: 'Imponibile', field: 'imponibile',    width: 14 },
+      { header: 'Totale',     field: 'totale',        width: 14 },
+      { header: 'Stato',      field: 'stato',         width: 14 },
+    ], 'fatture');
+  }
+
+  get totaleLista(): number {
+    return this.dataSource.data.reduce((s, r) => s + (Number(r.totale) || 0), 0);
   }
 
   get fatture() { return this.dataSource.data; }
