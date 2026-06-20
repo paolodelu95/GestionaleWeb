@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { lsGet, lsSet } from '../utils/safe-storage';
+import { environment } from '../../environments/environment';
 
 export type NavLayout = 'side' | 'floating';
 
@@ -29,7 +30,11 @@ export class LayoutService {
   }
 
   private read(): NavLayout {
-    return lsGet(this.KEY) === 'side' ? 'side' : 'floating';
+    const saved = lsGet(this.KEY);
+    if (saved === 'side' || saved === 'floating') return saved;
+    // Default: barra laterale classica nell'edizione desktop offline (il dock
+    // fluttuante stile iOS è pensato per il web/touch); dock sul web.
+    return environment.offline ? 'side' : 'floating';
   }
 
   setNavLayout(v: NavLayout) {

@@ -817,6 +817,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit {
   @HostListener('keydown', ['$event'])
   onDialogKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); this.save(); }
   }
 
   /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */

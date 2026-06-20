@@ -497,10 +497,11 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
   }
 
   /** Sposta il focus al codice della riga successiva; se non esiste, ne crea una nuova. */
-  // Scorciatoia: Ctrl/Cmd+Invio salva il documento da qualunque campo.
+  // Scorciatoia: Ctrl/Cmd+Invio e Ctrl/Cmd+S salvano il documento da qualunque campo.
   @HostListener('keydown', ['$event'])
   onDialogKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); this.save(); }
   }
 
   /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */
