@@ -40,6 +40,7 @@ import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
+import { ViewStateService } from '../../services/view-state.service';
 
 @Component({
   selector: 'app-acquisto-dialog',
@@ -533,6 +534,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     private printSvc: PrintService,
     private api: ApiService,
     private excel: ExcelService,
+    private viewState: ViewStateService,
   ) {}
 
   // Scorciatoia: Ctrl/Cmd+N apre un nuovo acquisto (solo se non c'è già un dialog aperto).
@@ -546,6 +548,14 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    // Ripristino filtri/ordinamento persistiti tra le sessioni (prima del prefill, che può sovrascrivere).
+    const vs = this.viewState.read<any>('acquisti');
+    if (vs) {
+      if (Array.isArray(vs.filtroAnni)) this.filtroAnni = vs.filtroAnni;
+      if (Array.isArray(vs.filtroMesi)) this.filtroMesi = vs.filtroMesi;
+      if (Array.isArray(vs.filtroFornitori)) this.filtroFornitori = vs.filtroFornitori;
+    }
+
     // Apertura da scheda fornitore ("Acquisti" nel kebab): filtra subito su quel fornitore.
     const ff = consumePrefill<number>('filtroFornitore');
     if (ff) { this.filtroAnni = []; this.filtroMesi = []; this.filtroFornitori = [ff]; }
@@ -555,6 +565,12 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    const vs = this.viewState.read<any>('acquisti');
+    if (vs?.sortActive) {
+      this.sort.active = vs.sortActive;
+      this.sort.direction = vs.sortDir ?? '';
+      this.dataSource.sort = this.sort;
+    }
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
@@ -593,6 +609,18 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     if (this.filtroFornitori.length) data = data.filter(a => a.fornitoreId != null && this.filtroFornitori.includes(a.fornitoreId));
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    this.saveViewState();
+  }
+
+  /** Persiste filtri e ordinamento correnti tra le sessioni. Pubblico: invocato anche dal template su (matSortChange). */
+  saveViewState(): void {
+    this.viewState.write('acquisti', {
+      filtroAnni: this.filtroAnni,
+      filtroMesi: this.filtroMesi,
+      filtroFornitori: this.filtroFornitori,
+      sortActive: this.sort?.active ?? null,
+      sortDir: this.sort?.direction ?? null,
+    });
   }
 
   resetFiltri() {

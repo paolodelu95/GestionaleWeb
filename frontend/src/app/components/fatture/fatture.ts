@@ -34,6 +34,7 @@ import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
 import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-univoco';
 import { consumePrefill } from '../../utils/nav-prefill';
+import { ViewStateService } from '../../services/view-state.service';
 import { docRigaTotale, prezzoNettoDaInput } from '../../utils/doc-calc';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { creaProdottoDaRiga } from '../../utils/crea-prodotto-da-riga';
@@ -1521,6 +1522,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
 })
 export class FattureComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  private viewState = inject(ViewStateService);
   /** Edizione offline desktop: nasconde i pezzi SaaS (es. link pagamento Stripe). */
   readonly offline = environment.offline;
   private allFatture: Fattura[] = [];
@@ -1563,6 +1565,16 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    // Ripristino filtri/ordinamento dalla sessione precedente (prima del prefill,
+    // così un'eventuale apertura "filtrata da cliente" prevale sullo stato salvato).
+    const vs = this.viewState.read<any>('fatture');
+    if (vs) {
+      if (Array.isArray(vs.filtroAnni)) this.filtroAnni = vs.filtroAnni;
+      if (Array.isArray(vs.filtroMesi)) this.filtroMesi = vs.filtroMesi;
+      if (Array.isArray(vs.filtroClienti)) this.filtroClienti = vs.filtroClienti;
+      if (Array.isArray(vs.filtroStati)) this.filtroStati = vs.filtroStati;
+      if (typeof vs.filtroDaPagare === 'boolean') this.filtroDaPagare = vs.filtroDaPagare;
+    }
     // Apertura da scheda cliente ("Fatture" nel kebab): filtra subito su quel cliente.
     const fc = consumePrefill<number>('filtroCliente');
     if (fc) { this.filtroAnni = []; this.filtroMesi = []; this.filtroStati = []; this.filtroDaPagare = false; this.filtroClienti = [fc]; }
@@ -1576,6 +1588,12 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    const vs = this.viewState.read<any>('fatture');
+    if (vs?.sortActive && this.sort) {
+      this.sort.active = vs.sortActive;
+      this.sort.direction = vs.sortDir ?? '';
+      this.dataSource.sort = this.sort;
+    }
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
@@ -1612,12 +1630,27 @@ export class FattureComponent implements OnInit, AfterViewInit {
     if (this.filtroDaPagare) data = data.filter(f => f.stato === 'EMESSA');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    this.saveViewState();
+  }
+
+  /** Persiste filtri e ordinamento correnti per ritrovarli alla riapertura. */
+  saveViewState(): void {
+    this.viewState.write('fatture', {
+      filtroAnni: this.filtroAnni,
+      filtroMesi: this.filtroMesi,
+      filtroClienti: this.filtroClienti,
+      filtroStati: this.filtroStati,
+      filtroDaPagare: this.filtroDaPagare,
+      sortActive: this.sort?.active ?? null,
+      sortDir: this.sort?.direction ?? null,
+    });
   }
 
   resetFiltri() {
     this.filtroAnni = []; this.filtroMesi = []; this.filtroClienti = []; this.filtroStati = []; this.filtroDaPagare = false;
     this.dataSource.filter = '';
     this.applyFilters();
+    this.saveViewState();
   }
 
   applyFilter(event: Event) {

@@ -25,6 +25,7 @@ import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { ExcelService } from '../../services/excel.service';
+import { ViewStateService } from '../../services/view-state.service';
 
 import { Ddt, Fattura, Cliente, Fornitore, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
 import { consumePrefill } from '../../utils/nav-prefill';
@@ -997,7 +998,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   notificheConfig: NotificheConfig = {};
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService, private viewState: ViewStateService) {}
 
   @HostListener('window:keydown', ['$event'])
   onWindowKeydown(e: KeyboardEvent) {
@@ -1022,6 +1023,14 @@ export class DdtComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    // Ripristino filtri/ordinamento salvati (prima del prefill, che può sovrascrivere).
+    const vs = this.viewState.read<any>('ddt');
+    if (vs) {
+      if (Array.isArray(vs.filtroAnni)) this.filtroAnni = vs.filtroAnni;
+      if (Array.isArray(vs.filtroMesi)) this.filtroMesi = vs.filtroMesi;
+      if (Array.isArray(vs.filtroClienti)) this.filtroClienti = vs.filtroClienti;
+      if (typeof vs.filtroDaFatturare === 'boolean') this.filtroDaFatturare = vs.filtroDaFatturare;
+    }
     this.load();
     this.ds.getAzienda().subscribe(a => {
       this.notificheConfig = a.notificheConfig ?? { avvisoInsolutiDdt: true, avvisoInsolutiFattura: true };
@@ -1032,6 +1041,12 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    const vs = this.viewState.read<any>('ddt');
+    if (vs?.sortActive && this.sort) {
+      this.sort.active = vs.sortActive;
+      this.sort.direction = vs.sortDir ?? '';
+      this.dataSource.sort = this.sort;
+    }
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
@@ -1063,11 +1078,25 @@ export class DdtComponent implements OnInit, AfterViewInit {
     if (this.filtroDaFatturare) data = data.filter(d => !d.fatturaId && d.stato !== 'ANNULLATO');
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    this.saveViewState();
+  }
+
+  /** Persiste filtri e ordinamento correnti per la sezione 'ddt'. */
+  saveViewState(): void {
+    this.viewState.write('ddt', {
+      filtroAnni: this.filtroAnni,
+      filtroMesi: this.filtroMesi,
+      filtroClienti: this.filtroClienti,
+      filtroDaFatturare: this.filtroDaFatturare,
+      sortActive: this.sort?.active ?? null,
+      sortDir: this.sort?.direction ?? null,
+    });
   }
 
   resetFiltri() {
     this.filtroAnni = []; this.filtroMesi = []; this.filtroClienti = []; this.filtroDaFatturare = false;
     this.dataSource.filter = ''; this.applyFilters();
+    this.saveViewState();
   }
 
   print() {

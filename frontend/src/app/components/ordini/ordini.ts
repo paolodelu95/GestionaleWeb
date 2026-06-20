@@ -37,6 +37,7 @@ import { DocLockService } from '../../services/doc-lock.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { ViewStateService } from '../../services/view-state.service';
 
 @Component({
   selector: 'app-ordine-dialog',
@@ -700,10 +701,28 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService, private viewState: ViewStateService) {}
 
   ngOnInit() {
+    // Ripristino filtri/ordinamento salvati (prima di qualunque prefill, che deve poter prevalere).
+    const vs = this.viewState.read<any>('ordini');
+    if (vs) {
+      if (Array.isArray(vs.filtroAnni)) this.filtroAnni = vs.filtroAnni;
+      if (Array.isArray(vs.filtroMesi)) this.filtroMesi = vs.filtroMesi;
+      if (Array.isArray(vs.filtroTipi)) this.filtroTipi = vs.filtroTipi;
+    }
     this.load();
+  }
+
+  /** Persiste filtri e ordinamento correnti (pubblico: usato anche dal template su matSortChange). */
+  saveViewState(): void {
+    this.viewState.write('ordini', {
+      filtroAnni: this.filtroAnni,
+      filtroMesi: this.filtroMesi,
+      filtroTipi: this.filtroTipi,
+      sortActive: this.sort?.active ?? null,
+      sortDir: this.sort?.direction ?? null,
+    });
   }
 
   // Cmd/Ctrl+N = nuovo ordine (disabilitato quando un dialog è aperto).
@@ -718,6 +737,12 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    const vs = this.viewState.read<any>('ordini');
+    if (vs?.sortActive && this.sort) {
+      this.sort.active = vs.sortActive;
+      this.sort.direction = vs.sortDir ?? '';
+      this.dataSource.sort = this.sort;
+    }
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, col) => {
       switch (col) {
@@ -759,11 +784,13 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     if (this.filtroTipi.length) data = data.filter(o => this.filtroTipi.includes(o.tipo));
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    this.saveViewState();
   }
 
   resetFiltri() {
     this.filtroAnni = []; this.filtroMesi = []; this.filtroTipi = [];
     this.dataSource.filter = ''; this.applyFilters();
+    this.saveViewState();
   }
 
   applyFilter(event: Event) {

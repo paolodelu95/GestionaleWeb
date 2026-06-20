@@ -36,6 +36,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { ViewStateService } from '../../services/view-state.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -707,6 +708,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
 })
 export class PreventiviComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  private viewState = inject(ViewStateService);
   private allPreventivi: Preventivo[] = [];
   dataSource = new MatTableDataSource<Preventivo>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
@@ -741,6 +743,13 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    // Ripristino filtri/ordinamento salvati (prima di prefill, così il prefill può sovrascrivere).
+    const vs = this.viewState.read<any>('preventivi');
+    if (vs) {
+      if (Array.isArray(vs.filtroAnni)) this.filtroAnni = vs.filtroAnni;
+      if (Array.isArray(vs.filtroMesi)) this.filtroMesi = vs.filtroMesi;
+      if (Array.isArray(vs.filtroClienti)) this.filtroClienti = vs.filtroClienti;
+    }
     this.load();
     const bozza = consumePrefill('nuovaBozza');
     if (bozza) setTimeout(() => this.open(bozza as Preventivo), 0);
@@ -748,6 +757,12 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    const vs = this.viewState.read<any>('preventivi');
+    if (vs?.sortActive && this.sort) {
+      this.sort.active = vs.sortActive;
+      this.sort.direction = vs.sortDir ?? '';
+      this.dataSource.sort = this.sort;
+    }
     this.dataSource.paginator = this.paginator;
     this.dataSource.sortingDataAccessor = (item, prop) => {
       switch (prop) {
@@ -778,11 +793,24 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     if (this.filtroClienti.length) data = data.filter(p => p.clienteId != null && this.filtroClienti.includes(p.clienteId));
     this.dataSource.data = data;
     if (this.paginator) this.dataSource.paginator = this.paginator;
+    this.saveViewState();
+  }
+
+  /** Persiste filtri e ordinamento tra le sessioni (sezione 'preventivi'). */
+  saveViewState(): void {
+    this.viewState.write('preventivi', {
+      filtroAnni: this.filtroAnni,
+      filtroMesi: this.filtroMesi,
+      filtroClienti: this.filtroClienti,
+      sortActive: this.sort?.active ?? null,
+      sortDir: this.sort?.direction ?? null,
+    });
   }
 
   resetFiltri() {
     this.filtroAnni = []; this.filtroMesi = []; this.filtroClienti = [];
     this.dataSource.filter = ''; this.applyFilters();
+    this.saveViewState();
   }
 
   applyFilter(event: Event) {
