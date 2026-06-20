@@ -2670,6 +2670,12 @@ tr.mat-mdc-row:focus {
 // ═══════════════════════════════════════════════════════════════════════════
 html.density-compact {
   @include mat.theme((density: -2));
+  // Eccezione: i form-field restano a densità -1 (52px). Material NASCONDE la
+  // floating label quando l'altezza scende sotto 52px (a -2 = 48px), lasciando i
+  // campi senza etichetta ("Partita IVA" ecc.). A -1 le label restano visibili;
+  // tabelle/liste/menu restano comunque a -2 (le "righe enormi").
+  @include mat.form-field-density(-1);
+  @include mat.input-density(-1);
 
   // ── Variabili di layout (cascata ovunque, anche dentro i componenti) ──
   --sidenav-width: 210px;
