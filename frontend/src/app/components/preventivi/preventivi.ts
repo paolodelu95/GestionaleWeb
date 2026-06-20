@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, OnDestroy, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
@@ -37,6 +37,7 @@ import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
 import { ViewStateService } from '../../services/view-state.service';
+import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -367,7 +368,7 @@ import { catchError } from 'rxjs/operators';
     }
   `]
 })
-export class PreventivoDialogComponent implements OnInit, AfterViewInit {
+export class PreventivoDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   locked = false;
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -471,6 +472,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
     private printSvcDialog: PrintService,
     private docLockSvc: DocLockService,
     public dialogRef: MatDialogRef<PreventivoDialogComponent>,
+    private documentDirty: DocumentDirtyService,
     @Inject(MAT_DIALOG_DATA) public data: Preventivo | null
   ) {
     this.isNew = !data?.id;
@@ -591,6 +593,13 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); }
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); this.save(); }
   }
+
+  /** Ogni modifica nei campi del dialog marca il documento come "sporco". */
+  @HostListener('input')
+  @HostListener('change')
+  onAnyEdit(): void { this.documentDirty.setDirty(true); }
+
+  ngOnDestroy(): void { this.documentDirty.setDirty(false); }
 
   /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */
   onCodiceBackspace(index: number, event: Event) {

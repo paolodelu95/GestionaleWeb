@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, OnDestroy, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
@@ -45,6 +45,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 
 interface DdtItem { ddt: any; checked: boolean; }
@@ -804,7 +805,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
     .tipo-acconto { background:var(--success-soft); color:var(--success-on); }
   `]
 })
-export class FatturaDialogComponent implements OnInit, AfterViewInit {
+export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   form: FormGroup;
   locked = false;
   numeriEsistenti = new Set<string>();
@@ -1080,6 +1081,12 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); this.save(); }
   }
 
+  @HostListener('input')
+  @HostListener('change')
+  onAnyEdit(): void { this.documentDirty.setDirty(true); }
+
+  ngOnDestroy(): void { this.documentDirty.setDirty(false); }
+
   setPrezzoFromInput(riga: RigaDocumento, event: Event) {
     const v = +(event.target as HTMLInputElement).value;
     riga.prezzo = prezzoNettoDaInput(v, riga.iva, this.showNetto);
@@ -1160,6 +1167,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit {
     private snack: MatSnackBar,
     private printSvcDialog: PrintService,
     private docLockSvc: DocLockService,
+    private documentDirty: DocumentDirtyService,
     public dialogRef: MatDialogRef<FatturaDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Fattura | null
   ) {

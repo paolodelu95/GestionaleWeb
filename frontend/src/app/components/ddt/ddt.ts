@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, OnDestroy, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
@@ -42,6 +42,7 @@ import { EmailDialogComponent } from '../shared/email-dialog';
 import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia-righe-dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
+import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 
 @Component({
@@ -475,7 +476,20 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
-export class DdtDialogComponent implements OnInit, AfterViewInit {
+export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+
+  private documentDirty = inject(DocumentDirtyService);
+
+  /** Ogni modifica utente nel dialog (gli eventi input/change bubblano dai campi figli) marca il documento come "sporco". */
+  @HostListener('input')
+  @HostListener('change')
+  onAnyEdit(): void {
+    this.documentDirty.setDirty(true);
+  }
+
+  ngOnDestroy(): void {
+    this.documentDirty.setDirty(false);
+  }
 
   locked = false;
   toggleLock() { this.locked = !this.locked; }

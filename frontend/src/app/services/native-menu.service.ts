@@ -2,7 +2,10 @@ import { Injectable, NgZone, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { confirm } from '@tauri-apps/plugin-dialog';
 import { LayoutService } from './layout.service';
+import { DocumentDirtyService } from './document-dirty.service';
 
 /**
  * Ponte tra il menu nativo (Tauri, definito in src-tauri/src/main.rs) e la SPA.
@@ -15,6 +18,7 @@ import { LayoutService } from './layout.service';
 export class NativeMenuService {
   private router = inject(Router);
   private layout = inject(LayoutService);
+  private dirty = inject(DocumentDirtyService);
   private zone = inject(NgZone);
   private started = false;
 
@@ -23,6 +27,24 @@ export class NativeMenuService {
     this.started = true;
     listen<string>('menu', (e) => this.zone.run(() => this.handle(e.payload)))
       .catch(() => { /* no-op */ });
+    this.setupCloseGuard();
+  }
+
+  /** Avvisa prima di chiudere la finestra se un documento ha modifiche non salvate. */
+  private setupCloseGuard(): void {
+    const win = getCurrentWindow();
+    win.onCloseRequested(async (event) => {
+      if (!this.dirty.isDirty()) return;
+      event.preventDefault();
+      const ok = await confirm(
+        'Ci sono modifiche non salvate che andranno perse. Chiudere comunque?',
+        { title: 'Modifiche non salvate', kind: 'warning' },
+      );
+      if (ok) {
+        this.dirty.setDirty(false);
+        await win.destroy();
+      }
+    }).catch(() => { /* no-op */ });
   }
 
   private handle(id: string): void {

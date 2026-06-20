@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, OnDestroy, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
@@ -36,6 +36,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
 import { ViewStateService } from '../../services/view-state.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
+import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -305,7 +306,7 @@ import { forkJoin } from 'rxjs';
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
-export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
+export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   locked = false;
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -365,6 +366,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
     private snack: MatSnackBar,
     private printSvcDialog: PrintService,
     private docLockSvc: DocLockService,
+    private documentDirty: DocumentDirtyService,
     public dialogRef: MatDialogRef<NotaCreditoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: NotaCredito | null
   ) {
@@ -506,6 +508,13 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); }
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); this.save(); }
   }
+
+  // Marca il documento "sporco" a ogni modifica nei campi figli (gli eventi bubblano fino all'host).
+  @HostListener('input')
+  @HostListener('change')
+  onAnyEdit(): void { this.documentDirty.setDirty(true); }
+
+  ngOnDestroy(): void { this.documentDirty.setDirty(false); }
 
   /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */
   onCodiceBackspace(index: number, event: Event) {

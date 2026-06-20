@@ -1,4 +1,4 @@
-import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, AfterViewInit, OnDestroy, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
@@ -38,6 +38,7 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ViewStateService } from '../../services/view-state.service';
+import { DocumentDirtyService } from '../../services/document-dirty.service';
 
 @Component({
   selector: 'app-ordine-dialog',
@@ -322,7 +323,8 @@ import { ViewStateService } from '../../services/view-state.service';
     .dialog-hero-icon.is-warning { background: linear-gradient(135deg, var(--warning) 0%, var(--warning-on) 100%); box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--warning) 35%, transparent); }
   `]
 })
-export class OrdineDialogComponent implements OnInit, AfterViewInit {
+export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+  private documentDirty = inject(DocumentDirtyService);
   locked = false;
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -530,6 +532,17 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit {
   onDialogKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); }
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); this.save(); }
+  }
+
+  // Ogni modifica nei campi del dialog marca il documento come "sporco" (modifiche non salvate).
+  @HostListener('input')
+  @HostListener('change')
+  onAnyEdit(): void {
+    this.documentDirty.setDirty(true);
+  }
+
+  ngOnDestroy(): void {
+    this.documentDirty.setDirty(false);
   }
 
   /** Backspace su campo vuoto = elimina la riga corrente e torna alla precedente. */
