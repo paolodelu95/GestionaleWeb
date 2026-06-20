@@ -8,6 +8,7 @@ import { Directive, ElementRef, HostListener, OnDestroy, OnInit, inject } from '
  *  - Home / End   prima / ultima riga
  *  - Invio        apre la riga attiva → riusa il (dblclick) già presente sulla
  *                 riga (nessun cablaggio per-componente necessario)
+ *  - Tasto destro apre il menu azioni della riga (riusa il kebab già presente)
  *
  * Le righe usano tabindex=-1 (focus solo via mouse/programmatico, niente Tab su
  * ogni riga); la tabella è tabindex=0 così con Tab ci si arriva una volta sola.
@@ -71,5 +72,20 @@ export class TableKeyboardNavDirective implements OnInit, OnDestroy {
     }
     e.preventDefault();
     rows[idx]?.focus();
+  }
+
+  /** Tasto destro su una riga → apre il menu azioni (kebab) già presente nella
+   * cella azioni di quella riga. Riusa le voci esistenti: nessuna duplicazione. */
+  @HostListener('contextmenu', ['$event'])
+  onContextMenu(e: MouseEvent): void {
+    const row = (e.target as HTMLElement)?.closest('tr.mat-mdc-row') as HTMLElement | null;
+    if (!row) return;
+    const btn = row.querySelector(
+      'td.table-actions button, td.mat-column-azioni button, td.mat-column-azione button',
+    ) as HTMLElement | null;
+    if (!btn) return;
+    e.preventDefault();
+    row.focus();
+    btn.click();
   }
 }
