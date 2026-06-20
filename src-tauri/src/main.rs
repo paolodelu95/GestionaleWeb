@@ -11,6 +11,7 @@ mod fiscale;
 mod gemello;
 mod jobs;
 mod match_prodotti;
+mod migrate;
 mod moduli;
 mod numerazione;
 mod routes;

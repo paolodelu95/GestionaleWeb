@@ -44,6 +44,8 @@ impl AppState {
         auth_conn
             .execute_batch(AUTH_SCHEMA)
             .context("init schema auth.db")?;
+        // Auto-migrazione: aggiunge le colonne dello schema mancanti in DB vecchi.
+        crate::migrate::add_missing_columns(&auth_conn, AUTH_SCHEMA);
 
         let state = AppState {
             data_dir,
@@ -110,6 +112,8 @@ impl AppState {
         let conn = open_db(&path)?;
         conn.execute_batch(TENANT_SCHEMA)
             .with_context(|| format!("init schema tenant {slug}"))?;
+        // Auto-migrazione: aggiunge le colonne dello schema mancanti in DB vecchi.
+        crate::migrate::add_missing_columns(&conn, TENANT_SCHEMA);
         // Seed solo su DB fresco (azienda vuota), come il bootstrap di server.js.
         let already_seeded: i64 =
             conn.query_row("SELECT COUNT(*) FROM azienda", [], |r| r.get(0))?;
