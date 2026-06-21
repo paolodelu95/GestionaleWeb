@@ -19,7 +19,6 @@ export class NativeMenuService {
   private layout = inject(LayoutService);
   private zone = inject(NgZone);
   private started = false;
-  private closing = false;
 
   start(): void {
     if (this.started || !isTauri()) return;
@@ -29,20 +28,22 @@ export class NativeMenuService {
     this.setupCloseConfirm();
   }
 
-  /** Chiede conferma prima di chiudere la finestra. */
+  /**
+   * Chiede conferma prima di chiudere la finestra. `destroy()` chiude la
+   * finestra senza ri-emettere "close-requested", quindi non serve nessun
+   * flag anti-rientro: se l'utente annulla, la finestra resta aperta e il
+   * prossimo tentativo di chiusura ripropone il dialog regolarmente.
+   * Richiede il permesso `core:window:allow-destroy` nelle capabilities.
+   */
   private setupCloseConfirm(): void {
     const win = getCurrentWindow();
     win.onCloseRequested(async (event) => {
-      if (this.closing) return;
       event.preventDefault();
       const ok = await confirm('Vuoi chiudere Ordeva?', {
         title: 'Conferma chiusura',
         kind: 'warning',
       });
-      if (ok) {
-        this.closing = true;
-        await win.destroy();
-      }
+      if (ok) await win.destroy();
     }).catch(() => { /* no-op */ });
   }
 
