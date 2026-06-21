@@ -5,7 +5,6 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { confirm } from '@tauri-apps/plugin-dialog';
 import { LayoutService } from './layout.service';
-import { DocumentDirtyService } from './document-dirty.service';
 
 /**
  * Ponte tra il menu nativo (Tauri, definito in src-tauri/src/main.rs) e la SPA.
@@ -18,30 +17,30 @@ import { DocumentDirtyService } from './document-dirty.service';
 export class NativeMenuService {
   private router = inject(Router);
   private layout = inject(LayoutService);
-  private dirty = inject(DocumentDirtyService);
   private zone = inject(NgZone);
   private started = false;
+  private closing = false;
 
   start(): void {
     if (this.started || !isTauri()) return;
     this.started = true;
     listen<string>('menu', (e) => this.zone.run(() => this.handle(e.payload)))
       .catch(() => { /* no-op */ });
-    this.setupCloseGuard();
+    this.setupCloseConfirm();
   }
 
-  /** Avvisa prima di chiudere la finestra se un documento ha modifiche non salvate. */
-  private setupCloseGuard(): void {
+  /** Chiede conferma prima di chiudere la finestra. */
+  private setupCloseConfirm(): void {
     const win = getCurrentWindow();
     win.onCloseRequested(async (event) => {
-      if (!this.dirty.isDirty()) return;
+      if (this.closing) return;
       event.preventDefault();
-      const ok = await confirm(
-        'Ci sono modifiche non salvate che andranno perse. Chiudere comunque?',
-        { title: 'Modifiche non salvate', kind: 'warning' },
-      );
+      const ok = await confirm('Vuoi chiudere Ordeva?', {
+        title: 'Conferma chiusura',
+        kind: 'warning',
+      });
       if (ok) {
-        this.dirty.setDirty(false);
+        this.closing = true;
         await win.destroy();
       }
     }).catch(() => { /* no-op */ });
