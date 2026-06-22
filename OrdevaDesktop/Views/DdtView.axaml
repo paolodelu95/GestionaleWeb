@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
+             x:Class="Ordeva.Desktop.Views.DdtView"
+             x:DataType="vm:DdtViewModel">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+        <!-- Intestazione + azioni -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Text="Documenti di trasporto"
+                       FontSize="28" FontWeight="Bold" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="Duplica" Command="{Binding DuplicaCommand}" />
+                <Button Content="Genera fattura" Command="{Binding GeneraFatturaCommand}" />
+                <Button Content="Modifica" Command="{Binding ModificaCommand}" />
+                <Button Content="Nuovo documento" Command="{Binding AggiungiCommand}" Classes="accent" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Barra selezione multipla -->
+        <Border Grid.Row="1" Margin="0,12,0,0" Padding="12,8"
+                Background="#FFF1F2" CornerRadius="8"
+                IsVisible="{Binding HasSelezione}">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                           Text="{Binding NumSelezionati, StringFormat='{}{0} selezionati'}" />
+                <Button Content="Annulla selezionati" Command="{Binding AnnullaSelezionatiCommand}" />
+                <Button Content="Elimina selezionati" Command="{Binding EliminaCommand}"
+                        Foreground="#DC2626" />
+            </StackPanel>
+        </Border>
+
+        <!-- Ricerca + filtri -->
+        <Grid Grid.Row="2" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+            <TextBox Grid.Column="0" Watermark="Cerca documenti di trasporto..."
+                     Text="{Binding Ricerca, Mode=TwoWay}" />
+            <ComboBox Grid.Column="1" Margin="8,0,0,0" MinWidth="120"
+                      PlaceholderText="Anno"
+                      ItemsSource="{Binding Anni}"
+                      SelectedItem="{Binding FiltroAnno, Mode=TwoWay}" />
+            <ComboBox Grid.Column="2" Margin="8,0,0,0" MinWidth="200"
+                      PlaceholderText="Cliente"
+                      ItemsSource="{Binding Clienti}"
+                      SelectedItem="{Binding FiltroCliente, Mode=TwoWay}" />
+            <ToggleButton Grid.Column="3" Margin="8,0,0,0" Content="Da fatturare"
+                          IsChecked="{Binding FiltroDaFatturare, Mode=TwoWay}" />
+            <Button Grid.Column="4" Margin="8,0,0,0" Content="Azzera filtri"
+                    Command="{Binding ResetFiltriCommand}" />
+        </Grid>
+
+        <!-- Tabella documenti -->
+        <Border Grid.Row="3" Margin="0,12,0,0" CornerRadius="8"
+                BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+            <DataGrid x:Name="Grid"
+                      ItemsSource="{Binding Documenti}"
+                      SelectionMode="Extended"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      CanUserSortColumns="True"
+                      CanUserResizeColumns="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Numero" Binding="{Binding Numero}" Width="Auto" />
+                    <DataGridTextColumn Header="Data" Binding="{Binding DataEmissione}" Width="Auto" />
+                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="Auto" />
+                    <DataGridTextColumn Header="Cliente / Fornitore"
+                                        Binding="{Binding ControparteNome}" Width="2*" />
+                    <DataGridTextColumn Header="Importo"
+                                        Binding="{Binding TotaleVisualizzato, StringFormat='{}{0:C2}'}" Width="Auto" />
+                    <DataGridTextColumn Header="Stato" Binding="{Binding Stato}" Width="Auto" />
+                    <DataGridTextColumn Header="Fattura" Binding="{Binding FatturaNumero}" Width="Auto" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- Riepilogo lista -->
+        <Grid Grid.Row="4" Margin="0,10,0,0" ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Foreground="#64748B"
+                       Text="{Binding Documenti.Count, StringFormat='{}{0} documenti'}" />
+            <TextBlock Grid.Column="1" FontWeight="SemiBold"
+                       Text="{Binding TotaleLista, StringFormat='Totale {0:C2}'}" />
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,399 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             xmlns:models="clr-namespace:Ordeva.Desktop.Models"
+             mc:Ignorable="d" d:DesignWidth="1080" d:DesignHeight="720"
+             x:Class="Ordeva.Desktop.Views.MagazzinoView"
+             x:DataType="vm:MagazzinoViewModel">
+
+    <UserControl.Styles>
+        <!-- Spaziatura uniforme tra i controlli della barra filtri (WrapPanel). -->
+        <Style Selector="WrapPanel.filtri > :is(Control)">
+            <Setter Property="Margin" Value="0,0,10,10" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Margin="24" RowDefinitions="Auto,*">
+
+        <!-- Intestazione -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="Magazzino" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Depositi, giacenze e storico movimenti."
+                           Opacity="0.6" FontSize="13" Margin="0,2,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="Trasferimento" Command="{Binding ApriTrasferimentoCommand}" />
+                <Button Content="Rettifica giacenza" Command="{Binding ApriRettificaCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Tab: Depositi & Giacenze / Movimenti -->
+        <TabControl Grid.Row="1">
+
+            <!-- ── Depositi & Giacenze ───────────────────────────────────── -->
+            <TabItem Header="Depositi e giacenze">
+                <Grid ColumnDefinitions="320,16,*" Margin="0,12,0,0">
+
+                    <!-- Depositi (CRUD + multiselezione) -->
+                    <DockPanel Grid.Column="0">
+                        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                            <TextBlock Grid.Column="0" Text="Depositi" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="Nuovo"
+                                    Command="{Binding AggiungiDepositoCommand}" Classes="accent" />
+                        </Grid>
+
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                                    Spacing="8" Margin="0,8,0,0">
+                            <Button Content="Modifica" Command="{Binding ModificaDepositoCommand}" />
+                            <Button Content="Elimina" Command="{Binding EliminaDepositoCommand}" />
+                            <Button Content="Elimina selez." Command="{Binding EliminaDepositiSelezionatiCommand}" />
+                        </StackPanel>
+
+                        <DataGrid Name="GrigliaDepositi"
+                                  ItemsSource="{Binding Depositi}"
+                                  SelectedItem="{Binding DepositoSelezionato}"
+                                  SelectionMode="Extended"
+                                  IsReadOnly="True"
+                                  GridLinesVisibility="Horizontal"
+                                  BorderThickness="1" BorderBrush="#22000000"
+                                  CornerRadius="6">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Deposito"
+                                                    Binding="{Binding NomeLabel}" Width="*" />
+                                <DataGridTextColumn Header="Pred."
+                                                    Binding="{Binding PredefinitoLabel}" Width="Auto" />
+                                <DataGridTextColumn Header="Stato"
+                                                    Binding="{Binding StatoLabel}" Width="Auto" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+
+                    <!-- Giacenze del deposito selezionato -->
+                    <DockPanel Grid.Column="2">
+                        <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8">
+                            <Run Text="Giacenze —" />
+                            <Run Text="{Binding DepositoSelezionato.NomeLabel}" />
+                        </TextBlock>
+
+                        <DataGrid ItemsSource="{Binding Giacenze}"
+                                  IsReadOnly="True"
+                                  CanUserSortColumns="True"
+                                  GridLinesVisibility="Horizontal"
+                                  BorderThickness="1" BorderBrush="#22000000"
+                                  CornerRadius="6">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Prodotto" Binding="{Binding ProdottoNome}" Width="2*" />
+                                <DataGridTextColumn Header="Variante" Binding="{Binding VarianteLabel}" Width="*" />
+                                <DataGridTextColumn Header="Lotto" Binding="{Binding Lotto}" Width="Auto" />
+                                <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="Auto" />
+                                <DataGridTextColumn Header="Quantità" Binding="{Binding QuantitaLabel}" Width="Auto" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- ── Movimenti ─────────────────────────────────────────────── -->
+            <TabItem Header="Movimenti">
+                <DockPanel Margin="0,12,0,0">
+
+                    <!-- Barra filtri -->
+                    <Border DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <WrapPanel Orientation="Horizontal" Classes="filtri">
+                            <ComboBox PlaceholderText="Prodotto"
+                                      MinWidth="180"
+                                      ItemsSource="{Binding Prodotti}"
+                                      SelectedItem="{Binding FiltroProdotto}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Prodotto">
+                                        <TextBlock Text="{Binding Nome}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <ComboBox PlaceholderText="Cliente"
+                                      MinWidth="180"
+                                      ItemsSource="{Binding Clienti}"
+                                      SelectedItem="{Binding FiltroCliente}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Cliente">
+                                        <TextBlock Text="{Binding RagioneSociale}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <ComboBox MinWidth="140"
+                                      ItemsSource="{Binding TipiMovimento}"
+                                      SelectedItem="{Binding FiltroTipo}" />
+
+                            <ComboBox MinWidth="160"
+                                      ItemsSource="{Binding Causali}"
+                                      SelectedItem="{Binding FiltroCausale}" />
+
+                            <ComboBox PlaceholderText="Anno"
+                                      MinWidth="100"
+                                      ItemsSource="{Binding Anni}"
+                                      SelectedItem="{Binding FiltroAnno}" />
+
+                            <ComboBox MinWidth="130"
+                                      ItemsSource="{Binding Mesi}"
+                                      SelectedItem="{Binding FiltroMese}" />
+
+                            <TextBox Watermark="Da (aaaa-mm-gg)" Width="140"
+                                     Text="{Binding FiltroDataFrom}" />
+                            <TextBox Watermark="A (aaaa-mm-gg)" Width="140"
+                                     Text="{Binding FiltroDataTo}" />
+
+                            <Button Content="Azzera filtri" Command="{Binding AzzeraFiltriCommand}" />
+                        </WrapPanel>
+                    </Border>
+
+                    <!-- Riepilogo -->
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
+                                Spacing="24" Margin="2,0,0,10">
+                        <TextBlock>
+                            <Run Text="Carichi:" />
+                            <Run Text="{Binding TotaleCarichi}" FontWeight="SemiBold" />
+                        </TextBlock>
+                        <TextBlock>
+                            <Run Text="Scarichi:" />
+                            <Run Text="{Binding TotaleScarichi}" FontWeight="SemiBold" />
+                        </TextBlock>
+                    </StackPanel>
+
+                    <DataGrid ItemsSource="{Binding Movimenti}"
+                              IsReadOnly="True"
+                              CanUserSortColumns="True"
+                              GridLinesVisibility="Horizontal"
+                              BorderThickness="1" BorderBrush="#22000000"
+                              CornerRadius="6">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Data" Binding="{Binding DataLabel}" Width="Auto" />
+                            <DataGridTextColumn Header="Prodotto" Binding="{Binding ProdottoNome}" Width="2*" />
+                            <DataGridTextColumn Header="Variante" Binding="{Binding VarianteLabel}" Width="*" />
+                            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="Auto" />
+                            <DataGridTextColumn Header="Quantità" Binding="{Binding QuantitaLabel}" Width="Auto" />
+                            <DataGridTextColumn Header="Causale" Binding="{Binding CausaleLabel}" Width="*" />
+                            <DataGridTextColumn Header="Documento" Binding="{Binding DocumentoLabel}" Width="*" />
+                            <DataGridTextColumn Header="Controparte" Binding="{Binding ControparteLabel}" Width="1.5*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+
+        <!-- ══ Editor deposito (overlay) ═════════════════════════════════════ -->
+        <Border Grid.Row="0" Grid.RowSpan="2"
+                IsVisible="{Binding EditorDepositoAperto}"
+                Background="#80000000">
+            <Border Background="{DynamicResource SystemRegionBrush}"
+                    CornerRadius="10" Padding="24"
+                    Width="460" MaxWidth="460"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 8 32 0 #40000000">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding EditorDepositoTitolo}"
+                               FontSize="18" FontWeight="SemiBold" Margin="0,0,0,14" />
+
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                                HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+                        <Button Content="Annulla" Command="{Binding AnnullaDepositoCommand}" />
+                        <Button Content="Salva" Command="{Binding SalvaDepositoCommand}" Classes="accent" />
+                    </StackPanel>
+
+                    <Border DockPanel.Dock="Bottom"
+                            IsVisible="{Binding Errore, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="#1FEF4444" BorderBrush="#EF4444" BorderThickness="1"
+                            CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+                        <TextBlock Text="{Binding Errore}" Foreground="#EF4444"
+                                   TextWrapping="Wrap" FontSize="13" />
+                    </Border>
+
+                    <StackPanel Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Nome *" FontWeight="SemiBold" Opacity="0.8" />
+                            <TextBox Text="{Binding EditNome}" Watermark="es. Magazzino centrale" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="120,12,*">
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Codice" FontWeight="SemiBold" Opacity="0.8" />
+                                <TextBox Text="{Binding EditCodice}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Spacing="4">
+                                <TextBlock Text="Indirizzo" FontWeight="SemiBold" Opacity="0.8" />
+                                <TextBox Text="{Binding EditIndirizzo}" />
+                            </StackPanel>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="24" Margin="0,4,0,0">
+                            <CheckBox Content="Predefinito" IsChecked="{Binding EditPredefinito}" />
+                            <CheckBox Content="Attivo" IsChecked="{Binding EditAttivo}" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Border>
+
+        <!-- ══ Dialog Trasferimento (overlay) ════════════════════════════════ -->
+        <Border Grid.Row="0" Grid.RowSpan="2"
+                IsVisible="{Binding TrasferimentoAperto}"
+                Background="#80000000">
+            <Border Background="{DynamicResource SystemRegionBrush}"
+                    CornerRadius="10" Padding="24"
+                    Width="520" MaxWidth="520"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 8 32 0 #40000000">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Trasferisci tra depositi"
+                               FontSize="18" FontWeight="SemiBold" Margin="0,0,0,14" />
+
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                                HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+                        <Button Content="Annulla" Command="{Binding AnnullaTrasferimentoCommand}" />
+                        <Button Content="Trasferisci" Command="{Binding ConfermaTrasferimentoCommand}" Classes="accent" />
+                    </StackPanel>
+
+                    <Border DockPanel.Dock="Bottom"
+                            IsVisible="{Binding Errore, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="#1FEF4444" BorderBrush="#EF4444" BorderThickness="1"
+                            CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+                        <TextBlock Text="{Binding Errore}" Foreground="#EF4444"
+                                   TextWrapping="Wrap" FontSize="13" />
+                    </Border>
+
+                    <StackPanel Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Prodotto *" FontWeight="SemiBold" Opacity="0.8" />
+                            <ComboBox HorizontalAlignment="Stretch"
+                                      ItemsSource="{Binding Prodotti}"
+                                      SelectedItem="{Binding TrProdotto}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Prodotto">
+                                        <TextBlock Text="{Binding Nome}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <Grid ColumnDefinitions="*,12,*">
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Da deposito *" FontWeight="SemiBold" Opacity="0.8" />
+                                <ComboBox HorizontalAlignment="Stretch"
+                                          ItemsSource="{Binding TrGiacenze}"
+                                          SelectedItem="{Binding TrOrigine}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="models:Giacenza">
+                                            <TextBlock>
+                                                <Run Text="{Binding MagazzinoNome}" />
+                                                <Run Text="(" /><Run Text="{Binding Quantita}" /><Run Text=")" />
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Spacing="4">
+                                <TextBlock Text="A deposito *" FontWeight="SemiBold" Opacity="0.8" />
+                                <ComboBox HorizontalAlignment="Stretch"
+                                          ItemsSource="{Binding Depositi}"
+                                          SelectedItem="{Binding TrDestinazione}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="models:Magazzino">
+                                            <TextBlock Text="{Binding NomeLabel}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock FontWeight="SemiBold" Opacity="0.8">
+                                <Run Text="Quantità * (max" />
+                                <Run Text="{Binding TrMax}" />
+                                <Run Text=")" />
+                            </TextBlock>
+                            <NumericUpDown Value="{Binding TrQuantita}" Minimum="0"
+                                           Increment="1" FormatString="0.###" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Note" FontWeight="SemiBold" Opacity="0.8" />
+                            <TextBox Text="{Binding TrNote}" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Border>
+
+        <!-- ══ Dialog Rettifica (overlay) ════════════════════════════════════ -->
+        <Border Grid.Row="0" Grid.RowSpan="2"
+                IsVisible="{Binding RettificaAperta}"
+                Background="#80000000">
+            <Border Background="{DynamicResource SystemRegionBrush}"
+                    CornerRadius="10" Padding="24"
+                    Width="460" MaxWidth="460"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 8 32 0 #40000000">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Rettifica giacenza"
+                               FontSize="18" FontWeight="SemiBold" Margin="0,0,0,14" />
+
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                                HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+                        <Button Content="Annulla" Command="{Binding AnnullaRettificaCommand}" />
+                        <Button Content="Salva rettifica" Command="{Binding ConfermaRettificaCommand}" Classes="accent" />
+                    </StackPanel>
+
+                    <Border DockPanel.Dock="Bottom"
+                            IsVisible="{Binding Errore, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="#1FEF4444" BorderBrush="#EF4444" BorderThickness="1"
+                            CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+                        <TextBlock Text="{Binding Errore}" Foreground="#EF4444"
+                                   TextWrapping="Wrap" FontSize="13" />
+                    </Border>
+
+                    <StackPanel Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Prodotto *" FontWeight="SemiBold" Opacity="0.8" />
+                            <ComboBox HorizontalAlignment="Stretch"
+                                      ItemsSource="{Binding Prodotti}"
+                                      SelectedItem="{Binding RetProdotto}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Prodotto">
+                                        <TextBlock Text="{Binding Nome}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <TextBlock IsVisible="{Binding RetProdotto, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   FontSize="13" Opacity="0.7">
+                            <Run Text="Giacenza attuale:" />
+                            <Run Text="{Binding RettificaGiacenzaAttuale}" FontWeight="SemiBold" />
+                        </TextBlock>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Nuova giacenza reale *" FontWeight="SemiBold" Opacity="0.8" />
+                            <NumericUpDown Value="{Binding RetNuova}" Increment="1" FormatString="0.###" />
+                        </StackPanel>
+
+                        <TextBlock FontSize="13" Opacity="0.75">
+                            <Run Text="Delta:" />
+                            <Run Text="{Binding RettificaDelta}" FontWeight="SemiBold" />
+                            <Run Text="— verrà registrato un movimento di rettifica." />
+                        </TextBlock>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Motivo (facoltativo)" FontWeight="SemiBold" Opacity="0.8" />
+                            <TextBox Text="{Binding RetNote}" Watermark="es. inventario, rottura, ammanco…" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Border>
+
+    </Grid>
+
+</UserControl>

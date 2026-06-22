@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="640"
+             x:Class="Ordeva.Desktop.Views.ClienteView"
+             x:DataType="vm:ClienteViewModel">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+        <!-- Intestazione + azioni -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="Clienti" FontSize="28" FontWeight="Bold" />
+                <TextBlock Opacity="0.6" FontSize="13" Margin="0,2,0,0"
+                           Text="{Binding TotaleClienti, StringFormat='{}{0} anagrafiche'}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="Modifica" Command="{Binding ModificaCommand}" />
+                <Button Content="Nuovo cliente" Command="{Binding AggiungiCommand}"
+                        Classes="accent" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Messaggio (errore / esito) -->
+        <Border Grid.Row="1" Margin="0,12,0,0" Padding="12,8"
+                Background="#FFF1F2" CornerRadius="8"
+                IsVisible="{Binding Messaggio, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding Messaggio}" Foreground="#B91C1C" TextWrapping="Wrap" />
+        </Border>
+
+        <!-- Barra selezione multipla / eliminazione in blocco -->
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="12,8"
+                Background="#FEF3C7" CornerRadius="8"
+                IsVisible="{Binding HasSelezione}">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                           Text="{Binding NumSelezionati, StringFormat='{}{0} selezionati'}" />
+                <Button Content="Elimina selezionati" Command="{Binding EliminaCommand}"
+                        Foreground="#DC2626" />
+            </StackPanel>
+        </Border>
+
+        <!-- Ricerca + filtri insight -->
+        <Grid Grid.Row="3" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto,Auto">
+            <TextBox Grid.Column="0" Watermark="Cerca per ragione sociale, P.IVA, email, citta..."
+                     Text="{Binding Ricerca, Mode=TwoWay}" />
+            <ToggleButton Grid.Column="1" Margin="8,0,0,0" Content="Dormienti (&gt;90gg)"
+                          IsChecked="{Binding FiltroDormienti, Mode=TwoWay}" />
+            <ToggleButton Grid.Column="2" Margin="8,0,0,0" Content="Con insoluti"
+                          IsChecked="{Binding FiltroInsoluti, Mode=TwoWay}" />
+            <Button Grid.Column="3" Margin="8,0,0,0" Content="Azzera filtri"
+                    Command="{Binding ResetFiltriCommand}" />
+        </Grid>
+
+        <!-- Tabella clienti -->
+        <Border Grid.Row="4" Margin="0,12,0,0" CornerRadius="8"
+                BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+            <DataGrid x:Name="Grid"
+                      ItemsSource="{Binding Clienti}"
+                      SelectionMode="Extended"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      CanUserSortColumns="True"
+                      CanUserResizeColumns="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Ragione Sociale" Binding="{Binding RagioneSociale}" Width="2*" />
+                    <DataGridTextColumn Header="P. IVA" Binding="{Binding PIva}" Width="*" />
+                    <DataGridTextColumn Header="Telefono" Binding="{Binding Telefono}" Width="*" />
+                    <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="*" />
+                    <DataGridTextColumn Header="Citta" Binding="{Binding IndirizzoCompatto}" Width="2*" />
+                    <DataGridTextColumn Header="Fatturato anno"
+                                        Binding="{Binding FatturatoAnno, StringFormat='{}{0:C2}'}" Width="Auto" />
+                    <DataGridTextColumn Header="Ultimo acquisto" Binding="{Binding UltimoAcquisto}" Width="Auto" />
+                    <DataGridTextColumn Header="Insoluti" Binding="{Binding FattureInsolute}" Width="Auto" />
+                    <DataGridTextColumn Header="Cod. Fiscale" Binding="{Binding CodiceFiscale}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

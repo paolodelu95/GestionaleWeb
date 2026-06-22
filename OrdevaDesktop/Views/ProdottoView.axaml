@@ -1,0 +1,83 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="640"
+             x:Class="Ordeva.Desktop.Views.ProdottoView"
+             x:DataType="vm:ProdottoViewModel">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- Intestazione + azioni -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Text="Prodotti"
+                       FontSize="28" FontWeight="Bold" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="Modifica" Command="{Binding ModificaCommand}" />
+                <Button Content="Nuovo prodotto" Command="{Binding AggiungiCommand}"
+                        Classes="accent" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Barra selezione multipla / eliminazione in blocco -->
+        <Border Grid.Row="1" Margin="0,12,0,0" Padding="12,8"
+                Background="#FFF1F2" CornerRadius="8"
+                IsVisible="{Binding HasSelezione}">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                           Text="{Binding NumSelezionati, StringFormat='{}{0} selezionati'}" />
+                <Button Content="Elimina selezionati" Command="{Binding EliminaCommand}"
+                        Foreground="#DC2626" />
+            </StackPanel>
+        </Border>
+
+        <!-- Ricerca + filtri -->
+        <Grid Grid.Row="2" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+            <TextBox Grid.Column="0" Watermark="Cerca prodotti..."
+                     Text="{Binding Ricerca, Mode=TwoWay}" />
+            <ComboBox Grid.Column="1" Margin="8,0,0,0" MinWidth="180"
+                      PlaceholderText="Tutte le categorie"
+                      ItemsSource="{Binding Categorie}"
+                      SelectedItem="{Binding FiltroCategoria, Mode=TwoWay}" />
+            <ToggleButton Grid.Column="2" Margin="8,0,0,0" Content="Sotto soglia"
+                          IsChecked="{Binding FiltroSottoSoglia, Mode=TwoWay}" />
+            <ToggleButton Grid.Column="3" Margin="8,0,0,0" Content="Margine &lt; 15%"
+                          IsChecked="{Binding FiltroMargineBasso, Mode=TwoWay}" />
+            <Button Grid.Column="4" Margin="8,0,0,0" Content="Azzera filtri"
+                    Command="{Binding ResetFiltriCommand}" />
+        </Grid>
+
+        <!-- Tabella prodotti -->
+        <Border Grid.Row="3" Margin="0,12,0,0" CornerRadius="8"
+                BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+            <DataGrid x:Name="Grid"
+                      ItemsSource="{Binding Prodotti}"
+                      SelectionMode="Extended"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      CanUserSortColumns="True"
+                      CanUserResizeColumns="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60" />
+                    <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="2*" />
+                    <DataGridTextColumn Header="Categoria" Binding="{Binding Categoria}" Width="*" />
+                    <DataGridTextColumn Header="Codice" Binding="{Binding Codice}" Width="*" />
+                    <DataGridTextColumn Header="Barcode" Binding="{Binding Barcode}" Width="*" />
+                    <DataGridTextColumn Header="Prezzo"
+                                        Binding="{Binding Prezzo, StringFormat='{}{0:C2}'}" Width="Auto" />
+                    <DataGridTextColumn Header="Margine"
+                                        Binding="{Binding MarginePerc, StringFormat='{}{0}%'}" Width="Auto" />
+                    <DataGridTextColumn Header="Qtà" Binding="{Binding Quantita}" Width="Auto" />
+                    <DataGridTextColumn Header="Soglia min." Binding="{Binding SogliaMinima}" Width="Auto" />
+                    <DataGridTextColumn Header="IVA"
+                                        Binding="{Binding Iva, StringFormat='{}{0}%'}" Width="Auto" />
+                    <DataGridTextColumn Header="Cod. Fornitore" Binding="{Binding CodiceFornitore}" Width="*" />
+                    <DataGridTextColumn Header="Prezzo Acq."
+                                        Binding="{Binding PrezzoAcquisto, StringFormat='{}{0:C2}'}" Width="Auto" />
+                    <DataGridTextColumn Header="U.M." Binding="{Binding UnitaMisura}" Width="Auto" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

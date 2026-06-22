@@ -1,0 +1,279 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="820" d:DesignHeight="640"
+             x:Class="Ordeva.Desktop.Views.AziendaView"
+             x:DataType="vm:AziendaViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,8" />
+            <Setter Property="Opacity" Value="0.85" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.7" />
+            <Setter Property="Margin" Value="0,0,0,2" />
+        </Style>
+        <Style Selector="StackPanel.field">
+            <Setter Property="Spacing" Value="2" />
+            <Setter Property="MinWidth" Value="220" />
+            <Setter Property="Margin" Value="0,0,16,12" />
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel Margin="28,24,28,20">
+
+        <!-- Intestazione + azioni -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Impostazioni azienda" FontSize="26" FontWeight="Bold" />
+                <TextBlock Text="{Binding StatusMessage}" Opacity="0.6" FontSize="12" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                        VerticalAlignment="Center">
+                <Button Content="Ricarica" Command="{Binding LoadCommand}" />
+                <Button Content="Salva" Command="{Binding SaveCommand}"
+                        Classes="accent" />
+            </StackPanel>
+        </Grid>
+
+        <TabControl>
+
+            <!-- ── Dati azienda ──────────────────────────────────────── -->
+            <TabItem Header="Dati azienda">
+                <ScrollViewer>
+                    <StackPanel Margin="4,8,12,8" Spacing="4">
+
+                        <TextBlock Classes="section" Text="Dati societari" />
+                        <WrapPanel>
+                            <StackPanel Classes="field" MinWidth="320">
+                                <TextBlock Classes="label" Text="Ragione sociale" />
+                                <TextBox Text="{Binding RagioneSociale}" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="180">
+                                <TextBlock Classes="label" Text="Partita IVA" />
+                                <TextBox Text="{Binding PIva}" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="180">
+                                <TextBlock Classes="label" Text="Codice fiscale" />
+                                <TextBox Text="{Binding CodFiscale}" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                        <TextBlock Classes="section" Text="Sede legale" />
+                        <WrapPanel>
+                            <StackPanel Classes="field" MinWidth="320">
+                                <TextBlock Classes="label" Text="Indirizzo" />
+                                <TextBox Text="{Binding Indirizzo}" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="100">
+                                <TextBlock Classes="label" Text="CAP" />
+                                <TextBox Text="{Binding Cap}" MaxLength="5" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="200">
+                                <TextBlock Classes="label" Text="Città" />
+                                <TextBox Text="{Binding Citta}" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="90">
+                                <TextBlock Classes="label" Text="Provincia" />
+                                <TextBox Text="{Binding Provincia}" MaxLength="2" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="120">
+                                <TextBlock Classes="label" Text="Stato" />
+                                <TextBox Text="{Binding Stato}" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                        <TextBlock Classes="section" Text="Contatti" />
+                        <WrapPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="Telefono" />
+                                <TextBox Text="{Binding Telefono}" />
+                            </StackPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="Email" />
+                                <TextBox Text="{Binding Email}" />
+                            </StackPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="PEC" />
+                                <TextBox Text="{Binding Pec}" />
+                            </StackPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="Codice SDI" />
+                                <TextBox Text="{Binding Sdi}" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                        <TextBlock Classes="section" Text="Dati bancari" />
+                        <WrapPanel>
+                            <StackPanel Classes="field" MinWidth="320">
+                                <TextBlock Classes="label" Text="IBAN" />
+                                <TextBox Text="{Binding Iban}" />
+                            </StackPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="Banca" />
+                                <TextBox Text="{Binding Banca}" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ── Fiscale ──────────────────────────────────────────── -->
+            <TabItem Header="Fiscale">
+                <ScrollViewer>
+                    <StackPanel Margin="4,8,12,8" Spacing="4">
+
+                        <TextBlock Classes="section" Text="Regime fiscale" />
+                        <WrapPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="Regime fiscale" />
+                                <ComboBox ItemsSource="{Binding RegimiFiscali}"
+                                          SelectedItem="{Binding RegimeFiscale}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                        <TextBlock Classes="section" Text="Ritenuta d'acconto (default)" />
+                        <WrapPanel>
+                            <StackPanel Classes="field" MinWidth="150">
+                                <TextBlock Classes="label" Text="Aliquota %" />
+                                <NumericUpDown Value="{Binding RitenutaAliquotaDefault}"
+                                               Minimum="0" Increment="0.01"
+                                               FormatString="0.##" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="150">
+                                <TextBlock Classes="label" Text="Tipo ritenuta" />
+                                <ComboBox ItemsSource="{Binding TipiRitenuta}"
+                                          SelectedItem="{Binding RitenutaTipoDefault}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="220">
+                                <TextBlock Classes="label" Text="Causale ritenuta" />
+                                <TextBox Text="{Binding RitenutaCausaleDefault}" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                        <TextBlock Classes="section" Text="Cassa previdenziale (default)" />
+                        <WrapPanel>
+                            <StackPanel Classes="field" MinWidth="180">
+                                <TextBlock Classes="label" Text="Tipo cassa" />
+                                <TextBox Text="{Binding CassaTipoDefault}" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="150">
+                                <TextBlock Classes="label" Text="Aliquota cassa %" />
+                                <NumericUpDown Value="{Binding CassaAliquotaDefault}"
+                                               Minimum="0" Increment="0.01"
+                                               FormatString="0.##" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="150">
+                                <TextBlock Classes="label" Text="IVA cassa %" />
+                                <NumericUpDown Value="{Binding CassaIvaDefault}"
+                                               Minimum="0" Increment="0.01"
+                                               FormatString="0.##" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                        <TextBlock Classes="section" Text="Comportamenti documenti" />
+                        <StackPanel Spacing="8" Margin="0,4,0,0">
+                            <CheckBox Content="Numerazione annuale dei documenti"
+                                      IsChecked="{Binding NumerazioneAnnuale}" />
+                            <CheckBox Content="Blocca i documenti emessi per default"
+                                      IsChecked="{Binding LockDocumentiDefault}" />
+                            <CheckBox Content="Riordino automatico"
+                                      IsChecked="{Binding RiordinoAutomatico}" />
+                            <CheckBox Content="Multi-utente attivo"
+                                      IsChecked="{Binding MultiUtenteAttivo}" />
+                        </StackPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ── Email / SMTP ─────────────────────────────────────── -->
+            <TabItem Header="Email">
+                <ScrollViewer>
+                    <StackPanel Margin="4,8,12,8" Spacing="4">
+
+                        <TextBlock Classes="section" Text="Modalità di invio" />
+                        <StackPanel Classes="field" MinWidth="260">
+                            <TextBlock Classes="label" Text="Modalità email" />
+                            <ComboBox ItemsSource="{Binding EmailModes}"
+                                      SelectedItem="{Binding EmailMode}"
+                                      HorizontalAlignment="Stretch" />
+                        </StackPanel>
+
+                        <TextBlock Classes="section" Text="Configurazione SMTP" />
+                        <WrapPanel>
+                            <StackPanel Classes="field" MinWidth="280">
+                                <TextBlock Classes="label" Text="Host SMTP" />
+                                <TextBox Text="{Binding SmtpHost}" Watermark="es. smtp.gmail.com" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="120">
+                                <TextBlock Classes="label" Text="Porta" />
+                                <NumericUpDown Value="{Binding SmtpPort}" Minimum="1" Maximum="65535"
+                                               FormatString="0" Increment="1" />
+                            </StackPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="Utente" />
+                                <TextBox Text="{Binding SmtpUser}" />
+                            </StackPanel>
+                            <StackPanel Classes="field">
+                                <TextBlock Classes="label" Text="Password" />
+                                <TextBox Text="{Binding SmtpPass}" PasswordChar="•" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="280">
+                                <TextBlock Classes="label" Text="Mittente (From)" />
+                                <TextBox Text="{Binding SmtpFrom}" Watermark="es. fatture@miazienda.it" />
+                            </StackPanel>
+                        </WrapPanel>
+                        <CheckBox Content="SSL/TLS" IsChecked="{Binding SmtpSecure}" Margin="0,8,0,0" />
+
+                        <TextBlock Classes="section" Text="Testo email documenti" />
+                        <TextBox Text="{Binding EmailCorpoDocumento}"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 MinHeight="110" />
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ── Fatturazione elettronica (SDI) ───────────────────── -->
+            <TabItem Header="Fatt. elettronica">
+                <ScrollViewer>
+                    <StackPanel Margin="4,8,12,8" Spacing="4">
+
+                        <TextBlock Classes="section" Text="API intermediario SDI" />
+                        <WrapPanel>
+                            <StackPanel Classes="field" MinWidth="200">
+                                <TextBlock Classes="label" Text="Provider" />
+                                <ComboBox ItemsSource="{Binding SdiProviders}"
+                                          SelectedItem="{Binding SdiProvider}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="360">
+                                <TextBlock Classes="label" Text="URL API" />
+                                <TextBox Text="{Binding SdiApiUrl}"
+                                         Watermark="https://api.intermediario.it/v1/fatture" />
+                            </StackPanel>
+                            <StackPanel Classes="field" MinWidth="280">
+                                <TextBlock Classes="label" Text="API key" />
+                                <TextBox Text="{Binding SdiApiKey}" PasswordChar="•" />
+                            </StackPanel>
+                        </WrapPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+    </DockPanel>
+
+</UserControl>

@@ -1,0 +1,188 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             xmlns:models="clr-namespace:Ordeva.Desktop.Models"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="620"
+             x:Class="Ordeva.Desktop.Views.FornitoreView"
+             x:DataType="vm:FornitoreViewModel">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*">
+
+        <!-- Intestazione -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="Fornitori" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Anagrafica fornitori: usata per acquisti e arrivi merce."
+                           Opacity="0.6" FontSize="13" Margin="0,2,0,0" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Nuovo fornitore"
+                    Command="{Binding AggiungiCommand}"
+                    VerticalAlignment="Center"
+                    Classes="accent" />
+        </Grid>
+
+        <!-- Barra di ricerca + azioni di gruppo -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,0,0,12">
+            <TextBox Grid.Column="0"
+                     Text="{Binding Ricerca}"
+                     Watermark="Cerca per ragione sociale, email, città, P.IVA…"
+                     MaxWidth="420" HorizontalAlignment="Left" />
+
+            <Button Grid.Column="1" Content="Modifica"
+                    Command="{Binding ModificaCommand}" Margin="8,0,0,0" />
+            <Button Grid.Column="2" Content="Elimina"
+                    Command="{Binding EliminaCommand}" Margin="8,0,0,0" />
+            <Button Grid.Column="3" Content="Elimina selezionati"
+                    Command="{Binding EliminaSelezionatiCommand}" Margin="8,0,0,0" />
+        </Grid>
+
+        <!-- Griglia -->
+        <DataGrid Grid.Row="2"
+                  Name="Griglia"
+                  ItemsSource="{Binding Items}"
+                  SelectedItem="{Binding Selezionato}"
+                  SelectionMode="Extended"
+                  IsReadOnly="True"
+                  CanUserSortColumns="True"
+                  GridLinesVisibility="Horizontal"
+                  BorderThickness="1" BorderBrush="#22000000"
+                  CornerRadius="6">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Ragione Sociale"
+                                    Binding="{Binding RagioneSociale}"
+                                    Width="2*" />
+                <DataGridTextColumn Header="Email"
+                                    Binding="{Binding Email}"
+                                    Width="1.4*" />
+                <DataGridTextColumn Header="Telefono"
+                                    Binding="{Binding Telefono}"
+                                    Width="*" />
+                <DataGridTextColumn Header="Città"
+                                    Binding="{Binding CittaLabel}"
+                                    Width="1.2*" />
+                <DataGridTextColumn Header="P. IVA"
+                                    Binding="{Binding PIva}"
+                                    Width="*" />
+                <DataGridTextColumn Header="SDI"
+                                    Binding="{Binding Sdi}"
+                                    Width="Auto" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Editor inline (overlay) -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                IsVisible="{Binding EditorAperto}"
+                Background="#80000000">
+            <Border Background="{DynamicResource SystemRegionBrush}"
+                    CornerRadius="10" Padding="24"
+                    Width="560" MaxWidth="560" MaxHeight="600"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 8 32 0 #40000000">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="{Binding EditorTitolo}"
+                               FontSize="18" FontWeight="SemiBold"
+                               Margin="0,0,0,14" />
+
+                    <!-- Azioni in basso -->
+                    <StackPanel DockPanel.Dock="Bottom"
+                                Orientation="Horizontal" HorizontalAlignment="Right"
+                                Spacing="8" Margin="0,16,0,0">
+                        <Button Content="Annulla" Command="{Binding AnnullaCommand}" />
+                        <Button Content="Salva" Command="{Binding SalvaCommand}" Classes="accent" />
+                    </StackPanel>
+
+                    <!-- Banner errore (es. P.IVA duplicata) -->
+                    <Border DockPanel.Dock="Bottom"
+                            IsVisible="{Binding Errore, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="#1FEF4444" BorderBrush="#EF4444" BorderThickness="1"
+                            CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+                        <TextBlock Text="{Binding Errore}" Foreground="#EF4444"
+                                   TextWrapping="Wrap" FontSize="13" />
+                    </Border>
+
+                    <ScrollViewer>
+                        <StackPanel Spacing="12">
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Ragione sociale *" FontWeight="SemiBold" Opacity="0.8" />
+                                <TextBox Text="{Binding EditRagioneSociale}"
+                                         Watermark="es. Acme S.r.l." />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,12,*">
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Email" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditEmail}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="P. IVA" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditPIva}" Watermark="11 cifre" />
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,12,*">
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Telefono" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditTelefono}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Cellulare" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditCellulare}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Via" FontWeight="SemiBold" Opacity="0.8" />
+                                <TextBox Text="{Binding EditVia}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="Auto,12,*,12,Auto">
+                                <StackPanel Grid.Column="0" Spacing="4" Width="100">
+                                    <TextBlock Text="CAP" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditCap}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Città" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditCitta}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="4" Spacing="4" Width="80">
+                                    <TextBlock Text="Prov." FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditProvincia}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Stato" FontWeight="SemiBold" Opacity="0.8" />
+                                <TextBox Text="{Binding EditStato}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,12,*">
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Codice SDI" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditSdi}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="PEC" FontWeight="SemiBold" Opacity="0.8" />
+                                    <TextBox Text="{Binding EditPec}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" Spacing="24" Margin="0,4,0,0">
+                                <CheckBox Content="Estero" IsChecked="{Binding EditEstero}" />
+                                <CheckBox Content="Anche cliente" IsChecked="{Binding EditAncheCliente}" />
+                            </StackPanel>
+                            <TextBlock Text="Se attivo, viene mantenuto in sincronia un cliente gemello con gli stessi dati anagrafici."
+                                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Border>
+
+    </Grid>
+
+</UserControl>
