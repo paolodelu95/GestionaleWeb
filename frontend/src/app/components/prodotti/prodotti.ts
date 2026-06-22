@@ -1,5 +1,7 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, HostListener } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { SelectionModel } from '@angular/cdk/collections';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { FieldHelpComponent } from '../shared/field-help';
@@ -741,7 +743,7 @@ export class RettificaGiacenzaDialogComponent {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
-            ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective],
+            MatCheckboxModule, ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
@@ -749,7 +751,10 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
   private allProdotti: Prodotto[] = [];
   dataSource = new MatTableDataSource<Prodotto>([]);
-  displayedColumns: string[] = ['nome', 'categoria', 'prezzo', 'margine', 'quantita', 'sogliaMinima'];
+  displayedColumns: string[] = ['select', 'nome', 'categoria', 'prezzo', 'margine', 'quantita', 'sogliaMinima'];
+  /** Selezione multipla per la cancellazione in blocco (es. annullare un import). */
+  selection = new SelectionModel<Prodotto>(true, []);
+  busyBulk = false;
 
   readonly allCols: ColDef[] = [
     { key: 'nome', label: 'Nome' },
@@ -843,7 +848,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   }
 
   load() {
-    this.ds.getProdotti().subscribe(p => { this.allProdotti = p; this.applyFilters(); this.openPending(p); });
+    this.ds.getProdotti().subscribe(p => { this.allProdotti = p; this.applyFilters(); this.selection.clear(); this.openPending(p); });
   }
 
   applyFilters() {
@@ -857,7 +862,40 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
 
   resetFiltri() { this.filtroCategoria = null; this.filtroSottoSoglia = false; this.filtroMargineBasso = false; this.dataSource.filter = ''; this.applyFilters(); }
 
-  onColsChange(cols: string[]) { this.displayedColumns = [...cols, 'azioni']; }
+  onColsChange(cols: string[]) { this.displayedColumns = ['select', ...cols, 'azioni']; }
+
+  // ── Selezione multipla + cancellazione in blocco ─────────────────────────────
+  isAllSelected(): boolean {
+    return this.dataSource.data.length > 0 && this.selection.selected.length === this.dataSource.data.length;
+  }
+  toggleAll() {
+    this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r));
+  }
+
+  async bulkDelete() {
+    const sel = this.selection.selected;
+    if (!sel.length || this.busyBulk) return;
+    const n = sel.length;
+    if (!await this.confirm.delete(
+      `Eliminare ${n} prodott${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`
+    )) return;
+    this.busyBulk = true;
+    forkJoin(sel.map(p =>
+      this.ds.deleteProdotto(p.id!).pipe(catchError(err => of({ __error: err })))
+    )).subscribe(results => {
+      this.busyBulk = false;
+      const errori = results.filter((r: any) => r && r.__error).length;
+      if (errori) {
+        this.snack.open(
+          `${n - errori} eliminat${n - errori === 1 ? 'o' : 'i'}, ${errori} non eliminabil${errori === 1 ? 'e' : 'i'} (forse usati in documenti)`,
+          'OK', { duration: 6000, panelClass: 'snack-error' });
+      } else {
+        this.snack.open(`${n} prodott${n === 1 ? 'o eliminato' : 'i eliminati'}`, '', { duration: 3000 });
+      }
+      this.selection.clear();
+      this.load();
+    });
+  }
 
   print() {
     const rows = this.dataSource.data;
