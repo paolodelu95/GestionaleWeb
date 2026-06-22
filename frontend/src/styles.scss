@@ -248,6 +248,31 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+// ── "Sensazione da app nativa" (solo edizione desktop offline) ──────────────
+// La classe .desktop-app è messa su <body> da app.ts SOLO nell'edizione offline.
+// Sul web l'app resta un sito (testo selezionabile, cursore di testo, ecc.).
+// Nel desktop togliamo i tell-tale "da pagina web": cursore di testo sulle
+// scritte, selezione del testo a casaccio quando trascini, evidenziazione al
+// tocco e rimbalzo elastico dello scroll. Il testo resta selezionabile dove
+// serve davvero (campi di input, celle delle tabelle, e qualsiasi .selectable).
+body.desktop-app {
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+
+  input, textarea, [contenteditable="true"],
+  .mat-mdc-cell, .selectable, .selectable * {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="file"]),
+  textarea { cursor: text; }
+
+  img, a { -webkit-user-drag: none; }
+}
+
 // La classe .dark-mode è applicata sul <body>: il selettore deve essere
 // body.dark-mode (non `.dark-mode body`, che non corrisponde a nulla).
 // Senza color-scheme:dark le funzioni light-dark() del tema Material 3

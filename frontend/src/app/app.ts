@@ -206,6 +206,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   ngOnInit() {
     this.nativeMenu.start();   // ponte menu nativo → azioni SPA (no-op su web)
+    this.setupNativeFeel();    // comportamenti "da app" (solo desktop offline)
     this.darkMode = lsGet('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
 
@@ -537,6 +538,34 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         this.zone.run(() => this.computeNavOverflow());
       });
     }
+  }
+
+  /** Edizione desktop offline: toglie i comportamenti "da pagina web" (menu del
+   *  tasto destro del browser, zoom Ctrl+/-, ricarica F5/Ctrl+R, selezione del
+   *  testo a casaccio) così l'app si comporta come un programma nativo. Sul web
+   *  non si attiva: lì deve restare un sito a tutti gli effetti. */
+  private setupNativeFeel() {
+    if (!this.offline) return;
+    document.body.classList.add('desktop-app');
+
+    const isEditable = (el: EventTarget | null) => {
+      const n = el as HTMLElement | null;
+      return !!n && (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA' || n.isContentEditable);
+    };
+
+    // Niente menu contestuale del browser (resta nei campi di testo, dove ha senso copia/incolla).
+    window.addEventListener('contextmenu', e => { if (!isEditable(e.target)) e.preventDefault(); });
+
+    // Niente zoom da tastiera (Ctrl/Cmd +/-/0) né ricarica pagina (F5, Ctrl/Cmd+R): non è un browser.
+    window.addEventListener('keydown', e => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && ['+', '-', '=', '0'].includes(e.key)) { e.preventDefault(); return; }
+      if (mod && (e.key === 'r' || e.key === 'R')) { e.preventDefault(); return; }
+      if (e.key === 'F5') e.preventDefault();
+    });
+
+    // Niente zoom con Ctrl + rotellina / pinch del trackpad.
+    window.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
   }
 
   ngOnDestroy() { this.navRO?.disconnect(); }

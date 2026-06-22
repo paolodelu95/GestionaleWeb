@@ -95,6 +95,10 @@ fn main() {
             .inner_size(1440.0, 900.0)
             .min_inner_size(360.0, 600.0)
             .maximized(true)
+            // Sfondo finestra = colore chiaro dell'app (#f8fafc): evita il
+            // "lampo" bianco del WebView prima che la SPA dipinga, così l'avvio
+            // sembra quello di un programma nativo e non di una pagina che carica.
+            .background_color(tauri::window::Color(0xf8, 0xfa, 0xfc, 0xff))
             .build()?;
 
             // Ripristina dimensione/posizione/stato salvati dalla sessione
