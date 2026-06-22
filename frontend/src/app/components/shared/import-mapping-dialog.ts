@@ -23,14 +23,16 @@ export interface ImportMappingData {
   fields: FieldDef[];
   entityType: string;
   entityLabel: string;
-  /** Se true, chiede se i prezzi nel file sono IVA inclusa o esclusa. */
-  askPriceVat?: boolean;
+  /** Per ciascun campo prezzo elencato qui, chiede separatamente se nel file
+   *  quel prezzo è IVA inclusa o esclusa. La domanda compare solo se il campo
+   *  è effettivamente mappato a una colonna. */
+  priceVatFields?: { key: string; label: string }[];
 }
 
 export interface MappingResult {
   mapping: Record<string, string>;
-  /** Vero se i prezzi nel file sono IVA inclusa (da convertire in netto). */
-  prezzoIvato?: boolean;
+  /** Per ciascuna chiave prezzo: true se nel file è IVA inclusa (da convertire in netto). */
+  priceVat?: Record<string, boolean>;
 }
 
 const STORAGE_KEY = 'import_mapping_';
@@ -98,13 +100,17 @@ function autoMap(headers: string[], field: FieldDef): string {
         I campi con <span style="color:var(--mat-sys-error,#f44336);font-weight:600">*</span> sono obbligatori.
       </p>
 
-      @if (data.askPriceVat) {
+      @if (visiblePriceVatFields.length) {
         <div style="margin:0 0 16px;padding:12px 14px;border:1px solid var(--mat-sys-outline-variant,#e2e8f0);border-radius:10px;background:var(--mat-sys-surface-container-low,#f8fafc)">
-          <div style="font-size:13px;font-weight:600;margin-bottom:8px">I prezzi nel file sono:</div>
-          <mat-radio-group [(ngModel)]="prezzoIvato" style="display:flex;gap:20px;flex-wrap:wrap">
-            <mat-radio-button [value]="false">IVA esclusa (netto)</mat-radio-button>
-            <mat-radio-button [value]="true">IVA inclusa</mat-radio-button>
-          </mat-radio-group>
+          @for (pf of visiblePriceVatFields; track pf.key) {
+            <div [style.margin-top]="$first ? '0' : '12px'">
+              <div style="font-size:13px;font-weight:600;margin-bottom:8px">{{ pf.label }} nel file:</div>
+              <mat-radio-group [(ngModel)]="priceVat[pf.key]" style="display:flex;gap:20px;flex-wrap:wrap">
+                <mat-radio-button [value]="false">IVA esclusa (netto)</mat-radio-button>
+                <mat-radio-button [value]="true">IVA inclusa</mat-radio-button>
+              </mat-radio-group>
+            </div>
+          }
           <p style="font-size:12px;color:var(--mat-sys-on-surface-variant,#888);margin:8px 0 0">
             Se IVA inclusa, converto in netto con l'aliquota IVA di ogni riga (predefinita 22%).
           </p>
@@ -155,7 +161,8 @@ export class ImportMappingDialogComponent {
   headers: string[] = [];
   mapping: Record<string, string> = {};
   saveMapping = false;
-  prezzoIvato = false;
+  /** Per ciascun campo prezzo: true = nel file è IVA inclusa. */
+  priceVat: Record<string, boolean> = {};
   private firstRow: Record<string, string> = {};
 
   constructor(
@@ -174,6 +181,12 @@ export class ImportMappingDialogComponent {
         this.mapping[f.key] = autoMap(this.headers, f);
       }
     }
+    for (const pf of data.priceVatFields ?? []) this.priceVat[pf.key] = false;
+  }
+
+  /** Campi prezzo per cui chiedere IVA: solo quelli effettivamente mappati. */
+  get visiblePriceVatFields(): { key: string; label: string }[] {
+    return (this.data.priceVatFields ?? []).filter(pf => !!this.mapping[pf.key]);
   }
 
   get missingRequired(): string[] {
@@ -193,7 +206,7 @@ export class ImportMappingDialogComponent {
     if (this.saveMapping) {
       localStorage.setItem(STORAGE_KEY + this.data.entityType, JSON.stringify(this.mapping));
     }
-    this.dialogRef.close({ mapping: { ...this.mapping }, prezzoIvato: this.prezzoIvato } satisfies MappingResult);
+    this.dialogRef.close({ mapping: { ...this.mapping }, priceVat: { ...this.priceVat } } satisfies MappingResult);
   }
 
   private loadSaved(): Record<string, string> {

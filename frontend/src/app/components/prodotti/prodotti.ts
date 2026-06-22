@@ -1041,18 +1041,23 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     this.excel.readFile(file).then(rows => {
       if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
       this.dialog.open(ImportMappingDialogComponent, {
-        data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti', askPriceVat: true },
+        data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti',
+                priceVatFields: [
+                  { key: 'prezzo', label: 'Prezzo di vendita' },
+                  { key: 'prezzoAcquisto', label: 'Prezzo di acquisto (fornitore)' },
+                ] },
         disableClose: true,
       }).afterClosed().subscribe((result: MappingResult | null) => {
         if (!result) return;
         const toNum = (s: any) => parseFloat(String(s ?? '').replace(',', '.') || '0') || 0;
         const toInt = (s: any) => parseInt(String(s ?? '').replace(',', '.') || '0', 10) || 0;
         const v = (key: string, row: Record<string, any>) => row[result.mapping[key]] ?? '';
-        // Se l'utente ha indicato che i prezzi nel file sono IVA inclusa, li
-        // converto in netto (lo storage tiene sempre il netto), usando l'aliquota
-        // della riga. Altrimenti i prezzi restano com'erano.
-        const ivato = !!result.prezzoIvato;
-        const aNetto = (lordo: number, ivaPerc: number) =>
+        // L'utente indica per ogni prezzo se nel file è IVA inclusa: in tal caso
+        // lo converto in netto (lo storage tiene sempre il netto) usando l'aliquota
+        // della riga. Vendita e acquisto sono indipendenti.
+        const venditaIvato  = !!result.priceVat?.['prezzo'];
+        const acquistoIvato = !!result.priceVat?.['prezzoAcquisto'];
+        const aNetto = (lordo: number, ivaPerc: number, ivato: boolean) =>
           ivato && ivaPerc > 0 ? Math.round((lordo / (1 + ivaPerc / 100)) * 100) / 100 : lordo;
         const records = rows.map(r => {
           const iva = toNum(v('iva', r)) || 22;
@@ -1065,8 +1070,8 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
             codice:          String(v('codice', r)).trim(),
             codiceFornitore: String(v('codiceFornitore', r)).trim(),
             barcode:         String(v('barcode', r)).trim(),
-            prezzo:          aNetto(prezzo, iva),
-            prezzoAcquisto:  prezzoAcquisto ? aNetto(prezzoAcquisto, iva) : null,
+            prezzo:          aNetto(prezzo, iva, venditaIvato),
+            prezzoAcquisto:  prezzoAcquisto ? aNetto(prezzoAcquisto, iva, acquistoIvato) : null,
             iva,
             quantita:        toInt(v('quantita', r)),
             sogliaMinima:    toInt(v('sogliaMinima', r)),
