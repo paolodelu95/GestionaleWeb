@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="640"
+             x:Class="Ordeva.Desktop.Views.AuditView"
+             x:DataType="vm:AuditViewModel">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*">
+
+        <!-- Intestazione + azioni (sola lettura: solo aggiornamento) -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="Storico modifiche"
+                           FontSize="28" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock VerticalAlignment="Center" Foreground="#64748B"
+                           Text="{Binding VisibiliCount, StringFormat='{}{0} voci'}" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Aggiorna" Command="{Binding CaricaCommand}" />
+        </Grid>
+
+        <!-- Ricerca + filtri (entità / azione / intervallo date) -->
+        <Grid Grid.Row="1" Margin="0,12,0,0"
+              ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
+            <TextBox Grid.Column="0" Watermark="Cerca nello storico..."
+                     Text="{Binding Ricerca, Mode=TwoWay}" />
+            <ComboBox Grid.Column="1" Margin="8,0,0,0" MinWidth="160"
+                      PlaceholderText="Tutte le entità"
+                      ItemsSource="{Binding Tipi}"
+                      SelectedItem="{Binding FiltroEntity, Mode=TwoWay}" />
+            <ComboBox Grid.Column="2" Margin="8,0,0,0" MinWidth="140"
+                      PlaceholderText="Tutte le azioni"
+                      ItemsSource="{Binding Azioni}"
+                      SelectedItem="{Binding FiltroAction, Mode=TwoWay}" />
+            <DatePicker Grid.Column="3" Margin="8,0,0,0"
+                        SelectedDate="{Binding FiltroDa, Mode=TwoWay}" />
+            <DatePicker Grid.Column="4" Margin="8,0,0,0"
+                        SelectedDate="{Binding FiltroA, Mode=TwoWay}" />
+            <Button Grid.Column="5" Margin="8,0,0,0" Content="Azzera filtri"
+                    Command="{Binding ResetFiltriCommand}" />
+        </Grid>
+
+        <!-- Tabella registro attività (sola lettura) -->
+        <Border Grid.Row="2" Margin="0,12,0,0" CornerRadius="8"
+                BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+            <DataGrid x:Name="Grid"
+                      ItemsSource="{Binding Voci}"
+                      SelectionMode="Single"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      CanUserSortColumns="True"
+                      CanUserResizeColumns="True">
+                <DataGrid.Columns>
+                    <!-- Quando: mostro la data locale formattata ma ordino sul TEXT ISO
+                         grezzo (created_at, yyyy-MM-dd HH:mm:ss), che ordina correttamente
+                         in modo lessicografico — il formato "dd/MM/yy" no. -->
+                    <DataGridTextColumn Header="Quando" Binding="{Binding QuandoLocale}"
+                                        SortMemberPath="CreatedAt" Width="Auto" />
+                    <DataGridTextColumn Header="Entità" Binding="{Binding EntityType}" Width="*" />
+                    <!-- ID: etichetta "#123" per la vista, ma ordinamento numerico su EntityId. -->
+                    <DataGridTextColumn Header="ID" Binding="{Binding EntityIdLabel}"
+                                        SortMemberPath="EntityId" Width="Auto" />
+                    <DataGridTextColumn Header="Azione" Binding="{Binding Action}" Width="Auto" />
+                    <DataGridTextColumn Header="Dettaglio" Binding="{Binding PayloadRiassunto}" Width="3*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="640"
+             x:Class="Ordeva.Desktop.Views.TodoView"
+             x:DataType="vm:TodoViewModel">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+        <!-- Intestazione + azioni -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                <TextBlock Text="Attività" FontSize="28" FontWeight="Bold" />
+                <TextBlock Foreground="#64748B" FontSize="13">
+                    <Run Text="{Binding DaFareCount}" /><Run Text=" da fare · " /><Run
+                        Text="{Binding InCorsoCount}" /><Run Text=" in corso · " /><Run
+                        Text="{Binding FatteCount}" /><Run Text=" completate" />
+                </TextBlock>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="Segna fatta/da fare" Command="{Binding ToggleFattaCommand}" />
+                <Button Content="Modifica" Command="{Binding ModificaCommand}" />
+                <Button Content="Nuova attività" Command="{Binding AggiungiCommand}"
+                        Classes="accent" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Barra selezione multipla / eliminazione in blocco -->
+        <Border Grid.Row="1" Margin="0,12,0,0" Padding="12,8"
+                Background="#FFF1F2" CornerRadius="8"
+                IsVisible="{Binding HasSelezione}">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                           Text="{Binding NumSelezionati, StringFormat='{}{0} selezionate'}" />
+                <Button Content="Elimina selezionate" Command="{Binding EliminaCommand}"
+                        Foreground="#DC2626" />
+            </StackPanel>
+        </Border>
+
+        <!-- Ricerca + filtri -->
+        <Grid Grid.Row="2" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
+            <TextBox Grid.Column="0" Watermark="Cerca attività..."
+                     Text="{Binding Ricerca, Mode=TwoWay}" />
+            <ComboBox Grid.Column="1" Margin="8,0,0,0" MinWidth="140"
+                      PlaceholderText="Tutti gli stati"
+                      ItemsSource="{Binding Stati}"
+                      SelectedItem="{Binding FiltroStato, Mode=TwoWay}" />
+            <ComboBox Grid.Column="2" Margin="8,0,0,0" MinWidth="130"
+                      PlaceholderText="Tutte le priorità"
+                      ItemsSource="{Binding Priorita}"
+                      SelectedItem="{Binding FiltroPriorita, Mode=TwoWay}" />
+            <ComboBox Grid.Column="3" Margin="8,0,0,0" MinWidth="160"
+                      PlaceholderText="Tutte le categorie"
+                      ItemsSource="{Binding Categorie}"
+                      SelectedItem="{Binding FiltroCategoria, Mode=TwoWay}" />
+            <ToggleButton Grid.Column="4" Margin="8,0,0,0" Content="Nascondi completate"
+                          IsChecked="{Binding NascondiCompletate, Mode=TwoWay}" />
+            <Button Grid.Column="5" Margin="8,0,0,0" Content="Azzera filtri"
+                    Command="{Binding ResetFiltriCommand}" />
+        </Grid>
+
+        <!-- Spaziatore vuoto per coerenza griglia (riga 3) -->
+        <Border Grid.Row="3" Height="0" />
+
+        <!-- Tabella attività -->
+        <Border Grid.Row="4" Margin="0,12,0,0" CornerRadius="8"
+                BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+            <DataGrid x:Name="Grid"
+                      ItemsSource="{Binding Todos}"
+                      SelectionMode="Extended"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      CanUserSortColumns="True"
+                      CanUserResizeColumns="True">
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="Fatta" Binding="{Binding IsFatta, Mode=OneWay}" Width="60" />
+                    <DataGridTextColumn Header="Titolo" Binding="{Binding Titolo}" Width="2*" />
+                    <DataGridTextColumn Header="Descrizione" Binding="{Binding Descrizione}" Width="2*" />
+                    <DataGridTextColumn Header="Priorità" Binding="{Binding PrioritaLabel}" Width="Auto" />
+                    <DataGridTextColumn Header="Stato" Binding="{Binding StatoLabel}" Width="Auto" />
+                    <DataGridTextColumn Header="Categoria" Binding="{Binding Categoria}" Width="*" />
+                    <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

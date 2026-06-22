@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ordeva.Desktop.ViewModels"
+             xmlns:models="clr-namespace:Ordeva.Desktop.Models"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Ordeva.Desktop.Views.ContoAcquistoView"
+             x:DataType="vm:ContoAcquistoViewModel">
+
+    <Grid ColumnDefinitions="*,Auto">
+
+        <!-- ── Colonna principale: lista ──────────────────────────────────── -->
+        <DockPanel Grid.Column="0" Margin="24">
+
+            <!-- Intestazione -->
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="Conti di Acquisto" FontSize="24" FontWeight="Bold" />
+                    <TextBlock Text="Anagrafica delle categorie contabili su cui imputare gli acquisti."
+                               Opacity="0.6" FontSize="13" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Nuovo"
+                        Command="{Binding AggiungiCommand}"
+                        VerticalAlignment="Center"
+                        Classes="accent" />
+            </Grid>
+
+            <!-- Barra ricerca / filtri -->
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
+                <TextBox Grid.Column="0"
+                         Text="{Binding Ricerca}"
+                         Watermark="Cerca per nome o tag predefinito…"
+                         MaxWidth="360" HorizontalAlignment="Left" />
+                <CheckBox Grid.Column="1" Content="Solo attivi"
+                          IsChecked="{Binding SoloAttivi}"
+                          VerticalAlignment="Center" Margin="12,0" />
+                <Button Grid.Column="2" Content="Ricarica"
+                        Command="{Binding LoadCommand}"
+                        VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- Barra azioni di blocco (solo con selezione) -->
+            <Border DockPanel.Dock="Top"
+                    IsVisible="{Binding EliminaSelezionatiCommand.CanExecute}"
+                    Background="#FFF1F0" CornerRadius="6" Padding="12,8" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                               Text="{Binding NumeroSelezionati, StringFormat='{}{0} selezionati'}" />
+                    <Button Content="Elimina selezionati"
+                            Command="{Binding EliminaSelezionatiCommand}"
+                            Foreground="#DC2626" />
+                </StackPanel>
+            </Border>
+
+            <!-- Tabella -->
+            <DataGrid Name="Griglia"
+                      ItemsSource="{Binding Items}"
+                      SelectionMode="Extended"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      CanUserResizeColumns="True"
+                      HeadersVisibility="Column"
+                      BorderThickness="1" BorderBrush="#E2E8F0" CornerRadius="6">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Nome" Width="*"
+                                        Binding="{Binding Nome}" FontWeight="SemiBold" />
+                    <DataGridTextColumn Header="Predefinito per" Width="220"
+                                        Binding="{Binding PredefinitoPer}" />
+                    <DataGridCheckBoxColumn Header="Attivo" Width="90"
+                                            Binding="{Binding Attivo}" />
+                    <DataGridTemplateColumn Header="" Width="160">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="models:ContoAcquisto">
+                                <StackPanel Orientation="Horizontal" Spacing="6"
+                                            VerticalAlignment="Center">
+                                    <Button Content="Modifica"
+                                            Command="{Binding $parent[DataGrid].((vm:ContoAcquistoViewModel)DataContext).ModificaCommand}"
+                                            CommandParameter="{Binding}" />
+                                    <Button Content="Elimina"
+                                            Foreground="#DC2626"
+                                            Command="{Binding $parent[DataGrid].((vm:ContoAcquistoViewModel)DataContext).EliminaCommand}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+
+        <!-- ── Pannello editor laterale ───────────────────────────────────── -->
+        <Border Grid.Column="1"
+                IsVisible="{Binding EditorAperto}"
+                Width="360"
+                Background="#F8FAFC"
+                BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
+            <StackPanel Margin="24" Spacing="14">
+                <TextBlock Text="{Binding TitoloEditor}"
+                           FontSize="18" FontWeight="Bold" />
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Nome *" FontWeight="SemiBold" FontSize="13" />
+                    <TextBox Text="{Binding EditNome}" Watermark="es. Merci c/acquisti" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Predefinito per" FontWeight="SemiBold" FontSize="13" />
+                    <TextBox Text="{Binding EditPredefinitoPer}"
+                             Watermark="es. servizi, materiale di consumo…" />
+                    <TextBlock Text="Tag facoltativo: indica per quale tipo di acquisto questo conto è il predefinito."
+                               Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="8" Margin="0,4,0,0">
+                    <CheckBox Content="Attivo"
+                              IsChecked="{Binding EditAttivo}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="8"
+                            HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <Button Content="Annulla" Command="{Binding AnnullaCommand}" />
+                    <Button Content="Salva" Classes="accent"
+                            Command="{Binding SalvaCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
