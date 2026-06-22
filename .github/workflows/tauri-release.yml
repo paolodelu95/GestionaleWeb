@@ -14,7 +14,44 @@ permissions:
   contents: write
 
 jobs:
+  # La release in bozza viene creata UNA volta sola, prima della matrice. Senza
+  # questo, i job partivano in parallelo e provavano a crearla tutti insieme: i
+  # due job macOS (stesso runner, avvio simultaneo) andavano in race e a turno
+  # uno falliva con "already_exists" nello step di release. Creandola qui e
+  # passando releaseId ai job, questi si limitano a CARICARE i bundle: niente race.
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.result }}
+    steps:
+      - name: Crea (o riusa) la release in bozza
+        id: create
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            const version = tag.replace(/^v/, '');
+            const { owner, repo } = context.repo;
+            // Cerca una release esistente per questo tag (anche bozza, es. su re-run).
+            const all = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            const existing = all.data.find(r => r.tag_name === tag);
+            if (existing) return existing.id;
+            const created = await github.rest.repos.createRelease({
+              owner, repo,
+              tag_name: tag,
+              name: `Ordeva ${version}`,
+              draft: true,
+              prerelease: false,
+              generate_release_notes: true,
+            });
+            return created.data.id;
+
   build:
+    needs: create-release
+    # Gira sia su tag (dopo create-release) sia su run manuale (create-release
+    # saltato per via dell'if): in quel caso non c'è release e si caricano artifact.
+    if: ${{ always() && needs.create-release.result != 'failure' }}
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +97,8 @@ jobs:
           npx ng build --configuration offline
 
       # tauri-action compila il backend Rust + finestra, impacchetta e — su tag —
-      # crea/aggiorna una GitHub Release in BOZZA con i bundle allegati.
+      # CARICA i bundle nella release in bozza creata da create-release (releaseId).
+      # Su run manuale releaseId è vuoto: builda soltanto, senza pubblicare.
       - name: Build & release (Tauri)
         uses: tauri-apps/tauri-action@v0
         env:
@@ -72,10 +110,7 @@ jobs:
         with:
           projectPath: src-tauri
           args: ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }}
-          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-          releaseName: 'Ordeva __VERSION__'
-          releaseDraft: true
-          generateReleaseNotes: true
+          releaseId: ${{ needs.create-release.outputs.release_id }}
 
       # Run manuale (workflow_dispatch, senza tag): i bundle restano come artifact
       # scaricabili dalla pagina del run.
