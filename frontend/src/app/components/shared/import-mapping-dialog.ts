@@ -97,6 +97,20 @@ function autoMap(headers: string[], field: FieldDef): string {
         Associa le colonne del tuo file ai campi del sistema.
         I campi con <span style="color:var(--mat-sys-error,#f44336);font-weight:600">*</span> sono obbligatori.
       </p>
+
+      @if (data.askPriceVat) {
+        <div style="margin:0 0 16px;padding:12px 14px;border:1px solid var(--mat-sys-outline-variant,#e2e8f0);border-radius:10px;background:var(--mat-sys-surface-container-low,#f8fafc)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">I prezzi nel file sono:</div>
+          <mat-radio-group [(ngModel)]="prezzoIvato" style="display:flex;gap:20px;flex-wrap:wrap">
+            <mat-radio-button [value]="false">IVA esclusa (netto)</mat-radio-button>
+            <mat-radio-button [value]="true">IVA inclusa</mat-radio-button>
+          </mat-radio-group>
+          <p style="font-size:12px;color:var(--mat-sys-on-surface-variant,#888);margin:8px 0 0">
+            Se IVA inclusa, converto in netto con l'aliquota IVA di ogni riga (predefinita 22%).
+          </p>
+        </div>
+      }
+
       <div class="grid-header">
         <span>Campo</span>
         <span>Colonna nel file</span>
@@ -117,18 +131,6 @@ function autoMap(headers: string[], field: FieldDef): string {
             </mat-select>
           </mat-form-field>
           <span class="preview-val" [title]="getPreview(f.key)">{{ getPreview(f.key) }}</span>
-        </div>
-      }
-      @if (data.askPriceVat) {
-        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--mat-sys-outline-variant,#eee)">
-          <div style="font-size:13px;font-weight:600;margin-bottom:6px">I prezzi nel file sono:</div>
-          <mat-radio-group [(ngModel)]="prezzoIvato" style="display:flex;gap:20px;flex-wrap:wrap">
-            <mat-radio-button [value]="false">IVA esclusa (netto)</mat-radio-button>
-            <mat-radio-button [value]="true">IVA inclusa</mat-radio-button>
-          </mat-radio-group>
-          <p style="font-size:12px;color:var(--mat-sys-on-surface-variant,#888);margin:8px 0 0">
-            Se IVA inclusa, converto in netto con l'aliquota IVA di ogni riga (predefinita 22%).
-          </p>
         </div>
       }
       @if (missingRequired.length > 0) {
