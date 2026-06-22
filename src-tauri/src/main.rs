@@ -22,8 +22,13 @@ mod xml;
 
 use std::path::PathBuf;
 
+// Menu nativo solo su macOS (barra globale in cima allo schermo): su Windows e
+// Linux non lo creiamo, quindi questi import servono solo lì.
+#[cfg(target_os = "macos")]
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
-use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+#[cfg(target_os = "macos")]
+use tauri::Emitter;
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 use db::AppState;
@@ -90,11 +95,14 @@ fn main() {
             // primo avvio non c'è nulla da ripristinare: resta massimizzata.
             let _ = window.restore_state(StateFlags::all());
 
-            // ── Menu nativo dell'applicazione ──────────────────────────────
-            // Le voci app-specifiche NON hanno acceleratore (le scorciatoie
-            // Cmd+N/Cmd+S sono già gestite dalla SPA): qui il menu serve da via
-            // mouse/discoverability. Al click emettono l'evento "menu" che il
-            // frontend traduce nell'azione corrispondente.
+            // ── Menu nativo dell'applicazione (solo macOS) ─────────────────
+            // Su macOS il menu è la barra globale in cima allo schermo: standard
+            // e attesa (Copia/Incolla, Esci…). Su Windows e Linux sarebbe invece
+            // una barra DENTRO la finestra (File/Modifica/Visualizza/Aiuto),
+            // fuori posto per un gestionale: lì non la creiamo affatto.
+            // Le voci custom emettono l'evento "menu" che il frontend traduce
+            // nell'azione corrispondente.
+            #[cfg(target_os = "macos")]
             if let Err(e) = setup_menu(app) {
                 tracing::warn!("menu nativo non disponibile: {e}");
             }
@@ -107,6 +115,8 @@ fn main() {
 
 /// Costruisce e installa il menu nativo (File / Modifica / Visualizza / Aiuto).
 /// Le voci custom emettono l'evento "menu" con il proprio id verso la WebView.
+/// Solo macOS: su Windows/Linux il menu resta assente (vedi setup()).
+#[cfg(target_os = "macos")]
 fn setup_menu(app: &tauri::App) -> tauri::Result<()> {
     let file = SubmenuBuilder::new(app, "File")
         .text("new", "Nuovo documento")
