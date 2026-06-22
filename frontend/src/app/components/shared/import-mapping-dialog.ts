@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatIconModule } from '@angular/material/icon';
 
 export interface FieldDef {
@@ -22,10 +23,14 @@ export interface ImportMappingData {
   fields: FieldDef[];
   entityType: string;
   entityLabel: string;
+  /** Se true, chiede se i prezzi nel file sono IVA inclusa o esclusa. */
+  askPriceVat?: boolean;
 }
 
 export interface MappingResult {
   mapping: Record<string, string>;
+  /** Vero se i prezzi nel file sono IVA inclusa (da convertire in netto). */
+  prezzoIvato?: boolean;
 }
 
 const STORAGE_KEY = 'import_mapping_';
@@ -45,7 +50,7 @@ function autoMap(headers: string[], field: FieldDef): string {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatFormFieldModule,
-    MatSelectModule, MatButtonModule, MatCheckboxModule, MatIconModule,
+    MatSelectModule, MatButtonModule, MatCheckboxModule, MatRadioModule, MatIconModule,
   ],
   styles: [`
     .grid-row {
@@ -114,6 +119,18 @@ function autoMap(headers: string[], field: FieldDef): string {
           <span class="preview-val" [title]="getPreview(f.key)">{{ getPreview(f.key) }}</span>
         </div>
       }
+      @if (data.askPriceVat) {
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--mat-sys-outline-variant,#eee)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">I prezzi nel file sono:</div>
+          <mat-radio-group [(ngModel)]="prezzoIvato" style="display:flex;gap:20px;flex-wrap:wrap">
+            <mat-radio-button [value]="false">IVA esclusa (netto)</mat-radio-button>
+            <mat-radio-button [value]="true">IVA inclusa</mat-radio-button>
+          </mat-radio-group>
+          <p style="font-size:12px;color:var(--mat-sys-on-surface-variant,#888);margin:8px 0 0">
+            Se IVA inclusa, converto in netto con l'aliquota IVA di ogni riga (predefinita 22%).
+          </p>
+        </div>
+      }
       @if (missingRequired.length > 0) {
         <div class="warn">
           <mat-icon style="font-size:16px;width:16px;height:16px">warning</mat-icon>
@@ -136,6 +153,7 @@ export class ImportMappingDialogComponent {
   headers: string[] = [];
   mapping: Record<string, string> = {};
   saveMapping = false;
+  prezzoIvato = false;
   private firstRow: Record<string, string> = {};
 
   constructor(
@@ -173,7 +191,7 @@ export class ImportMappingDialogComponent {
     if (this.saveMapping) {
       localStorage.setItem(STORAGE_KEY + this.data.entityType, JSON.stringify(this.mapping));
     }
-    this.dialogRef.close({ mapping: { ...this.mapping } } satisfies MappingResult);
+    this.dialogRef.close({ mapping: { ...this.mapping }, prezzoIvato: this.prezzoIvato } satisfies MappingResult);
   }
 
   private loadSaved(): Record<string, string> {

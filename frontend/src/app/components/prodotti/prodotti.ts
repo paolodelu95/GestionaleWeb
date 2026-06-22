@@ -1003,27 +1003,38 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     this.excel.readFile(file).then(rows => {
       if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
       this.dialog.open(ImportMappingDialogComponent, {
-        data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti' },
+        data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti', askPriceVat: true },
         disableClose: true,
       }).afterClosed().subscribe((result: MappingResult | null) => {
         if (!result) return;
         const toNum = (s: any) => parseFloat(String(s ?? '').replace(',', '.') || '0') || 0;
         const toInt = (s: any) => parseInt(String(s ?? '').replace(',', '.') || '0', 10) || 0;
         const v = (key: string, row: Record<string, any>) => row[result.mapping[key]] ?? '';
-        const records = rows.map(r => ({
-          nome:            String(v('nome', r)).trim(),
-          categoria:       String(v('categoria', r)).trim(),
-          descrizione:     String(v('descrizione', r)).trim(),
-          codice:          String(v('codice', r)).trim(),
-          codiceFornitore: String(v('codiceFornitore', r)).trim(),
-          barcode:         String(v('barcode', r)).trim(),
-          prezzo:          toNum(v('prezzo', r)),
-          prezzoAcquisto:  toNum(v('prezzoAcquisto', r)) || null,
-          iva:             toNum(v('iva', r)) || 22,
-          quantita:        toInt(v('quantita', r)),
-          sogliaMinima:    toInt(v('sogliaMinima', r)),
-          unitaMisura:     String(v('unitaMisura', r)).trim() || 'pz',
-        })).filter(p => p.nome.length > 0);
+        // Se l'utente ha indicato che i prezzi nel file sono IVA inclusa, li
+        // converto in netto (lo storage tiene sempre il netto), usando l'aliquota
+        // della riga. Altrimenti i prezzi restano com'erano.
+        const ivato = !!result.prezzoIvato;
+        const aNetto = (lordo: number, ivaPerc: number) =>
+          ivato && ivaPerc > 0 ? Math.round((lordo / (1 + ivaPerc / 100)) * 100) / 100 : lordo;
+        const records = rows.map(r => {
+          const iva = toNum(v('iva', r)) || 22;
+          const prezzo = toNum(v('prezzo', r));
+          const prezzoAcquisto = toNum(v('prezzoAcquisto', r));
+          return {
+            nome:            String(v('nome', r)).trim(),
+            categoria:       String(v('categoria', r)).trim(),
+            descrizione:     String(v('descrizione', r)).trim(),
+            codice:          String(v('codice', r)).trim(),
+            codiceFornitore: String(v('codiceFornitore', r)).trim(),
+            barcode:         String(v('barcode', r)).trim(),
+            prezzo:          aNetto(prezzo, iva),
+            prezzoAcquisto:  prezzoAcquisto ? aNetto(prezzoAcquisto, iva) : null,
+            iva,
+            quantita:        toInt(v('quantita', r)),
+            sogliaMinima:    toInt(v('sogliaMinima', r)),
+            unitaMisura:     String(v('unitaMisura', r)).trim() || 'pz',
+          };
+        }).filter(p => p.nome.length > 0);
         if (!records.length) {
           this.snack.open('Nessun prodotto valido: controlla che la colonna Nome sia mappata correttamente', '', { duration: 5000 });
           return;
