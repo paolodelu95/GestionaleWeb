@@ -78,7 +78,14 @@ fn main() {
             server::spawn(state).map_err(|e| format!("avvio server: {e:#}"))?;
 
             // La WebView carica la SPA servita da axum (niente file://, niente CORS).
-            let url = format!("http://localhost:{}/", server::PORT);
+            // Aggancio la versione dell'app come query param: a ogni aggiornamento
+            // l'URL cambia (es. /?v=1.2.12) e la cache della WebView (WebView2 su
+            // Windows in primis) fa "miss" sulla index.html, ricaricando l'interfaccia
+            // nuova invece di servire quella vecchia in cache. Insieme a
+            // Cache-Control: no-cache (vedi server.rs) elimina i disallineamenti UI
+            // dopo un update. Il query param non cambia l'origin: localStorage,
+            // preferenze e mapping memorizzati restano intatti.
+            let url = format!("http://localhost:{}/?v={}", server::PORT, env!("CARGO_PKG_VERSION"));
             let window = WebviewWindowBuilder::new(
                 app,
                 "main",
