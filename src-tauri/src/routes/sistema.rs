@@ -23,7 +23,7 @@ pub fn routes() -> Router<AppState> {
 async fn percorsi(State(state): State<AppState>) -> ApiResult<Json<Value>> {
     let dir = &state.data_dir;
     let mut files: Vec<Value> = Vec::new();
-    for nome in ["auth.db", "tenants/default.db"] {
+    for nome in [crate::db::DB_FILE, "backups"] {
         let p = dir.join(nome);
         let size = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
         files.push(json!({ "nome": nome, "esiste": p.exists(), "bytes": size }));

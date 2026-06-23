@@ -70,6 +70,10 @@ fn main() {
             if let Err(e) = config::migrate_legacy_if_needed(&handle, &data_dir) {
                 tracing::warn!("migrazione dati legacy fallita: {e:#}");
             }
+            // Migrazione one-time dal vecchio formato a due file (auth.db + tenants/) al
+            // file unico ordeva.db. Se fallisce è meglio fermarsi (i vecchi file restano).
+            db::flatten_to_single_file(&data_dir)
+                .map_err(|e| format!("migrazione a file unico: {e:#}"))?;
             config::write_readme(&data_dir);
             let config_path = config::config_path(&handle)
                 .map_err(|e| format!("percorso config: {e:#}"))?;

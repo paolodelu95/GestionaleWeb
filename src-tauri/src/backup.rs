@@ -281,13 +281,22 @@ pub fn restore_backup(
     }
     // Backup di sicurezza dell'attuale (best-effort), poi chiude e sovrascrive.
     let _ = run_internal_backup(state);
-    state.evict_tenant(DEFAULT_TENANT);
     let target = state.tenant_db_path(DEFAULT_TENANT);
-    std::fs::write(&target, &data)?;
-    for ext in ["-wal", "-shm"] {
-        let p = PathBuf::from(format!("{}{}", target.to_string_lossy(), ext));
-        let _ = std::fs::remove_file(p);
-    }
+    // File unico: chiude auth + tenant (entrambi su ordeva.db) PRIMA di sovrascrivere il
+    // file, altrimenti SQLite con la connessione aperta corromperebbe il database. La
+    // connessione auth viene riaperta automaticamente da with_dbs_closed.
+    state.with_dbs_closed(|| {
+        std::fs::write(&target, &data)?;
+        for ext in ["-wal", "-shm"] {
+            let p = PathBuf::from(format!("{}{}", target.to_string_lossy(), ext));
+            let _ = std::fs::remove_file(p);
+        }
+        Ok(())
+    })?;
+    // I backup vecchi contengono solo le tabelle del tenant: ricrea tenant/utente/moduli
+    // (idempotente) e ri-materializza il tenant sul file ripristinato.
+    state.ensure_offline_bootstrap();
+    let _ = state.tenant_conn(DEFAULT_TENANT);
     Ok(())
 }
 

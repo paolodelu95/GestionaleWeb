@@ -83,9 +83,10 @@ pub fn resolve_data_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
     default_data_dir(app)
 }
 
-/// True se la cartella contiene già un database Ordeva (`auth.db`).
+/// True se la cartella contiene già un database Ordeva: il file unico `ordeva.db` oppure,
+/// per installazioni non ancora migrate, il vecchio `auth.db` (formato a due file).
 pub fn has_data(dir: &Path) -> bool {
-    dir.join("auth.db").is_file()
+    dir.join("ordeva.db").is_file() || dir.join("auth.db").is_file()
 }
 
 /// Migrazione one-time: se la cartella `target` è priva di dati e la vecchia cartella
@@ -141,11 +142,11 @@ Qui dentro c'è tutto il tuo gestionale. Puoi spostare questa cartella dove vuoi
 Ordeva: Impostazioni > Dati e sincronizzazione.
 
 Contenuto:
-- auth.db            utenti e configurazione di accesso
-- tenants/           i dati veri e propri (clienti, fatture, magazzino, ...)
-                     in edizione offline c'è un solo file: tenants/default.db
+- ordeva.db          TUTTO il tuo gestionale (clienti, fatture, magazzino, utenti...)
+                     in un solo file: e' questo che conviene salvare/portare con te
 - backups/           copie di backup automatiche
 - ordeva.lock        segnala una sessione in corso (per evitare conflitti su Dropbox)
+- vecchio-formato/   (se presente) i vecchi file prima della migrazione, come sicurezza
 
 USO SU PIÙ COMPUTER (Dropbox)
 Apri Ordeva su UN computer alla volta. Quando hai finito, usa

@@ -160,6 +160,15 @@ Tre cambi per far sembrare l'edizione offline un'app installata e non un sito lo
      pre-esistente (preferenze UI, sblocco di sessione) riparte da zero una tantum. I **dati**
      (SQLite) non sono in localStorage: restano intatti.
 
+   - **v1.2.16 — file unico `ordeva.db`.** Tolto il retaggio multi-tenant a due file
+     (`auth.db` + `tenants/default.db`): offline tutto sta in `ordeva.db`, aperto da DUE
+     connessioni (schema auth + schema tenant, mutex separati → nessun deadlock; nessuna
+     collisione di nomi tabella). Migrazione one-time `db::flatten_to_single_file`
+     (VACUUM INTO del tenant + ATTACH/copy delle 9 tabelle auth; vecchi file spostati in
+     `vecchio-formato/`). Restore adeguato (`AppState::with_dbs_closed` chiude/riapre la
+     connessione sul file unico; reseed per i backup vecchi tenant-only). Coperto da test
+     (`db::tests`) + verifica runtime su dati reali + `integrity_check`.
+
 2. **Cartella dati visibile e spostabile** (`config.rs`). Risoluzione: `DATA_DIR` env >
    `app_config_dir/ordeva.json` > **default `Documenti/Ordeva`**. Migrazione one-time: al primo
    avvio i dati della vecchia cartella nascosta (`app_data_dir/data`) vengono **copiati** nella
