@@ -78,4 +78,22 @@ export class DesktopService {
       await exit(code);
     } catch { /* no-op */ }
   }
+
+  /** True se Ordeva è impostata per avviarsi col login del sistema. */
+  async isAutostart(): Promise<boolean> {
+    if (!isTauri()) return false;
+    try {
+      const { isEnabled } = await import('@tauri-apps/plugin-autostart');
+      return await isEnabled();
+    } catch { return false; }
+  }
+
+  /** Abilita/disabilita l'avvio automatico col computer. */
+  async setAutostart(on: boolean): Promise<void> {
+    if (!isTauri()) return;
+    try {
+      const m = await import('@tauri-apps/plugin-autostart');
+      if (on) await m.enable(); else await m.disable();
+    } catch { /* no-op */ }
+  }
 }

@@ -11,13 +11,21 @@ rust-version = "1.77"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# "tray-icon" abilita l'icona nell'area di notifica/menu bar (vedi main.rs).
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 # Ricorda dimensione/posizione/stato della finestra tra le sessioni (uso desktop).
 tauri-plugin-window-state = "2"
+# Notifiche di sistema native (scadenze, solleciti, scorte sotto soglia).
+tauri-plugin-notification = "2"
+# Avvio automatico col computer (toggle in Impostazioni).
+tauri-plugin-autostart = "2"
+# Istanza singola: con l'hide-in-tray, rilanciare l'app deve riportare in primo piano
+# quella già aperta (evita due istanze sullo stesso ordeva.db).
+tauri-plugin-single-instance = "2"
 
 # Server HTTP locale (sostituisce Express)
 axum = { version = "0.7", features = ["multipart"] }

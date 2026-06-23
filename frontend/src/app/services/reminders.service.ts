@@ -1,7 +1,9 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, Subscription, interval, of } from 'rxjs';
 import { startWith, switchMap, catchError } from 'rxjs/operators';
+import { inject } from '@angular/core';
 import { ApiService } from './api.service';
+import { NotifyService } from './notify.service';
 
 export interface Reminder {
   id: number;
@@ -44,6 +46,8 @@ export class RemindersService implements OnDestroy {
   private tick?: Subscription;
   private fired = new Set<string>(this.readSet(this.FIRED_KEY));
   private dismessi = new Set<string>(this.readSet(this.DISMISS_KEY));
+
+  private notifySvc = inject(NotifyService);
 
   constructor(private api: ApiService) {}
 
@@ -118,21 +122,12 @@ export class RemindersService implements OnDestroy {
     this.prune(now);
   }
 
-  /** Notifica desktop (se permessa) + segnale per il toast in-app. */
+  /** Notifica di sistema nativa + segnale per il toast in-app. */
   private notifica(r: Reminder) {
     this.scattatoSub.next(r);
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      try {
-        const ora = this.oraDi(r.inizio);
-        const corpo = [ora, r.luogo, r.clienteNome].filter(Boolean).join(' · ');
-        const n = new Notification(r.titolo || 'Promemoria appuntamento', {
-          body: corpo || 'Appuntamento in arrivo',
-          icon: 'icons/ordeva-icon.png',
-          tag: this.key(r),                    // sostituisce eventuali duplicati
-        });
-        n.onclick = () => { try { window.focus(); } catch { /* noop */ } n.close(); };
-      } catch { /* alcuni browser bloccano se non in foreground: il toast resta */ }
-    }
+    const ora = this.oraDi(r.inizio);
+    const corpo = [ora, r.luogo, r.clienteNome].filter(Boolean).join(' · ');
+    this.notifySvc.notify(r.titolo || 'Promemoria appuntamento', corpo || 'Appuntamento in arrivo');
   }
 
   private oraDi(iso: string): string {

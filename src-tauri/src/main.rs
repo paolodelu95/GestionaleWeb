@@ -37,11 +37,26 @@ fn main() {
     tracing_subscriber::fmt().init();
 
     tauri::Builder::default()
+        // Istanza singola (va registrato per primo): se l'app è già aperta, il secondo
+        // avvio non parte e riporta in primo piano la finestra esistente.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.show();
+                let _ = win.unminimize();
+                let _ = win.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_notification::init())
+        // Autostart: avvio col login del sistema. Il toggle in Impostazioni abilita/disabilita.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         // Protocollo custom `ordeva://`: invece di un server in ascolto su una porta TCP,
         // ogni richiesta della WebView (SPA e /api/*) viene instradata in-process nel
         // Router axum. Niente porta aperta, niente firewall, niente conflitti di porta.
@@ -141,15 +156,28 @@ fn main() {
             .background_color(tauri::window::Color(0xf8, 0xfa, 0xfc, 0xff))
             .build()?;
 
-            // Quando la finestra perde il focus, checkpoint del WAL: se il DB è in una
-            // cartella Dropbox, riduce la finestra in cui un file `.db`+`-wal` disallineato
-            // verrebbe sincronizzato mentre l'utente è altrove.
-            let focus_state = state.clone();
-            window.on_window_event(move |event| {
-                if let tauri::WindowEvent::Focused(false) = event {
-                    focus_state.flush();
+            // Eventi finestra:
+            // - Focused(false): checkpoint del WAL (se il DB è su Dropbox, riduce la
+            //   finestra in cui un `.db`+`-wal` disallineato verrebbe sincronizzato).
+            // - CloseRequested: NON esce, ma nasconde nella tray (app in background, come
+            //   un'app vera). Prima fa un checkpoint così Dropbox sincronizza pulito. Si
+            //   esce davvero dalla tray ("Chiudi in sicurezza") o dal pulsante in app.
+            let ev_state = state.clone();
+            let ev_win = window.clone();
+            window.on_window_event(move |event| match event {
+                tauri::WindowEvent::Focused(false) => ev_state.flush(),
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    api.prevent_close();
+                    ev_state.flush();
+                    let _ = ev_win.hide();
                 }
+                _ => {}
             });
+
+            // Icona nell'area di notifica / menu bar, con menu rapido.
+            if let Err(e) = setup_tray(app, state.clone()) {
+                tracing::warn!("tray non disponibile: {e}");
+            }
 
             // Ripristina dimensione/posizione/stato salvati dalla sessione
             // precedente (il plugin window-state li salva alla chiusura). Al
@@ -173,15 +201,73 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("errore nell'avvio di Ordeva")
         .run(|app_handle, event| {
-            // All'uscita: checkpoint finale (un solo .db pulito da sincronizzare) e
-            // rilascio del lock di sessione, così l'altro PC può aprire senza avvisi.
-            if let tauri::RunEvent::ExitRequested { .. } = event {
+            // All'uscita reale (anche via app.exit dalla tray/pulsante): checkpoint finale
+            // (un solo .db pulito da sincronizzare) e rilascio del lock di sessione, così
+            // l'altro PC può aprire senza avvisi.
+            if matches!(
+                event,
+                tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+            ) {
                 if let Some(state) = app_handle.try_state::<AppState>() {
                     state.flush();
                     state.release_lock();
                 }
             }
         });
+}
+
+/// Icona nell'area di notifica (Windows/Linux) / menu bar (macOS) con menu rapido.
+/// Chiudendo la finestra l'app resta qui in background; da qui la si riapre o si esce
+/// in sicurezza (checkpoint + rilascio lock).
+fn setup_tray(app: &tauri::App, state: AppState) -> tauri::Result<()> {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+
+    let mostra = MenuItemBuilder::with_id("tray_mostra", "Mostra Ordeva").build(app)?;
+    let chiudi =
+        MenuItemBuilder::with_id("tray_chiudi", "Chiudi in sicurezza").build(app)?;
+    let menu = MenuBuilder::new(app).items(&[&mostra, &chiudi]).build()?;
+
+    let mut builder = TrayIconBuilder::with_id("main")
+        .tooltip("Ordeva")
+        .menu(&menu)
+        .show_menu_on_left_click(false);
+    if let Some(icon) = app.default_window_icon().cloned() {
+        builder = builder.icon(icon);
+    }
+
+    builder = builder.on_menu_event(move |app, event| match event.id().as_ref() {
+        "tray_mostra" => show_main(app),
+        "tray_chiudi" => {
+            state.flush();
+            state.release_lock();
+            app.exit(0);
+        }
+        _ => {}
+    });
+
+    builder = builder.on_tray_icon_event(|tray, event| {
+        if let TrayIconEvent::Click {
+            button: MouseButton::Left,
+            button_state: MouseButtonState::Up,
+            ..
+        } = event
+        {
+            show_main(tray.app_handle());
+        }
+    });
+
+    builder.build(app)?;
+    Ok(())
+}
+
+/// Mostra e porta in primo piano la finestra principale (dalla tray o da single-instance).
+fn show_main<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.show();
+        let _ = win.unminimize();
+        let _ = win.set_focus();
+    }
 }
 
 /// Costruisce e installa il menu nativo (File / Modifica / Visualizza / Aiuto).

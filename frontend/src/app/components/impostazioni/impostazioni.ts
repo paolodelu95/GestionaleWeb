@@ -496,6 +496,8 @@ export class ImpostazioniComponent implements OnInit {
   dataDir = '';
   dataFiles: { nome: string; esiste: boolean; bytes: number }[] = [];
   dataBusy = false;
+  /** Avvio automatico col computer (plugin Tauri autostart). */
+  autostart = false;
 
   /** Ruolo utente: le schede Amministrazione e Console SaaS sono qui dentro, gated per ruolo. */
   get isSuper(): boolean { return this.authSvc.getUser()?.ruolo === 'SUPERADMIN'; }
@@ -1235,6 +1237,13 @@ export class ImpostazioniComponent implements OnInit {
       next: r => { this.dataDir = r.dataDir; this.dataFiles = r.files; },
       error: () => {},
     });
+    this.desktop.isAutostart().then(v => this.autostart = v);
+  }
+
+  /** Abilita/disabilita l'avvio di Ordeva all'accensione del computer. */
+  async setAutostart(on: boolean) {
+    await this.desktop.setAutostart(on);
+    this.autostart = await this.desktop.isAutostart();
   }
 
   /** Apre la cartella dati nel file manager del sistema. */

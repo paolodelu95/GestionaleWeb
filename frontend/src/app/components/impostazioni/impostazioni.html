@@ -547,6 +547,13 @@
             </button>
           </div>
 
+          <div style="padding:12px 0 2px;border-top:1px solid #e2e8f0;margin-top:14px">
+            <mat-slide-toggle [checked]="autostart" (change)="setAutostart($event.checked)">
+              <span style="font-weight:600">Avvia Ordeva all'accensione del computer</span>
+            </mat-slide-toggle>
+            <p style="color:#94a3b8;font-size:12.5px;margin:6px 0 0 52px">All'avvio del sistema Ordeva parte da sola e resta nell'area di notifica (tray). Chiudendo la finestra resta lì: per uscire davvero usa "Chiudi in sicurezza" o il menu della tray.</p>
+          </div>
+
           <h3 class="section-title" style="margin-top:22px">Uso su più computer (Dropbox)</h3>
           <p style="color:#64748b;font-size:13px;margin-bottom:12px">
             Se tieni la cartella dati in Dropbox puoi usare Ordeva anche da un altro computer,
