@@ -144,7 +144,7 @@ Resta solo, lato utente: `cargo tauri build` per produrre i bundle firmati (o un
 di tag `v*` per farli generare dalla CI), e la dismissione fisica della cartella
 `electron/` una volta pubblicato e validato il primo bundle Tauri.
 
-## Fase 8 — "App vera": niente server, dati visibili, sync Dropbox (2026-06-23, v1.3.0)
+## Fase 8 — "App vera": niente server, dati visibili, sync Dropbox (2026-06-23, v1.2.15)
 
 Tre cambi per far sembrare l'edizione offline un'app installata e non un sito locale.
 
