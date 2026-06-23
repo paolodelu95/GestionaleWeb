@@ -1,6 +1,6 @@
 [package]
 name = "ordeva-desktop"
-version = "1.2.14"
+version = "1.3.0"
 description = "Ordeva — edizione offline desktop (Tauri + backend Rust)"
 authors = ["Paolo De Luca <info@ordeva.it>"]
 license = "AGPL-3.0-or-later"
@@ -21,7 +21,9 @@ tauri-plugin-window-state = "2"
 
 # Server HTTP locale (sostituisce Express)
 axum = { version = "0.7", features = ["multipart"] }
-tower = "0.5"
+# "util" porta ServiceExt::oneshot: instradiamo le richieste del custom protocol
+# direttamente nel Router axum, senza aprire alcuna porta TCP.
+tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["fs", "cors", "trace", "set-header"] }
 tokio = { version = "1", features = ["full"] }
 

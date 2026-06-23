@@ -477,6 +477,7 @@ export class ImpostazioniComponent implements OnInit {
         ...(!this.offline ? [{ id: 'email',  label: 'Email', icon: 'mail' }] : []),
         ...(!this.offline ? [{ id: 'utenti', label: 'Utenti', icon: 'group' }] : []),
         ...(this.offline && this.backupCfg ? [{ id: 'backup', label: 'Backup', icon: 'backup' }] : []),
+        ...(this.offline && this.isDesktop ? [{ id: 'dati', label: 'Dati e sincronizzazione', icon: 'folder' }] : []),
         ...(this.offline ? [{ id: 'aggiornamenti', label: 'Aggiornamenti', icon: 'system_update' }] : []),
         ...(this.isAdmin && !this.offline ? [{ id: 'admin', label: 'Amministrazione', icon: 'admin_panel_settings' }] : []),
         ...(this.isSuper && !this.offline ? [{ id: 'console', label: 'Console SaaS', icon: 'dns' }] : []),
@@ -490,6 +491,11 @@ export class ImpostazioniComponent implements OnInit {
   backupFiles: { name: string; encrypted: boolean; size: number; mtime: string }[] = [];
   backupBusy = false;
   get isDesktop(): boolean { return this.desktop.isDesktop; }
+
+  // ── Dati e sincronizzazione (offline) ───────────────────────────────────────
+  dataDir = '';
+  dataFiles: { nome: string; esiste: boolean; bytes: number }[] = [];
+  dataBusy = false;
 
   /** Ruolo utente: le schede Amministrazione e Console SaaS sono qui dentro, gated per ruolo. */
   get isSuper(): boolean { return this.authSvc.getUser()?.ruolo === 'SUPERADMIN'; }
@@ -594,6 +600,7 @@ export class ImpostazioniComponent implements OnInit {
 
   ngOnInit() {
     if (this.offline) this.loadBackupConfig();
+    if (this.offline && this.isDesktop) this.loadSistemaPercorsi();
     this.ds.getAzienda().subscribe(a => {
       if (a) {
         this.form.patchValue(a);
@@ -1220,5 +1227,38 @@ export class ImpostazioniComponent implements OnInit {
     const u = ['B', 'KB', 'MB', 'GB']; let i = 0; let v = n;
     while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
     return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
+  }
+
+  // ── Dati e sincronizzazione (offline) ───────────────────────────────────────
+  loadSistemaPercorsi() {
+    this.ds.getSistemaPercorsi().subscribe({
+      next: r => { this.dataDir = r.dataDir; this.dataFiles = r.files; },
+      error: () => {},
+    });
+  }
+
+  /** Apre la cartella dati nel file manager del sistema. */
+  openDataFolder() { if (this.dataDir) this.desktop.openPath(this.dataDir); }
+
+  /** Sposta i dati in un'altra cartella (es. dentro Dropbox) e riavvia l'app. */
+  async changeDataFolder() {
+    const dir = await this.desktop.pickFolder();
+    if (!dir) return;
+    if (!await this.confirm.delete(`Spostare i dati in "${dir}"? Ordeva copierà i dati lì e si riavvierà. La cartella attuale resta come copia di sicurezza.`)) return;
+    this.dataBusy = true;
+    this.ds.setSistemaDataDir(dir).subscribe({
+      next: () => { this.snack.open('Cartella aggiornata. Riavvio…', '', { duration: 2500 }); setTimeout(() => this.desktop.relaunch(), 1200); },
+      error: e => { this.dataBusy = false; this.snack.open(e.error?.error || 'Spostamento non riuscito', '', { duration: 5000 }); },
+    });
+  }
+
+  /** Chiusura sicura: checkpoint + rilascio lock, poi chiude (così Dropbox sincronizza). */
+  async chiudiSicuro() {
+    if (this.dataBusy) return;
+    this.dataBusy = true;
+    this.ds.sistemaFlush().subscribe({
+      next: () => this.desktop.exit(0),
+      error: () => this.desktop.exit(0),
+    });
   }
 }

@@ -1789,7 +1789,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
 
   downloadXml(f: Fattura) {
     const a = document.createElement('a');
-    a.href = `http://localhost:3000/api/fattura-xml/${f.id}`;
+    a.href = `${environment.apiUrl}/fattura-xml/${f.id}`;
     a.download = `FatturaPA_${f.numero}.xml`;
     a.click();
   }

@@ -60,4 +60,22 @@ export class DesktopService {
     if (!this.legacy?.openPath) return;
     try { await this.legacy.openPath(path); } catch { /* no-op */ }
   }
+
+  /** Riavvia l'app (es. dopo aver spostato la cartella dati). No-op fuori da Tauri. */
+  async relaunch(): Promise<void> {
+    if (!isTauri()) return;
+    try {
+      const { relaunch } = await import('@tauri-apps/plugin-process');
+      await relaunch();
+    } catch { /* no-op */ }
+  }
+
+  /** Chiude l'app. Usato dopo il flush per la "chiusura sicura" (sync Dropbox). */
+  async exit(code = 0): Promise<void> {
+    if (!isTauri()) return;
+    try {
+      const { exit } = await import('@tauri-apps/plugin-process');
+      await exit(code);
+    } catch { /* no-op */ }
+  }
 }

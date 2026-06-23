@@ -144,6 +144,35 @@ Resta solo, lato utente: `cargo tauri build` per produrre i bundle firmati (o un
 di tag `v*` per farli generare dalla CI), e la dismissione fisica della cartella
 `electron/` una volta pubblicato e validato il primo bundle Tauri.
 
+## Fase 8 — "App vera": niente server, dati visibili, sync Dropbox (2026-06-23, v1.3.0)
+
+Tre cambi per far sembrare l'edizione offline un'app installata e non un sito locale.
+
+1. **Niente porta TCP.** Il server axum non è più in ascolto su `127.0.0.1:3000`: si registra
+   un **custom URI scheme** `ordeva://` (`register_asynchronous_uri_scheme_protocol`) e ogni
+   richiesta della WebView viene instradata **in-process** nel `Router` axum via
+   `ServiceExt::oneshot` (`server::handle_request`). `build_router` è invariato (riuso totale
+   delle 54 route). La WebView carica `ordeva://localhost/?v=…` (Windows: `http://ordeva.localhost`).
+   `environment.offline.ts` usa `apiUrl: '/api'` (same-origin). `capabilities/default.json`:
+   `remote.urls` aggiornate allo scheme. Verificato a runtime: nessuna porta in LISTEN, SPA+API
+   funzionanti (screenshot dashboard).
+   - NB: l'origin cambia (localhost:3000 → ordeva://localhost), quindi il `localStorage`
+     pre-esistente (preferenze UI, sblocco di sessione) riparte da zero una tantum. I **dati**
+     (SQLite) non sono in localStorage: restano intatti.
+
+2. **Cartella dati visibile e spostabile** (`config.rs`). Risoluzione: `DATA_DIR` env >
+   `app_config_dir/ordeva.json` > **default `Documenti/Ordeva`**. Migrazione one-time: al primo
+   avvio i dati della vecchia cartella nascosta (`app_data_dir/data`) vengono **copiati** nella
+   nuova (la vecchia resta come backup). `LEGGIMI.txt` nella cartella. UI in Impostazioni →
+   "Dati e sincronizzazione" (`routes/sistema.rs`: GET `percorsi`, POST `data-dir`).
+
+3. **Dropbox-safe** (`db.rs` + `lock.rs`). `AppState::flush()` = `wal_checkpoint(TRUNCATE)` su
+   tutte le connessioni → sincronizza un solo `.db` pulito; chiamato all'uscita
+   (`RunEvent::ExitRequested`), sul blur della finestra, e da "Chiudi in sicurezza"
+   (POST `sistema/flush` + exit). `ordeva.lock` (host/pid/heartbeat ogni 30s) → all'avvio, se
+   risulta una sessione viva su un ALTRO host, avviso nella SPA (GET `sistema/lock`). Uso
+   sequenziale (un PC alla volta); il simultaneo resta sconsigliato.
+
 ## Note di parità critiche (non regredire)
 - **XML FatturaPA byte-compatibile**: ordine elementi e formattazione numeri devono
   combaciare con l'output Node; testare con fatture reali e XMLValidator/SDI.

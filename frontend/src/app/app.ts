@@ -26,6 +26,7 @@ import { DocLockService } from './services/doc-lock.service';
 import { LayoutService } from './services/layout.service';
 import { WindowTitleService } from './services/window-title.service';
 import { NativeMenuService } from './services/native-menu.service';
+import { DesktopService } from './services/desktop.service';
 import { LoginComponent } from './components/login/login';
 import { CookieConsentComponent } from './components/shared/cookie-consent';
 import { LockScreenComponent } from './components/shared/lock-screen';
@@ -183,6 +184,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     public update: UpdateService,
     private windowTitle: WindowTitleService,
     private nativeMenu: NativeMenuService,
+    private desktop: DesktopService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -228,6 +230,10 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     // Controllo aggiornamenti (edizione offline): rispetta la frequenza scelta in
     // Impostazioni → Aggiornamenti; se attiva l'auto-installazione, aggiorna da solo.
     if (this.offline) this.update.checkAuto();
+
+    // Uso del DB su Dropbox da più PC: se all'avvio risulta una sessione aperta su un
+    // altro computer, avviso (lavorarci contemporaneamente può corrompere i dati).
+    if (this.offline && this.desktop.isDesktop) this.checkDropboxLock();
 
     // Quando cambiano i moduli attivi (login, caricamento, modifiche in Impostazioni)
     // cambia il numero di voci in barra: ricalcolo l'overflow del priority-nav.
@@ -347,6 +353,25 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       error: () => {},
     });
   }
+  /**
+   * Edizione offline: avvisa se all'avvio il DB risulta già aperto su un altro computer
+   * (cartella dati condivisa su Dropbox). L'azione "Esci" chiude l'app per evitare
+   * modifiche concorrenti che corromperebbero SQLite.
+   */
+  private checkDropboxLock() {
+    this.ds.getSistemaLock().subscribe({
+      next: l => {
+        if (!l.altraSessione) return;
+        const ref = this.snack.open(
+          `Attenzione: Ordeva risulta aperto su un altro computer${l.host ? ` (${l.host})` : ''}. ` +
+          `Usarlo su due computer contemporaneamente con i dati su Dropbox può corrompere i dati.`,
+          'Esci', { duration: 15000, panelClass: 'snack-warn' });
+        ref.onAction().subscribe(() => this.desktop.exit(0));
+      },
+      error: () => {},
+    });
+  }
+
   /** "Più tardi": l'avviso riapparirà dopo i giorni configurati. */
   dismissBackupAlert() { this.backupAlert = false; this.ds.dismissBackupAlert().subscribe({ next: () => {}, error: () => {} }); }
   /** "Non mostrare più": riattivabile da Impostazioni → Backup. */

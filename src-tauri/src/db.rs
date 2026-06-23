@@ -26,19 +26,31 @@ const TENANT_SEED: &str = include_str!("schema/seed.sql");
 #[derive(Clone)]
 pub struct AppState {
     pub data_dir: PathBuf,
+    /// Percorso del file di config (`ordeva.json`) per persistere la cartella dati scelta.
+    pub config_path: PathBuf,
     auth: Arc<Mutex<Connection>>,
     tenants: Arc<Mutex<HashMap<String, Arc<Mutex<Connection>>>>>,
     /// Chiave AES-256 dei backup, derivata dalla password d'accesso (scrypt) e
     /// tenuta SOLO in memoria (parità con utils/appSession.js). None = bloccata.
     pub backup_key: Arc<Mutex<Option<[u8; 32]>>>,
+    /// Sessione rilevata su un ALTRO computer all'avvio (avviso uso Dropbox). None = ok.
+    pub other_session: Arc<Mutex<Option<crate::lock::LockInfo>>>,
+    /// Istante d'avvio di questa sessione (per il campo started_at del lock).
+    started_at: i64,
 }
 
 impl AppState {
     /// Inizializza cartelle, apre auth.db, applica gli schemi e fa il bootstrap
     /// del tenant/utente offline. Idempotente.
-    pub fn init(data_dir: PathBuf) -> Result<Self> {
+    pub fn init(data_dir: PathBuf, config_path: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(data_dir.join("tenants"))
             .with_context(|| format!("creazione cartella dati {:?}", data_dir))?;
+
+        // Lock di sessione: rileva una sessione viva su un altro computer (Dropbox) PRIMA
+        // di sovrascrivere il lock con il nostro.
+        let other_session = crate::lock::read(&data_dir).filter(crate::lock::is_conflict);
+        let started_at = crate::lock::current_time();
+        crate::lock::write(&data_dir, &crate::lock::self_info(started_at));
 
         let auth_conn = open_db(&data_dir.join("auth.db"))?;
         auth_conn
@@ -49,15 +61,67 @@ impl AppState {
 
         let state = AppState {
             data_dir,
+            config_path,
             auth: Arc::new(Mutex::new(auth_conn)),
             tenants: Arc::new(Mutex::new(HashMap::new())),
             backup_key: Arc::new(Mutex::new(None)),
+            other_session: Arc::new(Mutex::new(other_session)),
+            started_at,
         };
 
         state.bootstrap_offline()?;
         // Materializza subito il tenant default (apre + applica schema tenant).
         let _ = state.tenant_conn(DEFAULT_TENANT)?;
         Ok(state)
+    }
+
+    /// Checkpoint WAL (TRUNCATE) su tutte le connessioni: integra il `-wal` nel file
+    /// `.db` principale e lo azzera. Così, sotto cloud-sync (Dropbox), si sincronizza un
+    /// singolo file consistente invece di `.db` + `-wal` disallineati.
+    pub fn flush(&self) {
+        if let Ok(c) = self.auth.lock() {
+            let _ = c.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+        }
+        if let Ok(cache) = self.tenants.lock() {
+            for conn in cache.values() {
+                if let Ok(c) = conn.lock() {
+                    let _ = c.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+                }
+            }
+        }
+    }
+
+    /// Rilascia il lock di sessione (uscita pulita).
+    pub fn release_lock(&self) {
+        crate::lock::remove(&self.data_dir);
+    }
+
+    /// Avvia il thread di heartbeat: aggiorna `ordeva.lock` ogni 30s finché l'app vive.
+    pub fn spawn_heartbeat(&self) {
+        let data_dir = self.data_dir.clone();
+        let started_at = self.started_at;
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_secs(30));
+            crate::lock::write(&data_dir, &crate::lock::self_info(started_at));
+        });
+    }
+
+    /// Sposta i dati nella nuova cartella (es. dentro Dropbox) e persiste la scelta in
+    /// config. Fa prima un checkpoint per copiare uno stato consistente. NON applica il
+    /// cambio in-place: serve un riavvio dell'app (gestito dal frontend).
+    pub fn set_data_dir(&self, new_dir: &Path) -> Result<()> {
+        if new_dir == self.data_dir {
+            return Ok(());
+        }
+        if new_dir.starts_with(&self.data_dir) {
+            anyhow::bail!("la nuova cartella non può essere dentro quella attuale");
+        }
+        self.flush();
+        crate::config::copy_dir_all(&self.data_dir, new_dir)
+            .with_context(|| format!("copia dati in {:?}", new_dir))?;
+        crate::config::write_readme(new_dir);
+        crate::config::save_data_dir(&self.config_path, Some(new_dir))?;
+        Ok(())
     }
 
     /// Crea (se assenti) il tenant "default" e l'utente "local" OWNER, come fa

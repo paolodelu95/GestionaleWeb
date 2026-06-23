@@ -42,6 +42,12 @@ export class DataService {
   restoreBackup(name: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { name }); }
   restoreBackupFromFile(filePath: string, password?: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { filePath, password }); }
 
+  // Sistema / dati (offline): cartella dati visibile e spostabile (anche su Dropbox)
+  getSistemaPercorsi(): Observable<{ dataDir: string; configPath: string; files: { nome: string; esiste: boolean; bytes: number }[] }> { return this.api.get('sistema/percorsi'); }
+  setSistemaDataDir(path: string): Observable<{ ok: boolean; riavvioRichiesto: boolean; dataDir: string }> { return this.api.post('sistema/data-dir', { path }); }
+  getSistemaLock(): Observable<{ altraSessione: boolean; host?: string; heartbeatAt?: number }> { return this.api.get('sistema/lock'); }
+  sistemaFlush(): Observable<{ ok: boolean }> { return this.api.post('sistema/flush', {}); }
+
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }
   /** Dettaglio singolo prodotto: include l'immagine (esclusa dalla lista). */

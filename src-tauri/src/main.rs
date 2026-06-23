@@ -5,11 +5,13 @@
 mod audit;
 mod auth;
 mod backup;
+mod config;
 mod db;
 mod error;
 mod fiscale;
 mod gemello;
 mod jobs;
+mod lock;
 mod match_prodotti;
 mod migrate;
 mod moduli;
@@ -19,8 +21,6 @@ mod server;
 mod stock;
 mod web;
 mod xml;
-
-use std::path::PathBuf;
 
 // Menu nativo solo su macOS (barra globale in cima allo schermo): su Windows e
 // Linux non lo creiamo, quindi questi import servono solo lì.
@@ -42,14 +42,43 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        // Protocollo custom `ordeva://`: invece di un server in ascolto su una porta TCP,
+        // ogni richiesta della WebView (SPA e /api/*) viene instradata in-process nel
+        // Router axum. Niente porta aperta, niente firewall, niente conflitti di porta.
+        // Il Router è custodito come managed state da setup() (SharedRouter); qui lo
+        // recuperiamo via l'app handle del contesto.
+        .register_asynchronous_uri_scheme_protocol(server::SCHEME, |ctx, request, responder| {
+            let router = ctx
+                .app_handle()
+                .state::<server::SharedRouter>()
+                .inner()
+                .0
+                .clone();
+            tauri::async_runtime::spawn(async move {
+                let resp = server::handle_request(router, request).await;
+                responder.respond(resp);
+            });
+        })
         .setup(|app| {
-            // I dati vivono fuori dall'app (persistono tra aggiornamenti), come
-            // faceva main.js con app.getPath('userData')/data. Override via DATA_DIR.
-            let data_dir = resolve_data_dir(app)?;
+            let handle = app.handle().clone();
+            // Cartella dati VISIBILE e spostabile (default: Documenti/Ordeva), con
+            // priorità env DATA_DIR > config ordeva.json > default. Vedi config.rs.
+            let data_dir = config::resolve_data_dir(&handle)
+                .map_err(|e| format!("risoluzione cartella dati: {e:#}"))?;
+            // Migrazione one-time dalla vecchia cartella nascosta (app_data_dir/data),
+            // così aggiornando non si "perdono" i dati passando alla cartella visibile.
+            if let Err(e) = config::migrate_legacy_if_needed(&handle, &data_dir) {
+                tracing::warn!("migrazione dati legacy fallita: {e:#}");
+            }
+            config::write_readme(&data_dir);
+            let config_path = config::config_path(&handle)
+                .map_err(|e| format!("percorso config: {e:#}"))?;
             tracing::info!("DATA_DIR = {:?}", data_dir);
 
-            let state = AppState::init(data_dir)
+            let state = AppState::init(data_dir, config_path)
                 .map_err(|e| format!("init database: {e:#}"))?;
+            // Heartbeat del lock di sessione (per l'avviso uso Dropbox su due PC).
+            state.spawn_heartbeat();
 
             // SPA: nell'app impacchettata i file Angular sono una risorsa del
             // bundle (vedi bundle.resources). Puntiamo il server lì via
@@ -75,17 +104,24 @@ fn main() {
             // Scheduler job offline (fatture ricorrenti dovute, solleciti automatici):
             // catch-up all'avvio + ogni 6h (parità con i cron 7:00/8:00 di server.js).
             jobs::spawn_scheduler(state.clone());
-            server::spawn(state).map_err(|e| format!("avvio server: {e:#}"))?;
 
-            // La WebView carica la SPA servita da axum (niente file://, niente CORS).
-            // Aggancio la versione dell'app come query param: a ogni aggiornamento
-            // l'URL cambia (es. /?v=1.2.12) e la cache della WebView (WebView2 su
-            // Windows in primis) fa "miss" sulla index.html, ricaricando l'interfaccia
-            // nuova invece di servire quella vecchia in cache. Insieme a
-            // Cache-Control: no-cache (vedi server.rs) elimina i disallineamenti UI
-            // dopo un update. Il query param non cambia l'origin: localStorage,
-            // preferenze e mapping memorizzati restano intatti.
-            let url = format!("http://localhost:{}/?v={}", server::PORT, env!("CARGO_PKG_VERSION"));
+            // Costruisco il Router axum una volta sola e lo rendo managed state: la
+            // closure del protocollo `ordeva://` (registrata sopra) lo recupera da qui.
+            let router = server::build_router(state.clone());
+            app.manage(server::SharedRouter(router));
+            // AppState anche come managed state: lo recupera l'handler d'uscita (flush +
+            // rilascio lock) in app.run(), oltre alle route via with_state.
+            app.manage(state.clone());
+
+            // La WebView carica la SPA via lo scheme custom `ordeva://` (servito in-process
+            // dal Router, niente porta). Aggancio la versione dell'app come query param: a
+            // ogni aggiornamento l'URL cambia (es. /?v=1.2.12) e la cache della WebView
+            // (WebView2 su Windows in primis) fa "miss" sulla index.html, ricaricando
+            // l'interfaccia nuova invece di servire quella vecchia in cache. Insieme a
+            // Cache-Control: no-cache (vedi server.rs) elimina i disallineamenti UI dopo
+            // un update. Il query param non cambia l'origin: localStorage, preferenze e
+            // mapping memorizzati restano intatti.
+            let url = format!("{}://localhost/?v={}", server::SCHEME, env!("CARGO_PKG_VERSION"));
             let window = WebviewWindowBuilder::new(
                 app,
                 "main",
@@ -100,6 +136,16 @@ fn main() {
             // sembra quello di un programma nativo e non di una pagina che carica.
             .background_color(tauri::window::Color(0xf8, 0xfa, 0xfc, 0xff))
             .build()?;
+
+            // Quando la finestra perde il focus, checkpoint del WAL: se il DB è in una
+            // cartella Dropbox, riduce la finestra in cui un file `.db`+`-wal` disallineato
+            // verrebbe sincronizzato mentre l'utente è altrove.
+            let focus_state = state.clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::Focused(false) = event {
+                    focus_state.flush();
+                }
+            });
 
             // Ripristina dimensione/posizione/stato salvati dalla sessione
             // precedente (il plugin window-state li salva alla chiusura). Al
@@ -120,8 +166,18 @@ fn main() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("errore nell'avvio di Ordeva");
+        .build(tauri::generate_context!())
+        .expect("errore nell'avvio di Ordeva")
+        .run(|app_handle, event| {
+            // All'uscita: checkpoint finale (un solo .db pulito da sincronizzare) e
+            // rilascio del lock di sessione, così l'altro PC può aprire senza avvisi.
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                if let Some(state) = app_handle.try_state::<AppState>() {
+                    state.flush();
+                    state.release_lock();
+                }
+            }
+        });
 }
 
 /// Costruisce e installa il menu nativo (File / Modifica / Visualizza / Aiuto).
@@ -174,12 +230,4 @@ fn setup_menu(app: &tauri::App) -> tauri::Result<()> {
     });
 
     Ok(())
-}
-
-fn resolve_data_dir(app: &tauri::App) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    if let Ok(p) = std::env::var("DATA_DIR") {
-        return Ok(PathBuf::from(p));
-    }
-    let base = app.path().app_data_dir()?;
-    Ok(base.join("data"))
 }

@@ -1,13 +1,18 @@
-//! Server HTTP locale (axum) che sostituisce Express: serve /api/* e la SPA Angular,
-//! esattamente come faceva server.js. La WebView di Tauri punta a questo server.
+//! Router HTTP locale (axum) che sostituisce Express: serve /api/* e la SPA Angular,
+//! esattamente come faceva server.js. **Niente porta TCP**: la WebView di Tauri carica
+//! lo scheme custom `ordeva://` e ogni richiesta viene instradata direttamente in questo
+//! Router in-process (vedi `handle_request` + la registrazione del protocollo in main.rs).
+//! Così non c'è alcun server in ascolto su una porta (niente conflitti di porta, niente
+//! avviso firewall su Windows, niente "sito che gira in locale").
 
+use std::borrow::Cow;
 use std::path::PathBuf;
 
-use anyhow::{Context, Result};
 use axum::http::{header::CACHE_CONTROL, HeaderValue};
 use axum::{routing::get, Json, Router};
 use serde_json::{json, Value};
 use tower::ServiceBuilder;
+use tower::ServiceExt; // oneshot
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
@@ -15,9 +20,15 @@ use tower_http::set_header::SetResponseHeaderLayer;
 use crate::db::AppState;
 use crate::routes;
 
-/// Porta del server locale. Deve combaciare con environment.offline.ts del frontend
-/// (apiUrl http://localhost:3000/api), così la SPA resta invariata.
-pub const PORT: u16 = 3000;
+/// Scheme custom servito dalla WebView. La SPA carica `ordeva://localhost/` (su Windows
+/// Tauri lo espone come `http://ordeva.localhost`). Tenere allineato a main.rs e alle
+/// `remote.urls` in capabilities/.
+pub const SCHEME: &str = "ordeva";
+
+/// Stato condiviso (managed) che custodisce il Router già costruito, così la closure del
+/// protocollo — registrata sul Builder prima di `setup()` — può recuperarlo a runtime.
+#[derive(Clone)]
+pub struct SharedRouter(pub Router);
 
 /// Costruisce il router completo: /healthz, /api/*, e fallback statico per la SPA.
 pub fn build_router(state: AppState) -> Router {
@@ -49,6 +60,39 @@ pub fn build_router(state: AppState) -> Router {
         .layer(CorsLayer::very_permissive())
 }
 
+/// Instrada una richiesta del custom protocol nel Router axum, senza rete.
+/// Converte la richiesta Tauri (`http::Request<Vec<u8>>`) in una richiesta axum, la passa
+/// al Router via `oneshot`, e ritrasforma la risposta in `http::Response<Cow<[u8]>>`,
+/// formato atteso dal responder del protocollo.
+pub async fn handle_request(
+    router: Router,
+    request: tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Cow<'static, [u8]>> {
+    let (parts, body) = request.into_parts();
+    let axum_req = axum::http::Request::from_parts(parts, axum::body::Body::from(body));
+
+    let response = match router.oneshot(axum_req).await {
+        Ok(resp) => resp,
+        Err(e) => {
+            tracing::error!("router oneshot: {e}");
+            return tauri::http::Response::builder()
+                .status(500)
+                .body(Cow::Borrowed(b"errore interno".as_slice()))
+                .expect("risposta 500 valida");
+        }
+    };
+
+    let (parts, body) = response.into_parts();
+    let bytes = match axum::body::to_bytes(body, usize::MAX).await {
+        Ok(b) => b.to_vec(),
+        Err(e) => {
+            tracing::error!("lettura body risposta: {e}");
+            Vec::new()
+        }
+    };
+    tauri::http::Response::from_parts(parts, Cow::Owned(bytes))
+}
+
 /// GET /healthz — parità con server.js (liveness, niente DB).
 /// Espone anche la versione dell'app (fonte unica: Cargo.toml) per il
 /// controllo aggiornamenti lato frontend.
@@ -67,23 +111,4 @@ fn spa_dir() -> PathBuf {
         .join("dist")
         .join("frontend")
         .join("browser")
-}
-
-/// Bind sincrono della porta (così quando la WebView carica, il server accetta già)
-/// e avvio del serve loop sul runtime async di Tauri.
-pub fn spawn(state: AppState) -> Result<()> {
-    let router = build_router(state);
-    let addr = format!("127.0.0.1:{PORT}");
-
-    let listener = tauri::async_runtime::block_on(async {
-        tokio::net::TcpListener::bind(&addr).await
-    })
-    .with_context(|| format!("bind {addr} (porta occupata?)"))?;
-
-    tauri::async_runtime::spawn(async move {
-        if let Err(e) = axum::serve(listener, router).await {
-            tracing::error!("server axum terminato: {e}");
-        }
-    });
-    Ok(())
 }

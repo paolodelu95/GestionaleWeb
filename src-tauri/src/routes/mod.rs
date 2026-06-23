@@ -46,6 +46,7 @@ mod riordino;
 mod scadenzario;
 mod sdi_passive;
 mod setup;
+mod sistema;
 mod stats;
 mod timesheet;
 mod tipi_pagamento;
@@ -111,6 +112,7 @@ pub fn api_router() -> Router<AppState> {
         // Offline-only (Fase 6)
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())
+        .nest("/sistema", sistema::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
