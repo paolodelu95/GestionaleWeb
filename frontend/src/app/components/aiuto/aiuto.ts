@@ -7,6 +7,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { environment } from '../../../environments/environment';
 
 interface Step { titolo: string; descrizione: string; }
 interface Sezione {
@@ -88,7 +89,7 @@ interface Screenshot { file: string; titolo: string; descrizione: string; }
       @if (!query) {
         <section class="gallery">
           <h2>Le schermate principali, a colpo d'occhio</h2>
-          <p class="gallery-sub">Anteprime reali dell'app con dati interamente inventati ("Mario Rossi SRL", "ACME SpA", ecc.) creati appositamente in un tenant demo dedicato. I tuoi dati reali compaiono solo dopo il login.</p>
+          <p class="gallery-sub">{{ gallerySub }}</p>
           <div class="gallery-grid">
             @for (s of screenshots; track s.file) {
               <figure class="mockup">
@@ -177,7 +178,11 @@ interface Screenshot { file: string; titolo: string; descrizione: string; }
             <mat-icon>support_agent</mat-icon>
             <div>
               <h3>Non hai trovato quello che cercavi?</h3>
-              <p>Scrivi a <a href="mailto:contatti@ordeva.it">contatti&#64;ordeva.it</a> e ti rispondiamo entro 24h lavorative. Sul piano Pro la risposta è garantita entro 4h.</p>
+              @if (offline) {
+                <p>Scrivi a <a href="mailto:contatti@ordeva.it">contatti&#64;ordeva.it</a> e ti rispondiamo entro 24h lavorative.</p>
+              } @else {
+                <p>Scrivi a <a href="mailto:contatti@ordeva.it">contatti&#64;ordeva.it</a> e ti rispondiamo entro 24h lavorative. Sul piano Pro la risposta è garantita entro 4h.</p>
+              }
             </div>
           </div>
         </section>
@@ -482,6 +487,17 @@ export class AiutoComponent {
   query = '';
   filtered: Sezione[] = [];
 
+  /** Edizione offline desktop: cambia ciò che la guida deve raccontare (dati sul
+   *  computer, backup locale, niente login/server/abbonamento). */
+  readonly offline = environment.offline;
+
+  /** Sottotitolo della galleria: in offline non c'è login né tenant demo. */
+  get gallerySub(): string {
+    return this.offline
+      ? 'Anteprime reali dell\'app con dati di esempio inventati ("Mario Rossi SRL", "ACME SpA", ecc.). I tuoi dati restano sul tuo computer.'
+      : 'Anteprime reali dell\'app con dati interamente inventati ("Mario Rossi SRL", "ACME SpA", ecc.) creati appositamente in un tenant demo dedicato. I tuoi dati reali compaiono solo dopo il login.';
+  }
+
   readonly screenshots: Screenshot[] = [
     { file: 'home.png',        titolo: 'Home',        descrizione: 'tile per categoria con accesso rapido a tutte le aree' },
     { file: 'dashboard.png',   titolo: 'Dashboard',   descrizione: 'KPI fatturato, incassi, magazzino, cashflow' },
@@ -491,7 +507,7 @@ export class AiutoComponent {
     { file: 'scadenzario.png', titolo: 'Scadenzario', descrizione: 'scadenze attive e passive con stato semaforico' },
   ];
 
-  readonly sezioni: Sezione[] = [
+  private readonly sezioniBase: Sezione[] = [
     {
       id: 'azienda',
       titolo: 'Configurare i dati dell\'azienda',
@@ -679,7 +695,49 @@ export class AiutoComponent {
     },
   ];
 
-  readonly faqs: Faq[] = [
+  /** Sezioni mostrate. In offline: aggiungo "Dati, backup e sincronizzazione",
+   *  riscrivo "Sicurezza" (dati sul computer, backup locale) e tolgo "Gestire utenti"
+   *  (la gestione multi-utente non fa parte dell'edizione offline). */
+  get sezioni(): Sezione[] {
+    if (!this.offline) return this.sezioniBase;
+    return this.sezioniBase
+      .filter(s => s.id !== 'utenti')
+      .map(s => (s.id === 'sicurezza' ? this.sicurezzaOffline : s))
+      .concat(this.datiOffline);
+  }
+
+  /** Nuova sezione (solo offline): dove sono i dati, come spostarli/sincronizzarli. */
+  private readonly datiOffline: Sezione = {
+    id: 'dati',
+    titolo: 'Dati, backup e sincronizzazione',
+    icona: 'folder_shared',
+    colore: 'linear-gradient(135deg,#11769b,#15a4a2)',
+    intro: 'Dove sono i tuoi dati e come portarli con te',
+    passi: [
+      { titolo: 'Tutto in un solo file', descrizione: 'I tuoi dati stanno in un unico file "ordeva.db" nella cartella Documenti/Ordeva. Da Impostazioni → Dati e sincronizzazione vedi il percorso e apri la cartella con un click.' },
+      { titolo: 'Spostare la cartella dei dati', descrizione: 'Sempre in Impostazioni → Dati e sincronizzazione, "Sposta cartella dati…" porta i dati dove preferisci (anche dentro Dropbox, OneDrive o iCloud) e riavvia l\'app sulla nuova posizione. La cartella di prima resta come copia di sicurezza.' },
+      { titolo: 'Usare Ordeva su più computer (Dropbox)', descrizione: 'Metti la cartella dati in Dropbox e installa Ordeva anche sull\'altro computer puntando alla stessa cartella. Usala su UN computer alla volta: quando hai finito premi "Chiudi in sicurezza (sincronizza dati)" così Dropbox sincronizza un file pulito prima di aprirla altrove. Se la apri mentre risulta già aperta su un altro PC, Ordeva ti avvisa.' },
+      { titolo: 'Backup automatici e ripristino', descrizione: 'In Impostazioni → Backup scegli una cartella e attivi il backup automatico giornaliero (puoi cifrarlo con la password d\'accesso). "Esegui backup ora" crea una copia al volo; "Ripristina da file…" riporta i dati da un backup.' },
+      { titolo: 'Aggiornamenti automatici', descrizione: 'Ordeva controlla da solo se c\'è una versione nuova e la installa (in Impostazioni → Aggiornamenti puoi verificare a mano). I tuoi dati non vengono toccati dagli aggiornamenti.' },
+    ],
+  };
+
+  /** Sezione "Sicurezza" riscritta per l'edizione offline (no server/cloud). */
+  private readonly sicurezzaOffline: Sezione = {
+    id: 'sicurezza',
+    titolo: 'Sicurezza dei dati',
+    icona: 'shield',
+    colore: 'linear-gradient(135deg,#0e2a38,#1e293b)',
+    intro: 'I tuoi dati restano sul tuo computer',
+    passi: [
+      { titolo: 'Nessun server, nessun cloud', descrizione: 'Ordeva offline gira tutto sul tuo computer: nessun login, nessun dato inviato a server esterni, nessun abbonamento. Per lavorare non serve nemmeno la connessione.' },
+      { titolo: 'Backup sotto il tuo controllo', descrizione: 'I backup li gestisci tu in Impostazioni → Backup: cartella a scelta, volendo cifrati con password. Tienine una copia su un disco esterno o nel cloud per stare tranquillo.' },
+      { titolo: 'Password d\'accesso opzionale', descrizione: 'In Impostazioni → Sicurezza puoi proteggere l\'apertura dell\'app con una password; la stessa può cifrare i backup.' },
+      { titolo: 'Storico delle modifiche', descrizione: 'Le cancellazioni e le operazioni importanti sono tracciate nello "Storico" (sezione Sistema): da lì verifichi cosa è stato fatto.' },
+    ],
+  };
+
+  private readonly faqsBase: Faq[] = [
     { domanda: 'Posso usare Ordeva da telefono?', risposta: 'Sì. Apri ordeva.it dal browser del telefono. Per averla come app, click sul menu condivisione di Safari (iPhone) o Chrome (Android) e scegli "Aggiungi alla schermata Home". Diventa una PWA identica a un\'app nativa.' },
     { domanda: 'Cosa succede se mi disconnetto da Internet?', risposta: 'La sola lettura funziona offline (puoi consultare dati già caricati). Per scrivere/salvare serve connessione. Quando torni online le modifiche vengono sincronizzate.' },
     { domanda: 'Posso esportare i miei dati e cambiare gestionale?', risposta: 'Sì. "Impostazioni → Esporta dati" scarica tutto in CSV/JSON. Nessun vincolo, nessun "lock-in". Anche se cancelli l\'account, puoi scaricare prima un export completo.' },
@@ -689,6 +747,23 @@ export class AiutoComponent {
     { domanda: 'Posso disdire l\'abbonamento in qualsiasi momento?', risposta: 'Sì, senza penali. Da "Impostazioni → Account" un click. Il servizio resta attivo fino alla fine del periodo già pagato, poi viene sospeso. Hai 30 giorni per riattivare o esportare prima della cancellazione definitiva.' },
     { domanda: 'Come funziona la prova gratuita di 14 giorni?', risposta: 'Tutte le funzioni sono attive durante la prova. Niente carta richiesta. Al 14° giorno o sottoscrivi un piano oppure l\'accesso viene sospeso (e i dati conservati 30 giorni per eventuale riattivazione).' },
     { domanda: 'Quanto tempo ci vuole per imparare ad usarlo?', risposta: 'Per emettere la prima fattura: 10-15 minuti se hai già dati cliente. Per padroneggiare tutti i moduli (magazzino, agenda, ecc.): circa una settimana di uso quotidiano. Questa guida ti accompagna step-by-step.' },
+  ];
+
+  /** FAQ mostrate: in offline sostituisco quelle SaaS (PWA da telefono, sync online,
+   *  abbonamento/prova) con quelle rilevanti per l'app desktop. */
+  get faqs(): Faq[] {
+    return this.offline ? this.faqsOffline : this.faqsBase;
+  }
+
+  private readonly faqsOffline: Faq[] = [
+    { domanda: 'Dove sono salvati i miei dati?', risposta: 'In un solo file "ordeva.db" nella cartella Documenti/Ordeva. Da Impostazioni → Dati e sincronizzazione puoi aprire la cartella, spostarla o copiarla altrove.' },
+    { domanda: 'Posso usare Ordeva su due computer?', risposta: 'Sì: metti la cartella dati in Dropbox e installa Ordeva su entrambi puntando a quella cartella. Usala su un computer alla volta e chiudi con "Chiudi in sicurezza" così i dati si sincronizzano prima di passare all\'altro.' },
+    { domanda: 'Come faccio il backup?', risposta: 'In Impostazioni → Backup attivi il backup automatico in una cartella a scelta (anche cifrato), oppure premi "Esegui backup ora". Per tornare indietro: "Ripristina da file…".' },
+    { domanda: 'Serve la connessione a Internet?', risposta: 'No per lavorare. Serve solo per le funzioni che la richiedono: invio email, invio allo SDI tramite provider, ricerca P.IVA e aggiornamenti dell\'app.' },
+    { domanda: 'Cosa succede se cancello una fattura per errore?', risposta: 'Le cancellazioni sono tracciate nello "Storico" (sezione Sistema), dove puoi verificarle. Tieni comunque attivi i backup per poter ripristinare.' },
+    { domanda: 'Le fatture XML sono valide per l\'Agenzia delle Entrate?', risposta: 'Sì, sono generate secondo le specifiche tecniche ufficiali (Fatturazione Elettronica B2B/B2C v1.7+). L\'XML lo carichi sul tuo provider/intermediario SDI, oppure lo invii dall\'app se hai configurato un provider con API.' },
+    { domanda: 'Come coinvolgo il mio commercialista?', risposta: 'Usa gli export (CSV/XML) delle sezioni contabili e il pacchetto fiscale del periodo per consegnargli tutto il necessario.' },
+    { domanda: 'Quanto tempo ci vuole per imparare ad usarlo?', risposta: 'Per emettere la prima fattura: 10-15 minuti se hai già i dati del cliente. Per padroneggiare tutti i moduli: circa una settimana di uso quotidiano. Questa guida ti accompagna passo passo.' },
   ];
 
   filter() {
