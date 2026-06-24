@@ -20,6 +20,8 @@ pub fn spawn_scheduler(state: AppState) {
     std::thread::spawn(move || loop {
         run_due_recurring(&state);
         invia_solleciti_automatici(&state);
+        // Snapshot automatico (cronologia versioni) se l'ultimo è troppo vecchio.
+        crate::backup::run_snapshot_if_due(&state);
         std::thread::sleep(Duration::from_secs(6 * 3600));
     });
 }

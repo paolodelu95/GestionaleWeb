@@ -47,6 +47,10 @@ export class DataService {
   setSistemaDataDir(path: string): Observable<{ ok: boolean; riavvioRichiesto: boolean; dataDir: string }> { return this.api.post('sistema/data-dir', { path }); }
   getSistemaLock(): Observable<{ altraSessione: boolean; host?: string; heartbeatAt?: number }> { return this.api.get('sistema/lock'); }
   sistemaFlush(): Observable<{ ok: boolean }> { return this.api.post('sistema/flush', {}); }
+  // Snapshot / cronologia versioni (offline)
+  getSnapshots(): Observable<{ snapshots: { name: string; size: number; mtime: string }[] }> { return this.api.get('sistema/snapshots'); }
+  createSnapshot(): Observable<{ ok: boolean; name: string }> { return this.api.post('sistema/snapshots', {}); }
+  restoreSnapshot(name: string): Observable<{ ok: boolean }> { return this.api.post('sistema/snapshots/restore', { name }); }
 
   // Prodotti
   getProdotti(): Observable<Prodotto[]> { return this.api.get('prodotti'); }

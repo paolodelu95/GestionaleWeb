@@ -548,4 +548,42 @@ mod tests {
         assert_eq!(local, 1, "utente local riseedato");
         assert!(moduli > 0, "catalogo moduli riseedato");
     }
+
+    #[test]
+    fn snapshot_crea_elenca_e_ripristina() {
+        let dir = tmp_dir();
+        let st = AppState::init(dir.clone(), cfg_path(&dir)).unwrap();
+
+        // Stato iniziale.
+        st.with_tenant(DEFAULT_TENANT, |c| {
+            c.execute("INSERT INTO clienti (ragione_sociale) VALUES ('Prima')", [])?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Snapshot del punto attuale.
+        let name = crate::backup::create_snapshot(&st).unwrap();
+        let list = crate::backup::list_snapshots(&st);
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0]["name"].as_str().unwrap(), name);
+
+        // Modifiche dopo lo snapshot.
+        st.with_tenant(DEFAULT_TENANT, |c| {
+            c.execute("INSERT INTO clienti (ragione_sociale) VALUES ('Dopo')", [])?;
+            c.execute("DELETE FROM clienti WHERE ragione_sociale='Prima'", [])?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Ripristino → torna allo stato dello snapshot.
+        crate::backup::restore_snapshot(&st, &name).unwrap();
+        let prima: i64 = st
+            .with_tenant(DEFAULT_TENANT, |c| Ok(c.query_row("SELECT COUNT(*) FROM clienti WHERE ragione_sociale='Prima'", [], |r| r.get(0))?))
+            .unwrap();
+        let dopo: i64 = st
+            .with_tenant(DEFAULT_TENANT, |c| Ok(c.query_row("SELECT COUNT(*) FROM clienti WHERE ragione_sociale='Dopo'", [], |r| r.get(0))?))
+            .unwrap();
+        assert_eq!(prima, 1, "lo snapshot ha ripristinato 'Prima'");
+        assert_eq!(dopo, 0, "le modifiche dopo lo snapshot sono annullate");
+    }
 }

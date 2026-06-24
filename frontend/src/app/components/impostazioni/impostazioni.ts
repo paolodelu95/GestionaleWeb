@@ -498,6 +498,9 @@ export class ImpostazioniComponent implements OnInit {
   dataBusy = false;
   /** Avvio automatico col computer (plugin Tauri autostart). */
   autostart = false;
+  /** Cronologia versioni (snapshot) ripristinabili. */
+  snapshots: { name: string; size: number; mtime: string }[] = [];
+  snapBusy = false;
 
   /** Ruolo utente: le schede Amministrazione e Console SaaS sono qui dentro, gated per ruolo. */
   get isSuper(): boolean { return this.authSvc.getUser()?.ruolo === 'SUPERADMIN'; }
@@ -1238,6 +1241,35 @@ export class ImpostazioniComponent implements OnInit {
       error: () => {},
     });
     this.desktop.isAutostart().then(v => this.autostart = v);
+    this.loadSnapshots();
+  }
+
+  loadSnapshots() {
+    this.ds.getSnapshots().subscribe({
+      next: r => this.snapshots = r.snapshots,
+      error: () => this.snapshots = [],
+    });
+  }
+
+  /** Crea ora uno snapshot (punto di ripristino) dei dati. */
+  createSnapshot() {
+    if (this.snapBusy) return;
+    this.snapBusy = true;
+    this.ds.createSnapshot().subscribe({
+      next: () => { this.snapBusy = false; this.loadSnapshots(); this.snack.open('Snapshot creato', '', { duration: 2000 }); },
+      error: e => { this.snapBusy = false; this.snack.open(e.error?.error || 'Snapshot non riuscito', '', { duration: 4000 }); },
+    });
+  }
+
+  /** Ripristina i dati da uno snapshot (con copia di sicurezza dell'attuale). */
+  async restoreSnapshot(s: { name: string; mtime: string }) {
+    const quando = new Date(s.mtime).toLocaleString('it-IT');
+    if (!await this.confirm.delete(`Riportare i dati allo snapshot del ${quando}? I dati attuali verranno sostituiti (ne salvo prima una copia di sicurezza).`)) return;
+    this.snapBusy = true;
+    this.ds.restoreSnapshot(s.name).subscribe({
+      next: () => { this.snack.open('Ripristino completato. Ricarico…', '', { duration: 2500 }); setTimeout(() => location.reload(), 1200); },
+      error: e => { this.snapBusy = false; this.snack.open(e.error?.error || 'Ripristino non riuscito', '', { duration: 5000 }); },
+    });
   }
 
   /** Abilita/disabilita l'avvio di Ordeva all'accensione del computer. */

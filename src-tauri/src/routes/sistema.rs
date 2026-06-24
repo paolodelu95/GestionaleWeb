@@ -17,6 +17,8 @@ pub fn routes() -> Router<AppState> {
         .route("/data-dir", post(set_data_dir))
         .route("/lock", get(lock_stato))
         .route("/flush", post(flush))
+        .route("/snapshots", get(snapshots_list).post(snapshot_create))
+        .route("/snapshots/restore", post(snapshot_restore))
 }
 
 /// GET /api/sistema/percorsi — cartella dati corrente + elenco file principali.
@@ -70,6 +72,31 @@ async fn lock_stato(State(state): State<AppState>) -> ApiResult<Json<Value>> {
         }),
         None => json!({ "altraSessione": false }),
     }))
+}
+
+/// GET /api/sistema/snapshots — cronologia versioni ripristinabili (più recenti prima).
+async fn snapshots_list(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    Ok(Json(json!({ "snapshots": crate::backup::list_snapshots(&state) })))
+}
+
+/// POST /api/sistema/snapshots — crea uno snapshot ora.
+async fn snapshot_create(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    let name = crate::backup::create_snapshot(&state)?;
+    Ok(Json(json!({ "ok": true, "name": name })))
+}
+
+#[derive(Deserialize)]
+struct SnapshotReq {
+    name: String,
+}
+
+/// POST /api/sistema/snapshots/restore — ripristina i dati da uno snapshot.
+async fn snapshot_restore(
+    State(state): State<AppState>,
+    Json(req): Json<SnapshotReq>,
+) -> ApiResult<Json<Value>> {
+    crate::backup::restore_snapshot(&state, &req.name)?;
+    Ok(Json(json!({ "ok": true })))
 }
 
 /// POST /api/sistema/flush — checkpoint finale + rilascio lock, per "Chiudi in sicurezza".

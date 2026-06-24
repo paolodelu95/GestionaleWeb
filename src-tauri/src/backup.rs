@@ -20,6 +20,10 @@ const MAGIC_V2: &[u8; 8] = b"ORDEVA2\0";
 const MAGIC_V1: &[u8; 8] = b"ORDEVA1\0";
 const MAX_BACKUPS: usize = 14;
 const EXT_MAX: usize = 30;
+/// Snapshot (cronologia versioni) tenuti: copie a punti nel tempo, ripristinabili.
+const SNAPSHOT_MAX: usize = 30;
+/// Intervallo minimo tra snapshot automatici (secondi): 6 ore.
+const SNAPSHOT_DUE_SECS: u64 = 6 * 3600;
 
 // ── Config (azienda.backup_config) ──────────────────────────────────────────
 
@@ -215,6 +219,96 @@ fn run_internal_backup(state: &AppState) -> Result<()> {
     vacuum_into(state, &dest)?;
     prune(&dir, "gestionale-", MAX_BACKUPS, false);
     Ok(())
+}
+
+// ── Snapshot / cronologia versioni ───────────────────────────────────────────
+// Copie consistenti dell'intero ordeva.db a punti nel tempo, dentro
+// data_dir/snapshots, da cui si può "tornare indietro". Sono locali (a differenza dei
+// backup esterni, che vanno in una cartella scelta dall'utente / cloud).
+
+/// Cartella degli snapshot.
+pub fn snapshot_dir(state: &AppState) -> PathBuf {
+    state.data_dir.join("snapshots")
+}
+
+/// Nome snapshot valido: `snap-<timestamp>.db` (niente separatori di percorso).
+fn is_snapshot_name(f: &str) -> bool {
+    f.starts_with("snap-")
+        && f.ends_with(".db")
+        && !f.contains('/')
+        && !f.contains('\\')
+        && !f.contains("..")
+}
+
+/// Crea uno snapshot ora. Ritorna il nome del file creato.
+pub fn create_snapshot(state: &AppState) -> Result<String> {
+    let dir = snapshot_dir(state);
+    std::fs::create_dir_all(&dir)?;
+    let name = format!("snap-{}.db", ts_now());
+    vacuum_into(state, &dir.join(&name))?;
+    prune(&dir, "snap-", SNAPSHOT_MAX, false);
+    Ok(name)
+}
+
+/// Elenco snapshot (più recenti prima) con nome, dimensione e data.
+pub fn list_snapshots(state: &AppState) -> Vec<Value> {
+    let dir = snapshot_dir(state);
+    let mut items: Vec<(String, u64, std::time::SystemTime)> = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(&dir) {
+        for e in rd.flatten() {
+            let name = e.file_name().to_string_lossy().to_string();
+            if !is_snapshot_name(&name) {
+                continue;
+            }
+            if let Ok(md) = e.metadata() {
+                items.push((name, md.len(), md.modified().unwrap_or(UNIX_EPOCH)));
+            }
+        }
+    }
+    items.sort_by(|a, b| b.2.cmp(&a.2));
+    items
+        .into_iter()
+        .map(|(name, size, mtime)| json!({ "name": name, "size": size, "mtime": iso_utc(mtime) }))
+        .collect()
+}
+
+/// Ripristina uno snapshot dato il nome (validato). Riusa il percorso di restore completo
+/// (backup di sicurezza dell'attuale + sostituzione file + reseed).
+pub fn restore_snapshot(state: &AppState, name: &str) -> Result<()> {
+    if !is_snapshot_name(name) {
+        bail!("Nome snapshot non valido");
+    }
+    let path = snapshot_dir(state).join(name);
+    if !path.exists() {
+        bail!("Snapshot non trovato");
+    }
+    restore_backup(state, &path.to_string_lossy(), None, None)
+}
+
+/// Crea uno snapshot automatico se l'ultimo è più vecchio di SNAPSHOT_DUE_SECS (o non
+/// ce ne sono). Best-effort: non propaga errori. Chiamato all'avvio e dallo scheduler.
+pub fn run_snapshot_if_due(state: &AppState) {
+    let dir = snapshot_dir(state);
+    let newest = std::fs::read_dir(&dir)
+        .ok()
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| is_snapshot_name(&e.file_name().to_string_lossy()))
+        .filter_map(|e| e.metadata().ok()?.modified().ok())
+        .max();
+    let due = match newest {
+        Some(t) => t
+            .elapsed()
+            .map(|d| d.as_secs() >= SNAPSHOT_DUE_SECS)
+            .unwrap_or(true),
+        None => true,
+    };
+    if due {
+        if let Err(e) = create_snapshot(state) {
+            tracing::warn!("snapshot automatico non riuscito: {e:#}");
+        }
+    }
 }
 
 /// Crea un backup nella cartella `dir`, cifrato se richiesto. Ritorna (file, encrypted).
