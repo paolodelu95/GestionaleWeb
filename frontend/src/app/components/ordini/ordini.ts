@@ -710,6 +710,8 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
 
   get anni() { return [...new Set(this.allOrdini.map(o => +o.dataOrdine.substring(0, 4)))].sort().reverse(); }
   get ordini() { return this.dataSource.data; }
+  /** Somma dei soli documenti selezionati (per la barra totali in fondo alla lista). */
+  get totaleSelezione(): number { return this.selection.selected.reduce((s, x) => s + (Number((x as any).totale) || 0), 0); }
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;

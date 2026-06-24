@@ -409,6 +409,24 @@ button:focus:not(:focus-visible) { outline: none; }
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
+// ── Barra totali sotto le liste documenti ───────────────────────────────────
+.list-totali {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 18px;
+  padding: 10px 4px 2px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 4px;
+}
+.list-totali .lt-count { color: var(--text-tertiary); }
+.list-totali .lt-tot { margin-left: auto; }
+.list-totali .lt-tot b,
+.list-totali .lt-sel b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.list-totali .lt-sel { color: var(--primary); }
+
 // ── KPI Cards ────────────────────────────────────────────────────────────────
 .kpi-grid {
   display: grid;

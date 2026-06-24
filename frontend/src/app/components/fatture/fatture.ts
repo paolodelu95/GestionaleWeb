@@ -1691,6 +1691,8 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   get fatture() { return this.dataSource.data; }
+  /** Somma dei soli documenti selezionati (per la barra totali in fondo alla lista). */
+  get totaleSelezione(): number { return this.selection.selected.reduce((s, x) => s + (Number((x as any).totale) || 0), 0); }
   hasActiveFilters() { return !!(this.filtroAnni.length || this.filtroMesi.length || this.filtroClienti.length || this.filtroStati.length || this.filtroDaPagare || this.dataSource.filter); }
   isAllSelected() { return this.allFatture.length > 0 && this.selection.selected.length === this.dataSource.data.length; }
   toggleAll() { this.isAllSelected() ? this.selection.clear() : this.dataSource.data.forEach(r => this.selection.select(r)); }

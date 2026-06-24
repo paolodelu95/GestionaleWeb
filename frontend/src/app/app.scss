@@ -212,6 +212,10 @@
       color: #64748b;
       width: 20px;
       height: 20px;
+      line-height: 20px;
+      // Il titolo è flex con overflow:hidden: senza flex-shrink:0 le label lunghe
+      // (es. "Fatture elettroniche") schiacciavano l'icona, che appariva tagliata.
+      flex-shrink: 0;
     }
 
     .mat-expansion-panel-body { padding: 4px 0 6px !important; }
@@ -1131,7 +1135,7 @@
   // ── Pannelli espandibili (gruppi) ──
   .sidenav .sidenav-panel mat-expansion-panel-header { height: 36px !important; padding: 0 10px !important; }
   .sidenav .sidenav-panel mat-panel-title { gap: 10px; }
-  .sidenav .sidenav-panel .panel-icon { font-size: 18px; width: 18px; height: 18px; }
+  .sidenav .sidenav-panel .panel-icon { font-size: 18px; width: 18px; height: 18px; line-height: 18px; }
 
   // ── Footer sidenav ──
   .sidenav .sidenav-footer { padding: 8px 8px 10px; }

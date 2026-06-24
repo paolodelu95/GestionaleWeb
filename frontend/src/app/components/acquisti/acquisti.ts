@@ -532,6 +532,8 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     return [...map.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
   }
   get acquisti() { return this.dataSource.data; }
+  /** Somma dei soli documenti selezionati (per la barra totali in fondo alla lista). */
+  get totaleSelezione(): number { return this.selection.selected.reduce((s, x) => s + (Number((x as any).totale) || 0), 0); }
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;

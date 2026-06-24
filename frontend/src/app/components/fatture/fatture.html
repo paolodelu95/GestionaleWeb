@@ -167,7 +167,13 @@
         </td>
       </tr>
     </table>
-    <div class="list-totals">{{ dataSource.data.length }} documenti · Totale {{ totaleLista | number:'1.2-2' }} €</div>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
+    <div class="list-totali">
+      <span class="lt-count">{{ dataSource.data.length }} document{{ dataSource.data.length === 1 ? 'o' : 'i' }}</span>
+      <span class="lt-tot">Totale: <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+      @if (selection.hasValue()) {
+        <span class="lt-sel">{{ selection.selected.length }} selezionat{{ selection.selected.length === 1 ? 'o' : 'i' }}: <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+      }
+    </div>
   </div>
 </div>
