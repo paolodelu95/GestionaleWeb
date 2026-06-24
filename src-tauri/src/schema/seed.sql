@@ -4,7 +4,7 @@
 -- azienda
 INSERT INTO azienda VALUES(1,'','','','','','','','','','','','','','','RF01',0.0,'','RT02','',0.0,0.0,'','',587,'','','',0,'','',0,0,1,'{}',NULL,'SMTP',NULL,'Buongiorno,
 in allegato trovate il documento richiesto.
-Restiamo a disposizione per qualsiasi chiarimento.',1,'GENERICO','',NULL);
+Restiamo a disposizione per qualsiasi chiarimento.',1,'GENERICO','',NULL,'trimestrale',0);
 
 -- aliquote_iva
 INSERT INTO aliquote_iva VALUES(1,'Esente art. 10',0.0,1,'E10','N4: Esente','Esente art. 10 DPR 633/72','N4','',0);

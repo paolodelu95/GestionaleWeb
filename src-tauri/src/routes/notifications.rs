@@ -81,9 +81,20 @@ async fn badges(State(state): State<AppState>) -> ApiResult<Json<Value>> {
         )
         .unwrap_or(0);
 
+    // Scadenze fiscali pendenti, imminenti (entro 7 giorni) o già scadute.
+    let scadenze_fiscali: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM scadenze_fiscali \
+             WHERE stato != 'fatto' AND data <= date('now','+7 days')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+
     Ok(Json(json!({
         "scadenzeScadute": scadenze_scadute,
         "prodottiSottoSoglia": prodotti_sotto_soglia,
         "solleciti": scadenze_scadute,
+        "scadenzeFiscali": scadenze_fiscali,
     })))
 }

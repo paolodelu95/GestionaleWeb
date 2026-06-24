@@ -45,6 +45,7 @@ mod riconciliazione;
 mod riordino;
 mod scadenzario;
 mod sdi_passive;
+mod scadenze_fiscali;
 mod setup;
 mod sistema;
 mod stats;
@@ -95,6 +96,7 @@ pub fn api_router() -> Router<AppState> {
         // Contabilità (Fase 5)
         .nest("/pagamenti", pagamenti::routes())
         .nest("/scadenzario", scadenzario::routes())
+        .nest("/scadenze-fiscali", scadenze_fiscali::routes())
         .nest("/prima-nota", prima_nota::routes())
         .nest("/riconciliazione", riconciliazione::routes())
         .nest("/stats", stats::routes())

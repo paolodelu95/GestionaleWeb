@@ -13,7 +13,7 @@ import {
   Magazzino, Giacenza, ScadenzaLotto,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
-  NotaRapida, BackupConfig
+  NotaRapida, BackupConfig, ScadenzaFiscale
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -47,6 +47,15 @@ export class DataService {
   setSistemaDataDir(path: string): Observable<{ ok: boolean; riavvioRichiesto: boolean; dataDir: string }> { return this.api.post('sistema/data-dir', { path }); }
   getSistemaLock(): Observable<{ altraSessione: boolean; host?: string; heartbeatAt?: number }> { return this.api.get('sistema/lock'); }
   sistemaFlush(): Observable<{ ok: boolean }> { return this.api.post('sistema/flush', {}); }
+  // Scadenze fiscali (calendario IVA/LIPE/ritenute/imposte)
+  getScadenzeFiscali(anno?: number): Observable<{ anno: number; config: { ivaPeriodicita: string; sostitutoImposta: boolean }; scadenze: ScadenzaFiscale[] }> {
+    return this.api.get(`scadenze-fiscali${anno ? `?anno=${anno}` : ''}`);
+  }
+  createScadenzaFiscale(s: Partial<ScadenzaFiscale>): Observable<{ id: number }> { return this.api.post('scadenze-fiscali', s); }
+  updateScadenzaFiscale(id: number, patch: Partial<ScadenzaFiscale>): Observable<any> { return this.api.put(`scadenze-fiscali/${id}`, patch); }
+  deleteScadenzaFiscale(id: number): Observable<any> { return this.api.delete(`scadenze-fiscali/${id}`); }
+  setScadenzeFiscaliConfig(cfg: { ivaPeriodicita: string; sostitutoImposta: boolean }): Observable<any> { return this.api.put('scadenze-fiscali/config', cfg); }
+
   // Snapshot / cronologia versioni (offline)
   getSnapshots(): Observable<{ snapshots: { name: string; size: number; mtime: string }[] }> { return this.api.get('sistema/snapshots'); }
   createSnapshot(): Observable<{ ok: boolean; name: string }> { return this.api.post('sistema/snapshots', {}); }

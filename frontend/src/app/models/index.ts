@@ -540,6 +540,17 @@ export interface NotaRapida {
   ordine?: number;
 }
 
+export interface ScadenzaFiscale {
+  id?: number;
+  data: string;            // YYYY-MM-DD
+  titolo: string;
+  categoria: string;       // IVA | LIPE | Ritenute | Imposte | Dichiarazioni | Altro
+  importo?: number | null;
+  note?: string;
+  stato?: 'pendente' | 'fatto';
+  auto?: boolean;          // generata automaticamente
+}
+
 export interface PrezzoRecente {
   prezzo: number;
   sconto: number;

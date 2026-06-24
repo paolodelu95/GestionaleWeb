@@ -9,11 +9,12 @@ export interface NotificationBadges {
   scadenzeScadute: number;
   prodottiSottoSoglia: number;
   solleciti: number;
+  scadenzeFiscali?: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService implements OnDestroy {
-  private badges$ = new BehaviorSubject<NotificationBadges>({ scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0 });
+  private badges$ = new BehaviorSubject<NotificationBadges>({ scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0, scadenzeFiscali: 0 });
   readonly badges = this.badges$.asObservable();
   private sub?: Subscription;
   private notify = inject(NotifyService);
@@ -47,6 +48,7 @@ export class NotificationService implements OnDestroy {
     if (b.scadenzeScadute > prev.scadenzeScadute) righe.push(`${b.scadenzeScadute} scadenze scadute`);
     if (b.prodottiSottoSoglia > prev.prodottiSottoSoglia) righe.push(`${b.prodottiSottoSoglia} prodotti sotto soglia`);
     if (b.solleciti > prev.solleciti) righe.push(`${b.solleciti} solleciti da inviare`);
+    if ((b.scadenzeFiscali || 0) > (prev.scadenzeFiscali || 0)) righe.push(`${b.scadenzeFiscali} scadenze fiscali in arrivo`);
     if (righe.length) this.notify.notify('Ordeva', righe.join(' · '));
   }
 

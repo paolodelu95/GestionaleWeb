@@ -26,6 +26,7 @@ export const routes: Routes = [
   { path: 'ordini-fornitore', loadComponent: () => import('./components/ordini-fornitore/ordini-fornitore').then(m => m.OrdiniFornitoreComponent) },
   { path: 'pagamenti',    loadComponent: () => import('./components/pagamenti/pagamenti').then(m => m.PagamentiComponent) },
   { path: 'scadenzario', loadComponent: () => import('./components/scadenzario/scadenzario').then(m => m.ScadenzarioComponent) },
+  { path: 'scadenze-fiscali', loadComponent: () => import('./components/scadenze-fiscali/scadenze-fiscali').then(m => m.ScadenzeFiscaliComponent) },
   { path: 'magazzino',      loadComponent: () => import('./components/magazzino/magazzino').then(m => m.MagazzinoComponent) },
   { path: 'arrivi-merce',   loadComponent: () => import('./components/arrivi-merce/arrivi-merce').then(m => m.ArriviMerceComponent) },
   { path: 'vendita-banco',  loadComponent: () => import('./components/vendita-banco/vendita-banco').then(m => m.VenditaBancoComponent) },

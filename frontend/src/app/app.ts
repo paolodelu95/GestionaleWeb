@@ -951,6 +951,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       children: [
         { label: 'Pagamenti',       icon: 'payments',         route: '/pagamenti' },
         { label: 'Scadenzario',     icon: 'event',            route: '/scadenzario' },
+        { label: 'Scadenze fiscali', icon: 'event_available', route: '/scadenze-fiscali' },
         { label: 'Prima nota',      icon: 'menu_book',        route: '/prima-nota' },
         { label: 'Riconciliazione', icon: 'account_balance',  route: '/riconciliazione' },
         { label: 'Compliance',      icon: 'verified',         route: '/compliance' },
