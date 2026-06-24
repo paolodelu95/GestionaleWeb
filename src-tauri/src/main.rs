@@ -29,6 +29,7 @@ use tauri::menu::{MenuBuilder, SubmenuBuilder};
 #[cfg(target_os = "macos")]
 use tauri::Emitter;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 use db::AppState;
@@ -159,17 +160,33 @@ fn main() {
             // Eventi finestra:
             // - Focused(false): checkpoint del WAL (se il DB è su Dropbox, riduce la
             //   finestra in cui un `.db`+`-wal` disallineato verrebbe sincronizzato).
-            // - CloseRequested: NON esce, ma nasconde nella tray (app in background, come
-            //   un'app vera). Prima fa un checkpoint così Dropbox sincronizza pulito. Si
-            //   esce davvero dalla tray ("Chiudi in sicurezza") o dal pulsante in app.
+            // - CloseRequested: chiede conferma e, se confermato, esce davvero.
+            //   La conferma è gestita QUI (Rust) e non più in JS: su Windows la
+            //   versione JS (onCloseRequested) non bloccava in tempo, così la
+            //   finestra si chiudeva prima della conferma e "Annulla" non la
+            //   riapriva. prevent_close() blocca sempre; poi: "Chiudi" → uscita
+            //   pulita (checkpoint + rilascio lock nell'handler di run), "Annulla"
+            //   → la finestra resta aperta.
             let ev_state = state.clone();
             let ev_win = window.clone();
             window.on_window_event(move |event| match event {
                 tauri::WindowEvent::Focused(false) => ev_state.flush(),
                 tauri::WindowEvent::CloseRequested { api, .. } => {
                     api.prevent_close();
-                    ev_state.flush();
-                    let _ = ev_win.hide();
+                    let app = ev_win.app_handle().clone();
+                    ev_win.dialog()
+                        .message("Vuoi chiudere Ordeva?")
+                        .title("Conferma chiusura")
+                        .kind(tauri_plugin_dialog::MessageDialogKind::Warning)
+                        .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom(
+                            "Chiudi".to_string(),
+                            "Annulla".to_string(),
+                        ))
+                        .show(move |chiudi| {
+                            if chiudi {
+                                app.exit(0);
+                            }
+                        });
                 }
                 _ => {}
             });

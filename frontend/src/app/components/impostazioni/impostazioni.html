@@ -613,15 +613,10 @@
             </mat-select>
           </mat-form-field>
 
-          <div style="padding:16px 0 4px;margin-top:8px;border-top:1px solid #e2e8f0">
-            <mat-slide-toggle [checked]="update.autoInstall()" (change)="update.setAutoInstall($event.checked)">
-              <span style="font-weight:600">Scarica e installa automaticamente</span>
-            </mat-slide-toggle>
-            <p style="color:#64748b;font-size:13px;margin:6px 0 0 52px">
-              Quando viene trovato un aggiornamento, l'app lo installa e si riavvia da sola, senza chiedere conferma.
-              Se disattivato, ti viene solo mostrato l'avviso e decidi tu quando aggiornare.
-            </p>
-          </div>
+          <p style="color:#64748b;font-size:13px;margin:12px 0 0;padding-top:12px;border-top:1px solid #e2e8f0">
+            Quando viene trovata una nuova versione, ti mostriamo un avviso con il bottone <b>Aggiorna ora</b>:
+            l'aggiornamento parte solo quando lo decidi tu (niente installazioni automatiche all'avvio).
+          </p>
         </div>
       </div>
       }

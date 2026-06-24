@@ -81,20 +81,18 @@ export class UpdateService {
   setAutoInstall(v: boolean) { this.autoInstall.set(v); this.savePrefs(); }
 
   /**
-   * Controllo all'avvio dell'app: rispetta la frequenza scelta e, se l'utente ha
-   * attivato l'auto-installazione, scarica e riavvia da solo quando trova una
-   * versione nuova. Aggiorna comunque la versione installata mostrata in UI.
+   * Controllo all'avvio dell'app: rispetta la frequenza scelta e, se trova una
+   * versione nuova, mostra SOLO l'avviso col bottone "Aggiorna ora" (mai
+   * installazione automatica all'avvio: aggiornarsi da soli mentre si lavora di
+   * fretta è scomodo). L'aggiornamento parte quando lo decide l'utente.
    */
   async checkAuto(): Promise<void> {
     if (!environment.offline) return;
     this.corrente.set(await this.versioneCorrente());
     if (!this.dovrebbeControllare()) return;
-    const esito = await this.check();
+    await this.check();   // popola "disponibile" → compare il banner con il bottone
     this.lastCheck = Date.now();
     this.savePrefs();
-    if (esito === 'disponibile' && this.autoInstall()) {
-      await this.installaERiavvia();
-    }
   }
 
   /** Vero se è scaduto l'intervallo scelto dall'ultimo controllo automatico. */

@@ -2,8 +2,6 @@ import { Injectable, NgZone, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { confirm } from '@tauri-apps/plugin-dialog';
 import { LayoutService } from './layout.service';
 
 /**
@@ -25,26 +23,8 @@ export class NativeMenuService {
     this.started = true;
     listen<string>('menu', (e) => this.zone.run(() => this.handle(e.payload)))
       .catch(() => { /* no-op */ });
-    this.setupCloseConfirm();
-  }
-
-  /**
-   * Chiede conferma prima di chiudere la finestra. `destroy()` chiude la
-   * finestra senza ri-emettere "close-requested", quindi non serve nessun
-   * flag anti-rientro: se l'utente annulla, la finestra resta aperta e il
-   * prossimo tentativo di chiusura ripropone il dialog regolarmente.
-   * Richiede il permesso `core:window:allow-destroy` nelle capabilities.
-   */
-  private setupCloseConfirm(): void {
-    const win = getCurrentWindow();
-    win.onCloseRequested(async (event) => {
-      event.preventDefault();
-      const ok = await confirm('Vuoi chiudere Ordeva?', {
-        title: 'Conferma chiusura',
-        kind: 'warning',
-      });
-      if (ok) await win.destroy();
-    }).catch(() => { /* no-op */ });
+    // La conferma di chiusura è gestita lato Rust (main.rs, WindowEvent::CloseRequested):
+    // su Windows la versione JS non bloccava in tempo la chiusura.
   }
 
   private handle(id: string): void {
