@@ -178,8 +178,8 @@ const PRODOTTI_FIELDS: FieldDef[] = [
             <mat-form-field>
               <mat-label>Prezzo vendita ({{ prezzoMode }}) €</mat-label>
               <input matInput type="number" step="0.01" min="0"
-                     [value]="prezzoDisplay('prezzo')"
-                     (input)="onPrezzoInput('prezzo', $event)">
+                     [(ngModel)]="prezzoInput" [ngModelOptions]="{standalone:true}"
+                     (ngModelChange)="onPrezzoModelChange('prezzo', $event)">
               <mat-icon matSuffix>euro</mat-icon>
               @if (prezzoMode === 'ivato') {
                 <mat-hint>Netto: {{ form.value.prezzo | number:'1.4-4' }} €</mat-hint>
@@ -190,8 +190,8 @@ const PRODOTTI_FIELDS: FieldDef[] = [
             <mat-form-field>
               <mat-label>Prezzo acquisto ({{ prezzoMode }}) €</mat-label>
               <input matInput type="number" step="0.01" min="0"
-                     [value]="prezzoDisplay('prezzoAcquisto')"
-                     (input)="onPrezzoInput('prezzoAcquisto', $event)">
+                     [(ngModel)]="prezzoAcquistoInput" [ngModelOptions]="{standalone:true}"
+                     (ngModelChange)="onPrezzoModelChange('prezzoAcquisto', $event)">
               <mat-icon matSuffix>shopping_cart</mat-icon>
               @if (margine !== null) {
                 <mat-hint>Margine: <b [style.color]="margine >= 0 ? '#10b981' : '#ef4444'">{{ margine | number:'1.1-1' }}%</b></mat-hint>
@@ -470,6 +470,12 @@ export class ProdottoDialogComponent implements OnInit {
   private immaginePronta = true;
 
   prezzoMode: 'netto' | 'ivato' = (localStorage.getItem('prodotto-prezzo-mode') as 'netto' | 'ivato') ?? 'netto';
+  // Valori MOSTRATI nei campi prezzo (nella modalità corrente). Sono campi a sé,
+  // legati con [(ngModel)]: così digitando non vengono riscritti a ogni tasto (il
+  // vecchio [value]=getter su un input type=number rimangiava i decimali e di
+  // fatto impediva di cambiare il prezzo). Il form tiene sempre il NETTO.
+  prezzoInput: number | null = null;
+  prezzoAcquistoInput: number | null = null;
 
   get totaleVarianti() { return this.varianti.reduce((s, v) => s + (v.quantita || 0), 0); }
 
@@ -480,32 +486,42 @@ export class ProdottoDialogComponent implements OnInit {
     return ((v - a) / v) * 100;
   }
 
-  prezzoDisplay(field: 'prezzo' | 'prezzoAcquisto'): number {
-    const net = +(this.form.get(field)?.value ?? 0);
-    const iva = +(this.form.get('iva')?.value ?? 0);
-    if (!net) return 0;
-    if (this.prezzoMode === 'ivato') return +(net * (1 + iva / 100)).toFixed(2);
-    return +net.toFixed(2);
-  }
-
   prezzoIvato(field: 'prezzo' | 'prezzoAcquisto'): number {
     const net = +(this.form.get(field)?.value ?? 0);
     const iva = +(this.form.get('iva')?.value ?? 0);
     return +(net * (1 + iva / 100)).toFixed(2);
   }
 
-  onPrezzoInput(field: 'prezzo' | 'prezzoAcquisto', e: Event) {
-    const raw = (e.target as HTMLInputElement).value;
-    const val = parseFloat(raw);
-    if (isNaN(val)) { this.form.get(field)?.setValue(null); return; }
+  /** Riallinea i campi visibili (prezzoInput/prezzoAcquistoInput) al netto salvato
+   *  nel form, secondo la modalità corrente. Da chiamare quando cambiano modalità
+   *  o IVA, NON a ogni tasto (altrimenti il cursore salterebbe). */
+  private syncPrezziDisplay() {
     const iva = +(this.form.get('iva')?.value ?? 0);
-    const net = this.prezzoMode === 'ivato' ? val / (1 + iva / 100) : val;
+    const toDisplay = (net: any): number | null => {
+      if (net == null || net === '') return null;
+      const n = +net;
+      return this.prezzoMode === 'ivato' ? +(n * (1 + iva / 100)).toFixed(2) : +n.toFixed(2);
+    };
+    this.prezzoInput = toDisplay(this.form.get('prezzo')?.value);
+    this.prezzoAcquistoInput = toDisplay(this.form.get('prezzoAcquisto')?.value);
+  }
+
+  /** L'utente ha digitato un prezzo (nella modalità corrente): lo riporto a netto
+   *  e lo salvo nel form, senza ritoccare il campo visibile (niente salti cursore). */
+  onPrezzoModelChange(field: 'prezzo' | 'prezzoAcquisto', val: number | null) {
+    if (val == null || isNaN(+val)) {
+      this.form.get(field)?.setValue(field === 'prezzo' ? 0 : null);
+      return;
+    }
+    const iva = +(this.form.get('iva')?.value ?? 0);
+    const net = this.prezzoMode === 'ivato' ? +val / (1 + iva / 100) : +val;
     this.form.get(field)?.setValue(+net.toFixed(4));
   }
 
   onPrezzoModeChange(mode: 'netto' | 'ivato') {
     this.prezzoMode = mode;
     localStorage.setItem('prodotto-prezzo-mode', mode);
+    this.syncPrezziDisplay();
   }
 
   constructor(
@@ -534,9 +550,14 @@ export class ProdottoDialogComponent implements OnInit {
     });
     this.immagine = data?.immagine ?? '';
     this.immaginePronta = !data?.id || data?.immagine !== undefined;
+    // Inizializza i campi prezzo mostrati (modalità netto/ivato corrente).
+    this.syncPrezziDisplay();
   }
 
   ngOnInit() {
+    // Se cambia l'IVA (anche per scelta categoria) il prezzo ivato mostrato cambia:
+    // riallineo i campi visibili. Il netto salvato nel form resta lo stesso.
+    this.form.get('iva')?.valueChanges.subscribe(() => this.syncPrezziDisplay());
     this.ds.getCategorieProdotto().subscribe(c => {
       this.categorie = c;
       this.form.get('categoria')?.valueChanges.subscribe(catNome => {
@@ -743,7 +764,7 @@ export class RettificaGiacenzaDialogComponent {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
-            MatCheckboxModule, ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective],
+            MatCheckboxModule, MatButtonToggleModule, ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
@@ -775,6 +796,15 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   filtroCategoria: string | null = null;
   filtroSottoSoglia = false;
   filtroMargineBasso = false;
+  /** Vista prezzi nella lista: netto (come salvati) o ivato (con IVA del prodotto). */
+  prezzoVista: 'netto' | 'ivato' = (localStorage.getItem('prodotti-prezzi-vista') as 'netto' | 'ivato') ?? 'netto';
+  setPrezzoVista(v: 'netto' | 'ivato') { this.prezzoVista = v; localStorage.setItem('prodotti-prezzi-vista', v); }
+  /** Prezzo da mostrare in lista secondo la vista scelta (l'ivato usa l'IVA del prodotto). */
+  prezzoVisualizzato(p: Prodotto, field: 'prezzo' | 'prezzoAcquisto'): number | null {
+    const net = (p as any)[field];
+    if (net == null || net === '') return null;
+    return this.prezzoVista === 'ivato' ? +net * (1 + (p.iva ?? 0) / 100) : +net;
+  }
   marginePerc(p: any): number | null {
     const v = +(p?.prezzo ?? 0), a = +(p?.prezzoAcquisto ?? 0);
     if (!v || !a) return null;

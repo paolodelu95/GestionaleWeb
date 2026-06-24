@@ -54,14 +54,24 @@ mod unita_misura;
 mod utenti;
 mod vendite_banco;
 
-use axum::Router;
+use axum::extract::{Path, State};
+use axum::routing::get;
+use axum::{Json, Router};
+use serde_json::{json, Value};
 
 use crate::db::AppState;
+use crate::error::{ApiError, ApiResult};
+use crate::numerazione::get_next_numero;
+use crate::web::tenant_conn;
 
 /// Costruisce il sotto-router montato su `/api`.
 pub fn api_router() -> Router<AppState> {
     Router::new()
         .merge(me::routes())
+        // Numerazione automatica documenti (parità con la route Node
+        // /api/next-number/:tipo): prossimo numero libero, gap-filling, con
+        // prefissi e numerazione annuale presi dalle impostazioni azienda.
+        .route("/next-number/:tipo", get(next_number))
         // Anagrafiche (Fase 1)
         .nest("/azienda", azienda::routes())
         .nest("/clienti", clienti::routes())
@@ -120,4 +130,34 @@ pub fn api_router() -> Router<AppState> {
         .nest("/conti-acquisto", conti_acquisto::routes())
         .nest("/categorie-prodotto", categorie_prodotto::routes())
         .nest("/tipi-pagamento", tipi_pagamento::routes())
+}
+
+/// GET /api/next-number/:tipo — prossimo numero documento suggerito al frontend
+/// quando si crea un nuovo documento. Mappa il tipo (URL) alla tabella e alla
+/// chiave-prefisso, poi delega a get_next_numero (gap-filling + prefisso/annuale).
+async fn next_number(
+    State(state): State<AppState>,
+    Path(tipo): Path<String>,
+) -> ApiResult<Json<Value>> {
+    // (chiave_prefisso, tabella_sql) — identico alla tableMap di server.js.
+    let (prefix_key, table) = match tipo.as_str() {
+        "ddt" => ("ddt", "ddt"),
+        "fatture" => ("fatture", "fatture"),
+        "ordini" => ("ordini", "ordini"),
+        "preventivi" => ("preventivi", "preventivi"),
+        "note-credito" => ("note_credito", "note_credito"),
+        "acquisti" => ("acquisti", "acquisti"),
+        "vendite-banco" => ("vendite_banco", "vendite_banco"),
+        "arrivi-merce" => ("arrivi_merce", "arrivi_merce"),
+        _ => {
+            return Err(ApiError::Status(
+                axum::http::StatusCode::BAD_REQUEST,
+                "tipo non valido".into(),
+            ))
+        }
+    };
+    let conn = tenant_conn(&state)?;
+    let conn = conn.lock().unwrap();
+    let numero = get_next_numero(&conn, prefix_key, table, 0)?;
+    Ok(Json(json!({ "numero": numero })))
 }
