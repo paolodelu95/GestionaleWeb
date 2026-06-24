@@ -158,6 +158,12 @@ async fn unlock(State(state): State<AppState>, Json(b): Json<Value>) -> ApiResul
     if ok {
         let salt = bk::ensure_salt(&state)?;
         bk::set_key_from_password(&state, pwd, &salt);
+        // Se la cifratura a riposo è attiva, memorizza la password (= password d'accesso)
+        // per poter ricifrare alla chiusura, utile dopo un avvio "non pulito" in cui il
+        // file in chiaro era rimasto.
+        if crate::config::is_encrypted(&state.config_path) {
+            *state.atrest_password.lock().unwrap() = Some(pwd.to_string());
+        }
     }
     Ok(Json(json!({ "ok": ok })))
 }

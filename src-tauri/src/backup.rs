@@ -136,6 +136,21 @@ pub fn is_encrypted(buf: &[u8]) -> bool {
     buf.len() >= 8 && (&buf[0..8] == MAGIC_V2 || &buf[0..8] == MAGIC_V1)
 }
 
+/// Cifra un buffer con una password (formato ORDEVA2, salt casuale nell'header).
+/// Usato per la cifratura del database a riposo (ordeva.db.enc).
+pub fn encrypt_with_password(plain: &[u8], password: &str) -> Result<Vec<u8>> {
+    let mut salt = [0u8; 16];
+    getrandom::getrandom(&mut salt).map_err(|e| anyhow!(e.to_string()))?;
+    let key = derive_key_raw(password, &salt)?;
+    encrypt_buffer(plain, &key, &salt)
+}
+
+/// Decifra un buffer ORDEVA2 con la sola password (salt incorporato). Errore se la
+/// password è sbagliata (il tag GCM non torna): è anche la verifica della password.
+pub fn decrypt_with_password(data: &[u8], password: &str) -> Result<Vec<u8>> {
+    decrypt_buffer(data, None, Some(password))
+}
+
 fn encrypt_buffer(buf: &[u8], key: &[u8; 32], salt: &[u8]) -> Result<Vec<u8>> {
     let mut iv = [0u8; 12];
     getrandom::getrandom(&mut iv).map_err(|e| anyhow!(e.to_string()))?;

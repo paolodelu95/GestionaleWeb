@@ -588,6 +588,23 @@
             <p style="color:#94a3b8;font-size:13px">Nessuno snapshot ancora. Ne verrà creato uno automaticamente a breve.</p>
           }
 
+          <h3 class="section-title" style="margin-top:22px">Cifratura del database</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:12px">
+            Cifra il file dei dati quando l'app è chiusa: utile se la cartella è su Dropbox o una
+            chiavetta. All'avvio ti verrà chiesta la password d'accesso per aprirlo. Mentre Ordeva
+            è in uso, sul tuo computer esiste una copia in chiaro.
+          </p>
+          <div style="padding:4px 0">
+            <mat-slide-toggle [checked]="cifraturaAttiva" [disabled]="cifraturaBusy" (change)="toggleCifratura($event.checked)">
+              <span style="font-weight:600">Database cifrato a riposo</span>
+            </mat-slide-toggle>
+            @if (!cifraturaPasswordImpostata) {
+              <p style="color:#94a3b8;font-size:12.5px;margin:6px 0 0 52px">Richiede una password d'accesso impostata (scheda Sicurezza).</p>
+            } @else if (cifraturaAttiva) {
+              <p style="color:#b45309;font-size:12.5px;margin:6px 0 0 52px">Attiva: senza la password d'accesso i dati non sono apribili. Conservala con cura.</p>
+            }
+          </div>
+
           <h3 class="section-title" style="margin-top:22px">Uso su più computer (Dropbox)</h3>
           <p style="color:#64748b;font-size:13px;margin-bottom:12px">
             Se tieni la cartella dati in Dropbox puoi usare Ordeva anche da un altro computer,

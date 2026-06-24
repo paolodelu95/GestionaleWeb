@@ -2,6 +2,7 @@
 // Niente console su Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod atrest;
 mod audit;
 mod auth;
 mod backup;
@@ -64,14 +65,16 @@ fn main() {
         // Il Router è custodito come managed state da setup() (SharedRouter); qui lo
         // recuperiamo via l'app handle del contesto.
         .register_asynchronous_uri_scheme_protocol(server::SCHEME, |ctx, request, responder| {
-            let router = ctx
-                .app_handle()
-                .state::<server::SharedRouter>()
-                .inner()
-                .0
-                .clone();
+            let app = ctx.app_handle().clone();
             tauri::async_runtime::spawn(async move {
-                let resp = server::handle_request(router, request).await;
+                // Se il Router è pronto (app sbloccata) instradiamo le richieste in axum;
+                // altrimenti il DB è cifrato e in attesa di sblocco: serviamo la pagina di
+                // sblocco e gestiamo il POST /__unlock (decifra e avvia l'app).
+                let resp = if let Some(router) = app.try_state::<server::SharedRouter>() {
+                    server::handle_request(router.0.clone(), request).await
+                } else {
+                    handle_locked(&app, request).await
+                };
                 responder.respond(resp);
             });
         })
@@ -95,16 +98,8 @@ fn main() {
                 .map_err(|e| format!("percorso config: {e:#}"))?;
             tracing::info!("DATA_DIR = {:?}", data_dir);
 
-            let state = AppState::init(data_dir, config_path)
-                .map_err(|e| format!("init database: {e:#}"))?;
-            // Heartbeat del lock di sessione (per l'avviso uso Dropbox su due PC).
-            state.spawn_heartbeat();
-
-            // SPA: nell'app impacchettata i file Angular sono una risorsa del
-            // bundle (vedi bundle.resources). Puntiamo il server lì via
-            // ORDEVA_SPA_DIR; in sviluppo la var resta vuota e il server usa il
-            // percorso del repo. Senza questo, nel pacchetto localhost:3000 non
-            // troverebbe la SPA (errore all'avvio su un PC diverso da quello di build).
+            // SPA: nell'app impacchettata i file Angular sono una risorsa del bundle
+            // (indipendente dal DB, quindi qui prima di tutto).
             if std::env::var_os("ORDEVA_SPA_DIR").is_none() {
                 if let Ok(res) = app.path().resource_dir() {
                     for cand in ["spa", "spa/browser", "browser", "."] {
@@ -117,30 +112,9 @@ fn main() {
                     }
                 }
             }
-            // Backup esterno automatico se "dovuto" (parità con runExternalBackupIfDue
-            // all'avvio di server.js in OFFLINE_MODE). In un thread per non bloccare.
-            let bk_state = state.clone();
-            std::thread::spawn(move || backup::run_if_due(&bk_state));
-            // Scheduler job offline (fatture ricorrenti dovute, solleciti automatici):
-            // catch-up all'avvio + ogni 6h (parità con i cron 7:00/8:00 di server.js).
-            jobs::spawn_scheduler(state.clone());
 
-            // Costruisco il Router axum una volta sola e lo rendo managed state: la
-            // closure del protocollo `ordeva://` (registrata sopra) lo recupera da qui.
-            let router = server::build_router(state.clone());
-            app.manage(server::SharedRouter(router));
-            // AppState anche come managed state: lo recupera l'handler d'uscita (flush +
-            // rilascio lock) in app.run(), oltre alle route via with_state.
-            app.manage(state.clone());
-
-            // La WebView carica la SPA via lo scheme custom `ordeva://` (servito in-process
-            // dal Router, niente porta). Aggancio la versione dell'app come query param: a
-            // ogni aggiornamento l'URL cambia (es. /?v=1.2.12) e la cache della WebView
-            // (WebView2 su Windows in primis) fa "miss" sulla index.html, ricaricando
-            // l'interfaccia nuova invece di servire quella vecchia in cache. Insieme a
-            // Cache-Control: no-cache (vedi server.rs) elimina i disallineamenti UI dopo
-            // un update. Il query param non cambia l'origin: localStorage, preferenze e
-            // mapping memorizzati restano intatti.
+            // Finestra principale (sempre creata). Se il DB è cifrato e bloccato il
+            // protocollo serve la pagina di sblocco; altrimenti la SPA. Vedi sotto.
             let url = format!("{}://localhost/?v={}", server::SCHEME, env!("CARGO_PKG_VERSION"));
             let window = WebviewWindowBuilder::new(
                 app,
@@ -167,13 +141,23 @@ fn main() {
             //   riapriva. prevent_close() blocca sempre; poi: "Chiudi" → uscita
             //   pulita (checkpoint + rilascio lock nell'handler di run), "Annulla"
             //   → la finestra resta aperta.
-            let ev_state = state.clone();
+            // Eventi finestra. Lo stato si recupera a runtime (in fase di sblocco non
+            // esiste ancora): Focused(false) → checkpoint WAL; CloseRequested → conferma
+            // e uscita (se l'app è avviata), altrimenti lascia chiudere la schermata di
+            // sblocco.
             let ev_win = window.clone();
             window.on_window_event(move |event| match event {
-                tauri::WindowEvent::Focused(false) => ev_state.flush(),
+                tauri::WindowEvent::Focused(false) => {
+                    if let Some(state) = ev_win.app_handle().try_state::<AppState>() {
+                        state.flush();
+                    }
+                }
                 tauri::WindowEvent::CloseRequested { api, .. } => {
-                    api.prevent_close();
                     let app = ev_win.app_handle().clone();
+                    if app.try_state::<AppState>().is_none() {
+                        return; // schermata di sblocco: chiudi senza confermare
+                    }
+                    api.prevent_close();
                     ev_win.dialog()
                         .message("Vuoi chiudere Ordeva?")
                         .title("Conferma chiusura")
@@ -191,26 +175,18 @@ fn main() {
                 _ => {}
             });
 
-            // Icona nell'area di notifica / menu bar, con menu rapido.
-            if let Err(e) = setup_tray(app, state.clone()) {
-                tracing::warn!("tray non disponibile: {e}");
-            }
-
-            // Ripristina dimensione/posizione/stato salvati dalla sessione
-            // precedente (il plugin window-state li salva alla chiusura). Al
-            // primo avvio non c'è nulla da ripristinare: resta massimizzata.
+            // Ripristina dimensione/posizione/stato salvati dalla sessione precedente.
             let _ = window.restore_state(StateFlags::all());
 
-            // ── Menu nativo dell'applicazione (solo macOS) ─────────────────
-            // Su macOS il menu è la barra globale in cima allo schermo: standard
-            // e attesa (Copia/Incolla, Esci…). Su Windows e Linux sarebbe invece
-            // una barra DENTRO la finestra (File/Modifica/Visualizza/Aiuto),
-            // fuori posto per un gestionale: lì non la creiamo affatto.
-            // Le voci custom emettono l'evento "menu" che il frontend traduce
-            // nell'azione corrispondente.
-            #[cfg(target_os = "macos")]
-            if let Err(e) = setup_menu(app) {
-                tracing::warn!("menu nativo non disponibile: {e}");
+            // Avvio: se il DB è cifrato e bloccato, attendiamo lo sblocco (il protocollo
+            // serve la pagina di sblocco e gestisce /__unlock → bring_up). Altrimenti
+            // portiamo su l'app subito.
+            if config::is_encrypted(&config_path) && atrest::is_locked(&data_dir) {
+                tracing::info!("database cifrato: in attesa di sblocco");
+                app.manage(LockedCtx { data_dir, config_path });
+            } else {
+                bring_up(&handle, data_dir, config_path, None)
+                    .map_err(|e| format!("avvio app: {e:#}"))?;
             }
 
             Ok(())
@@ -228,15 +204,149 @@ fn main() {
                 if let Some(state) = app_handle.try_state::<AppState>() {
                     state.flush();
                     state.release_lock();
+                    // Cifratura a riposo: se attiva e sbloccata, ricifra il file e rimuove
+                    // il chiaro. Senza password (avvio non pulito mai sbloccato) si lascia
+                    // com'è (il file cifrato precedente resta valido).
+                    if config::is_encrypted(&state.config_path) {
+                        let pw = state.atrest_password.lock().unwrap().clone();
+                        if let Some(pw) = pw {
+                            state.close_all();
+                            if let Err(e) = atrest::seal_on_close(&state.data_dir, &pw) {
+                                tracing::error!("ricifratura alla chiusura fallita: {e:#}");
+                            }
+                        } else {
+                            tracing::warn!("cifratura attiva ma password non disponibile: file in chiaro non ricifrato");
+                        }
+                    }
                 }
             }
         });
 }
 
+/// Stato gestito quando il DB è cifrato e in attesa di sblocco (la pagina di sblocco
+/// servita dal protocollo lo usa per decifrare e avviare l'app).
+struct LockedCtx {
+    data_dir: std::path::PathBuf,
+    config_path: std::path::PathBuf,
+}
+
+/// Avvia l'app vera e propria: apre il DB, avvia thread/scheduler, costruisce e registra
+/// il Router, la tray e il menu. Chiamata sia all'avvio normale sia dopo lo sblocco.
+fn bring_up(
+    app: &tauri::AppHandle,
+    data_dir: std::path::PathBuf,
+    config_path: std::path::PathBuf,
+    atrest_pw: Option<String>,
+) -> anyhow::Result<()> {
+    let state = AppState::init(data_dir, config_path)?;
+    if let Some(pw) = atrest_pw {
+        *state.atrest_password.lock().unwrap() = Some(pw);
+    }
+    state.spawn_heartbeat();
+
+    let bk_state = state.clone();
+    std::thread::spawn(move || backup::run_if_due(&bk_state));
+    jobs::spawn_scheduler(state.clone());
+
+    let router = server::build_router(state.clone());
+    app.manage(server::SharedRouter(router));
+    app.manage(state.clone());
+
+    if let Err(e) = setup_tray(app, state.clone()) {
+        tracing::warn!("tray non disponibile: {e}");
+    }
+    #[cfg(target_os = "macos")]
+    if let Err(e) = setup_menu(app) {
+        tracing::warn!("menu nativo non disponibile: {e}");
+    }
+    Ok(())
+}
+
+/// Gestisce le richieste mentre il DB è cifrato e bloccato: POST /__unlock decifra con la
+/// password e avvia l'app; ogni altra richiesta riceve la pagina di sblocco.
+async fn handle_locked(
+    app: &tauri::AppHandle,
+    request: tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<std::borrow::Cow<'static, [u8]>> {
+    use std::borrow::Cow;
+    let is_unlock = request.method() == tauri::http::Method::POST
+        && request.uri().path().contains("__unlock");
+    if is_unlock {
+        let password = serde_json::from_slice::<serde_json::Value>(request.body())
+            .ok()
+            .and_then(|v| v.get("password").and_then(|p| p.as_str()).map(String::from))
+            .unwrap_or_default();
+        let ctx = app.state::<LockedCtx>();
+        let (data_dir, config_path) = (ctx.data_dir.clone(), ctx.config_path.clone());
+        let ok = match atrest::unlock(&data_dir, &password) {
+            Ok(()) => bring_up(app, data_dir, config_path, Some(password)).is_ok(),
+            Err(_) => false,
+        };
+        let body = serde_json::to_vec(&serde_json::json!({ "ok": ok })).unwrap_or_default();
+        return tauri::http::Response::builder()
+            .status(200)
+            .header("Content-Type", "application/json")
+            .body(Cow::Owned(body))
+            .expect("risposta unlock valida");
+    }
+    tauri::http::Response::builder()
+        .status(200)
+        .header("Content-Type", "text/html; charset=utf-8")
+        .header("Cache-Control", "no-cache")
+        .body(Cow::Borrowed(UNLOCK_HTML.as_bytes()))
+        .expect("pagina sblocco valida")
+}
+
+/// Pagina di sblocco (standalone, niente Angular): chiede la password, chiama /__unlock e
+/// al successo ricarica (il protocollo ora serve la SPA).
+const UNLOCK_HTML: &str = r#"<!doctype html><html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ordeva — Sblocca</title>
+<style>
+ :root{--brand:#11769b;--brand2:#15a4a2}
+ *{box-sizing:border-box} html,body{height:100%}
+ body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+   background:#f8fafc;color:#0e2a38;display:flex;align-items:center;justify-content:center}
+ .card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:32px 28px;width:340px;
+   box-shadow:0 10px 30px rgba(2,32,52,.08);text-align:center}
+ .logo{width:54px;height:54px;border-radius:14px;margin:0 auto 14px;
+   background:linear-gradient(135deg,var(--brand),var(--brand2))}
+ h1{font-size:19px;margin:0 0 4px} p{color:#64748b;font-size:13px;margin:0 0 18px}
+ input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;outline:none}
+ input:focus{border-color:var(--brand)}
+ button{width:100%;margin-top:14px;padding:11px;border:0;border-radius:10px;color:#fff;font-size:15px;
+   font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brand2))}
+ button:disabled{opacity:.6;cursor:default}
+ .err{color:#dc2626;font-size:13px;min-height:18px;margin-top:10px}
+</style></head><body>
+ <form class="card" id="f">
+  <div class="logo"></div>
+  <h1>Ordeva è protetta</h1>
+  <p>Inserisci la password d'accesso per aprire i dati cifrati.</p>
+  <input id="pw" type="password" autofocus autocomplete="current-password" placeholder="Password">
+  <button id="b" type="submit">Sblocca</button>
+  <div class="err" id="e"></div>
+ </form>
+<script>
+ const f=document.getElementById('f'),pw=document.getElementById('pw'),
+       b=document.getElementById('b'),e=document.getElementById('e');
+ f.addEventListener('submit',async ev=>{
+   ev.preventDefault(); e.textContent=''; b.disabled=true; b.textContent='Sblocco…';
+   try{
+     const r=await fetch('/__unlock',{method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({password:pw.value})});
+     const j=await r.json();
+     if(j&&j.ok){ location.reload(); return; }
+     e.textContent='Password errata.';
+   }catch(_){ e.textContent='Errore di sblocco.'; }
+   b.disabled=false; b.textContent='Sblocca'; pw.select();
+ });
+</script></body></html>"#;
+
 /// Icona nell'area di notifica (Windows/Linux) / menu bar (macOS) con menu rapido.
 /// Chiudendo la finestra l'app resta qui in background; da qui la si riapre o si esce
 /// in sicurezza (checkpoint + rilascio lock).
-fn setup_tray(app: &tauri::App, state: AppState) -> tauri::Result<()> {
+fn setup_tray(app: &tauri::AppHandle, state: AppState) -> tauri::Result<()> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder};
     use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
@@ -291,7 +401,7 @@ fn show_main<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 /// Le voci custom emettono l'evento "menu" con il proprio id verso la WebView.
 /// Solo macOS: su Windows/Linux il menu resta assente (vedi setup()).
 #[cfg(target_os = "macos")]
-fn setup_menu(app: &tauri::App) -> tauri::Result<()> {
+fn setup_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     let file = SubmenuBuilder::new(app, "File")
         .text("new", "Nuovo documento")
         .text("save", "Salva")

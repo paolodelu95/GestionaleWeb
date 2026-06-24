@@ -43,6 +43,9 @@ pub struct AppState {
     pub backup_key: Arc<Mutex<Option<[u8; 32]>>>,
     /// Sessione rilevata su un ALTRO computer all'avvio (avviso uso Dropbox). None = ok.
     pub other_session: Arc<Mutex<Option<crate::lock::LockInfo>>>,
+    /// Password per la cifratura a riposo, tenuta in memoria dopo lo sblocco/abilitazione
+    /// per poter ricifrare alla chiusura. None = cifratura non attiva o non sbloccata.
+    pub atrest_password: Arc<Mutex<Option<String>>>,
     /// Istante d'avvio di questa sessione (per il campo started_at del lock).
     started_at: i64,
 }
@@ -74,6 +77,7 @@ impl AppState {
             tenants: Arc::new(Mutex::new(HashMap::new())),
             backup_key: Arc::new(Mutex::new(None)),
             other_session: Arc::new(Mutex::new(other_session)),
+            atrest_password: Arc::new(Mutex::new(None)),
             started_at,
         };
 
@@ -102,6 +106,21 @@ impl AppState {
     /// Rilascia il lock di sessione (uscita pulita).
     pub fn release_lock(&self) {
         crate::lock::remove(&self.data_dir);
+    }
+
+    /// Chiude tutte le connessioni sul file (auth + tenant), sostituendo la auth con una
+    /// in-memory usa-e-getta. Serve a rilasciare `ordeva.db` prima di rimuoverlo quando si
+    /// sigilla la cifratura a riposo alla chiusura (su Windows non si cancella un file con
+    /// handle aperti).
+    pub fn close_all(&self) {
+        if let Ok(mut g) = self.auth.lock() {
+            if let Ok(c) = Connection::open_in_memory() {
+                *g = c;
+            }
+        }
+        if let Ok(mut cache) = self.tenants.lock() {
+            cache.clear();
+        }
     }
 
     /// Avvia il thread di heartbeat: aggiorna `ordeva.lock` ogni 30s finché l'app vive.
@@ -585,5 +604,36 @@ mod tests {
             .unwrap();
         assert_eq!(prima, 1, "lo snapshot ha ripristinato 'Prima'");
         assert_eq!(dopo, 0, "le modifiche dopo lo snapshot sono annullate");
+    }
+
+    #[test]
+    fn cifratura_a_riposo_ciclo_completo() {
+        let dir = tmp_dir();
+        let cfg = cfg_path(&dir);
+        // Sessione 1: crea dato, chiudi, sigilla (cifra + rimuovi chiaro).
+        {
+            let st = AppState::init(dir.clone(), cfg.clone()).unwrap();
+            st.with_tenant(DEFAULT_TENANT, |c| {
+                c.execute("INSERT INTO clienti (ragione_sociale) VALUES ('Segreto')", [])?;
+                Ok(())
+            })
+            .unwrap();
+            st.flush();
+            st.close_all();
+        }
+        crate::atrest::seal_on_close(&dir, "pw").unwrap();
+        assert!(crate::atrest::is_locked(&dir), "dopo la chiusura il DB è bloccato");
+        assert!(!dir.join(DB_FILE).exists(), "nessun file in chiaro a riposo");
+
+        // Password sbagliata non apre.
+        assert!(crate::atrest::unlock(&dir, "errata").is_err());
+
+        // Sessione 2: sblocca e riapri → i dati ci sono.
+        crate::atrest::unlock(&dir, "pw").unwrap();
+        let st2 = AppState::init(dir.clone(), cfg).unwrap();
+        let n: i64 = st2
+            .with_tenant(DEFAULT_TENANT, |c| Ok(c.query_row("SELECT COUNT(*) FROM clienti WHERE ragione_sociale='Segreto'", [], |r| r.get(0))?))
+            .unwrap();
+        assert_eq!(n, 1, "i dati sopravvivono al ciclo cifra/sblocca");
     }
 }

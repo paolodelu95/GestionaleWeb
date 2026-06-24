@@ -19,6 +19,7 @@ pub fn routes() -> Router<AppState> {
         .route("/flush", post(flush))
         .route("/snapshots", get(snapshots_list).post(snapshot_create))
         .route("/snapshots/restore", post(snapshot_restore))
+        .route("/cifratura", get(cifratura_stato).post(cifratura_set))
 }
 
 /// GET /api/sistema/percorsi — cartella dati corrente + elenco file principali.
@@ -97,6 +98,66 @@ async fn snapshot_restore(
 ) -> ApiResult<Json<Value>> {
     crate::backup::restore_snapshot(&state, &req.name)?;
     Ok(Json(json!({ "ok": true })))
+}
+
+fn app_password_hash(state: &AppState) -> String {
+    state
+        .with_tenant(crate::db::DEFAULT_TENANT, |c| {
+            Ok(c.query_row("SELECT app_password_hash FROM azienda WHERE id=1", [], |r| {
+                r.get::<_, Option<String>>(0)
+            })
+            .ok()
+            .flatten()
+            .unwrap_or_default())
+        })
+        .unwrap_or_default()
+}
+
+/// GET /api/sistema/cifratura — stato cifratura a riposo.
+async fn cifratura_stato(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    Ok(Json(json!({
+        "attiva": crate::config::is_encrypted(&state.config_path),
+        "passwordImpostata": !app_password_hash(&state).is_empty(),
+    })))
+}
+
+#[derive(Deserialize)]
+struct CifraturaReq {
+    enabled: bool,
+    #[serde(default)]
+    password: String,
+}
+
+/// POST /api/sistema/cifratura — attiva/disattiva la cifratura del database a riposo.
+/// L'attivazione richiede la password d'accesso (con cui verrà cifrato/sbloccato il file).
+async fn cifratura_set(
+    State(state): State<AppState>,
+    Json(req): Json<CifraturaReq>,
+) -> ApiResult<Json<Value>> {
+    if req.enabled {
+        let hash = app_password_hash(&state);
+        if hash.is_empty() {
+            return Err(ApiError::bad_request(
+                "Imposta prima una password d'accesso (Impostazioni → Sicurezza).",
+            ));
+        }
+        if !bcrypt::verify(&req.password, &hash).unwrap_or(false) {
+            return Err(ApiError::bad_request("Password d'accesso errata"));
+        }
+        // Consolida il DB e crea subito il file cifrato; il chiaro resta in uso e verrà
+        // ricifrato/rimosso alla chiusura.
+        state.flush();
+        crate::atrest::encrypt_now(&state.data_dir, &req.password)
+            .map_err(|e| ApiError::Internal(e))?;
+        crate::config::set_encrypted(&state.config_path, true).map_err(ApiError::Internal)?;
+        *state.atrest_password.lock().unwrap() = Some(req.password.clone());
+        Ok(Json(json!({ "ok": true, "attiva": true })))
+    } else {
+        crate::atrest::remove_enc(&state.data_dir);
+        crate::config::set_encrypted(&state.config_path, false).map_err(ApiError::Internal)?;
+        *state.atrest_password.lock().unwrap() = None;
+        Ok(Json(json!({ "ok": true, "attiva": false })))
+    }
 }
 
 /// POST /api/sistema/flush — checkpoint finale + rilascio lock, per "Chiudi in sicurezza".

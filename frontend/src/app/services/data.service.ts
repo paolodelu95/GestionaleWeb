@@ -57,6 +57,10 @@ export class DataService {
   setScadenzeFiscaliConfig(cfg: { ivaPeriodicita: string; sostitutoImposta: boolean }): Observable<any> { return this.api.put('scadenze-fiscali/config', cfg); }
 
   // Snapshot / cronologia versioni (offline)
+  // Cifratura del database a riposo (offline)
+  getCifratura(): Observable<{ attiva: boolean; passwordImpostata: boolean }> { return this.api.get('sistema/cifratura'); }
+  setCifratura(enabled: boolean, password = ''): Observable<{ ok: boolean; attiva: boolean }> { return this.api.post('sistema/cifratura', { enabled, password }); }
+
   getSnapshots(): Observable<{ snapshots: { name: string; size: number; mtime: string }[] }> { return this.api.get('sistema/snapshots'); }
   createSnapshot(): Observable<{ ok: boolean; name: string }> { return this.api.post('sistema/snapshots', {}); }
   restoreSnapshot(name: string): Observable<{ ok: boolean }> { return this.api.post('sistema/snapshots/restore', { name }); }

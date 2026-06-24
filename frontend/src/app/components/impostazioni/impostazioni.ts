@@ -501,6 +501,10 @@ export class ImpostazioniComponent implements OnInit {
   /** Cronologia versioni (snapshot) ripristinabili. */
   snapshots: { name: string; size: number; mtime: string }[] = [];
   snapBusy = false;
+  /** Cifratura del database a riposo. */
+  cifraturaAttiva = false;
+  cifraturaPasswordImpostata = false;
+  cifraturaBusy = false;
 
   /** Ruolo utente: le schede Amministrazione e Console SaaS sono qui dentro, gated per ruolo. */
   get isSuper(): boolean { return this.authSvc.getUser()?.ruolo === 'SUPERADMIN'; }
@@ -1242,6 +1246,32 @@ export class ImpostazioniComponent implements OnInit {
     });
     this.desktop.isAutostart().then(v => this.autostart = v);
     this.loadSnapshots();
+    this.ds.getCifratura().subscribe({ next: c => { this.cifraturaAttiva = c.attiva; this.cifraturaPasswordImpostata = c.passwordImpostata; }, error: () => {} });
+  }
+
+  /** Attiva/disattiva la cifratura del database a riposo. */
+  async toggleCifratura(on: boolean) {
+    if (this.cifraturaBusy) return;
+    if (on) {
+      if (!this.cifraturaPasswordImpostata) {
+        this.snack.open('Imposta prima una password d\'accesso (scheda Sicurezza).', '', { duration: 4000 });
+        return;
+      }
+      const pw = window.prompt('Conferma la password d\'accesso: il database verrà cifrato con questa e te la richiederà a ogni avvio.');
+      if (!pw) return;
+      this.cifraturaBusy = true;
+      this.ds.setCifratura(true, pw).subscribe({
+        next: r => { this.cifraturaBusy = false; this.cifraturaAttiva = r.attiva; this.snack.open('Cifratura attivata. Il database sarà cifrato alla chiusura.', '', { duration: 4000 }); },
+        error: e => { this.cifraturaBusy = false; this.snack.open(e.error?.error || 'Errore', '', { duration: 4000 }); },
+      });
+    } else {
+      if (!await this.confirm.delete('Disattivare la cifratura? Il database tornerà in chiaro sul disco.')) return;
+      this.cifraturaBusy = true;
+      this.ds.setCifratura(false).subscribe({
+        next: r => { this.cifraturaBusy = false; this.cifraturaAttiva = r.attiva; this.snack.open('Cifratura disattivata', '', { duration: 3000 }); },
+        error: e => { this.cifraturaBusy = false; this.snack.open(e.error?.error || 'Errore', '', { duration: 4000 }); },
+      });
+    }
   }
 
   loadSnapshots() {

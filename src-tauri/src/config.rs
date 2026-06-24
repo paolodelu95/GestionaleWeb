@@ -22,6 +22,9 @@ pub struct OrdevaConfig {
     /// Cartella dati scelta dall'utente. `None` → si usa il default visibile.
     #[serde(default)]
     pub data_dir: Option<String>,
+    /// Cifratura del database a riposo attiva (vedi atrest.rs). `None`/false = no.
+    #[serde(default)]
+    pub encrypted: Option<bool>,
 }
 
 /// Percorso del file di config (in `app_config_dir`, che NON cambia spostando i dati).
@@ -31,28 +34,50 @@ pub fn config_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
     Ok(dir.join("ordeva.json"))
 }
 
-/// Legge la config; ritorna default se assente o illeggibile.
-pub fn load<R: Runtime>(app: &AppHandle<R>) -> OrdevaConfig {
-    let Ok(path) = config_path(app) else {
-        return OrdevaConfig::default();
-    };
-    fs::read_to_string(&path)
+/// Legge la config da un percorso (default se assente/illeggibile).
+pub fn load_path(path: &Path) -> OrdevaConfig {
+    fs::read_to_string(path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default()
 }
 
-/// Scrive in config la cartella dati scelta (`None` per tornare al default).
-pub fn save_data_dir(path: &Path, data_dir: Option<&Path>) -> Result<()> {
-    let cfg = OrdevaConfig {
-        data_dir: data_dir.map(|p| p.to_string_lossy().into_owned()),
-    };
-    let json = serde_json::to_string_pretty(&cfg)?;
+/// Legge la config; ritorna default se assente o illeggibile.
+pub fn load<R: Runtime>(app: &AppHandle<R>) -> OrdevaConfig {
+    match config_path(app) {
+        Ok(path) => load_path(&path),
+        Err(_) => OrdevaConfig::default(),
+    }
+}
+
+/// Scrive l'intera config (read-modify-write a cura del chiamante).
+pub fn save_path(path: &Path, cfg: &OrdevaConfig) -> Result<()> {
+    let json = serde_json::to_string_pretty(cfg)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).ok();
     }
     fs::write(path, json).with_context(|| format!("scrittura config {:?}", path))?;
     Ok(())
+}
+
+/// Imposta la cartella dati scelta (`None` per tornare al default), preservando gli altri
+/// campi della config.
+pub fn save_data_dir(path: &Path, data_dir: Option<&Path>) -> Result<()> {
+    let mut cfg = load_path(path);
+    cfg.data_dir = data_dir.map(|p| p.to_string_lossy().into_owned());
+    save_path(path, &cfg)
+}
+
+/// Imposta/azzera il flag di cifratura a riposo, preservando gli altri campi.
+pub fn set_encrypted(path: &Path, on: bool) -> Result<()> {
+    let mut cfg = load_path(path);
+    cfg.encrypted = Some(on);
+    save_path(path, &cfg)
+}
+
+/// True se la cifratura a riposo è attiva in config.
+pub fn is_encrypted(path: &Path) -> bool {
+    load_path(path).encrypted == Some(true)
 }
 
 /// Cartella dati di default, visibile: `Documenti/Ordeva`.
@@ -86,7 +111,9 @@ pub fn resolve_data_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
 /// True se la cartella contiene già un database Ordeva: il file unico `ordeva.db` oppure,
 /// per installazioni non ancora migrate, il vecchio `auth.db` (formato a due file).
 pub fn has_data(dir: &Path) -> bool {
-    dir.join("ordeva.db").is_file() || dir.join("auth.db").is_file()
+    dir.join("ordeva.db").is_file()
+        || dir.join("ordeva.db.enc").is_file() // cifrato a riposo
+        || dir.join("auth.db").is_file() // vecchio formato
 }
 
 /// Migrazione one-time: se la cartella `target` è priva di dati e la vecchia cartella
