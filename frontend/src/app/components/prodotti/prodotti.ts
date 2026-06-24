@@ -541,7 +541,9 @@ export class ProdottoDialogComponent implements OnInit {
       prezzo:         [data?.prezzo ?? 0, [Validators.min(0)]],
       prezzoAcquisto: [data?.prezzoAcquisto ?? null, [Validators.min(0)]],
       iva:            [data?.iva ?? 22, [Validators.min(0), Validators.max(100)]],
-      quantita:     [data?.quantita ?? 0, [Validators.min(0)]],
+      // Giacenza: ammessi valori negativi (sotto scorta / venduto in attesa di
+      // carico). Nessun min(0), altrimenti un prodotto già negativo non si salva.
+      quantita:     [data?.quantita ?? 0],
       sogliaMinima: [data?.sogliaMinima || null, [Validators.min(0)]],
       descrizione:  [data?.descrizione ?? ''],
       haVarianti:   [data?.haVarianti ?? false],
