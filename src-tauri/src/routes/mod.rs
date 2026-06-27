@@ -4,6 +4,7 @@
 mod acquisti;
 mod agenda;
 mod allegati;
+mod archivi;
 mod aliquote_iva;
 mod arrivi_merce;
 mod audit;
@@ -125,6 +126,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/setup", setup::routes())
         .nest("/backup", backup::routes())
         .nest("/sistema", sistema::routes())
+        .nest("/archivi", archivi::routes())
         // Tabelle base (Fase 1)
         .nest("/unita-misura", unita_misura::routes())
         .nest("/aliquote-iva", aliquote_iva::routes())
