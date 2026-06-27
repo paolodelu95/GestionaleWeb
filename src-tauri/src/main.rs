@@ -2,6 +2,7 @@
 // Niente console su Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod archivi;
 mod atrest;
 mod audit;
 mod auth;
@@ -181,12 +182,24 @@ fn main() {
             // Avvio: se il DB è cifrato e bloccato, attendiamo lo sblocco (il protocollo
             // serve la pagina di sblocco e gestisce /__unlock → bring_up). Altrimenti
             // portiamo su l'app subito.
-            if config::is_encrypted(&config_path) && atrest::is_locked(&data_dir) {
-                tracing::info!("database cifrato: in attesa di sblocco");
-                app.manage(LockedCtx { data_dir, config_path });
-            } else {
-                bring_up(&handle, data_dir, config_path, None)
-                    .map_err(|e| format!("avvio app: {e:#}"))?;
+            // Multi-archivio: migra l'eventuale DB singolo nel primo archivio, poi decidi.
+            archivi::migra_da_singolo(&data_dir)
+                .map_err(|e| format!("migrazione archivi: {e:#}"))?;
+            // Apri direttamente l'archivio corrente SOLO se esiste ed è in chiaro (non
+            // cifrato/bloccato). Altrimenti (nessun archivio o archivio cifrato) mostra il
+            // selettore, che elenca/apre/crea gli archivi (vedi handle_locked).
+            let apri = archivi::corrente(&data_dir)
+                .map(|slug| archivi::archivio_dir(&data_dir, &slug))
+                .filter(|adir| !atrest::is_locked(adir));
+            match apri {
+                Some(adir) => {
+                    bring_up(&handle, adir, config_path, None)
+                        .map_err(|e| format!("avvio app: {e:#}"))?;
+                }
+                None => {
+                    tracing::info!("selettore archivi (nessun archivio aperto in chiaro)");
+                    app.manage(LockedCtx { root: data_dir, config_path });
+                }
             }
 
             Ok(())
@@ -207,15 +220,13 @@ fn main() {
                     // Cifratura a riposo: se attiva e sbloccata, ricifra il file e rimuove
                     // il chiaro. Senza password (avvio non pulito mai sbloccato) si lascia
                     // com'è (il file cifrato precedente resta valido).
-                    if config::is_encrypted(&state.config_path) {
-                        let pw = state.atrest_password.lock().unwrap().clone();
-                        if let Some(pw) = pw {
-                            state.close_all();
-                            if let Err(e) = atrest::seal_on_close(&state.data_dir, &pw) {
-                                tracing::error!("ricifratura alla chiusura fallita: {e:#}");
-                            }
-                        } else {
-                            tracing::warn!("cifratura attiva ma password non disponibile: file in chiaro non ricifrato");
+                    // Cifratura a riposo per-archivio: se questo archivio è stato aperto/creato
+                    // con una password (atrest_password presente), ricifra e rimuovi il chiaro.
+                    let pw = state.atrest_password.lock().unwrap().clone();
+                    if let Some(pw) = pw {
+                        state.close_all();
+                        if let Err(e) = atrest::seal_on_close(&state.data_dir, &pw) {
+                            tracing::error!("ricifratura alla chiusura fallita: {e:#}");
                         }
                     }
                 }
@@ -223,10 +234,12 @@ fn main() {
         });
 }
 
-/// Stato gestito quando il DB è cifrato e in attesa di sblocco (la pagina di sblocco
-/// servita dal protocollo lo usa per decifrare e avviare l'app).
+/// Stato gestito quando nessun archivio è ancora aperto: il selettore servito dal
+/// protocollo elenca gli archivi (sotto `root/archivi`), ne apre uno (sbloccandolo con la
+/// password se cifrato) o ne crea uno nuovo, e poi avvia l'app.
 struct LockedCtx {
-    data_dir: std::path::PathBuf,
+    /// Radice dati (contiene `archivi/`).
+    root: std::path::PathBuf,
     config_path: std::path::PathBuf,
 }
 
@@ -262,85 +275,174 @@ fn bring_up(
     Ok(())
 }
 
-/// Gestisce le richieste mentre il DB è cifrato e bloccato: POST /__unlock decifra con la
-/// password e avvia l'app; ogni altra richiesta riceve la pagina di sblocco.
+/// Gestisce le richieste finché nessun archivio è aperto. Endpoint (POST):
+/// - `__archivi`: elenco archivi (con flag cifrato);
+/// - `__apri` {slug,password}: apre (sblocca se cifrato) e avvia l'app;
+/// - `__crea` {nome,password}: crea un nuovo archivio e avvia l'app.
+/// Ogni altra richiesta riceve la pagina del selettore.
 async fn handle_locked(
     app: &tauri::AppHandle,
     request: tauri::http::Request<Vec<u8>>,
 ) -> tauri::http::Response<std::borrow::Cow<'static, [u8]>> {
     use std::borrow::Cow;
-    let is_unlock = request.method() == tauri::http::Method::POST
-        && request.uri().path().contains("__unlock");
-    if is_unlock {
-        let password = serde_json::from_slice::<serde_json::Value>(request.body())
-            .ok()
-            .and_then(|v| v.get("password").and_then(|p| p.as_str()).map(String::from))
-            .unwrap_or_default();
-        let ctx = app.state::<LockedCtx>();
-        let (data_dir, config_path) = (ctx.data_dir.clone(), ctx.config_path.clone());
-        let ok = match atrest::unlock(&data_dir, &password) {
-            Ok(()) => bring_up(app, data_dir, config_path, Some(password)).is_ok(),
-            Err(_) => false,
-        };
-        let body = serde_json::to_vec(&serde_json::json!({ "ok": ok })).unwrap_or_default();
-        return tauri::http::Response::builder()
+    let path = request.uri().path().to_string();
+    let is_post = request.method() == tauri::http::Method::POST;
+    let json = |v: serde_json::Value| {
+        tauri::http::Response::builder()
             .status(200)
             .header("Content-Type", "application/json")
-            .body(Cow::Owned(body))
-            .expect("risposta unlock valida");
+            .body(Cow::Owned(serde_json::to_vec(&v).unwrap_or_default()))
+            .expect("risposta json valida")
+    };
+    let body_json = |req: &tauri::http::Request<Vec<u8>>| -> serde_json::Value {
+        serde_json::from_slice(req.body()).unwrap_or(serde_json::Value::Null)
+    };
+
+    if is_post && path.contains("__archivi") {
+        let ctx = app.state::<LockedCtx>();
+        return json(serde_json::json!({ "archivi": archivi::list(&ctx.root) }));
     }
+
+    if is_post && path.contains("__apri") {
+        let b = body_json(&request);
+        let slug = b.get("slug").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let password = b.get("password").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let ctx = app.state::<LockedCtx>();
+        let (root, config_path) = (ctx.root.clone(), ctx.config_path.clone());
+        let adir = archivi::archivio_dir(&root, &slug);
+        let ok = if atrest::is_locked(&adir) {
+            match atrest::unlock(&adir, &password) {
+                Ok(()) => {
+                    let _ = archivi::set_corrente(&root, &slug);
+                    bring_up(app, adir, config_path, Some(password)).is_ok()
+                }
+                Err(_) => false,
+            }
+        } else {
+            let _ = archivi::set_corrente(&root, &slug);
+            bring_up(app, adir, config_path, None).is_ok()
+        };
+        return json(serde_json::json!({ "ok": ok }));
+    }
+
+    if is_post && path.contains("__crea") {
+        let b = body_json(&request);
+        let nome = b.get("nome").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+        let password = b.get("password").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let ctx = app.state::<LockedCtx>();
+        let (root, config_path) = (ctx.root.clone(), ctx.config_path.clone());
+        if nome.is_empty() {
+            return json(serde_json::json!({ "ok": false }));
+        }
+        let ok = match archivi::crea(&root, &nome) {
+            Ok(a) => {
+                let _ = archivi::set_corrente(&root, &a.slug);
+                let adir = archivi::archivio_dir(&root, &a.slug);
+                let pw = if password.is_empty() { None } else { Some(password) };
+                bring_up(app, adir, config_path, pw).is_ok()
+            }
+            Err(_) => false,
+        };
+        return json(serde_json::json!({ "ok": ok }));
+    }
+
     tauri::http::Response::builder()
         .status(200)
         .header("Content-Type", "text/html; charset=utf-8")
         .header("Cache-Control", "no-cache")
-        .body(Cow::Borrowed(UNLOCK_HTML.as_bytes()))
-        .expect("pagina sblocco valida")
+        .body(Cow::Borrowed(PICKER_HTML.as_bytes()))
+        .expect("pagina selettore valida")
 }
 
-/// Pagina di sblocco (standalone, niente Angular): chiede la password, chiama /__unlock e
-/// al successo ricarica (il protocollo ora serve la SPA).
-const UNLOCK_HTML: &str = r#"<!doctype html><html lang="it"><head><meta charset="utf-8">
+/// Pagina del selettore archivi (standalone, niente Angular): elenca gli archivi, ne apre
+/// uno (chiedendo la password se cifrato) o ne crea uno nuovo; al successo ricarica.
+const PICKER_HTML: &str = r#"<!doctype html><html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ordeva — Sblocca</title>
+<title>Ordeva — Archivi</title>
 <style>
  :root{--brand:#11769b;--brand2:#15a4a2}
  *{box-sizing:border-box} html,body{height:100%}
  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-   background:#f8fafc;color:#0e2a38;display:flex;align-items:center;justify-content:center}
- .card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:32px 28px;width:340px;
-   box-shadow:0 10px 30px rgba(2,32,52,.08);text-align:center}
- .logo{width:54px;height:54px;border-radius:14px;margin:0 auto 14px;
+   background:#f8fafc;color:#0e2a38;display:flex;align-items:center;justify-content:center;padding:20px}
+ .card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px;width:430px;max-width:100%;
+   box-shadow:0 10px 30px rgba(2,32,52,.08)}
+ .logo{width:48px;height:48px;border-radius:13px;margin:0 0 14px;
    background:linear-gradient(135deg,var(--brand),var(--brand2))}
- h1{font-size:19px;margin:0 0 4px} p{color:#64748b;font-size:13px;margin:0 0 18px}
- input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;outline:none}
+ h1{font-size:20px;margin:0 0 2px} .sub{color:#64748b;font-size:13px;margin:0 0 18px}
+ .arc{padding:11px 12px;border:1px solid #e2e8f0;border-radius:11px;margin-bottom:8px;background:#fafbfd}
+ .arc .head{display:flex;align-items:center;gap:10px;cursor:pointer}
+ .arc:hover{border-color:var(--brand)}
+ .arc .nome{flex:1;font-weight:600} .arc .lock{color:#94a3b8;font-size:15px}
+ .row{display:flex;gap:8px;margin-top:8px}
+ input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;outline:none}
  input:focus{border-color:var(--brand)}
- button{width:100%;margin-top:14px;padding:11px;border:0;border-radius:10px;color:#fff;font-size:15px;
-   font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brand2))}
+ button{padding:10px 14px;border:0;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+   background:linear-gradient(135deg,var(--brand),var(--brand2));white-space:nowrap}
  button:disabled{opacity:.6;cursor:default}
- .err{color:#dc2626;font-size:13px;min-height:18px;margin-top:10px}
+ .sep{border:0;border-top:1px solid #eef0f4;margin:18px 0 14px}
+ .lbl{font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px}
+ .err{color:#dc2626;font-size:13px;min-height:16px;margin-top:8px}
 </style></head><body>
- <form class="card" id="f">
+ <div class="card">
   <div class="logo"></div>
-  <h1>Ordeva è protetta</h1>
-  <p>Inserisci la password d'accesso per aprire i dati cifrati.</p>
-  <input id="pw" type="password" autofocus autocomplete="current-password" placeholder="Password">
-  <button id="b" type="submit">Sblocca</button>
+  <h1>Scegli un archivio</h1>
+  <p class="sub">Ogni archivio è un gestionale a sé, con i suoi dati e la sua password.</p>
+  <div id="lista"></div>
+  <hr class="sep">
+  <p class="lbl">Nuovo archivio</p>
+  <input id="nome" placeholder="Nome (es. La mia azienda)">
+  <div class="row">
+   <input id="npw" type="password" autocomplete="new-password" placeholder="Password (opzionale)">
+   <button id="crea">Crea</button>
+  </div>
   <div class="err" id="e"></div>
- </form>
+ </div>
 <script>
- const f=document.getElementById('f'),pw=document.getElementById('pw'),
-       b=document.getElementById('b'),e=document.getElementById('e');
- f.addEventListener('submit',async ev=>{
-   ev.preventDefault(); e.textContent=''; b.disabled=true; b.textContent='Sblocco…';
-   try{
-     const r=await fetch('/__unlock',{method:'POST',headers:{'Content-Type':'application/json'},
-       body:JSON.stringify({password:pw.value})});
-     const j=await r.json();
-     if(j&&j.ok){ location.reload(); return; }
-     e.textContent='Password errata.';
-   }catch(_){ e.textContent='Errore di sblocco.'; }
-   b.disabled=false; b.textContent='Sblocca'; pw.select();
- });
+ const lista=document.getElementById('lista'),e=document.getElementById('e');
+ const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.json());
+ function apri(slug,pw,btn){
+   e.textContent=''; if(btn){btn.disabled=true;btn.textContent='Apro…';}
+   post('/__apri',{slug:slug,password:pw||''}).then(j=>{
+     if(j&&j.ok){location.reload();return;}
+     e.textContent='Password errata o apertura non riuscita.';
+     if(btn){btn.disabled=false;btn.textContent='Apri';}
+   }).catch(()=>{e.textContent='Errore di apertura.';if(btn){btn.disabled=false;btn.textContent='Apri';}});
+ }
+ function render(archivi){
+   lista.innerHTML='';
+   if(!archivi.length){lista.innerHTML='<p class="sub">Nessun archivio ancora: creane uno qui sotto.</p>';return;}
+   for(const a of archivi){
+     const row=document.createElement('div');row.className='arc';
+     const head=document.createElement('div');head.className='head';
+     head.innerHTML='<span class="nome"></span><span class="lock">'+(a.cifrato?'🔒':'')+'</span>';
+     head.querySelector('.nome').textContent=a.nome;
+     row.appendChild(head);
+     if(a.cifrato){
+       head.onclick=()=>{
+         if(row.dataset.open)return; row.dataset.open='1';
+         const wrap=document.createElement('div');wrap.className='row';
+         wrap.innerHTML='<input type="password" placeholder="Password"><button>Apri</button>';
+         const inp=wrap.querySelector('input'),btn=wrap.querySelector('button');
+         btn.onclick=()=>{ if(!inp.value){inp.focus();return;} apri(a.slug,inp.value,btn); };
+         inp.addEventListener('keydown',ev=>{if(ev.key==='Enter')btn.click();});
+         row.appendChild(wrap); inp.focus();
+       };
+     } else {
+       head.onclick=()=>apri(a.slug,'',null);
+     }
+     lista.appendChild(row);
+   }
+ }
+ post('/__archivi').then(j=>render((j&&j.archivi)||[])).catch(()=>{e.textContent='Impossibile leggere gli archivi.';});
+ document.getElementById('crea').onclick=()=>{
+   const nome=document.getElementById('nome').value.trim(),pw=document.getElementById('npw').value||'';
+   if(!nome){e.textContent='Dai un nome all\'archivio.';return;}
+   const b=document.getElementById('crea');e.textContent='';b.disabled=true;b.textContent='Creo…';
+   post('/__crea',{nome:nome,password:pw}).then(j=>{
+     if(j&&j.ok){location.reload();return;}
+     e.textContent='Creazione non riuscita.';b.disabled=false;b.textContent='Crea';
+   }).catch(()=>{e.textContent='Errore di creazione.';b.disabled=false;b.textContent='Crea';});
+ };
 </script></body></html>"#;
 
 /// Icona nell'area di notifica (Windows/Linux) / menu bar (macOS) con menu rapido.
