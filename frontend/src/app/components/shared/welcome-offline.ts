@@ -308,7 +308,7 @@ export class WelcomeOfflineComponent implements OnInit {
     if (!this.az.ragioneSociale?.trim() || this.loading) return;
     this.loading = true; this.errore = '';
     this.ds.saveAzienda(this.az).subscribe({
-      next: () => { this.loading = false; this.step = 'password'; },   // poi la password (opzionale)
+      next: () => { this.loading = false; this.step = 'backup'; },   // la password ora è per-archivio (selettore all'avvio)
       error: () => { this.errore = 'Salvataggio non riuscito. Riprova.'; this.loading = false; },
     });
   }
