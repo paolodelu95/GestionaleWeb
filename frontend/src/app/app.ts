@@ -893,7 +893,6 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   readonly navItems: NavItem[] = [
     { label: 'Home',         icon: 'apps',           route: '/app' },
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
-    { label: 'Archivi',      icon: 'folder_copy',    route: '/archivi' },
     {
       label: 'Anagrafiche', icon: 'contacts',
       children: [
@@ -954,6 +953,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     // { label: 'CRM',       icon: 'group_work',     route: '/crm' },
     // { label: 'Timesheet', icon: 'schedule',       route: '/timesheet' },
     { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },
+    { label: 'Archivi',      icon: 'folder_copy',    route: '/archivi' },
     {
       label: 'Report', icon: 'bar_chart',
       children: [

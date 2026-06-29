@@ -185,22 +185,12 @@ fn main() {
             // Multi-archivio: migra l'eventuale DB singolo nel primo archivio, poi decidi.
             archivi::migra_da_singolo(&data_dir)
                 .map_err(|e| format!("migrazione archivi: {e:#}"))?;
-            // Apri direttamente l'archivio corrente SOLO se esiste ed è in chiaro (non
-            // cifrato/bloccato). Altrimenti (nessun archivio o archivio cifrato) mostra il
-            // selettore, che elenca/apre/crea gli archivi (vedi handle_locked).
-            let apri = archivi::corrente(&data_dir)
-                .map(|slug| archivi::archivio_dir(&data_dir, &slug))
-                .filter(|adir| !atrest::is_locked(adir));
-            match apri {
-                Some(adir) => {
-                    bring_up(&handle, adir, config_path, None)
-                        .map_err(|e| format!("avvio app: {e:#}"))?;
-                }
-                None => {
-                    tracing::info!("selettore archivi (nessun archivio aperto in chiaro)");
-                    app.manage(LockedCtx { root: data_dir, config_path });
-                }
-            }
+            // All'avvio si sceglie SEMPRE l'archivio con cui lavorare (e si inserisce la
+            // password se quell'archivio è cifrato): mostriamo il selettore. Il protocollo
+            // serve la pagina del selettore finché non viene aperto un archivio, poi monta
+            // il Router e l'app parte (vedi handle_locked → bring_up).
+            tracing::info!("selettore archivi all'avvio");
+            app.manage(LockedCtx { root: data_dir, config_path });
 
             Ok(())
         })
