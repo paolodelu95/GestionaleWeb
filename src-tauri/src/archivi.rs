@@ -327,6 +327,35 @@ mod tests {
     }
 
     #[test]
+    fn migrazione_da_singolo() {
+        let dir = tmp();
+        // Simula un'installazione a archivio singolo (db + backups nella radice).
+        std::fs::write(dir.join(DB_FILE), b"SQLite format 3\0dati").unwrap();
+        std::fs::create_dir_all(dir.join("backups")).unwrap();
+        std::fs::write(dir.join("backups").join("b1.db"), b"x").unwrap();
+
+        migra_da_singolo(&dir).unwrap();
+        let adir = archivio_dir(&dir, "il-mio-archivio");
+        assert!(adir.join(DB_FILE).is_file(), "db spostato nell'archivio");
+        assert!(adir.join("backups").join("b1.db").is_file(), "backups spostati");
+        assert!(!dir.join(DB_FILE).is_file(), "db rimosso dalla radice (niente copia in chiaro)");
+        assert_eq!(corrente(&dir).as_deref(), Some("il-mio-archivio"));
+
+        // Idempotente: una seconda chiamata non duplica nulla.
+        migra_da_singolo(&dir).unwrap();
+        assert_eq!(list(&dir).len(), 1);
+    }
+
+    #[test]
+    fn migrazione_installazione_pulita() {
+        let dir = tmp();
+        // Nessun db: crea solo un indice vuoto (sarà il selettore a creare il primo).
+        migra_da_singolo(&dir).unwrap();
+        assert!(list(&dir).is_empty());
+        assert_eq!(corrente(&dir), None);
+    }
+
+    #[test]
     fn elimina_non_corrente() {
         let dir = tmp();
         crea(&dir, "A").unwrap();

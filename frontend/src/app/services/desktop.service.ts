@@ -50,6 +50,19 @@ export class DesktopService {
     try { return await this.legacy.pickBackupFile(); } catch { return null; }
   }
 
+  /** Selettore "salva con nome" per esportare un archivio; ritorna il percorso o null. */
+  async pickSaveDb(nomeSuggerito: string): Promise<string | null> {
+    if (!isTauri()) return null;
+    try {
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const sel = await save({
+        defaultPath: nomeSuggerito,
+        filters: [{ name: 'Archivio Ordeva', extensions: ['db', 'enc'] }],
+      });
+      return sel || null;
+    } catch { return null; }
+  }
+
   /** Apre una cartella nel file manager del sistema. */
   async openPath(path: string): Promise<void> {
     if (!path) return;

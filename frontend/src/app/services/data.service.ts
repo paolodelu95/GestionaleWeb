@@ -42,6 +42,18 @@ export class DataService {
   restoreBackup(name: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { name }); }
   restoreBackupFromFile(filePath: string, password?: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { filePath, password }); }
 
+  // Archivi (multi-database, offline): ogni archivio è un gestionale a sé.
+  getArchivi(): Observable<{ archivi: { slug: string; nome: string; cifrato: boolean }[]; corrente: string | null }> { return this.api.get('archivi'); }
+  creaArchivio(nome: string): Observable<{ archivio: { slug: string; nome: string; cifrato: boolean } }> { return this.api.post('archivi', { nome }); }
+  duplicaArchivio(slug: string, nome: string): Observable<any> { return this.api.post(`archivi/${slug}/duplica`, { nome }); }
+  rinominaArchivio(slug: string, nome: string): Observable<any> { return this.api.post(`archivi/${slug}/rinomina`, { nome }); }
+  eliminaArchivio(slug: string): Observable<any> { return this.api.post(`archivi/${slug}/elimina`, {}); }
+  cambiaArchivio(slug: string): Observable<any> { return this.api.post(`archivi/${slug}/cambia`, {}); }
+  importaArchivio(file: string, nome: string): Observable<any> { return this.api.post('archivi/importa', { file, nome }); }
+  esportaArchivio(slug: string, dest: string): Observable<any> { return this.api.post(`archivi/${slug}/esporta`, { dest }); }
+  setPasswordArchivio(password: string): Observable<any> { return this.api.post('archivi/password', { password }); }
+  rimuoviPasswordArchivio(): Observable<any> { return this.api.delete('archivi/password'); }
+
   // Sistema / dati (offline): cartella dati visibile e spostabile (anche su Dropbox)
   getSistemaPercorsi(): Observable<{ dataDir: string; configPath: string; files: { nome: string; esiste: boolean; bytes: number }[] }> { return this.api.get('sistema/percorsi'); }
   setSistemaDataDir(path: string): Observable<{ ok: boolean; riavvioRichiesto: boolean; dataDir: string }> { return this.api.post('sistema/data-dir', { path }); }

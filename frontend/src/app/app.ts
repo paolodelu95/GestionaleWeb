@@ -79,9 +79,9 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
    * Stato iniziale ottimistico (da hint locale) per evitare il flash della UI;
    * poi confermato/corretto col backend in ngOnInit.
    */
-  locked = environment.offline
-    && lsGet('ordeva_app_password_enabled') === '1'
-    && sessionStorage.getItem('ordeva_unlocked') !== '1';
+  // Lo sblocco dei dati è ora gestito all'avvio dal selettore archivi (cifratura
+  // per-archivio, lato Rust): niente più lock-screen della password-programma in-app.
+  locked = false;
 
   /**
    * Data odierna nella topbar, dal formato più lungo al più corto. Lo spazio al
@@ -212,18 +212,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.darkMode = lsGet('dark-mode') === '1';
     document.body.classList.toggle('dark-mode', this.darkMode);
 
-    // Offline: conferma col backend se serve la password d'accesso (corregge
-    // l'ipotesi iniziale basata sull'hint locale e mantiene sincronizzato l'hint).
-    if (this.offline && sessionStorage.getItem('ordeva_unlocked') !== '1') {
-      this.ds.getAppPasswordStatus().subscribe({
-        next: st => {
-          this.locked = st.enabled;
-          if (st.enabled) lsSet('ordeva_app_password_enabled', '1');
-          else lsSet('ordeva_app_password_enabled', '0');
-        },
-        error: () => {},
-      });
-    }
+    // (La vecchia password-programma in-app è stata sostituita dalla password
+    // per-archivio, richiesta all'avvio dal selettore archivi: nessun controllo qui.)
     // Se non c'è blocco password, valuta subito l'avviso di backup scaduto.
     if (this.offline && !this.locked) this.checkBackupAlert();
 
@@ -903,6 +893,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   readonly navItems: NavItem[] = [
     { label: 'Home',         icon: 'apps',           route: '/app' },
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
+    { label: 'Archivi',      icon: 'folder_copy',    route: '/archivi' },
     {
       label: 'Anagrafiche', icon: 'contacts',
       children: [

@@ -32,6 +32,7 @@ export const routes: Routes = [
   { path: 'vendita-banco',  loadComponent: () => import('./components/vendita-banco/vendita-banco').then(m => m.VenditaBancoComponent) },
   { path: 'report',       loadComponent: () => import('./components/report/report').then(m => m.ReportComponent) },
   { path: 'impostazioni', loadComponent: () => import('./components/impostazioni/impostazioni').then(m => m.ImpostazioniComponent) },
+  { path: 'archivi',      loadComponent: () => import('./components/archivi/archivi').then(m => m.ArchiviComponent) },
   { path: 'listini',      loadComponent: () => import('./components/listini/listini').then(m => m.ListiniComponent) },
   { path: 'prima-nota',   loadComponent: () => import('./components/prima-nota/prima-nota').then(m => m.PrimaNotaComponent) },
   { path: 'fatture-ricorrenti', loadComponent: () => import('./components/fatture-ricorrenti/fatture-ricorrenti').then(m => m.FattureRicorrentiComponent) },
