@@ -73,9 +73,43 @@ fn save_index(data_dir: &Path, idx: &Index) -> Result<()> {
     Ok(())
 }
 
-/// True se l'archivio è cifrato a riposo (c'è il `.enc`).
+/// File con l'hash (bcrypt) della password di accesso all'archivio. Modello "blocco
+/// d'accesso": il DB di lavoro resta IN CHIARO (niente cifra-e-cancella che gli antivirus
+/// scambiano per ransomware); la password serve a sbloccare l'archivio in apertura e a
+/// cifrare i backup. Sta in un file a parte così si verifica prima di aprire il DB.
+fn pwd_path(dir: &Path) -> PathBuf {
+    dir.join("ordeva.pwd")
+}
+
+/// True se l'archivio è protetto da password: c'è il file hash `ordeva.pwd` oppure (vecchio
+/// modello, fino alla migrazione al primo sblocco) il file cifrato `.enc`.
 fn is_cifrato(dir: &Path) -> bool {
-    dir.join(format!("{DB_FILE}.enc")).is_file()
+    pwd_path(dir).exists() || dir.join(format!("{DB_FILE}.enc")).is_file()
+}
+
+/// True se l'archivio ha una password (nuovo modello: file `ordeva.pwd`).
+pub fn has_pwd(dir: &Path) -> bool {
+    pwd_path(dir).exists()
+}
+
+/// Imposta la password di accesso dell'archivio (salva l'hash bcrypt).
+pub fn set_pwd(dir: &Path, password: &str) -> Result<()> {
+    let hash = bcrypt::hash(password, bcrypt::DEFAULT_COST).context("hash password")?;
+    std::fs::write(pwd_path(dir), hash).with_context(|| format!("scrittura {:?}", pwd_path(dir)))?;
+    Ok(())
+}
+
+/// Rimuove la password di accesso dell'archivio (best-effort).
+pub fn remove_pwd(dir: &Path) {
+    let _ = std::fs::remove_file(pwd_path(dir));
+}
+
+/// Verifica la password di accesso contro l'hash salvato.
+pub fn verify_pwd(dir: &Path, password: &str) -> bool {
+    match std::fs::read_to_string(pwd_path(dir)) {
+        Ok(h) => bcrypt::verify(password, h.trim()).unwrap_or(false),
+        Err(_) => false,
+    }
 }
 
 /// Ricalcola il flag `cifrato` di ogni archivio dal contenuto su disco e salva l'indice.

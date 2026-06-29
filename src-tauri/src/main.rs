@@ -207,18 +207,10 @@ fn main() {
                 if let Some(state) = app_handle.try_state::<AppState>() {
                     state.flush();
                     state.release_lock();
-                    // Cifratura a riposo: se attiva e sbloccata, ricifra il file e rimuove
-                    // il chiaro. Senza password (avvio non pulito mai sbloccato) si lascia
-                    // com'è (il file cifrato precedente resta valido).
-                    // Cifratura a riposo per-archivio: se questo archivio è stato aperto/creato
-                    // con una password (atrest_password presente), ricifra e rimuovi il chiaro.
-                    let pw = state.atrest_password.lock().unwrap().clone();
-                    if let Some(pw) = pw {
-                        state.close_all();
-                        if let Err(e) = atrest::seal_on_close(&state.data_dir, &pw) {
-                            tracing::error!("ricifratura alla chiusura fallita: {e:#}");
-                        }
-                    }
+                    // NB: il DB di lavoro NON viene più cifrato alla chiusura. La password
+                    // dell'archivio è un blocco d'accesso (verifica all'apertura) e cifra i
+                    // BACKUP; cifrare+cancellare il file di lavoro veniva scambiato dagli
+                    // antivirus per ransomware. Il file resta in chiaro nella sua cartella.
                 }
             }
         });
@@ -239,11 +231,15 @@ fn bring_up(
     app: &tauri::AppHandle,
     data_dir: std::path::PathBuf,
     config_path: std::path::PathBuf,
-    atrest_pw: Option<String>,
+    gate_pw: Option<String>,
 ) -> anyhow::Result<()> {
     let state = AppState::init(data_dir, config_path)?;
-    if let Some(pw) = atrest_pw {
-        *state.atrest_password.lock().unwrap() = Some(pw);
+    if let Some(pw) = gate_pw {
+        // Archivio protetto: la password cifra i BACKUP (il DB di lavoro resta in chiaro).
+        *state.atrest_password.lock().unwrap() = Some(pw.clone());
+        if let Ok(salt) = backup::ensure_salt(&state) {
+            backup::set_key_from_password(&state, &pw, &salt);
+        }
     }
     state.spawn_heartbeat();
 
@@ -301,14 +297,29 @@ async fn handle_locked(
         let (root, config_path) = (ctx.root.clone(), ctx.config_path.clone());
         let adir = archivi::archivio_dir(&root, &slug);
         let ok = if atrest::is_locked(&adir) {
+            // Vecchio modello (file .enc): decifra una volta con la password, poi MIGRA al
+            // nuovo modello "blocco d'accesso" (salva l'hash, rimuove il .enc) così da non
+            // ri-cifrare più il file di lavoro alla chiusura.
             match atrest::unlock(&adir, &password) {
                 Ok(()) => {
+                    let _ = archivi::set_pwd(&adir, &password);
+                    atrest::remove_enc(&adir);
+                    let _ = archivi::risincronizza_cifrati(&root);
                     let _ = archivi::set_corrente(&root, &slug);
                     bring_up(app, adir, config_path, Some(password)).is_ok()
                 }
                 Err(_) => false,
             }
+        } else if archivi::has_pwd(&adir) {
+            // Protetto (nuovo modello): verifica la password (blocco d'accesso).
+            if archivi::verify_pwd(&adir, &password) {
+                let _ = archivi::set_corrente(&root, &slug);
+                bring_up(app, adir, config_path, Some(password)).is_ok()
+            } else {
+                false
+            }
         } else {
+            // Non protetto: apri direttamente.
             let _ = archivi::set_corrente(&root, &slug);
             bring_up(app, adir, config_path, None).is_ok()
         };
@@ -328,7 +339,15 @@ async fn handle_locked(
             Ok(a) => {
                 let _ = archivi::set_corrente(&root, &a.slug);
                 let adir = archivi::archivio_dir(&root, &a.slug);
-                let pw = if password.is_empty() { None } else { Some(password) };
+                let pw = if password.is_empty() {
+                    None
+                } else {
+                    // Protegge il nuovo archivio: salva l'hash (così agli avvii successivi
+                    // chiede la password) e aggiorna il flag nell'indice.
+                    let _ = archivi::set_pwd(&adir, &password);
+                    let _ = archivi::risincronizza_cifrati(&root);
+                    Some(password)
+                };
                 bring_up(app, adir, config_path, pw).is_ok()
             }
             Err(_) => false,

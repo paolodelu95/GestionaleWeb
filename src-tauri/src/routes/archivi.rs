@@ -141,24 +141,27 @@ async fn esporta(
     Ok(Json(json!({ "ok": true })))
 }
 
-/// Imposta la password (cifratura a riposo) sull'archivio CORRENTE: cifra subito il file;
-/// il chiaro resta in uso e viene risigillato/rimosso alla chiusura.
+/// Imposta la password sull'archivio CORRENTE (blocco d'accesso): salva l'hash e cifra i
+/// BACKUP con quella password. Il DB di lavoro resta in chiaro (niente comportamento da
+/// ransomware): la password verrà richiesta al prossimo avvio per aprire l'archivio.
 async fn password_set(State(state): State<AppState>, Json(b): Json<PwReq>) -> ApiResult<Json<Value>> {
     if b.password.trim().is_empty() {
         return Err(ApiError::Status(StatusCode::BAD_REQUEST, "Password vuota".into()));
     }
-    crate::atrest::encrypt_now(&state.data_dir, &b.password).map_err(ApiError::Internal)?;
+    crate::archivi::set_pwd(&state.data_dir, &b.password).map_err(ApiError::Internal)?;
+    if let Ok(salt) = crate::backup::ensure_salt(&state) {
+        crate::backup::set_key_from_password(&state, &b.password, &salt);
+    }
     *state.atrest_password.lock().unwrap() = Some(b.password.clone());
-    crate::config::set_encrypted(&state.config_path, true).map_err(ApiError::Internal)?;
     let _ = archivi::risincronizza_cifrati(&root_dir(&state));
     Ok(Json(json!({ "ok": true })))
 }
 
-/// Rimuove la password dall'archivio CORRENTE: niente più cifratura a riposo.
+/// Rimuove la password dall'archivio CORRENTE: niente più blocco d'accesso né backup cifrati.
 async fn password_remove(State(state): State<AppState>) -> ApiResult<Json<Value>> {
-    crate::atrest::remove_enc(&state.data_dir);
+    crate::archivi::remove_pwd(&state.data_dir);
+    crate::backup::clear_key(&state);
     *state.atrest_password.lock().unwrap() = None;
-    let _ = crate::config::set_encrypted(&state.config_path, false);
     let _ = archivi::risincronizza_cifrati(&root_dir(&state));
     Ok(Json(json!({ "ok": true })))
 }
