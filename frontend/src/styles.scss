@@ -2586,10 +2586,12 @@ body.glass-ui .mat-mdc-snack-bar-container { margin-bottom: 92px; }
   gap: 2px;
   width: max-content;
   // Larghezza legata alla finestra (non più cap fisso a 680px): essendo width:max-content
-  // il dock cresce solo quanto serve a contenere le voci, fino quasi al bordo schermo.
-  // Così su monitor larghi (es. 1920px) le voci stanno tutte in fila e il priority-nav
-  // non riempie "Altro"; su schermi più stretti rimette in overflow solo quelle che non entrano.
-  max-width: calc(100vw - 32px);
+  // il dock cresce solo quanto serve a contenere le voci. Margine laterale 64px così la
+  // pillola stacca dai bordi su schermi larghi, e tetto a 1500px per i monitor ultrawide
+  // (evita una barra spropositata). Così su monitor larghi (es. 1920px) le voci stanno
+  // tutte in fila e il priority-nav non riempie "Altro"; su schermi più stretti rimette in
+  // overflow solo quelle che non entrano.
+  max-width: min(1500px, calc(100vw - 64px));
   padding: 6px;
   border-radius: 26px;
   background: var(--glass-bg);
