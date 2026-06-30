@@ -369,46 +369,85 @@ const PICKER_HTML: &str = r#"<!doctype html><html lang="it"><head><meta charset=
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ordeva — Archivi</title>
 <style>
- :root{--brand:#11769b;--brand2:#15a4a2}
+ :root{--brand:#11769b;--brand2:#15a4a2;--ink:#0e2a38;--muted:#64748b;--line:#e6edf2}
  *{box-sizing:border-box} html,body{height:100%}
- body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-   background:#f8fafc;color:#0e2a38;display:flex;align-items:center;justify-content:center;padding:20px}
- .card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px;width:430px;max-width:100%;
-   box-shadow:0 10px 30px rgba(2,32,52,.08)}
- .logo{width:48px;height:48px;border-radius:13px;margin:0 0 14px;
-   background:linear-gradient(135deg,var(--brand),var(--brand2))}
- h1{font-size:20px;margin:0 0 2px} .sub{color:#64748b;font-size:13px;margin:0 0 18px}
- .arc{padding:11px 12px;border:1px solid #e2e8f0;border-radius:11px;margin-bottom:8px;background:#fafbfd}
- .arc .head{display:flex;align-items:center;gap:10px;cursor:pointer}
- .arc:hover{border-color:var(--brand)}
- .arc .nome{flex:1;font-weight:600} .arc .lock{color:#94a3b8;font-size:15px}
- .row{display:flex;gap:8px;margin-top:8px}
- input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;outline:none}
- input:focus{border-color:var(--brand)}
- button{padding:10px 14px;border:0;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;
-   background:linear-gradient(135deg,var(--brand),var(--brand2));white-space:nowrap}
- button:disabled{opacity:.6;cursor:default}
- .sep{border:0;border-top:1px solid #eef0f4;margin:18px 0 14px}
- .lbl{font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px}
- .err{color:#dc2626;font-size:13px;min-height:16px;margin-top:8px}
+ body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+   background:
+     radial-gradient(1100px 560px at -5% -10%, #e6f3f5 0%, transparent 55%),
+     radial-gradient(900px 560px at 105% 110%, #e6f1f0 0%, transparent 55%),
+     linear-gradient(160deg,#f5f9fb,#eef4f6);
+   display:flex;align-items:center;justify-content:center;padding:24px}
+ .card{position:relative;background:#fff;border:1px solid var(--line);border-radius:22px;
+   padding:30px 30px 26px;width:460px;max-width:100%;
+   box-shadow:0 24px 60px -18px rgba(5,49,73,.32),0 3px 12px rgba(5,49,73,.05)}
+ .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+ .logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex:none;color:#fff;
+   font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+   box-shadow:0 8px 18px -6px rgba(17,118,155,.6)}
+ .brand .wm{font-weight:800;font-size:17px;letter-spacing:-.01em;color:var(--ink)}
+ .brand .wm i{font-style:normal;color:var(--brand)}
+ h1{font-size:21px;margin:0 0 4px;letter-spacing:-.02em}
+ .sub{color:var(--muted);font-size:13.5px;margin:0 0 18px;line-height:1.45}
+ #lista{max-height:46vh;overflow:auto;margin:0 -4px;padding:0 4px}
+ #lista::-webkit-scrollbar{width:8px}
+ #lista::-webkit-scrollbar-thumb{background:#dbe5ea;border-radius:8px}
+ .entry{margin-bottom:9px}
+ .arc{display:flex;align-items:center;gap:13px;padding:11px 13px;border:1px solid var(--line);
+   border-radius:14px;background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s}
+ .arc:hover{border-color:var(--brand);box-shadow:0 10px 22px -12px rgba(17,118,155,.55);transform:translateY(-1px)}
+ .avatar{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;
+   color:#fff;font-weight:700;font-size:16px}
+ .meta{flex:1;min-width:0}
+ .nome{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);margin-top:2px}
+ .tag svg{width:12px;height:12px}
+ .chev{color:#cbd5e1;flex:none;display:flex}
+ .arc:hover .chev{color:var(--brand)}
+ .pwrow{display:flex;gap:8px;margin:8px 2px 2px}
+ input{width:100%;padding:11px 13px;border:1px solid #cbd5e1;border-radius:11px;font-size:14px;
+   outline:none;transition:border-color .15s,box-shadow .15s;background:#fff;color:var(--ink)}
+ input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(17,118,155,.14)}
+ button{padding:11px 16px;border:0;border-radius:11px;color:#fff;font-size:14px;font-weight:700;
+   cursor:pointer;white-space:nowrap;background:linear-gradient(135deg,var(--brand),var(--brand2));
+   box-shadow:0 8px 16px -8px rgba(17,118,155,.6);transition:filter .15s,opacity .15s}
+ button:hover{filter:brightness(1.05)}
+ button:disabled{opacity:.6;cursor:default;filter:none}
+ .empty{text-align:center;padding:22px 10px;border:1.5px dashed #d6e1e7;border-radius:14px;color:var(--muted)}
+ .empty .ic{font-size:30px;line-height:1;margin-bottom:8px}
+ .empty p{margin:0;font-size:13.5px;line-height:1.5}
+ .new{margin-top:18px;padding-top:18px;border-top:1px solid #eef2f5}
+ .new-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--muted);
+   text-transform:uppercase;letter-spacing:.05em;margin:0 0 11px}
+ .new-h svg{width:14px;height:14px;color:var(--brand)}
+ .hint{color:#94a3b8;font-size:11.5px;line-height:1.45;margin:9px 2px 0}
+ .err{color:#dc2626;font-size:13px;min-height:16px;margin-top:10px}
 </style></head><body>
  <div class="card">
-  <div class="logo"></div>
-  <h1>Scegli un archivio</h1>
-  <p class="sub">Ogni archivio è un gestionale a sé, con i suoi dati e la sua password.</p>
+  <div class="brand">
+   <div class="logo">O</div>
+   <div class="wm">Ord<i>e</i>va</div>
+  </div>
+  <h1>Bentornato 👋</h1>
+  <p class="sub">Scegli l'archivio con cui lavorare. Ogni archivio è un gestionale a sé, con i suoi dati, i suoi backup e la sua password.</p>
   <div id="lista"></div>
-  <hr class="sep">
-  <p class="lbl">Nuovo archivio</p>
-  <input id="nome" placeholder="Nome (es. La mia azienda)">
-  <div class="row">
-   <input id="npw" type="password" autocomplete="new-password" placeholder="Password (opzionale)">
-   <button id="crea">Crea</button>
+  <div class="new">
+   <div class="new-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg> Nuovo archivio</div>
+   <input id="nome" placeholder="Nome (es. La mia azienda)">
+   <div class="pwrow">
+    <input id="npw" type="password" autocomplete="new-password" placeholder="Password (opzionale)">
+    <button id="crea">Crea</button>
+   </div>
+   <p class="hint">La password protegge l'accesso all'archivio e cifra i suoi backup. Lasciala vuota per un archivio senza blocco.</p>
   </div>
   <div class="err" id="e"></div>
  </div>
 <script>
  const lista=document.getElementById('lista'),e=document.getElementById('e');
  const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.json());
+ const grad=['linear-gradient(135deg,#11769b,#15a4a2)','linear-gradient(135deg,#2563eb,#0ea5e9)','linear-gradient(135deg,#7c3aed,#a855f7)','linear-gradient(135deg,#059669,#10b981)','linear-gradient(135deg,#f97316,#f59e0b)','linear-gradient(135deg,#e11d48,#f43f5e)'];
+ const colorFor=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return grad[h%grad.length];};
+ const lockSvg=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>`;
+ const chevSvg=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>`;
  function apri(slug,pw,btn){
    e.textContent=''; if(btn){btn.disabled=true;btn.textContent='Apro…';}
    post('/__apri',{slug:slug,password:pw||''}).then(j=>{
@@ -419,27 +458,34 @@ const PICKER_HTML: &str = r#"<!doctype html><html lang="it"><head><meta charset=
  }
  function render(archivi){
    lista.innerHTML='';
-   if(!archivi.length){lista.innerHTML='<p class="sub">Nessun archivio ancora: creane uno qui sotto.</p>';return;}
+   if(!archivi.length){lista.innerHTML=`<div class="empty"><div class="ic">📁</div><p>Non c'è ancora nessun archivio.<br>Creane uno qui sotto per iniziare.</p></div>`;return;}
    for(const a of archivi){
-     const row=document.createElement('div');row.className='arc';
-     const head=document.createElement('div');head.className='head';
-     head.innerHTML='<span class="nome"></span><span class="lock">'+(a.cifrato?'🔒':'')+'</span>';
-     head.querySelector('.nome').textContent=a.nome;
-     row.appendChild(head);
+     const entry=document.createElement('div');entry.className='entry';
+     const head=document.createElement('div');head.className='arc';
+     const av=document.createElement('div');av.className='avatar';av.style.background=colorFor(a.nome||'?');av.textContent=((a.nome||'?').trim()[0]||'?').toUpperCase();
+     const meta=document.createElement('div');meta.className='meta';
+     const nm=document.createElement('div');nm.className='nome';nm.textContent=a.nome;
+     meta.appendChild(nm);
+     const tag=document.createElement('div');tag.className='tag';
+     tag.innerHTML=a.cifrato?lockSvg+'<span>Protetto da password</span>':'<span>Pronto ad aprirsi</span>';
+     meta.appendChild(tag);
+     const chev=document.createElement('div');chev.className='chev';chev.innerHTML=chevSvg;
+     head.appendChild(av);head.appendChild(meta);head.appendChild(chev);
+     entry.appendChild(head);
      if(a.cifrato){
        head.onclick=()=>{
-         if(row.dataset.open)return; row.dataset.open='1';
-         const wrap=document.createElement('div');wrap.className='row';
-         wrap.innerHTML='<input type="password" placeholder="Password"><button>Apri</button>';
+         if(entry.dataset.open)return; entry.dataset.open='1';
+         const wrap=document.createElement('div');wrap.className='pwrow';
+         wrap.innerHTML=`<input type="password" placeholder="Password"><button>Apri</button>`;
          const inp=wrap.querySelector('input'),btn=wrap.querySelector('button');
          btn.onclick=()=>{ if(!inp.value){inp.focus();return;} apri(a.slug,inp.value,btn); };
          inp.addEventListener('keydown',ev=>{if(ev.key==='Enter')btn.click();});
-         row.appendChild(wrap); inp.focus();
+         entry.appendChild(wrap); inp.focus();
        };
      } else {
        head.onclick=()=>apri(a.slug,'',null);
      }
-     lista.appendChild(row);
+     lista.appendChild(entry);
    }
  }
  post('/__archivi').then(j=>render((j&&j.archivi)||[])).catch(()=>{e.textContent='Impossibile leggere gli archivi.';});
