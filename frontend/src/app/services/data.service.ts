@@ -39,6 +39,7 @@ export class DataService {
   runBackup(): Observable<BackupConfig & { success: boolean; file: string; encrypted: boolean }> { return this.api.post('backup/run', {}); }
   dismissBackupAlert(): Observable<BackupConfig> { return this.api.post('backup/alert-dismiss', {}); }
   listBackups(): Observable<{ files: { name: string; encrypted: boolean; size: number; mtime: string }[] }> { return this.api.get('backup/list'); }
+  pruneOldBackups(): Observable<{ removed: number; files: { name: string; encrypted: boolean; size: number; mtime: string }[] }> { return this.api.post('backup/prune', {}); }
   restoreBackup(name: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { name }); }
   restoreBackupFromFile(filePath: string, password?: string): Observable<{ success: boolean }> { return this.api.post('backup/restore', { filePath, password }); }
 

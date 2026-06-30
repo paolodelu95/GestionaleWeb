@@ -13,6 +13,7 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/config", get(get_config).put(put_config))
         .route("/run", post(run))
+        .route("/prune", post(prune))
         .route("/alert-dismiss", post(alert_dismiss))
         .route("/list", get(list))
         .route("/restore", post(restore))
@@ -125,6 +126,12 @@ async fn put_config(State(state): State<AppState>, Json(b): Json<Value>) -> ApiR
     if let Some(v) = b.get("alertDisabled").and_then(Value::as_bool) {
         patch.insert("alertDisabled".into(), json!(v));
     }
+    if let Some(v) = b.get("retentionDays").and_then(Value::as_f64) {
+        if v.is_finite() {
+            let clamped = (v.round() as i64).clamp(0, 365);
+            patch.insert("retentionDays".into(), json!(clamped));
+        }
+    }
     let merged = bk::write_config(&state, Value::Object(patch))?;
     Ok(Json(public_cfg(&state, &merged)))
 }
@@ -147,6 +154,9 @@ async fn run(State(state): State<AppState>) -> ApiResult<Json<Value>> {
     let (file, encrypted) = bk::run_external_backup(&state, &dir, encrypt, key, &salt)
         .map_err(|e| ApiError::Status(axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     let updated = bk::write_config(&state, json!({ "lastAt": now_iso() }))?;
+    // Pulizia per età: a ogni backup elimina le copie più vecchie di retentionDays giorni.
+    let retention = updated.get("retentionDays").and_then(Value::as_f64).unwrap_or(0.0) as u32;
+    bk::prune_external_older_than(&dir, retention);
     let basename = file.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
     let mut out = public_cfg(&state, &updated);
     let obj = out.as_object_mut().unwrap();
@@ -154,6 +164,23 @@ async fn run(State(state): State<AppState>) -> ApiResult<Json<Value>> {
     obj.insert("file".into(), json!(basename));
     obj.insert("encrypted".into(), json!(encrypted));
     Ok(Json(out))
+}
+
+/// Elimina subito i backup più vecchi di `retentionDays` giorni (pulizia manuale).
+/// Ritorna quanti file ha rimosso e l'elenco aggiornato.
+async fn prune(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    let cfg = bk::read_config(&state)?;
+    let dir = cfg.get("dir").and_then(Value::as_str).unwrap_or("").to_string();
+    if dir.is_empty() {
+        return Err(ApiError::Status(axum::http::StatusCode::BAD_REQUEST, "Imposta prima la cartella di backup.".into()));
+    }
+    let days = cfg.get("retentionDays").and_then(Value::as_f64).unwrap_or(0.0) as u32;
+    if days == 0 {
+        return Err(ApiError::Status(axum::http::StatusCode::BAD_REQUEST, "Imposta prima i giorni di conservazione.".into()));
+    }
+    let removed = bk::prune_external_older_than(&dir, days);
+    let files = bk::list_external(&dir);
+    Ok(Json(json!({ "removed": removed, "files": files })))
 }
 
 async fn alert_dismiss(State(state): State<AppState>) -> ApiResult<Json<Value>> {

@@ -1199,6 +1199,23 @@ export class ImpostazioniComponent implements OnInit {
   setBackupAlertDays(v: number) { if (Number.isFinite(v)) this.saveBackup({ alertDays: v }); }
   /** Riattiva gli avvisi di backup disattivati con "non mostrare più". */
   reenableBackupAlert() { this.saveBackup({ alertDisabled: false }); }
+  /** Giorni di conservazione dei backup (0 = conservali tutti). */
+  setBackupRetentionDays(v: number) {
+    if (Number.isFinite(v)) this.saveBackup({ retentionDays: Math.max(0, Math.min(365, Math.round(v))) });
+  }
+  /** Elimina subito i backup più vecchi dei giorni di conservazione impostati. */
+  async pruneOldBackups() {
+    const days = this.backupCfg?.retentionDays || 0;
+    if (!days) return;
+    if (!await this.confirm.delete(`Eliminare dalla cartella i backup più vecchi di ${days} giorni? L'operazione non è reversibile.`)) return;
+    this.ds.pruneOldBackups().subscribe({
+      next: r => {
+        this.backupFiles = r.files;
+        this.snack.open(r.removed ? `${r.removed} backup eliminati` : 'Nessun backup più vecchio da eliminare', '', { duration: 3000 });
+      },
+      error: e => this.snack.open(e.error?.error || 'Operazione non riuscita', '', { duration: 4000 }),
+    });
+  }
 
   runBackupNow() {
     if (this.backupBusy) return;

@@ -165,6 +165,8 @@ export interface BackupConfig {
   encrypt: boolean;
   alertDays: number;
   alertDisabled: boolean;
+  /** Elimina i backup più vecchi di N giorni (0 = conservali tutti). */
+  retentionDays: number;
   lastAt: string | null;
   alertDismissedAt: string | null;
   daysSinceLast: number | null;

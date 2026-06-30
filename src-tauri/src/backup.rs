@@ -35,6 +35,8 @@ fn defaults() -> Value {
         "encrypt": false,
         "alertDays": 3,
         "alertDisabled": false,
+        // Conservazione: elimina i backup esterni più vecchi di N giorni (0 = mai).
+        "retentionDays": 0,
         "lastAt": Value::Null,
         "alertDismissedAt": Value::Null,
         "encSalt": Value::Null,
@@ -437,6 +439,8 @@ pub fn run_if_due(state: &AppState) {
     let salt = ensure_salt(state).unwrap_or_default();
     if run_external_backup(state, &dir, encrypt, key, &salt).is_ok() {
         let _ = write_config(state, json!({ "lastAt": iso_now_ms() }));
+        let retention = cfg.get("retentionDays").and_then(Value::as_f64).unwrap_or(0.0) as u32;
+        prune_external_older_than(&dir, retention);
     }
 }
 
@@ -497,6 +501,41 @@ pub fn list_external(dir: &str) -> Vec<Value> {
 /// Nome backup valido: ^ordeva-.*\.(db|db\.enc)$
 fn is_backup_name(f: &str) -> bool {
     f.starts_with("ordeva-") && (f.ends_with(".db") || f.ends_with(".db.enc"))
+}
+
+/// Elimina i backup esterni più vecchi di `days` giorni (in base all'mtime). Con
+/// `days == 0` non fa nulla. Ritorna quanti file ha rimosso. Indipendente dal limite
+/// per numero (`prune`): serve a non intasare la memoria con copie datate.
+pub fn prune_external_older_than(dir: &str, days: u32) -> usize {
+    if days == 0 || dir.is_empty() {
+        return 0;
+    }
+    let path = Path::new(dir);
+    if !path.exists() {
+        return 0;
+    }
+    let cutoff = SystemTime::now()
+        .checked_sub(std::time::Duration::from_secs(days as u64 * 86400))
+        .unwrap_or(UNIX_EPOCH);
+    let mut removed = 0usize;
+    if let Ok(rd) = std::fs::read_dir(path) {
+        for e in rd.flatten() {
+            let name = e.file_name().to_string_lossy().to_string();
+            if !is_backup_name(&name) {
+                continue;
+            }
+            let too_old = e
+                .metadata()
+                .ok()
+                .and_then(|md| md.modified().ok())
+                .map(|mtime| mtime < cutoff)
+                .unwrap_or(false);
+            if too_old && std::fs::remove_file(e.path()).is_ok() {
+                removed += 1;
+            }
+        }
+    }
+    removed
 }
 
 fn prune(dir: &Path, prefix: &str, keep: usize, ext_pattern: bool) {
