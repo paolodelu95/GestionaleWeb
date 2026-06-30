@@ -231,8 +231,17 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       requestAnimationFrame(() => this.zone.run(() => this.computeNavOverflow())));
 
     this.offlineSvc.offline$.subscribe(v => this.isOffline = v);
-    window.addEventListener('online',  () => this.offlineSvc.setOffline(false));
-    window.addEventListener('offline', () => this.offlineSvc.setOffline(true));
+    // Edizione desktop: il backend è in-process (ordeva.localhost) e NON dipende da
+    // internet, quindi un calo di connessione del PC non significa "backend non
+    // raggiungibile". Lì il banner lo decide solo l'esito reale delle chiamate API
+    // (vedi authInterceptor, con soglia anti falsi-positivi). Su web invece lo stato
+    // di rete del browser è un segnale valido.
+    if (this.offline) {
+      this.offlineSvc.setOffline(false);
+    } else {
+      window.addEventListener('online',  () => this.offlineSvc.setOffline(false));
+      window.addEventListener('offline', () => this.offlineSvc.setOffline(true));
+    }
 
     window.addEventListener('beforeinstallprompt', (e: Event) => {
       e.preventDefault();

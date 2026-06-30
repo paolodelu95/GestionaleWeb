@@ -16,9 +16,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     : req;
 
   return next(authReq).pipe(
-    tap(() => offlineSvc.setOffline(false)),
+    tap(() => offlineSvc.reportReachable()),
     catchError(err => {
-      if (err.status === 0) offlineSvc.setOffline(true);
+      // status 0 = errore di rete (backend irraggiungibile o richiesta annullata):
+      // segnalo con soglia anti falsi-positivi. Qualsiasi risposta del server (anche
+      // di errore) significa invece che è raggiungibile.
+      if (err.status === 0) offlineSvc.reportNetworkError();
+      else offlineSvc.reportReachable();
       // Logout solo se è il nostro backend a dire che il token è invalido,
       // non se è un proxy 401 da servizi esterni (es. Mindee via /api/ocr)
       // Sessione scaduta/revocata sul nostro backend: logout + reset pulito allo
