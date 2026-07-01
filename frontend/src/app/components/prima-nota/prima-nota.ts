@@ -17,6 +17,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { ScontrinoScanDialogComponent } from './scontrino-scan-dialog';
+import { environment } from '../../../environments/environment';
 
 // ── Dialog ─────────────────────────────────────────────────────────────────────
 @Component({
@@ -132,6 +133,8 @@ export class PrimaNotaDialogComponent {
 })
 export class PrimaNotaComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  /** Edizione desktop offline: nasconde la scansione OCR scontrino (usa Mindee, online). */
+  readonly offline = environment.offline;
   @ViewChild(MatSort)      sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
