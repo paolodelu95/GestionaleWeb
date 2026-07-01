@@ -78,6 +78,10 @@ pub fn api_router() -> Router<AppState> {
         // in cui compaiono: mostra lo storico prezzi nel form documento. Parità con la
         // route Node /api/prezzi-recenti (mancava nel backend desktop → niente storico).
         .route("/prezzi-recenti", get(prezzi_recenti))
+        // Ricerca globale della topbar (clienti, fornitori, prodotti e documenti):
+        // parità con la route Node /api/search. Mancava nel backend desktop → la
+        // barra di ricerca in alto non restituiva nulla.
+        .route("/search", get(search))
         // Anagrafiche (Fase 1)
         .nest("/azienda", azienda::routes())
         .nest("/clienti", clienti::routes())
@@ -254,4 +258,108 @@ async fn prezzi_recenti(
     let take: usize = if cid.is_some() { 5 } else { 15 };
     let out: Vec<Value> = rows.into_iter().take(take).map(|(_, v)| v).collect();
     Ok(Json(Value::Array(out)))
+}
+
+#[derive(serde::Deserialize)]
+struct SearchQuery {
+    q: Option<String>,
+}
+
+/// GET /api/search?q=.. — ricerca globale della topbar su clienti, fornitori, prodotti,
+/// fatture, DDT, ordini e preventivi (max 5 per categoria). Ogni risultato è
+/// { id, label, tipo, route }. Parità con la route Node /api/search.
+async fn search(
+    State(state): State<AppState>,
+    Query(sq): Query<SearchQuery>,
+) -> ApiResult<Json<Value>> {
+    let q = sq.q.unwrap_or_default();
+    let q = q.trim();
+    if q.chars().count() < 2 {
+        return Ok(Json(json!({
+            "clienti": [], "fornitori": [], "prodotti": [],
+            "fatture": [], "ddt": [], "ordini": [], "preventivi": []
+        })));
+    }
+    let like = format!("%{q}%");
+
+    let conn = tenant_conn(&state)?;
+    let conn = conn.lock().unwrap();
+
+    // Esegue una query "SELECT id, label ..." (bind unico ?1 = like) e la trasforma
+    // nell'oggetto che si aspetta la palette: { id, label, tipo, route }.
+    let run = |sql: &str, tipo: &str, route: &str| -> ApiResult<Vec<Value>> {
+        let mut stmt = conn.prepare(sql)?;
+        let mapped = stmt.query_map([like.as_str()], |row| {
+            let id: i64 = row.get(0)?;
+            let label: Option<String> = row.get(1)?;
+            Ok(json!({
+                "id": id,
+                "label": label.unwrap_or_default(),
+                "tipo": tipo,
+                "route": route,
+            }))
+        })?;
+        let mut out = Vec::new();
+        for r in mapped {
+            out.push(r?);
+        }
+        Ok(out)
+    };
+
+    let clienti = run(
+        "SELECT id, ragione_sociale FROM clienti \
+         WHERE ragione_sociale LIKE ?1 OR p_iva LIKE ?1 OR codice_fiscale LIKE ?1 LIMIT 5",
+        "cliente",
+        "/clienti",
+    )?;
+    let fornitori = run(
+        "SELECT id, ragione_sociale FROM fornitori \
+         WHERE ragione_sociale LIKE ?1 OR p_iva LIKE ?1 LIMIT 5",
+        "fornitore",
+        "/fornitori",
+    )?;
+    let prodotti = run(
+        "SELECT id, nome FROM prodotti \
+         WHERE nome LIKE ?1 OR codice LIKE ?1 OR barcode LIKE ?1 LIMIT 5",
+        "prodotto",
+        "/prodotti",
+    )?;
+    let fatture = run(
+        "SELECT f.id, f.numero || COALESCE(' – ' || c.ragione_sociale, '') \
+         FROM fatture f LEFT JOIN clienti c ON f.cliente_id=c.id \
+         WHERE f.numero LIKE ?1 OR c.ragione_sociale LIKE ?1 LIMIT 5",
+        "fattura",
+        "/fatture",
+    )?;
+    let ddt = run(
+        "SELECT d.id, d.numero || COALESCE(' – ' || c.ragione_sociale, '') \
+         FROM ddt d LEFT JOIN clienti c ON d.cliente_id=c.id \
+         WHERE d.numero LIKE ?1 OR c.ragione_sociale LIKE ?1 LIMIT 5",
+        "ddt",
+        "/ddt",
+    )?;
+    let ordini = run(
+        "SELECT o.id, o.numero || COALESCE(' – ' || c.ragione_sociale, '') \
+         FROM ordini o LEFT JOIN clienti c ON o.cliente_id=c.id \
+         WHERE o.numero LIKE ?1 OR c.ragione_sociale LIKE ?1 LIMIT 5",
+        "ordine",
+        "/ordini",
+    )?;
+    let preventivi = run(
+        "SELECT p.id, p.numero || COALESCE(' – ' || c.ragione_sociale, '') \
+         FROM preventivi p LEFT JOIN clienti c ON p.cliente_id=c.id \
+         WHERE p.numero LIKE ?1 OR c.ragione_sociale LIKE ?1 LIMIT 5",
+        "preventivo",
+        "/preventivi",
+    )?;
+
+    Ok(Json(json!({
+        "clienti": clienti,
+        "fornitori": fornitori,
+        "prodotti": prodotti,
+        "fatture": fatture,
+        "ddt": ddt,
+        "ordini": ordini,
+        "preventivi": preventivi,
+    })))
 }
