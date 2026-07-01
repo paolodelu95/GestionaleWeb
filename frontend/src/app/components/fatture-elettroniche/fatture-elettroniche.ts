@@ -7,7 +7,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DataService } from '../../services/data.service';
@@ -44,7 +43,7 @@ const STATI: StatoMeta[] = [
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatButtonModule, MatIconModule, MatFormFieldModule,
-    MatInputModule, MatSelectModule, MatMenuModule, MatTooltipModule, MatSnackBarModule,
+    MatInputModule, MatSelectModule, MatTooltipModule, MatSnackBarModule,
   ],
   template: `
     <div class="page">
@@ -98,7 +97,7 @@ const STATI: StatoMeta[] = [
           <div class="fe-list">
             <div class="fe-row fe-head">
               <span>Numero</span><span>Cliente</span><span class="r">Importo</span>
-              <span>Invio SDI</span><span>Stato</span><span></span>
+              <span>Invio SDI</span><span>Stato</span>
             </div>
             @for (f of filtered; track f.id) {
               <div class="fe-row">
@@ -118,18 +117,6 @@ const STATI: StatoMeta[] = [
                     <mat-icon>{{ metaOf(f.statoSdi).icon }}</mat-icon>{{ metaOf(f.statoSdi).label }}
                   </span>
                 </div>
-                <div class="fe-act">
-                  <button mat-stroked-button type="button" [matMenuTriggerFor]="stm" matTooltip="Aggiorna stato notifica SDI">
-                    <mat-icon>edit_note</mat-icon> Stato
-                  </button>
-                  <mat-menu #stm="matMenu">
-                    @for (s of stati; track s.key) {
-                      <button mat-menu-item type="button" (click)="setStato(f, s.key)">
-                        <mat-icon [ngClass]="s.cls + '-fg'">{{ s.icon }}</mat-icon> {{ s.label }}
-                      </button>
-                    }
-                  </mat-menu>
-                </div>
               </div>
             }
           </div>
@@ -138,10 +125,8 @@ const STATI: StatoMeta[] = [
 
       <p class="foot-note">
         <mat-icon>info_outline</mat-icon>
-        Lo stato viene impostato automaticamente a <b>Inviata</b> al momento dell'invio allo SDI.
-        Gli esiti successivi (consegnata, scartata, accettata, rifiutata…) possono essere aggiornati
-        manualmente da <b>Stato</b> in base alle ricevute del tuo intermediario, oppure
-        automaticamente quando è attivo il polling del provider.
+        Lo stato di ogni fattura è quello notificato dallo SDI: viene aggiornato automaticamente
+        (inviata, consegnata, scartata, accettata, rifiutata…) e non è modificabile a mano.
       </p>
     </div>
   `,
@@ -158,7 +143,7 @@ const STATI: StatoMeta[] = [
     .empty { text-align: center; padding: 32px 16px; color: var(--text-tertiary, #94a3b8); }
     .empty mat-icon { font-size: 40px; width: 40px; height: 40px; opacity: .5; }
     .fe-list { display: flex; flex-direction: column; }
-    .fe-row { display: grid; grid-template-columns: 1.4fr 1.6fr 1fr 1.3fr 1.2fr auto; gap: 12px; align-items: center; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle, #eef0f4); }
+    .fe-row { display: grid; grid-template-columns: 1.4fr 1.6fr 1fr 1.3fr 1.2fr; gap: 12px; align-items: center; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle, #eef0f4); }
     .fe-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-tertiary, #94a3b8); padding: 6px 8px; }
     .fe-head .r, .fe-tot.r { text-align: right; }
     .fe-num b { font-size: 14px; } .fe-date { display: block; font-size: 12px; color: var(--text-tertiary, #94a3b8); }
@@ -252,16 +237,4 @@ export class FattureElettronicheComponent implements OnInit {
   }
 
   resetFiltri() { this.search = ''; this.filtroAnno = null; this.filtroStato = null; this.applyFilters(); }
-
-  setStato(f: FatturaSdi, key: string) {
-    this.ds.updateStatoSdi(f.id, { statoSdi: key }).subscribe({
-      next: () => {
-        f.statoSdi = key === 'NON_INVIATA' ? '' : key;
-        if (key !== 'NON_INVIATA' && !f.dataInvioSdi) f.dataInvioSdi = new Date().toISOString().slice(0, 10);
-        this.applyFilters();
-        this.snack.open(`Stato aggiornato: ${this.metaOf(key).label}`, '', { duration: 2500, panelClass: 'snack-ok' });
-      },
-      error: e => this.snack.open(e.error?.error || 'Errore aggiornamento stato', 'OK', { duration: 3500, panelClass: 'snack-error' }),
-    });
-  }
 }

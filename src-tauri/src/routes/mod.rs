@@ -56,7 +56,7 @@ mod unita_misura;
 mod utenti;
 mod vendite_banco;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde_json::{json, Value};
@@ -74,6 +74,10 @@ pub fn api_router() -> Router<AppState> {
         // /api/next-number/:tipo): prossimo numero libero, gap-filling, con
         // prefissi e numerazione annuale presi dalle impostazioni azienda.
         .route("/next-number/:tipo", get(next_number))
+        // Prezzi già applicati a un prodotto (per cliente e in generale) con il documento
+        // in cui compaiono: mostra lo storico prezzi nel form documento. Parità con la
+        // route Node /api/prezzi-recenti (mancava nel backend desktop → niente storico).
+        .route("/prezzi-recenti", get(prezzi_recenti))
         // Anagrafiche (Fase 1)
         .nest("/azienda", azienda::routes())
         .nest("/clienti", clienti::routes())
@@ -164,4 +168,90 @@ async fn next_number(
     let conn = conn.lock().unwrap();
     let numero = get_next_numero(&conn, prefix_key, table, 0)?;
     Ok(Json(json!({ "numero": numero })))
+}
+
+#[derive(serde::Deserialize)]
+struct PrezziRecentiQuery {
+    #[serde(rename = "prodottoId")]
+    prodotto_id: Option<i64>,
+    #[serde(rename = "clienteId")]
+    cliente_id: Option<i64>,
+}
+
+/// GET /api/prezzi-recenti?prodottoId=..&clienteId=.. — prezzi già applicati a un
+/// prodotto in fatture, DDT e preventivi, con cliente e numero documento. Con
+/// clienteId filtra su quel cliente (max 5 recenti), senza restituisce lo storico
+/// generale su tutti i clienti (max 15). Parità con la route Node omonima.
+async fn prezzi_recenti(
+    State(state): State<AppState>,
+    Query(q): Query<PrezziRecentiQuery>,
+) -> ApiResult<Json<Value>> {
+    let pid = match q.prodotto_id {
+        Some(p) if p > 0 => p,
+        _ => return Ok(Json(Value::Array(vec![]))),
+    };
+    let cid = q.cliente_id;
+    let limit: i64 = if cid.is_some() { 5 } else { 10 };
+
+    let conn = tenant_conn(&state)?;
+    let conn = conn.lock().unwrap();
+
+    // (righe, colonna FK verso il documento, documento, etichetta tipo)
+    let sources = [
+        ("fatture_righe", "fattura_id", "fatture", "Fattura"),
+        ("ddt_righe", "ddt_id", "ddt", "DDT"),
+        ("preventivi_righe", "preventivo_id", "preventivi", "Preventivo"),
+    ];
+
+    let mut rows: Vec<(String, Value)> = Vec::new();
+    for (righe, fk, doc, tipo) in sources {
+        let filtro_cliente = if cid.is_some() { " AND d.cliente_id=?" } else { "" };
+        let sql = format!(
+            "SELECT r.prezzo, r.sconto, r.quantita, d.numero, d.data_emissione, \
+                    d.cliente_id, c.ragione_sociale \
+             FROM {righe} r JOIN {doc} d ON r.{fk}=d.id \
+             LEFT JOIN clienti c ON c.id=d.cliente_id \
+             WHERE r.prodotto_id=?{filtro_cliente} \
+             ORDER BY d.data_emissione DESC LIMIT ?"
+        );
+        let mut binds: Vec<i64> = vec![pid];
+        if let Some(c) = cid {
+            binds.push(c);
+        }
+        binds.push(limit);
+
+        let mut stmt = conn.prepare(&sql)?;
+        let mapped = stmt.query_map(rusqlite::params_from_iter(binds), |row| {
+            let prezzo: f64 = row.get::<_, Option<f64>>(0)?.unwrap_or(0.0);
+            let sconto: f64 = row.get::<_, Option<f64>>(1)?.unwrap_or(0.0);
+            let quantita: Option<f64> = row.get(2)?;
+            let numero: Option<String> = row.get(3)?;
+            let data: Option<String> = row.get(4)?;
+            let cliente_id: Option<i64> = row.get(5)?;
+            let cliente_nome: Option<String> = row.get(6)?;
+            let key = data.clone().unwrap_or_default();
+            let eff = ((prezzo * (1.0 - sconto / 100.0)) * 10000.0).round() / 10000.0;
+            let v = json!({
+                "prezzo": prezzo,
+                "sconto": sconto,
+                "prezzoEffettivo": eff,
+                "quantita": quantita,
+                "numero": numero,
+                "dataEmissione": data,
+                "tipo": tipo,
+                "clienteId": cliente_id,
+                "clienteNome": cliente_nome,
+            });
+            Ok((key, v))
+        })?;
+        for r in mapped {
+            rows.push(r?);
+        }
+    }
+
+    // Più recenti prima (per data documento), poi taglio come la route Node.
+    rows.sort_by(|a, b| b.0.cmp(&a.0));
+    let take: usize = if cid.is_some() { 5 } else { 15 };
+    let out: Vec<Value> = rows.into_iter().take(take).map(|(_, v)| v).collect();
+    Ok(Json(Value::Array(out)))
 }

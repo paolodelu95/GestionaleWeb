@@ -7,6 +7,7 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ModuliService } from '../../services/moduli.service';
 import { DataService } from '../../services/data.service';
+import { environment } from '../../../environments/environment';
 import { OnboardingChecklistComponent } from '../shared/onboarding-checklist';
 import { WelcomeOfflineComponent } from '../shared/welcome-offline';
 import { ScadenzarioEntry, Ddt, Prodotto, Preventivo } from '../../models';
@@ -367,8 +368,10 @@ export class HomeAppComponent implements OnInit {
   ];
 
   constructor(auth: AuthService, private moduli: ModuliService, private ds: DataService) {
+    // Edizione desktop offline: l'utente è sempre il placeholder "Utente locale",
+    // quindi il saluto resta neutro ("Buongiorno"). Sul web (multi-tenant) usa il nome.
     const u = auth.getUser();
-    this.userName = u?.nome || u?.username || '';
+    this.userName = environment.offline ? '' : (u?.nome || u?.username || '');
     const h = new Date().getHours();
     this.greeting = h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
   }
