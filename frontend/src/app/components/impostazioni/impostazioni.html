@@ -756,6 +756,24 @@
                 <input matInput formControlName="prefissoArriviMerce" maxlength="6" placeholder="es. AM"></mat-form-field>
             </div>
           </form>
+
+          <div style="margin-top:8px;padding-top:14px;border-top:1px solid #e2e8f0">
+            <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px">
+              Anteprima prossimo numero
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 16px">
+              @for (t of numeriPreviewTipi; track t.tipo) {
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px">
+                  <span style="color:#64748b">{{ t.label }}</span>
+                  <b style="font-variant-numeric:tabular-nums;color:#0f172a">{{ nextNumeri[t.tipo] || '…' }}</b>
+                </div>
+              }
+            </div>
+            <p style="color:#94a3b8;font-size:12px;margin:10px 0 0">
+              In base alle impostazioni salvate. Salva per aggiornare l'anteprima con i nuovi prefissi.
+            </p>
+          </div>
+
           <div style="display:flex;justify-content:flex-end;padding:8px 0 0">
             <button mat-flat-button type="button" (click)="save()"><mat-icon>save</mat-icon> Salva</button>
           </div>

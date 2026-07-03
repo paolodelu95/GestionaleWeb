@@ -447,6 +447,21 @@ export class ImpostazioniComponent implements OnInit {
   /** Sezione attiva del menu laterale delle impostazioni. */
   sezione = 'azienda';
 
+  /** Anteprima del prossimo numero per ciascun tipo di documento (sezione Avanzate).
+   *  Riflette le impostazioni SALVATE (prefisso + numerazione annuale); si aggiorna
+   *  dopo il salvataggio. */
+  nextNumeri: Record<string, string> = {};
+  readonly numeriPreviewTipi: { tipo: string; label: string }[] = [
+    { tipo: 'fatture', label: 'Fatture' },
+    { tipo: 'ddt', label: 'Doc. di trasporto' },
+    { tipo: 'ordini', label: 'Ordini' },
+    { tipo: 'preventivi', label: 'Preventivi' },
+    { tipo: 'note-credito', label: 'Note di credito' },
+    { tipo: 'acquisti', label: 'Acquisti' },
+    { tipo: 'vendite-banco', label: 'Vendita al banco' },
+    { tipo: 'arrivi-merce', label: 'Arrivi merce' },
+  ];
+
   /**
    * Voci del menu laterale, raggruppate per area. La visibilità delle voci che
    * dipendono dall'edizione/ruolo è filtrata qui, così il menu mostra solo ciò
@@ -610,6 +625,7 @@ export class ImpostazioniComponent implements OnInit {
   ngOnInit() {
     if (this.offline) this.loadBackupConfig();
     if (this.offline && this.isDesktop) this.loadSistemaPercorsi();
+    this.loadNextNumeri();
     this.ds.getAzienda().subscribe(a => {
       if (a) {
         this.form.patchValue(a);
@@ -781,10 +797,21 @@ export class ImpostazioniComponent implements OnInit {
         };
         this.ds.invalidateEmailMode();
         this.docLockSvc.setEnabled(v.lockDocumentiDefault !== false);
+        this.loadNextNumeri();   // prefissi/annuale cambiati → aggiorna l'anteprima
         this.snack.open('Dati salvati', '', { duration: 2000 });
       },
       error: e => this.snack.open(e.message, '', { duration: 3000 }),
     });
+  }
+
+  /** Carica l'anteprima del prossimo numero per ogni tipo di documento. */
+  loadNextNumeri() {
+    for (const { tipo } of this.numeriPreviewTipi) {
+      this.ds.getNextNumero(tipo).subscribe({
+        next: r => { this.nextNumeri[tipo] = String((r as any).numero ?? ''); },
+        error: () => {},
+      });
+    }
   }
 
   saveNotificheConfig() {
