@@ -3,7 +3,7 @@
     <h1 class="page-title">Clienti</h1>
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo cliente</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+    <span class="header-overflow-item"><app-export-menu [data]="dataSource.data" [columns]="exportCols" filename="clienti" title="Clienti"></app-export-menu></span>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     <input #importInput type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden-input" (change)="importExcel($event)">
     <span class="header-overflow-item"><app-column-picker storageKey="clienti" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
@@ -13,7 +13,9 @@
     </button>
     <mat-menu #overflowMenuClienti="matMenu">
       <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.export(dataSource.data, exportCols, 'clienti')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(dataSource.data, exportCols, 'clienti')"><mat-icon>description</mat-icon> Esporta CSV</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(dataSource.data, exportCols, 'clienti', 'Clienti')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
       <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     </mat-menu>
   </div>

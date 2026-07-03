@@ -2,7 +2,7 @@
   <div class="page-header">
     <h1 class="page-title">Fornitori</h1>
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo fornitore</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+    <span class="header-overflow-item"><app-export-menu [data]="dataSource.data" [columns]="exportCols" filename="fornitori" title="Fornitori"></app-export-menu></span>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     <input #importInput type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden-input" (change)="importExcel($event)">
     <span class="header-overflow-item"><app-column-picker storageKey="fornitori" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
@@ -11,7 +11,9 @@
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuFornitori="matMenu">
-      <button mat-menu-item type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.export(dataSource.data, exportCols, 'fornitori')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(dataSource.data, exportCols, 'fornitori')"><mat-icon>description</mat-icon> Esporta CSV</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(dataSource.data, exportCols, 'fornitori', 'Fornitori')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
       <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
     </mat-menu>
   </div>

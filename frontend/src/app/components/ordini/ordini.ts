@@ -22,7 +22,8 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { ExcelService } from '../../services/excel.service';
+import { ExcelService, ExcelColumn } from '../../services/excel.service';
+import { ExportMenuComponent } from '../shared/export-menu';
 import { Ordine, Cliente, Fornitore, Prodotto, RigaDocumento, UnitaMisura, NotaRapida } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
@@ -691,7 +692,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
             MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent,
-            TableKeyboardNavDirective],
+            TableKeyboardNavDirective, ExportMenuComponent],
   templateUrl: './ordini.html',
   styleUrl: './ordini.scss'
 })
@@ -716,7 +717,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService, private viewState: ViewStateService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, public excel: ExcelService, private viewState: ViewStateService) {}
 
   ngOnInit() {
     // Ripristino filtri/ordinamento salvati (prima di qualunque prefill, che deve poter prevalere).
@@ -821,16 +822,15 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
-  esporta() {
-    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
-    this.excel.export(rows, [
-      { header: 'Numero',  field: 'numero',      width: 14 },
-      { header: 'Data',    field: 'dataOrdine',  width: 14 },
-      { header: 'Cliente', field: 'clienteNome', width: 30 },
-      { header: 'Importo', field: 'totale',      width: 14 },
-      { header: 'Stato',   field: 'stato',       width: 16 },
-    ], 'ordini');
-  }
+  readonly exportCols: ExcelColumn<any>[] = [
+    { header: 'Numero',  field: 'numero',      width: 14 },
+    { header: 'Data',    field: 'dataOrdine',  width: 14 },
+    { header: 'Cliente', field: 'clienteNome', width: 30 },
+    { header: 'Importo', field: 'totale',      width: 14 },
+    { header: 'Stato',   field: 'stato',       width: 16 },
+  ];
+  /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
+  get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
 
   get totaleLista(): number {
     return this.dataSource.data.reduce((s, r) => s + (Number((r as any).totale) || 0), 0);

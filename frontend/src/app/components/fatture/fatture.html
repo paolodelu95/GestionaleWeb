@@ -12,7 +12,7 @@
     }
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuova fattura</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> Genera da documenti di trasporto</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="fatture" title="Fatture"></app-export-menu></span>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
 
     <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFatt" title="Altre azioni">
@@ -20,7 +20,9 @@
     </button>
     <mat-menu #overflowMenuFatt="matMenu">
       <button mat-menu-item type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> Genera da documenti di trasporto</button>
-      <button mat-menu-item type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'fatture')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'fatture')"><mat-icon>description</mat-icon> Esporta CSV</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'fatture', 'Fatture')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
       <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
     </mat-menu>
   </div>

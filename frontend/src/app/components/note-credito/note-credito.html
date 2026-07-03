@@ -12,14 +12,16 @@
     }
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuova nota di credito</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="note-credito" title="Note di credito"></app-export-menu></span>
 
     <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuNc" title="Altre azioni">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuNc="matMenu">
       <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'note-credito')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'note-credito')"><mat-icon>description</mat-icon> Esporta CSV</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'note-credito', 'Note di credito')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
     </mat-menu>
   </div>
 

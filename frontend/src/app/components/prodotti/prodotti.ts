@@ -23,7 +23,8 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { DataService } from '../../services/data.service';
-import { ExcelService } from '../../services/excel.service';
+import { ExcelService, ExcelColumn } from '../../services/excel.service';
+import { ExportMenuComponent } from '../shared/export-menu';
 import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva, Fornitore, ProdottoFornitore, CodiceAlias } from '../../models';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared/import-mapping-dialog';
@@ -766,7 +767,7 @@ export class RettificaGiacenzaDialogComponent {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
-            MatCheckboxModule, MatButtonToggleModule, ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective],
+            MatCheckboxModule, MatButtonToggleModule, ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective, ExportMenuComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
@@ -829,7 +830,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, public excel: ExcelService) {}
 
   @HostListener('window:keydown', ['$event'])
   onWindowKeydown(e: KeyboardEvent) {
@@ -1049,22 +1050,20 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     this.dialog.open(InfoDialogComponent, { data, width: '520px', maxWidth: '95vw' });
   }
 
-  exportExcel() {
-    this.excel.export(this.dataSource.data, [
-      { header: 'Nome',             field: 'nome',            width: 30 },
-      { header: 'Categoria',        field: 'categoria',       width: 18 },
-      { header: 'Descrizione',      field: 'descrizione',     width: 32 },
-      { header: 'Codice',           field: 'codice',          width: 14 },
-      { header: 'Codice Fornitore', field: 'codiceFornitore', width: 16 },
-      { header: 'Barcode',          field: 'barcode',         width: 16 },
-      { header: 'Prezzo vendita',   field: 'prezzo',          width: 12 },
-      { header: 'Prezzo acquisto', field: 'prezzoAcquisto',  width: 14 },
-      { header: 'IVA',              field: 'iva',             width: 8  },
-      { header: 'Quantità',         field: 'quantita',        width: 10 },
-      { header: 'Soglia Minima',    field: 'sogliaMinima',    width: 12 },
-      { header: 'Unità Misura',     field: 'unitaMisura',     width: 12 },
-    ], 'prodotti');
-  }
+  readonly exportCols: ExcelColumn<any>[] = [
+    { header: 'Nome',             field: 'nome',            width: 30 },
+    { header: 'Categoria',        field: 'categoria',       width: 18 },
+    { header: 'Descrizione',      field: 'descrizione',     width: 32 },
+    { header: 'Codice',           field: 'codice',          width: 14 },
+    { header: 'Codice Fornitore', field: 'codiceFornitore', width: 16 },
+    { header: 'Barcode',          field: 'barcode',         width: 16 },
+    { header: 'Prezzo vendita',   field: 'prezzo',          width: 12 },
+    { header: 'Prezzo acquisto', field: 'prezzoAcquisto',  width: 14 },
+    { header: 'IVA',              field: 'iva',             width: 8  },
+    { header: 'Quantità',         field: 'quantita',        width: 10 },
+    { header: 'Soglia Minima',    field: 'sogliaMinima',    width: 12 },
+    { header: 'Unità Misura',     field: 'unitaMisura',     width: 12 },
+  ];
 
   importExcel(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];

@@ -12,14 +12,16 @@
     }
     <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo documento di trasporto</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="ddt" title="Documenti di trasporto"></app-export-menu></span>
 
     <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuDdt" title="Altre azioni">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuDdt="matMenu">
       <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="esporta()"><mat-icon>download</mat-icon> Esporta</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'ddt')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'ddt')"><mat-icon>description</mat-icon> Esporta CSV</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'ddt', 'Documenti di trasporto')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
     </mat-menu>
   </div>
 

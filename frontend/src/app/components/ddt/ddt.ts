@@ -24,7 +24,8 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
-import { ExcelService } from '../../services/excel.service';
+import { ExcelService, ExcelColumn } from '../../services/excel.service';
+import { ExportMenuComponent } from '../shared/export-menu';
 import { ViewStateService } from '../../services/view-state.service';
 
 import { Ddt, Fattura, Cliente, Fornitore, ClienteIndirizzo, Prodotto, RigaDocumento, UnitaMisura, NotaRapida, NotificheConfig } from '../../models';
@@ -980,7 +981,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent, TableKeyboardNavDirective],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent, TableKeyboardNavDirective, ExportMenuComponent],
   templateUrl: './ddt.html',
   styleUrl: './ddt.scss'
 })
@@ -1014,7 +1015,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   notificheConfig: NotificheConfig = {};
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, private excel: ExcelService, private viewState: ViewStateService) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private printSvc: PrintService, public excel: ExcelService, private viewState: ViewStateService) {}
 
   @HostListener('window:keydown', ['$event'])
   onWindowKeydown(e: KeyboardEvent) {
@@ -1027,16 +1028,15 @@ export class DdtComponent implements OnInit, AfterViewInit {
 
   get totaleLista(): number { return this.dataSource.data.reduce((s, r) => s + (Number((r as any).totale) || 0), 0); }
 
-  esporta() {
-    const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
-    this.excel.export(rows, [
-      { header: 'Numero',  field: 'numero',         width: 14 },
-      { header: 'Data',    field: 'dataEmissione',  width: 14 },
-      { header: 'Cliente / Fornitore', field: 'clienteNome', width: 30 },
-      { header: 'Importo', field: 'totale',         width: 14 },
-      { header: 'Stato',   field: 'stato',          width: 14 },
-    ], 'ddt');
-  }
+  readonly exportCols: ExcelColumn<any>[] = [
+    { header: 'Numero',  field: 'numero',         width: 14 },
+    { header: 'Data',    field: 'dataEmissione',  width: 14 },
+    { header: 'Cliente / Fornitore', field: 'clienteNome', width: 30 },
+    { header: 'Importo', field: 'totale',         width: 14 },
+    { header: 'Stato',   field: 'stato',          width: 14 },
+  ];
+  /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
+  get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
 
   ngOnInit() {
     // Ripristino filtri/ordinamento salvati (prima del prefill, che può sovrascrivere).

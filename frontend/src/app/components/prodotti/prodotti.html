@@ -17,7 +17,7 @@
       <mat-icon>flash_on</mat-icon> Rapido
     </button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+    <span class="header-overflow-item"><app-export-menu [data]="dataSource.data" [columns]="exportCols" filename="prodotti" title="Prodotti"></app-export-menu></span>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa prodotti</button>
     <input #importInput type="file" accept=".xlsx,.xls,.xlsm,.xlsb,.ods,.fods,.csv,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,text/csv,text/tab-separated-values" class="hidden-input" (change)="importExcel($event)">
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> Listino fornitore</button>
@@ -29,7 +29,9 @@
     <mat-menu #overflowMenuProd="matMenu">
       <button mat-menu-item type="button" (click)="quickAdd()"><mat-icon>flash_on</mat-icon> Inserimento rapido</button>
       <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="exportExcel()"><mat-icon>download</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.export(dataSource.data, exportCols, 'prodotti')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(dataSource.data, exportCols, 'prodotti')"><mat-icon>description</mat-icon> Esporta CSV</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(dataSource.data, exportCols, 'prodotti', 'Prodotti')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
       <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa prodotti</button>
       <button mat-menu-item type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> Importa listino fornitore</button>
     </mat-menu>

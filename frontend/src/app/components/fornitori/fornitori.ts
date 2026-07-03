@@ -23,7 +23,8 @@ import { Observable, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
-import { ExcelService } from '../../services/excel.service';
+import { ExcelService, ExcelColumn } from '../../services/excel.service';
+import { ExportMenuComponent } from '../shared/export-menu';
 import { Fornitore } from '../../models';
 import { Router } from '@angular/router';
 import { consumePrefill } from '../../utils/nav-prefill';
@@ -461,7 +462,7 @@ export class FornitoreDialogComponent implements OnInit {
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
             MatTooltipModule, MatMenuModule, ColumnPickerComponent, EmptyStateComponent,
-            TableKeyboardNavDirective],
+            TableKeyboardNavDirective, ExportMenuComponent],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
@@ -486,7 +487,7 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, private excel: ExcelService, private router: Router) {}
+  constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar, public excel: ExcelService, private router: Router) {}
 
   @HostListener('window:keydown', ['$event'])
   onWindowKeydown(e: KeyboardEvent) {
@@ -594,22 +595,20 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     this.dialog.open(InfoDialogComponent, { data, width: '520px', maxWidth: '95vw' });
   }
 
-  exportExcel() {
-    this.excel.export(this.dataSource.data, [
-      { header: 'Ragione Sociale', field: 'ragioneSociale', width: 30 },
-      { header: 'Email',           field: 'email',          width: 28 },
-      { header: 'Telefono',        field: 'telefono',       width: 16 },
-      { header: 'Cellulare',       field: 'cellulare',      width: 16 },
-      { header: 'Via',             field: 'via',            width: 28 },
-      { header: 'CAP',             field: 'cap',            width: 8  },
-      { header: 'Città',           field: 'citta',          width: 18 },
-      { header: 'Provincia',       field: 'provincia',      width: 10 },
-      { header: 'Stato',           field: 'stato',          width: 12 },
-      { header: 'P. IVA',          field: 'pIva',           width: 14 },
-      { header: 'SDI',             field: 'sdi',            width: 10 },
-      { header: 'PEC',             field: 'pec',            width: 28 },
-    ], 'fornitori');
-  }
+  readonly exportCols: ExcelColumn<any>[] = [
+    { header: 'Ragione Sociale', field: 'ragioneSociale', width: 30 },
+    { header: 'Email',           field: 'email',          width: 28 },
+    { header: 'Telefono',        field: 'telefono',       width: 16 },
+    { header: 'Cellulare',       field: 'cellulare',      width: 16 },
+    { header: 'Via',             field: 'via',            width: 28 },
+    { header: 'CAP',             field: 'cap',            width: 8  },
+    { header: 'Città',           field: 'citta',          width: 18 },
+    { header: 'Provincia',       field: 'provincia',      width: 10 },
+    { header: 'Stato',           field: 'stato',          width: 12 },
+    { header: 'P. IVA',          field: 'pIva',           width: 14 },
+    { header: 'SDI',             field: 'sdi',            width: 10 },
+    { header: 'PEC',             field: 'pec',            width: 28 },
+  ];
 
   importExcel(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
