@@ -23,7 +23,8 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { PrintService } from '../../services/print.service';
@@ -678,6 +679,19 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     forkJoin(ids.map(id => this.ds.setAcquistoStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
       error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
+
+  async bulkElimina() {
+    const sel = this.selection.selected;
+    if (!sel.length) return;
+    const n = sel.length;
+    if (!await this.confirm.delete(`Eliminare ${n} acquist${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`)) return;
+    forkJoin(sel.map(a => this.ds.deleteAcquisto(a.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+      const errori = results.filter((r: any) => r && r.__error).length;
+      this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} acquisti eliminati`, '', { duration: 4000 });
+      this.selection.clear();
+      this.load();
     });
   }
 

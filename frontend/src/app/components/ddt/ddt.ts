@@ -21,7 +21,8 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatTabsModule } from '@angular/material/tabs';
 import { SelectionModel } from '@angular/cdk/collections';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { ExcelService, ExcelColumn } from '../../services/excel.service';
@@ -1140,6 +1141,19 @@ export class DdtComponent implements OnInit, AfterViewInit {
     forkJoin(ids.map(id => this.ds.setDdtStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
       error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
+
+  async bulkElimina() {
+    const sel = this.selection.selected;
+    if (!sel.length) return;
+    const n = sel.length;
+    if (!await this.confirm.delete(`Eliminare ${n} document${n === 1 ? 'o' : 'i'} di trasporto selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`)) return;
+    forkJoin(sel.map(d => this.ds.deleteDdt(d.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+      const errori = results.filter((r: any) => r && r.__error).length;
+      this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} documenti eliminati`, '', { duration: 4000 });
+      this.selection.clear();
+      this.load();
     });
   }
 

@@ -851,6 +851,19 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     });
   }
 
+  async bulkElimina() {
+    const sel = this.selection.selected;
+    if (!sel.length) return;
+    const n = sel.length;
+    if (!await this.confirm.delete(`Eliminare ${n} ordin${n === 1 ? 'e' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`)) return;
+    forkJoin(sel.map(o => this.ds.deleteOrdine(o.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+      const errori = results.filter((r: any) => r && r.__error).length;
+      this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} ordini eliminati`, '', { duration: 4000 });
+      this.selection.clear();
+      this.load();
+    });
+  }
+
   open(o?: Ordine) {
     const numeriEsistenti = this.allOrdini.filter(x => x.id !== o?.id).map(x => x.numero);
     const ref = this.dialog.open(OrdineDialogComponent, {

@@ -865,6 +865,19 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     });
   }
 
+  async bulkElimina() {
+    const sel = this.selection.selected;
+    if (!sel.length) return;
+    const n = sel.length;
+    if (!await this.confirm.delete(`Eliminare ${n} preventiv${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`)) return;
+    forkJoin(sel.map(p => this.ds.deletePreventivo(p.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+      const errori = results.filter((r: any) => r && r.__error).length;
+      this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} preventivi eliminati`, '', { duration: 4000 });
+      this.selection.clear();
+      this.load();
+    });
+  }
+
   open(p?: Preventivo) {
     const numeriEsistenti = this.allPreventivi.filter(x => x.id !== p?.id).map(x => x.numero);
     const ref = this.dialog.open(PreventivoDialogComponent, {

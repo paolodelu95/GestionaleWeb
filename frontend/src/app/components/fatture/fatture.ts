@@ -1723,6 +1723,21 @@ export class FattureComponent implements OnInit, AfterViewInit {
     });
   }
 
+  async bulkElimina() {
+    const sel = this.selection.selected;
+    if (!sel.length || this.busy) return;
+    const n = sel.length;
+    if (!await this.confirm.delete(`Eliminare ${n} fattur${n === 1 ? 'a' : 'e'} selezionat${n === 1 ? 'a' : 'e'}? L'operazione non è reversibile.`)) return;
+    this.busy = true;
+    forkJoin(sel.map(f => this.ds.deleteFattura(f.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+      this.busy = false;
+      const errori = results.filter((r: any) => r && r.__error).length;
+      this.snack.open(errori ? `${n - errori} eliminate, ${errori} non eliminabili` : `${n} fatture eliminate`, '', { duration: 4000 });
+      this.selection.clear();
+      this.load();
+    });
+  }
+
   openGeneraDaDdt() {
     const ref = this.dialog.open(GeneraFattureDaDdtDialogComponent, {
       width: '700px', maxWidth: '98vw', maxHeight: '92vh'

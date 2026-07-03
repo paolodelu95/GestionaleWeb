@@ -7,6 +7,9 @@
         <button mat-stroked-button type="button" (click)="bulkSetStato('PAGATA')" [disabled]="busy">
           <mat-icon>payments</mat-icon> Segna Pagata
         </button>
+        <button mat-stroked-button type="button" color="warn" (click)="bulkElimina()" [disabled]="busy">
+          <mat-icon>delete</mat-icon> Elimina
+        </button>
         <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
       </div>
     }

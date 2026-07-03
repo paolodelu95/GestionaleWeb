@@ -38,7 +38,8 @@ import { DocLockService } from '../../services/doc-lock.service';
 import { ViewStateService } from '../../services/view-state.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { DocumentDirtyService } from '../../services/document-dirty.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-nc-dialog',
@@ -797,6 +798,19 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     forkJoin(ids.map(id => this.ds.setNotaCreditoStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
       error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+    });
+  }
+
+  async bulkElimina() {
+    const sel = this.selection.selected;
+    if (!sel.length) return;
+    const n = sel.length;
+    if (!await this.confirm.delete(`Eliminare ${n} not${n === 1 ? 'a' : 'e'} di credito selezionat${n === 1 ? 'a' : 'e'}? L'operazione non è reversibile.`)) return;
+    forkJoin(sel.map(x => this.ds.deleteNotaCredito(x.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+      const errori = results.filter((r: any) => r && r.__error).length;
+      this.snack.open(errori ? `${n - errori} eliminate, ${errori} non eliminabili` : `${n} note di credito eliminate`, '', { duration: 4000 });
+      this.selection.clear();
+      this.load();
     });
   }
 
