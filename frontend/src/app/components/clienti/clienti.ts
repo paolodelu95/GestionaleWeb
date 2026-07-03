@@ -27,6 +27,7 @@ import { DataService } from '../../services/data.service';
 import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService, ExcelColumn } from '../../services/excel.service';
 import { ExportMenuComponent } from '../shared/export-menu';
+import { SchedaClienteDialogComponent } from './scheda-cliente-dialog';
 import { Cliente, ClienteIndirizzo, TipoPagamento, Listino, AliquotaIva } from '../../models';
 import { Router } from '@angular/router';
 import { consumePrefill } from '../../utils/nav-prefill';
@@ -950,6 +951,11 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     } else {
       this.dialog.open(InfoDialogComponent, { data: baseData, width: '520px', maxWidth: '95vw' });
     }
+  }
+
+  /** Apre la scheda riassuntiva del cliente (dati, fatturato, da incassare, top prodotti). */
+  apriScheda(c: Cliente) {
+    this.dialog.open(SchedaClienteDialogComponent, { data: c, width: '660px', maxWidth: '96vw', autoFocus: false });
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
