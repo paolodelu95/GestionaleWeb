@@ -27,6 +27,7 @@ import { LayoutService } from './services/layout.service';
 import { WindowTitleService } from './services/window-title.service';
 import { NativeMenuService } from './services/native-menu.service';
 import { DesktopService } from './services/desktop.service';
+import { ShortcutsDialogComponent } from './components/shared/shortcuts-dialog';
 import { LoginComponent } from './components/login/login';
 import { CookieConsentComponent } from './components/shared/cookie-consent';
 import { LockScreenComponent } from './components/shared/lock-screen';
@@ -453,6 +454,15 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       this.searchQuery = '';
       this.searchResults = [];
       this.smartItem = null;
+    }
+    // "?" apre il cheat-sheet delle scorciatoie, ma non mentre si scrive in un campo.
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      if (!typing && this.dialog.openDialogs.length === 0) {
+        e.preventDefault();
+        this.dialog.open(ShortcutsDialogComponent, { width: '440px', autoFocus: false });
+      }
     }
   }
 
