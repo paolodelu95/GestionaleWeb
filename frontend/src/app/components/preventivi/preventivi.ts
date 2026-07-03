@@ -869,12 +869,19 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} preventiv${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`)) return;
-    forkJoin(sel.map(p => this.ds.deletePreventivo(p.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
-      const errori = results.filter((r: any) => r && r.__error).length;
-      this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} preventivi eliminati`, '', { duration: 4000 });
-      this.selection.clear();
-      this.load();
+    if (!await this.confirm.delete(`Eliminare ${n} preventiv${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}?`)) return;
+    forkJoin(sel.map(p => this.ds.getPreventivoById(p.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
+      const backups = fulls.filter(Boolean);
+      forkJoin(sel.map(p => this.ds.deletePreventivo(p.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+        const errori = results.filter((r: any) => r && r.__error).length;
+        this.selection.clear();
+        this.load();
+        const ref = this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} preventivi eliminati`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createPreventivo(p).pipe(catchError(() => of(null))); }))
+            .subscribe(() => { this.load(); this.snack.open('Preventivi ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+        });
+      });
     });
   }
 

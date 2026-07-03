@@ -913,20 +913,25 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       `Eliminare ${n} prodott${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`
     )) return;
     this.busyBulk = true;
+    const backups = sel.map(p => ({ ...p }));   // righe già complete: ricreabili così com'è
     forkJoin(sel.map(p =>
       this.ds.deleteProdotto(p.id!).pipe(catchError(err => of({ __error: err })))
     )).subscribe(results => {
       this.busyBulk = false;
       const errori = results.filter((r: any) => r && r.__error).length;
+      this.selection.clear();
+      this.load();
       if (errori) {
         this.snack.open(
           `${n - errori} eliminat${n - errori === 1 ? 'o' : 'i'}, ${errori} non eliminabil${errori === 1 ? 'e' : 'i'} (forse usati in documenti)`,
           'OK', { duration: 6000, panelClass: 'snack-error' });
       } else {
-        this.snack.open(`${n} prodott${n === 1 ? 'o eliminato' : 'i eliminati'}`, '', { duration: 3000 });
+        const ref = this.snack.open(`${n} prodott${n === 1 ? 'o eliminato' : 'i eliminati'}`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createProdotto(p).pipe(catchError(() => of(null))); }))
+            .subscribe(() => { this.load(); this.snack.open('Prodotti ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+        });
       }
-      this.selection.clear();
-      this.load();
     });
   }
 

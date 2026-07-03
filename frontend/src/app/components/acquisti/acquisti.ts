@@ -686,12 +686,19 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} acquist${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`)) return;
-    forkJoin(sel.map(a => this.ds.deleteAcquisto(a.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
-      const errori = results.filter((r: any) => r && r.__error).length;
-      this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} acquisti eliminati`, '', { duration: 4000 });
-      this.selection.clear();
-      this.load();
+    if (!await this.confirm.delete(`Eliminare ${n} acquist${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}?`)) return;
+    forkJoin(sel.map(a => this.ds.getAcquistoById(a.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
+      const backups = fulls.filter(Boolean);
+      forkJoin(sel.map(a => this.ds.deleteAcquisto(a.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+        const errori = results.filter((r: any) => r && r.__error).length;
+        this.selection.clear();
+        this.load();
+        const ref = this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} acquisti eliminati`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createAcquisto(p).pipe(catchError(() => of(null))); }))
+            .subscribe(() => { this.load(); this.snack.open('Acquisti ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+        });
+      });
     });
   }
 

@@ -1148,12 +1148,19 @@ export class DdtComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} document${n === 1 ? 'o' : 'i'} di trasporto selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`)) return;
-    forkJoin(sel.map(d => this.ds.deleteDdt(d.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
-      const errori = results.filter((r: any) => r && r.__error).length;
-      this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} documenti eliminati`, '', { duration: 4000 });
-      this.selection.clear();
-      this.load();
+    if (!await this.confirm.delete(`Eliminare ${n} document${n === 1 ? 'o' : 'i'} di trasporto selezionat${n === 1 ? 'o' : 'i'}?`)) return;
+    forkJoin(sel.map(d => this.ds.getDdtById(d.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
+      const backups = fulls.filter(Boolean);
+      forkJoin(sel.map(d => this.ds.deleteDdt(d.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+        const errori = results.filter((r: any) => r && r.__error).length;
+        this.selection.clear();
+        this.load();
+        const ref = this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} documenti eliminati`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createDdt(p).pipe(catchError(() => of(null))); }))
+            .subscribe(() => { this.load(); this.snack.open('Documenti ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+        });
+      });
     });
   }
 

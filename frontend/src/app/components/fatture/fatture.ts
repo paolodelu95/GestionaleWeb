@@ -1727,14 +1727,22 @@ export class FattureComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length || this.busy) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} fattur${n === 1 ? 'a' : 'e'} selezionat${n === 1 ? 'a' : 'e'}? L'operazione non è reversibile.`)) return;
+    if (!await this.confirm.delete(`Eliminare ${n} fattur${n === 1 ? 'a' : 'e'} selezionat${n === 1 ? 'a' : 'e'}?`)) return;
     this.busy = true;
-    forkJoin(sel.map(f => this.ds.deleteFattura(f.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
-      this.busy = false;
-      const errori = results.filter((r: any) => r && r.__error).length;
-      this.snack.open(errori ? `${n - errori} eliminate, ${errori} non eliminabili` : `${n} fatture eliminate`, '', { duration: 4000 });
-      this.selection.clear();
-      this.load();
+    // Cattura i documenti completi PRIMA di eliminarli, così "ANNULLA" può ricrearli.
+    forkJoin(sel.map(f => this.ds.getFatturaById(f.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
+      const backups = fulls.filter(Boolean);
+      forkJoin(sel.map(f => this.ds.deleteFattura(f.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
+        this.busy = false;
+        const errori = results.filter((r: any) => r && r.__error).length;
+        this.selection.clear();
+        this.load();
+        const ref = this.snack.open(errori ? `${n - errori} eliminate, ${errori} non eliminabili` : `${n} fatture eliminate`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        ref.onAction().subscribe(() => {
+          forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createFattura(p).pipe(catchError(() => of(null))); }))
+            .subscribe(() => { this.load(); this.snack.open('Fatture ripristinate', '', { duration: 2000, panelClass: 'snack-ok' }); });
+        });
+      });
     });
   }
 
