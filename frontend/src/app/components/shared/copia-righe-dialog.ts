@@ -18,6 +18,8 @@ export interface CopiaRigheDialogData {
   clienteNome?: string | null;
   fornitoreId?: number | null;
   fornitoreNome?: string | null;
+  /** Righe del documento in modifica: se presenti, abilita "Salva come kit". */
+  righeCorrenti?: RigaDocumento[];
 }
 
 const TIPI_DOC = [
@@ -58,7 +60,18 @@ interface DocItem {
               {{ t.label }}
             </button>
           }
+          <button type="button" class="tipo-chip"
+                  [class.tipo-chip--active]="selectedTipo === 'kit'"
+                  (click)="changeTipo('kit')">
+            <mat-icon style="font-size:15px;width:15px;height:15px;vertical-align:-3px">widgets</mat-icon> Kit
+          </button>
         </div>
+
+        @if (selectedTipo === 'kit' && (data.righeCorrenti?.length || 0) > 0) {
+          <button mat-stroked-button type="button" (click)="salvaComeKit()" style="margin-bottom:12px">
+            <mat-icon>bookmark_add</mat-icon> Salva le righe correnti come kit
+          </button>
+        }
 
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
           @if (entityIdForTipo != null) {
@@ -94,6 +107,11 @@ interface DocItem {
                     <div class="doc-entity">{{ doc.entityNome }}</div>
                   }
                 </div>
+                @if (selectedTipo === 'kit') {
+                  <button mat-icon-button type="button" (click)="eliminaKit($event, doc.id)" title="Elimina kit">
+                    <mat-icon style="color:#ef4444">delete</mat-icon>
+                  </button>
+                }
                 <mat-icon style="color:#cbd5e1;flex-shrink:0">chevron_right</mat-icon>
               </div>
             }
@@ -244,6 +262,8 @@ export class CopiaRigheDialogComponent implements OnInit {
   loadingRighe = false;
   docRighe: RigaDocumento[] = [];
   selectedRighe: boolean[] = [];
+  /** Righe dei kit caricati (id kit → righe), per non doverle rifetchare. */
+  private kitMap: Record<number, RigaDocumento[]> = {};
 
   constructor(
     private ds: DataService,
@@ -277,6 +297,20 @@ export class CopiaRigheDialogComponent implements OnInit {
     this.loading = true;
     this.documenti = [];
     this.filteredDocs = [];
+
+    if (this.selectedTipo === 'kit') {
+      this.kitMap = {};
+      this.ds.getKit().subscribe({
+        next: kits => {
+          this.documenti = kits.map(k => ({ id: k.id, label: k.nome, entityId: null, entityNome: '' }));
+          for (const k of kits) this.kitMap[k.id] = (k.righe ?? []) as RigaDocumento[];
+          this.filterDocs();
+          this.loading = false;
+        },
+        error: () => { this.loading = false; }
+      });
+      return;
+    }
 
     let obs$: Observable<any[]>;
     switch (this.selectedTipo) {
@@ -341,6 +375,13 @@ export class CopiaRigheDialogComponent implements OnInit {
     this.docRighe = [];
     this.selectedRighe = [];
 
+    if (this.selectedTipo === 'kit') {
+      this.docRighe = (this.kitMap[id] ?? []).filter((r: RigaDocumento) => r.tipo !== 'NOTA');
+      this.selectedRighe = new Array(this.docRighe.length).fill(true);
+      this.loadingRighe = false;
+      return;
+    }
+
     let obs$: Observable<any>;
     switch (this.selectedTipo) {
       case 'fatture':      obs$ = this.ds.getFatturaById(id); break;
@@ -376,6 +417,25 @@ export class CopiaRigheDialogComponent implements OnInit {
       .filter((_, i) => this.selectedRighe[i])
       .map(r => ({ ...r, id: undefined }));
     this.dialogRef.close(righe);
+  }
+
+  /** Salva le righe del documento in modifica come nuovo kit riutilizzabile. */
+  salvaComeKit() {
+    const righe = (this.data.righeCorrenti ?? [])
+      .filter(r => (r.descrizione?.trim() || (r as any).prodottoId))
+      .map(r => ({ ...r, id: undefined }));
+    if (!righe.length) return;
+    const nome = (window.prompt('Nome del kit:') || '').trim();
+    if (!nome) return;
+    this.ds.creaKit(nome, righe).subscribe({
+      next: () => { if (this.selectedTipo === 'kit') this.loadDocumenti(); },
+      error: () => {}
+    });
+  }
+
+  eliminaKit(ev: Event, id: number) {
+    ev.stopPropagation();
+    this.ds.eliminaKit(id).subscribe({ next: () => this.loadDocumenti(), error: () => {} });
   }
 
   rigaTotale(r: RigaDocumento): number {

@@ -651,7 +651,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit, OnDestr
     const clienteId = cv && typeof cv !== 'string' ? (cv as Cliente).id ?? null : null;
     const clienteNome = cv && typeof cv !== 'string' ? (cv as Cliente).ragioneSociale : null;
     this.matDialog.open(CopiaRigheDialogComponent, {
-      data: { clienteId, clienteNome } as CopiaRigheDialogData
+      data: { clienteId, clienteNome, righeCorrenti: this.righe } as CopiaRigheDialogData
     }).afterClosed().subscribe((righe: RigaDocumento[]) => {
       if (!righe?.length) return;
       if (this.righe.length === 1) {

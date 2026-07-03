@@ -644,6 +644,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         clienteNome: cv && typeof cv !== 'string' ? (cv as Cliente).ragioneSociale : null,
       };
     }
+    data.righeCorrenti = this.righe;
     this.matDialog.open(CopiaRigheDialogComponent, { data }).afterClosed().subscribe((righe: RigaDocumento[]) => {
       if (!righe?.length) return;
       if (this.righe.length === 1) {

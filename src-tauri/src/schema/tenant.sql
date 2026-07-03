@@ -656,3 +656,10 @@ CREATE TABLE IF NOT EXISTS lavagna (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         dati TEXT NOT NULL DEFAULT '{}'
       );
+
+CREATE TABLE IF NOT EXISTS kit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        righe TEXT NOT NULL DEFAULT '[]',
+        creato_il TEXT
+      );

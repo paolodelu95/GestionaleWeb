@@ -480,7 +480,7 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
     const fornitoreId = fv && typeof fv !== 'string' ? (fv as Fornitore).id ?? null : null;
     const fornitoreNome = fv && typeof fv !== 'string' ? (fv as Fornitore).ragioneSociale : null;
     this.matDialog.open(CopiaRigheDialogComponent, {
-      data: { fornitoreId, fornitoreNome } as CopiaRigheDialogData
+      data: { fornitoreId, fornitoreNome, righeCorrenti: this.righe } as CopiaRigheDialogData
     }).afterClosed().subscribe((righe: RigaDocumento[]) => {
       if (!righe?.length) return;
       if (this.righe.length === 1) {

@@ -658,6 +658,11 @@ export class DataService {
     return this.api.get(`search?q=${encodeURIComponent(q)}`);
   }
 
+  // Kit di righe riutilizzabili
+  getKit(): Observable<{ id: number; nome: string; righe: any[]; creatoIl?: string }[]> { return this.api.get('kit'); }
+  creaKit(nome: string, righe: any[]): Observable<{ id: number; nome: string }> { return this.api.post('kit', { nome, righe }); }
+  eliminaKit(id: number): Observable<{ success: boolean }> { return this.api.delete(`kit/${id}`); }
+
   // Prima Nota
   getPrimaNota(mese?: string): Observable<any> { return this.api.get(`prima-nota${mese ? '?mese=' + mese : ''}`); }
   createPrimaNotaEntry(e: any): Observable<any> { return this.api.post('prima-nota', e); }
