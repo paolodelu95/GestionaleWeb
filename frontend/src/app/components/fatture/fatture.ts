@@ -1,4 +1,5 @@
-import { inject, Component, OnInit, OnDestroy, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, OnDestroy, AfterViewInit, Inject, ChangeDetectorRef, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, DestroyRef } from '@angular/core';
+import { DraftService } from '../../services/draft.service';
 import { environment } from '../../../environments/environment';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
@@ -813,6 +814,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
+  private draft = inject(DraftService);
+  private destroyRef = inject(DestroyRef);
+  private readonly draftTipo = 'fatture';
 
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -1215,6 +1219,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   ngOnInit() {
+    this.setupBozza();
     this.clienteCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredClienti = this.clienti.filter(c => c.ragioneSociale.toLowerCase().includes(q));
@@ -1494,12 +1499,43 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
 
   printFromDialog() { if (this.data?.id) this.printSvcDialog.printFattura(this.data.id); }
 
+  /** Autosalvataggio bozza (solo documento nuovo): ripristino su conferma + salvataggio periodico. */
+  private setupBozza() {
+    if (this.data?.id) return;
+    const bozza = this.draft.load(this.draftTipo);
+    const haContenuto = bozza && Array.isArray(bozza.righe) &&
+      bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
+    if (haContenuto) {
+      if (window.confirm('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il cliente)')) {
+        try {
+          const f = { ...(bozza.form || {}) }; delete f.numero;
+          this.form.patchValue(f);
+          this.righe = bozza.righe;
+          this.prezziRecenti = new Array(this.righe.length).fill([]);
+          this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
+          this.tuttiCaricati = new Array(this.righe.length).fill(false);
+        } catch { this.draft.clear(this.draftTipo); }
+      } else {
+        this.draft.clear(this.draftTipo);
+      }
+    }
+    const t = setInterval(() => {
+      try {
+        const righe = this.righe || [];
+        if (!righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId)) return;
+        this.draft.save(this.draftTipo, { form: this.form.getRawValue(), righe });
+      } catch { /* ignora */ }
+    }, 3000);
+    this.destroyRef.onDestroy(() => clearInterval(t));
+  }
+
   save() {
     this.submitted = true;
     if (!this.canSave) return;
     const v = this.clienteCtrl.value;
     const clienteId = v && typeof v !== 'string' ? (v as Cliente).id ?? null : null;
     const clienteNome = v && typeof v !== 'string' ? (v as Cliente).ragioneSociale : (this.data?.clienteNome ?? '');
+    this.draft.clear(this.draftTipo);
     this.dialogRef.close({
       ...this.data, ...this.form.value, clienteId, clienteNome,
       stato: this.data?.stato ?? 'EMESSA',

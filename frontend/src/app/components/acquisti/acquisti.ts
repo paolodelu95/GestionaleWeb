@@ -1,4 +1,5 @@
-import { inject, Component, OnInit, OnDestroy, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { inject, Component, OnInit, OnDestroy, AfterViewInit, Inject, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, DestroyRef } from '@angular/core';
+import { DraftService } from '../../services/draft.service';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
@@ -274,6 +275,9 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
   fornitori: Fornitore[] = [];
   filteredFornitori: Fornitore[] = [];
   fornitoreCtrl = new FormControl<Fornitore | string | null>('');
+  private draft = inject(DraftService);
+  private destroyRef = inject(DestroyRef);
+  private readonly draftTipo = 'acquisti';
   private currentFornitoreId(): number | null {
     const v: any = this.fornitoreCtrl.value;
     return v && typeof v === 'object' ? (v.id ?? null) : null;
@@ -332,6 +336,7 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   ngOnInit() {
+    this.setupBozza();
     this.fornitoreCtrl.valueChanges.subscribe(v => {
       const q = typeof v === 'string' ? v.toLowerCase() : '';
       this.filteredFornitori = this.fornitori.filter(f => f.ragioneSociale.toLowerCase().includes(q));
@@ -499,7 +504,35 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.form.valid) return;
     const v = this.fornitoreCtrl.value;
     const fornitoreId = v && typeof v !== 'string' ? (v as Fornitore).id ?? null : null;
+    this.draft.clear(this.draftTipo);
     this.dialogRef.close({ ...this.data, ...this.form.value, fornitoreId, righe: this.righe });
+  }
+
+  /** Autosalvataggio bozza (solo documento nuovo): ripristino su conferma + salvataggio periodico. */
+  private setupBozza() {
+    if (this.data?.id) return;
+    const bozza = this.draft.load(this.draftTipo);
+    const haContenuto = bozza && Array.isArray(bozza.righe) &&
+      bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
+    if (haContenuto) {
+      if (window.confirm('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il fornitore)')) {
+        try {
+          const f = { ...(bozza.form || {}) }; delete f.numero;
+          this.form.patchValue(f);
+          this.righe = bozza.righe;
+        } catch { this.draft.clear(this.draftTipo); }
+      } else {
+        this.draft.clear(this.draftTipo);
+      }
+    }
+    const t = setInterval(() => {
+      try {
+        const righe = this.righe || [];
+        if (!righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId)) return;
+        this.draft.save(this.draftTipo, { form: this.form.getRawValue(), righe });
+      } catch { /* ignora */ }
+    }, 3000);
+    this.destroyRef.onDestroy(() => clearInterval(t));
   }
 }
 
