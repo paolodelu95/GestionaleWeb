@@ -127,6 +127,28 @@ import { ExcelService } from '../../services/excel.service';
           </div>
         </mat-tab>
 
+        <!-- ── Registri IVA (vendite / acquisti) ──────────────────────────────── -->
+        <mat-tab label="Registri IVA">
+          <div class="card" style="margin-top:16px">
+            <div class="filter-bar">
+              <mat-form-field appearance="outline"><mat-label>Dal</mat-label>
+                <input matInput type="date" [(ngModel)]="dataDa"></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Al</mat-label>
+                <input matInput type="date" [(ngModel)]="dataA"></mat-form-field>
+              <button mat-flat-button color="primary" (click)="registroIva('vendite')">
+                <mat-icon>picture_as_pdf</mat-icon> Registro vendite
+              </button>
+              <button mat-stroked-button (click)="registroIva('acquisti')">
+                <mat-icon>picture_as_pdf</mat-icon> Registro acquisti
+              </button>
+            </div>
+            <p style="margin-top:8px;font-size:13px;color:#64748b">
+              Genera in PDF il registro IVA del periodo (vendite o acquisti), in ordine cronologico:
+              data, numero, controparte, P.IVA/CF, imponibile, IVA e totale.
+            </p>
+          </div>
+        </mat-tab>
+
         <!-- ── Esterometro (operazioni transfrontaliere) ─────────────────────── -->
         <mat-tab label="Esterometro">
           <div class="card" style="margin-top:16px">
@@ -203,6 +225,27 @@ export class ComplianceComponent implements OnInit {
 
   downloadEsterometro() {
     this.ds.downloadEsterometroCsv(this.dataDa, this.dataA);
+  }
+
+  registroIva(tipo: 'vendite' | 'acquisti') {
+    this.ds.getExportContabile(this.dataDa, this.dataA).subscribe({
+      next: r => {
+        const rows = (tipo === 'vendite' ? r.vendite : r.acquisti) || [];
+        if (!rows.length) { this.snack.open('Nessun documento nel periodo', 'OK', { duration: 3000, panelClass: 'snack-error' }); return; }
+        const cols = [
+          { header: 'Data', field: 'data' as const },
+          { header: 'Numero', field: 'numero' as const },
+          { header: tipo === 'vendite' ? 'Cliente' : 'Fornitore', field: 'controparte' as const },
+          { header: 'P.IVA', field: 'piva' as const },
+          { header: 'CF', field: 'cf' as const },
+          { header: 'Imponibile', field: 'imponibile' as const },
+          { header: 'IVA', field: 'iva' as const },
+          { header: 'Totale', field: 'totale' as const },
+        ];
+        this.excel.exportPdf(rows, cols, `registro-iva-${tipo}-${this.dataDa}_${this.dataA}`, `Registro IVA ${tipo} — dal ${this.dataDa} al ${this.dataA}`);
+      },
+      error: () => this.snack.open('Errore generazione registro', 'OK', { duration: 3000, panelClass: 'snack-error' })
+    });
   }
 
   downloadExport() {
