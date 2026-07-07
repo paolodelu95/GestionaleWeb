@@ -309,6 +309,20 @@ export interface Cliente {
   /** È anche fornitore: crea/collega un'anagrafica fornitore gemella. */
   ancheFornitore?: boolean;
   fornitoreCollegatoId?: number | null;
+  /** Agente assegnato e percentuale provvigione (override sul default dell'agente). */
+  agenteId?: number | null;
+  provvigione?: number | null;
+}
+
+export interface Agente {
+  id?: number;
+  nome: string;
+  email?: string;
+  telefono?: string;
+  /** Base di calcolo provvigione scelta per questo agente. */
+  baseProvvigione?: 'IMPONIBILE' | 'INCASSATO' | 'MARGINE';
+  provvigioneDefault?: number;
+  attivo?: boolean;
 }
 
 /** Colonna descrittiva personalizzata di un listino (es. Dimensioni, Peso, Q.tà pallet). */
@@ -619,6 +633,8 @@ export interface Fattura {
   stato: string;
   totale?: number;
   imponibile?: number;
+  agenteId?: number | null;
+  provvigione?: number | null;
   tipoPagamentoId?: number | null;
   righe?: RigaDocumento[];
   riferimenti?: FatturaRiferimento[];

@@ -16,6 +16,7 @@ export const routes: Routes = [
   { path: 'prodotti',     loadComponent: () => import('./components/prodotti/prodotti').then(m => m.ProdottiComponent) },
   { path: 'clienti',      loadComponent: () => import('./components/clienti/clienti').then(m => m.ClientiComponent) },
   { path: 'fornitori',    loadComponent: () => import('./components/fornitori/fornitori').then(m => m.FornitoriComponent) },
+  { path: 'agenti',       loadComponent: () => import('./components/agenti/agenti').then(m => m.AgentiComponent) },
   { path: 'ddt',          loadComponent: () => import('./components/ddt/ddt').then(m => m.DdtComponent) },
   { path: 'fatture',      loadComponent: () => import('./components/fatture/fatture').then(m => m.FattureComponent) },
   { path: 'fatture-elettroniche', loadComponent: () => import('./components/fatture-elettroniche/fatture-elettroniche').then(m => m.FattureElettronicheComponent) },

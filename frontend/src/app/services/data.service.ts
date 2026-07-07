@@ -13,7 +13,7 @@ import {
   Magazzino, Giacenza, ScadenzaLotto,
   ArrivoMerce, Utente, StatsVenditeMensili, StatsAcquistiMensili,
   StatsTopProdotto, StatsTopCliente, StatsCashflow, StatsKpiAnno, Sollecito,
-  NotaRapida, BackupConfig, ScadenzaFiscale
+  NotaRapida, BackupConfig, ScadenzaFiscale, Agente
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -656,6 +656,15 @@ export class DataService {
 
   searchGlobal(q: string): Observable<{ clienti: any[]; fornitori: any[]; prodotti: any[]; fatture: any[]; ddt: any[]; ordini: any[]; preventivi: any[] }> {
     return this.api.get(`search?q=${encodeURIComponent(q)}`);
+  }
+
+  // Agenti e provvigioni
+  getAgenti(): Observable<Agente[]> { return this.api.get('agenti'); }
+  creaAgente(a: Partial<Agente>): Observable<{ id: number }> { return this.api.post('agenti', a); }
+  aggiornaAgente(id: number, a: Partial<Agente>): Observable<{ ok: boolean }> { return this.api.put(`agenti/${id}`, a); }
+  eliminaAgente(id: number): Observable<{ ok: boolean }> { return this.api.delete(`agenti/${id}`); }
+  getProvvigioni(da: string, a: string): Observable<{ agenteId: number; agenteNome: string; base: string; baseTotale: number; provvigioneTotale: number; documenti: any[] }[]> {
+    return this.api.get(`agenti/provvigioni?da=${encodeURIComponent(da)}&a=${encodeURIComponent(a)}`);
   }
 
   // Kit di righe riutilizzabili
