@@ -56,6 +56,8 @@ fn to_dto(r: &Row) -> rusqlite::Result<Value> {
         "aliquotaIvaId": r.get::<_, Option<i64>>("aliquota_iva_id")?,
         "ancheFornitore": r.get::<_, Option<i64>>("anche_fornitore")? == Some(1),
         "fornitoreCollegatoId": r.get::<_, Option<i64>>("fornitore_collegato_id")?,
+        "agenteId": r.get::<_, Option<i64>>("agente_id")?,
+        "provvigione": r.get::<_, Option<f64>>("provvigione")?,
     }))
 }
 
@@ -144,8 +146,8 @@ async fn create(State(state): State<AppState>, Json(c): Json<Value>) -> ApiResul
     }
     conn.execute(
         "INSERT INTO clienti \
-         (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id, listino_id, tipo_soggetto, cig, cup, aliquota_iva_id, anche_fornitore) \
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20)",
+         (ragione_sociale, email, telefono, cellulare, via, cap, citta, provincia, stato, codice_fiscale, p_iva, sdi, pec, tipo_pagamento_id, listino_id, tipo_soggetto, cig, cup, aliquota_iva_id, anche_fornitore, agente_id, provvigione) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22)",
         params![
             raw_opt(&c, "ragioneSociale"),
             raw_opt(&c, "email"),
@@ -167,6 +169,8 @@ async fn create(State(state): State<AppState>, Json(c): Json<Value>) -> ApiResul
             str_def(&c, "cup"),
             opt_id(&c, "aliquotaIvaId"),
             flag(&c, "ancheFornitore"),
+            opt_id(&c, "agenteId"),
+            c.get("provvigione").and_then(Value::as_f64),
         ],
     )?;
     let id = conn.last_insert_rowid();
@@ -196,7 +200,7 @@ async fn update(
     conn.execute(
         "UPDATE clienti SET ragione_sociale=?1, email=?2, telefono=?3, cellulare=?4, via=?5, cap=?6, \
          citta=?7, provincia=?8, stato=?9, codice_fiscale=?10, p_iva=?11, sdi=?12, pec=?13, tipo_pagamento_id=?14, listino_id=?15, \
-         tipo_soggetto=?16, cig=?17, cup=?18, aliquota_iva_id=?19, anche_fornitore=?20 WHERE id=?21",
+         tipo_soggetto=?16, cig=?17, cup=?18, aliquota_iva_id=?19, anche_fornitore=?20, agente_id=?21, provvigione=?22 WHERE id=?23",
         params![
             raw_opt(&c, "ragioneSociale"),
             raw_opt(&c, "email"),
@@ -218,6 +222,8 @@ async fn update(
             str_def(&c, "cup"),
             opt_id(&c, "aliquotaIvaId"),
             flag(&c, "ancheFornitore"),
+            opt_id(&c, "agenteId"),
+            c.get("provvigione").and_then(Value::as_f64),
             id,
         ],
     )?;

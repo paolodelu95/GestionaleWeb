@@ -28,7 +28,7 @@ import { CityService, CityResult } from '../../services/city.service';
 import { ExcelService, ExcelColumn } from '../../services/excel.service';
 import { ExportMenuComponent } from '../shared/export-menu';
 import { SchedaClienteDialogComponent } from './scheda-cliente-dialog';
-import { Cliente, ClienteIndirizzo, TipoPagamento, Listino, AliquotaIva } from '../../models';
+import { Cliente, ClienteIndirizzo, TipoPagamento, Listino, AliquotaIva, Agente } from '../../models';
 import { Router } from '@angular/router';
 import { consumePrefill } from '../../utils/nav-prefill';
 import { pIvaValidator, codiceFiscaleValidator, telefonoValidator, capValidator, normalizePiva } from '../../validators/italian-validators';
@@ -413,6 +413,25 @@ export class AziendaSearchDialogComponent {
               }
             </mat-form-field>
           </div>
+          @if (agenti.length) {
+            <div class="form-row">
+              <mat-form-field>
+                <mat-label>Agente</mat-label>
+                <mat-select formControlName="agenteId">
+                  <mat-option [value]="null">— nessuno —</mat-option>
+                  @for (ag of agenti; track ag.id) { <mat-option [value]="ag.id">{{ ag.nome }}</mat-option> }
+                </mat-select>
+                <mat-icon matSuffix>support_agent</mat-icon>
+              </mat-form-field>
+              @if (form.value.agenteId) {
+                <mat-form-field>
+                  <mat-label>Provvigione (override)</mat-label>
+                  <input matInput type="number" min="0" max="100" step="0.5" formControlName="provvigione" placeholder="% default agente">
+                  <span matSuffix>%</span>
+                </mat-form-field>
+              }
+            </div>
+          }
           <div class="form-row" style="align-items:flex-start">
             <div>
               <mat-slide-toggle formControlName="ancheFornitore">È anche un fornitore</mat-slide-toggle>
@@ -570,6 +589,7 @@ export class ClienteDialogComponent implements OnInit {
   tipiPagamento: TipoPagamento[] = [];
   listini: Listino[] = [];
   aliquoteIva: AliquotaIva[] = [];
+  agenti: Agente[] = [];
   lookupLoading = false;
   get canLookupPiva(): boolean { return normalizePiva(this.form.get('pIva')?.value ?? '').length === 11; }
   private cityMap = new Map<string, CityResult>();
@@ -653,7 +673,10 @@ export class ClienteDialogComponent implements OnInit {
       cup:            [data?.cup ?? ''],
       aliquotaIvaId:  [data?.aliquotaIvaId ?? null],
       ancheFornitore: [data?.ancheFornitore ?? false],
+      agenteId:       [data?.agenteId ?? null],
+      provvigione:    [data?.provvigione ?? null],
     });
+    this.ds.getAgenti().subscribe(a => this.agenti = a.filter(x => x.attivo));
   }
 
   private pivaAsyncValidator(tipo: 'clienti' | 'fornitori', excludeId?: number): AsyncValidatorFn {

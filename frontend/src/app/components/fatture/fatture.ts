@@ -1249,6 +1249,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
         const c = v as Cliente;
         if (!this.selectedTipoPagamentoId && c.tipoPagamentoId)
           this.selectedTipoPagamentoId = c.tipoPagamentoId;
+        // Eredita l'agente del cliente se non già impostato sulla fattura.
+        if (!this.form.get('agenteId')?.value && c.agenteId)
+          this.form.patchValue({ agenteId: c.agenteId, provvigione: c.provvigione ?? null });
         // Se c'è una sola riga vuota, aggiorna l'IVA con quella del cliente
         if (c.aliquotaIvaId && this.aliquoteIva.length) {
           const aliq = this.aliquoteIva.find(a => a.id === c.aliquotaIvaId);
