@@ -31,7 +31,7 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { ExcelService, ExcelColumn } from '../../services/excel.service';
 import { ExportMenuComponent } from '../shared/export-menu';
-import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, ProdottoVariante, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig } from '../../models';
+import { Fattura, FatturaRiferimento, Cliente, Ddt, Prodotto, ProdottoVariante, RigaDocumento, TipoPagamento, UnitaMisura, Pagamento, NotaRapida, AliquotaIva, NotificheConfig, Agente } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { scrollFocusLastRiga } from '../../utils/scroll';
 import { numeroUnivocoValidator, setNumeriEsistenti } from '../../utils/numero-univoco';
@@ -587,6 +587,24 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                 <mat-label>Annotazioni ad uso interno (non stampate)</mat-label>
                 <textarea matInput rows="2" formControlName="note"></textarea>
               </mat-form-field>
+              @if (agenti.length) {
+                <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                  <mat-form-field style="flex:1;min-width:200px">
+                    <mat-label>Agente</mat-label>
+                    <mat-select formControlName="agenteId">
+                      <mat-option [value]="null">— nessuno —</mat-option>
+                      @for (ag of agenti; track ag.id) { <mat-option [value]="ag.id">{{ ag.nome }}</mat-option> }
+                    </mat-select>
+                  </mat-form-field>
+                  @if (form.get('agenteId')?.value) {
+                    <mat-form-field style="width:160px">
+                      <mat-label>Provvigione</mat-label>
+                      <input matInput type="number" min="0" max="100" step="0.5" formControlName="provvigione" placeholder="% default agente">
+                      <span matSuffix>%</span>
+                    </mat-form-field>
+                  }
+                </div>
+              }
             </div>
           </div>
         </mat-tab>
@@ -814,6 +832,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   clienti: Cliente[] = [];
   filteredClienti: Cliente[] = [];
   clienteCtrl = new FormControl<Cliente | string | null>('');
+  agenti: Agente[] = [];
   private draft = inject(DraftService);
   private destroyRef = inject(DestroyRef);
   private readonly draftTipo = 'fatture';
@@ -1185,7 +1204,10 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
       numero: [data?.numero ?? '', [Validators.required, numeroUnivocoValidator(() => this.numeriEsistenti)]],
       dataEmissione: [data?.dataEmissione ?? new Date().toISOString().substring(0, 10), Validators.required],
       note: [data?.note ?? ''],
+      agenteId: [data?.agenteId ?? null],
+      provvigione: [data?.provvigione ?? null],
     });
+    this.ds.getAgenti().subscribe(a => this.agenti = a.filter(x => x.attivo));
     if (data?.id) {
       this.ds.getFatturaById(data.id).subscribe(f => {
         this.righe = this.normalizeRighe(f.righe ?? []);
