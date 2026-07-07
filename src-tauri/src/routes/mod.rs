@@ -3,6 +3,7 @@
 
 mod acquisti;
 mod agenda;
+mod agenti;
 mod allegati;
 mod archivi;
 mod aliquote_iva;
@@ -124,6 +125,7 @@ pub fn api_router() -> Router<AppState> {
         .nest("/utenti", utenti::routes())
         .nest("/fatture-ricorrenti", fatture_ricorrenti::routes())
         .nest("/agenda", agenda::routes())
+        .nest("/agenti", agenti::routes())
         .nest("/allegati", allegati::routes())
         .nest("/crm", crm::routes())
         .nest("/timesheet", timesheet::routes())

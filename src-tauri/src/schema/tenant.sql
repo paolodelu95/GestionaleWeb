@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS clienti (
       stato TEXT DEFAULT 'Italia',
       codice_fiscale TEXT DEFAULT '',
       p_iva TEXT DEFAULT ''
-    , sdi TEXT DEFAULT "", pec TEXT DEFAULT "", tipo_pagamento_id INTEGER, cellulare TEXT DEFAULT "", listino_id INTEGER REFERENCES listini(id), tipo_soggetto TEXT DEFAULT 'PRIVATO', cig TEXT DEFAULT "", cup TEXT DEFAULT "", aliquota_iva_id INTEGER REFERENCES aliquote_iva(id), estero INTEGER DEFAULT 0, anche_fornitore INTEGER DEFAULT 0, fornitore_collegato_id INTEGER);
+    , sdi TEXT DEFAULT "", pec TEXT DEFAULT "", tipo_pagamento_id INTEGER, cellulare TEXT DEFAULT "", listino_id INTEGER REFERENCES listini(id), tipo_soggetto TEXT DEFAULT 'PRIVATO', cig TEXT DEFAULT "", cup TEXT DEFAULT "", aliquota_iva_id INTEGER REFERENCES aliquote_iva(id), estero INTEGER DEFAULT 0, anche_fornitore INTEGER DEFAULT 0, fornitore_collegato_id INTEGER, agente_id INTEGER REFERENCES agenti(id), provvigione REAL);
 CREATE TABLE IF NOT EXISTS fornitori (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ragione_sociale TEXT NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS fatture (
       cliente_id INTEGER,
       ddt_id INTEGER,
       note TEXT DEFAULT '',
-      stato TEXT DEFAULT 'EMESSA', tipo_pagamento_id INTEGER, ritenuta_aliquota REAL DEFAULT 0, ritenuta_causale TEXT DEFAULT "", ritenuta_tipo TEXT DEFAULT "", ritenuta_su_cassa INTEGER DEFAULT 0, cassa_tipo TEXT DEFAULT "", cassa_aliquota REAL DEFAULT 0, cassa_iva REAL DEFAULT 0, bollo INTEGER DEFAULT 0, stato_sdi TEXT DEFAULT "", data_invio_sdi TEXT DEFAULT "", id_trasmissione_sdi TEXT DEFAULT "", cig TEXT DEFAULT "", cup TEXT DEFAULT "",
+      stato TEXT DEFAULT 'EMESSA', tipo_pagamento_id INTEGER, ritenuta_aliquota REAL DEFAULT 0, ritenuta_causale TEXT DEFAULT "", ritenuta_tipo TEXT DEFAULT "", ritenuta_su_cassa INTEGER DEFAULT 0, cassa_tipo TEXT DEFAULT "", cassa_aliquota REAL DEFAULT 0, cassa_iva REAL DEFAULT 0, bollo INTEGER DEFAULT 0, stato_sdi TEXT DEFAULT "", data_invio_sdi TEXT DEFAULT "", id_trasmissione_sdi TEXT DEFAULT "", cig TEXT DEFAULT "", cup TEXT DEFAULT "", agente_id INTEGER REFERENCES agenti(id), provvigione REAL,
       FOREIGN KEY (cliente_id) REFERENCES clienti(id),
       FOREIGN KEY (ddt_id) REFERENCES ddt(id)
     );
@@ -662,4 +662,14 @@ CREATE TABLE IF NOT EXISTS kit (
         nome TEXT NOT NULL,
         righe TEXT NOT NULL DEFAULT '[]',
         creato_il TEXT
+      );
+
+CREATE TABLE IF NOT EXISTS agenti (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        email TEXT DEFAULT '',
+        telefono TEXT DEFAULT '',
+        base_provvigione TEXT DEFAULT 'IMPONIBILE',
+        provvigione_default REAL DEFAULT 0,
+        attivo INTEGER DEFAULT 1
       );
