@@ -456,8 +456,6 @@ const AGGREGATI: Record<string, () => any> = {
   moduli: () => [],
   'sdi-passive/providers': () => ([{ id: 'FIC', nome: 'Fatture in Cloud' }, { id: 'ARUBA', nome: 'Aruba' }]),
   'sdi-passive/ricevute': () => COLLEZIONI['acquisti']().slice(0, 30),
-  'crm/stages': () => ([{ id: 1, nome: 'Contatto' }, { id: 2, nome: 'Offerta' }, { id: 3, nome: 'Chiusa' }]),
-  'crm/opportunita': () => [],
   'admin/stats': () => ({ tenants: 3, utenti: 7, documenti: 642 }),
   reports: () => [],
   search: () => [],

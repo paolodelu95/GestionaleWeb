@@ -19,8 +19,6 @@ import { environment } from '../../environments/environment';
  *   /pagamenti /scadenzario /prima-nota                         → 'contabilita' (core)
  *   /riconciliazione                                            → 'riconciliazione'
  *   /compliance                                                 → 'compliance'
- *   /crm                                                        → 'crm'
- *   /timesheet                                                  → 'timesheet'
  */
 @Injectable({ providedIn: 'root' })
 export class ModuliService {
@@ -62,8 +60,6 @@ export class ModuliService {
       '/pagamenti': 'contabilita', '/scadenzario': 'contabilita', '/prima-nota': 'contabilita',
       '/riconciliazione': 'riconciliazione',
       '/compliance': 'compliance',
-      '/crm': 'crm',
-      '/timesheet': 'timesheet',
       '/ecommerce': 'ecommerce',
       '/agenda': 'agenda',
     };

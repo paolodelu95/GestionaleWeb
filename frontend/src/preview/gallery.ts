@@ -83,8 +83,6 @@ const GRUPPI: Gruppo[] = [
   { titolo: 'Amministrazione', voci: [
     { label: 'Admin', path: 'admin' },
     { label: 'Console SaaS', path: 'super-admin' },
-    { label: 'CRM (fuori menu)', path: 'crm' },
-    { label: 'Timesheet (fuori menu)', path: 'timesheet' },
   ]},
 ];
 
