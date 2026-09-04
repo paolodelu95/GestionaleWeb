@@ -368,16 +368,23 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.chartTop?.destroy();
     const top5 = this.topProdotti.slice(0, 5);
     const colors = ['#11769b','#22c55e','#f59e0b','#ef4444','#0891b2'];
+    // Nomi prodotto lunghi stiravano la legenda su una riga larghissima:
+    // il nome per intero resta nel tooltip, in legenda solo la versione troncata.
+    const tronca = (s: string, n = 28) => s.length > n ? s.slice(0, n - 1) + '…' : s;
+    const nomiCompleti = top5.map(p => p.nome || 'N/D');
     this.chartTop = new Chart(this.chartTopRef.nativeElement, {
       type: 'doughnut',
       data: {
-        labels: top5.map(p => p.nome || 'N/D'),
+        labels: nomiCompleti.map(n => tronca(n)),
         datasets: [{ data: top5.map(p => p.fatturato), backgroundColor: colors }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: { callbacks: { title: (items) => nomiCompleti[items[0].dataIndex] } },
+        }
       }
     });
   }

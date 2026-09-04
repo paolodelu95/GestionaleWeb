@@ -213,7 +213,7 @@
                 @for (c of abcVisibili; track c.nome; let i = $index) {
                   <tr [class]="'riga-classe-' + c.classe">
                     <td style="color:#94a3b8;font-size:12px">{{ i + 1 }}</td>
-                    <td><b>{{ c.nome }}</b></td>
+                    <td class="report-td-name" [title]="c.nome"><b>{{ c.nome }}</b></td>
                     <td style="text-align:right">{{ c.fatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
                     <td style="text-align:right;color:#64748b">{{ c.pct | number:'1.1-1' }}%</td>
                     <td style="text-align:right;color:#64748b">{{ c.pctCumulativa | number:'1.1-1' }}%</td>
@@ -261,7 +261,7 @@
               <tbody>
                 @for (p of bi.prodottiMargini; track p.nome) {
                   <tr>
-                    <td>{{ p.nome }}</td>
+                    <td class="report-td-name" [title]="p.nome">{{ p.nome }}</td>
                     <td style="text-align:right">{{ p.ricavi | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
                     <td style="text-align:right" [style.color]="p.marginePerc >= 30 ? '#22c55e' : p.marginePerc >= 10 ? '#f59e0b' : '#ef4444'">
                       <b>{{ p.marginePerc | number:'1.0-0' }}%</b>
@@ -331,7 +331,7 @@
               <tbody>
                 @for (c of margini?.clienti; track c.id) {
                   <tr>
-                    <td>{{ c.nome }}</td>
+                    <td class="report-td-name" [title]="c.nome">{{ c.nome }}</td>
                     <td style="text-align:right">{{ c.ricavo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
                     <td style="text-align:right;color:#94a3b8">{{ c.costo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
                     <td style="text-align:right" [style.color]="c.margine >= 0 ? '#22c55e' : '#ef4444'"><b>{{ c.margine | currency:'EUR':'symbol':'1.0-0':'it' }}</b></td>
@@ -359,7 +359,7 @@
               <tbody>
                 @for (p of margini?.prodotti; track p.id) {
                   <tr [style.background]="p.margine < 0 ? '#fef2f2' : 'transparent'">
-                    <td>{{ p.nome }}</td>
+                    <td class="report-td-name" [title]="p.nome">{{ p.nome }}</td>
                     <td style="text-align:right">{{ p.ricavo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
                     <td style="text-align:right;color:#94a3b8">{{ p.costo | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
                     <td style="text-align:right" [style.color]="p.margine >= 0 ? '#22c55e' : '#ef4444'"><b>{{ p.margine | currency:'EUR':'symbol':'1.0-0':'it' }}</b></td>
