@@ -1,6 +1,7 @@
 import { inject, Component, OnInit, AfterViewInit, Inject, ViewChild, HostListener } from '@angular/core';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { LoadingSkeletonComponent } from '../shared/loading-skeleton';
 import { FieldHelpComponent } from '../shared/field-help';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators,
@@ -780,7 +781,7 @@ export class ClienteDialogComponent implements OnInit {
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
             MatTooltipModule, MatMenuModule, ColumnPickerComponent, EmptyStateComponent,
-            TableKeyboardNavDirective, ExportMenuComponent],
+            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })
@@ -793,6 +794,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
   clienti: Cliente[] = [];
+  loading = true;
   dataSource = new MatTableDataSource<Cliente>([]);
   displayedColumns: string[] = ['ragioneSociale', 'pIva', 'telefono', 'indirizzo', 'azioni'];
 
@@ -871,7 +873,13 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     };
   }
 
-  load() { this.ds.getClienti().subscribe(c => { this.clienti = c; this.applyInsightFilter(); this.openPending(c); }); }
+  load() {
+    this.loading = true;
+    this.ds.getClienti().subscribe({
+      next: c => { this.clienti = c; this.applyInsightFilter(); this.openPending(c); this.loading = false; },
+      error: () => { this.loading = false; },
+    });
+  }
 
   private openPending(list: Cliente[]) {
     if (this.pendingOpenId == null) return;

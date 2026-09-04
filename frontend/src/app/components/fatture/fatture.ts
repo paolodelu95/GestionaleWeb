@@ -4,6 +4,7 @@ import { environment } from '../../../environments/environment';
 import { RIGHE_STYLES } from '../shared/righe-styles';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { LoadingSkeletonComponent } from '../shared/loading-skeleton';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -1586,7 +1587,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
             MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, EmptyStateComponent,
-            TableKeyboardNavDirective, ExportMenuComponent],
+            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
@@ -1596,6 +1597,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
   /** Edizione offline desktop: nasconde i pezzi SaaS (es. link pagamento Stripe). */
   readonly offline = environment.offline;
   private allFatture: Fattura[] = [];
+  loading = true;
   dataSource = new MatTableDataSource<Fattura>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Fattura>(true, []);
@@ -1684,10 +1686,15 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   load() {
-    this.ds.getFatture().subscribe(f => {
-      this.allFatture = f;
-      this.applyFilters();
-      this.selection.clear();
+    this.loading = true;
+    this.ds.getFatture().subscribe({
+      next: f => {
+        this.allFatture = f;
+        this.applyFilters();
+        this.selection.clear();
+        this.loading = false;
+      },
+      error: () => { this.loading = false; },
     });
   }
 

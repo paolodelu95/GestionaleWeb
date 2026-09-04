@@ -1,5 +1,6 @@
 import { inject, Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { LoadingSkeletonComponent } from '../shared/loading-skeleton';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -56,7 +57,7 @@ const LS_KEY = 'dashboard-widgets-v3'; // bumped: pillole avvisi (incassare/paga
     CommonModule, RouterLink, FormsModule,
     MatCardModule, MatTableModule, MatIconModule, MatButtonModule, MatMenuModule,
     MatTooltipModule, MatCheckboxModule, MatSnackBarModule, DragDropModule,
-    EmptyStateComponent,
+    EmptyStateComponent, LoadingSkeletonComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
@@ -137,7 +138,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private venditeMensili: StatsVenditeMensili[] = [];
   private topProdotti: StatsTopProdotto[] = [];
   private chartsReady = false;
-  private dataReady = false;
+  dataReady = false;
   private chartVendite?: Chart;
   private chartTop?: Chart;
 

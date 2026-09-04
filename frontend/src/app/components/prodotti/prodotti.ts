@@ -4,6 +4,7 @@ import { catchError } from 'rxjs/operators';
 import { SelectionModel } from '@angular/cdk/collections';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
+import { LoadingSkeletonComponent } from '../shared/loading-skeleton';
 import { FieldHelpComponent } from '../shared/field-help';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -767,13 +768,15 @@ export class RettificaGiacenzaDialogComponent {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
-            MatCheckboxModule, MatButtonToggleModule, ColumnPickerComponent, EmptyStateComponent, TableKeyboardNavDirective, ExportMenuComponent],
+            MatCheckboxModule, MatButtonToggleModule, ColumnPickerComponent, EmptyStateComponent,
+            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
 export class ProdottiComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
   private allProdotti: Prodotto[] = [];
+  loading = true;
   dataSource = new MatTableDataSource<Prodotto>([]);
   displayedColumns: string[] = ['select', 'nome', 'categoria', 'prezzo', 'margine', 'quantita', 'sogliaMinima'];
   /** Selezione multipla per la cancellazione in blocco (es. annullare un import). */
@@ -881,7 +884,11 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   }
 
   load() {
-    this.ds.getProdotti().subscribe(p => { this.allProdotti = p; this.applyFilters(); this.selection.clear(); this.openPending(p); });
+    this.loading = true;
+    this.ds.getProdotti().subscribe({
+      next: p => { this.allProdotti = p; this.applyFilters(); this.selection.clear(); this.openPending(p); this.loading = false; },
+      error: () => { this.loading = false; },
+    });
   }
 
   applyFilters() {

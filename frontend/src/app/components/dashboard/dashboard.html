@@ -56,6 +56,9 @@
     </div>
   }
 
+  @if (!dataReady) {
+    <app-loading-skeleton [rows]="8" />
+  } @else {
   <div class="widget-list" cdkDropList (cdkDropListDropped)="dropWidget($event)"
        [class.edit-mode]="editMode">
 
@@ -583,4 +586,5 @@
       }
     }
   </div>
+  }
 </div>
