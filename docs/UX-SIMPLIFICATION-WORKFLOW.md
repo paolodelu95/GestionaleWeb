@@ -7,6 +7,10 @@
 Questo documento è sia il **metodo** (come lavoriamo, schermata per schermata) sia il
 **piano** (in che ordine, con quale backlog). È vivo: si aggiorna mentre procediamo.
 
+> **Documento gemello:** [`UI-UX-QUALITY-WORKFLOW.md`](UI-UX-QUALITY-WORKFLOW.md) copre
+> l'altra metà del lavoro — qualità d'esecuzione, difetti visivi e caccia ai bug su ogni
+> schermata, con le metriche misurate sul codice. I due si eseguono nello stesso passaggio.
+
 ---
 
 ## 1. La stella polare
