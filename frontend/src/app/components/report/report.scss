@@ -66,6 +66,14 @@
   gap: 20px;
 }
 
+// Una colonna sola, piena larghezza: usata dove il nome (cliente/prodotto)
+// deve restare leggibile invece di troncarsi nelle colonne strette di .report-grid.
+.report-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
 .card {
   background: var(--mat-sys-surface, #fff);
   border-radius: 12px;

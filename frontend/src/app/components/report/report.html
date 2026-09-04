@@ -315,7 +315,10 @@
 
       <!-- TAB: Margini (prodotto + cliente) -->
       <mat-tab label="Margini">
-        <div class="tab-content report-grid">
+        <!-- Impilate (non affiancate come .report-grid): il nome cliente/prodotto
+             ha bisogno di tutta la larghezza pagina, altrimenti la colonna nome
+             si tronca troppo presto nelle due colonne strette dell'auto-fill. -->
+        <div class="tab-content report-stack">
           <div class="card">
             <div class="card-title"><mat-icon>groups</mat-icon> Margine per cliente</div>
             <div class="report-table-wrap"><table class="report-table">
