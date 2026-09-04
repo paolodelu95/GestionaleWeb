@@ -1112,6 +1112,20 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
   max-height: calc(90dvh - 140px) !important;
   overflow-y: auto !important;
 }
+
+// Le righe del documento sono la parte da compilare, il cuore di fatture,
+// DDT, preventivi, ordini, acquisti, note di credito: prima restavano
+// quello che avanzava sotto intestazione + sezioni opzionali (DDT
+// collegati, suggeriti), spesso 2-3 righe scarse. Il wrapper .righe-scroll
+// esisteva già nel markup di tutti questi dialog ma non scrollava
+// (nessun max-height/overflow-y su desktop) — gli davamo lo spazio che
+// il nome promette: una porzione fissa e generosa, con scroll proprio.
+@media (min-width: 768px) {
+  .righe-scroll {
+    max-height: min(46vh, 460px);
+    overflow-y: auto;
+  }
+}
 .mat-mdc-dialog-surface {
   padding: 24px 0 0 !important;
   border-radius: var(--radius-xl) !important;
