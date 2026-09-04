@@ -27,6 +27,8 @@ export const RIGHE_STYLES = `
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3);
   }
+  :host-context(html.density-compact) .righe-section { margin-top: var(--sp-3); }
+  :host-context(html.density-compact) .righe-header { margin-bottom: var(--sp-2); }
   .righe-header-title {
     display: flex; align-items: center; gap: var(--sp-3);
     font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
@@ -95,6 +97,14 @@ export const RIGHE_STYLES = `
     padding: 3px var(--sp-2); box-sizing: border-box; width: 100%;
   }
   .riga-input--desc { border-radius: 0 0 var(--radius-xs) var(--radius-xs); }
+
+  /* ===== Densità compatta (default desktop, html.density-compact) =====
+   * Il resto della grid usa già padding minimi (--sp-1/--sp-2); qui si stringe
+   * anche l'altezza di riga: con una fattura da 15-20 righe la versione "comoda"
+   * costringe a scrollare dopo 3-4 righe visibili. */
+  :host-context(html.density-compact) .righe-table td { padding: 3px var(--sp-1); }
+  :host-context(html.density-compact) .riga-input { padding: 2px 6px; font-size: 12.5px; }
+  :host-context(html.density-compact) .riga-codice { padding: 1px 6px; font-size: 10px; }
 
   /* ===== Riga NOTA (tokenizzata) ===== */
   .riga-nota td { background: var(--warning-soft); }
