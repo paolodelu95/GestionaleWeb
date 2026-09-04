@@ -16,7 +16,7 @@
  */
 import 'zone.js';
 import { bootstrapApplication } from '@angular/platform-browser';
-import { LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { ErrorHandler, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
@@ -36,6 +36,7 @@ import { App } from './app/app';
 import { routes } from './app/app.routes';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
 import { italianPaginatorIntl } from './app/it-paginator-intl';
+import { GlobalErrorHandler } from './app/services/global-error-handler';
 
 registerLocaleData(localeIt);
 
@@ -46,6 +47,8 @@ const mock = creaMockHttpInterceptor(opzioni);
 /** Provider comuni alle due modalità Angular (specchio di app.config, senza service worker). */
 const comuni = [
   provideBrowserGlobalErrorListeners(),
+  // Come in produzione: lo stato dati "Scritture KO" serve proprio a verificarlo.
+  { provide: ErrorHandler, useClass: GlobalErrorHandler },
   provideZoneChangeDetection({ eventCoalescing: true }),
   provideHttpClient(withInterceptors([authInterceptor, mock])),
   provideAnimationsAsync(),

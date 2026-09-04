@@ -1,4 +1,4 @@
-import { ApplicationConfig, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, isDevMode } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -9,6 +9,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
 import { italianPaginatorIntl } from './it-paginator-intl';
+import { GlobalErrorHandler } from './services/global-error-handler';
 import { registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
 
@@ -17,6 +18,9 @@ registerLocaleData(localeIt);
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    // Fa emergere gli errori HTTP che nessuno gestisce: senza, una scrittura
+    // rifiutata dal server non produce alcun segnale a schermo.
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
