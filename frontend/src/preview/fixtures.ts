@@ -452,12 +452,70 @@ const AGGREGATI: Record<string, () => any> = {
     prodottoId: p.id, nome: p.nome, codice: p.codice, lotto: `L-2026-${100 + i}`,
     scadenza: iso(-15 + i * 9), quantita: 10 + i * 3, magazzinoNome: 'Magazzino centrale',
   })),
-  'stats/margini': () => genProdotti().slice(0, 15).map((p) => ({
-    prodottoId: p.id, nome: p.nome, codice: p.codice, ricavo: round2((p.prezzo || 0) * 40),
-    costo: round2((p.prezzoAcquisto || 0) * 40), margine: round2(((p.prezzo || 0) - (p.prezzoAcquisto || 0)) * 40),
-    marginePerc: round2(100 * (1 - (p.prezzoAcquisto || 0) / (p.prezzo || 1))),
-  })),
-  'stats/bi': () => ({ fatturato: 486320.44, margine: 188209.54, clienti: N, prodotti: N, documenti: 642 }),
+  'stats/margini': () => {
+    const conMargine = (base: any, ricavo: number, costo: number) => {
+      ricavo = round2(ricavo); costo = round2(costo);
+      const margine = round2(ricavo - costo);
+      return { ...base, ricavo, costo, margine, marginePct: ricavo > 0 ? round2((margine / ricavo) * 100) : null };
+    };
+    const prodotti = genProdotti().slice(0, 15).map((p) => conMargine(
+      { id: p.id, nome: p.nome, categoria: p.categoria || '—', quantita: 40 },
+      (p.prezzo || 0) * 40, (p.prezzoAcquisto || 0) * 40,
+    ));
+    const clienti = genClienti().slice(0, 10).map((c, i) => conMargine(
+      { id: c.id, nome: c.ragioneSociale }, 48000 - i * 3700, (48000 - i * 3700) * 0.63,
+    ));
+    const totRicavo = prodotti.reduce((s, p) => s + p.ricavo, 0);
+    const totCosto = prodotti.reduce((s, p) => s + p.costo, 0);
+    return { anno: 2026, prodotti, clienti, totali: conMargine({}, totRicavo, totCosto) };
+  },
+  'stats/bi': () => {
+    const anno = 2026, annoPrec = 2025;
+    const rFat = makeRng(507), rAcq = makeRng(508);
+    const fatturaMensile: any[] = [];
+    const acquistiMensili: any[] = [];
+    for (const y of [annoPrec, anno]) {
+      for (let m = 1; m <= 12; m++) {
+        const mese = `${y}-${String(m).padStart(2, '0')}`;
+        const fatturato = round2(30000 + rFat() * 25000);
+        fatturaMensile.push({ mese, fatturato, imponibile: round2(fatturato / 1.22) });
+        acquistiMensili.push({ mese, costi: round2(18000 + rAcq() * 15000) });
+      }
+    }
+    const totFatturato = fatturaMensile.filter(r => r.mese.startsWith(String(anno))).reduce((s, r) => s + r.fatturato, 0);
+    let cum = 0;
+    const abcClienti = genClienti().slice(0, 8).map((c, i) => {
+      const fatturato = round2(totFatturato * 0.28 * Math.pow(0.62, i));
+      cum += fatturato;
+      const pctCumulativa = round2(Math.min(100, (cum / totFatturato) * 100));
+      return {
+        nome: c.ragioneSociale, fatturato, numFatture: 12 - i,
+        pct: round2((fatturato / totFatturato) * 100), pctCumulativa,
+        classe: pctCumulativa <= 80 ? 'A' : pctCumulativa <= 95 ? 'B' : 'C',
+      };
+    });
+    const categorie = ['Ferramenta', 'Elettrico', 'Idraulico', 'Edilizia'].map((categoria, i) => ({
+      categoria, imponibile: round2(80000 - i * 15000), quantita: 900 - i * 180,
+    }));
+    const prodottiMargini = genProdotti().slice(0, 10).map((p, i) => {
+      const ricavi = round2(9000 - i * 640);
+      const costiStimati = round2(ricavi * 0.6);
+      return {
+        nome: p.nome, ricavi, costiStimati, margine: round2(ricavi - costiStimati),
+        marginePerc: round2((1 - costiStimati / ricavi) * 100), qtaVenduta: 400 - i * 31,
+      };
+    });
+    const stagionalita = Array.from({ length: 12 }, (_, i) => ({
+      mese_num: String(i + 1).padStart(2, '0'), media: round2(35000 + Math.sin(i / 1.8) * 12000),
+    }));
+    return {
+      anno: String(anno), annoPrec: String(annoPrec),
+      fatturaMensile, acquistiMensili, abcClienti, categorie,
+      dsoMedio: 34.5,
+      incassoStats: { emesso: round2(totFatturato), incassato: round2(totFatturato * 0.87), tassoIncasso: 87 },
+      prodottiMargini, stagionalita,
+    };
+  },
   // Validazione XML prima dell'invio SDI. Di default passa con un avviso: il caso
   // "non inviabile" si prova mettendo `ok: false` qui, oppure dallo stato "Letture KO".
   'fattura-xml': () => ({ ok: true, errors: [], warnings: ['Il codice destinatario del cliente è generico (0000000): la fattura sarà recapitata via PEC.'] }),
