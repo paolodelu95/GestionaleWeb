@@ -12,16 +12,27 @@ import { OnboardingChecklistComponent } from '../shared/onboarding-checklist';
 import { WelcomeOfflineComponent } from '../shared/welcome-offline';
 import { ScadenzarioEntry, Ddt, Prodotto, Preventivo } from '../../models';
 
-type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'neutral';
 
 interface App {
   label: string;
   description: string;
   icon: string;
   route: string;
-  color: string;     // gradiente dell'icona (accento di categoria)
   category: string;
 }
+
+/** Un solo tono per categoria (non uno a caso per modulo): la Home resta
+ *  riconoscibile per sezione senza il "muro" di gradienti saturi di prima. */
+const CATEGORY_TONE: Record<string, Tone> = {
+  Anagrafica: 'primary',
+  Vendite: 'primary',
+  Acquisti: 'warning',
+  Magazzino: 'success',
+  Contabilità: 'info',
+  Operativo: 'purple',
+  Sistema: 'neutral',
+};
 
 interface AttentionItem {
   label: string;
@@ -43,7 +54,7 @@ interface AttentionItem {
       <!-- ── Hero: saluto + data ─────────────────────────────────────────── -->
       <header class="home-hero">
         <div class="home-hero-text">
-          <h1>{{ greeting }}{{ userName ? ', ' + userName : '' }} <span class="wave">👋</span></h1>
+          <h1>{{ greeting }}{{ userName ? ', ' + userName : '' }}</h1>
           <p class="home-hero-date">{{ oggi | date:'EEEE d MMMM y' | titlecase }}</p>
         </div>
       </header>
@@ -125,7 +136,7 @@ interface AttentionItem {
             <div class="mod-grid">
               @for (a of appsVisibili(cat); track a.route) {
                 <a class="mod-card" [routerLink]="a.route">
-                  <span class="mod-icon" [style.background]="a.color"><mat-icon>{{ a.icon }}</mat-icon></span>
+                  <span class="mod-icon" [class]="'tone-' + toneFor(a.category)"><mat-icon>{{ a.icon }}</mat-icon></span>
                   <span class="mod-text">
                     <span class="mod-label">{{ a.label }}</span>
                     <span class="mod-desc">{{ a.description }}</span>
@@ -144,10 +155,9 @@ interface AttentionItem {
     /* ── Hero ── */
     .home-hero { margin-bottom: var(--sp-6); }
     .home-hero h1 {
-      font-size: 28px; font-weight: 800; letter-spacing: -0.02em;
+      font-size: 21px; font-weight: 700; letter-spacing: -0.01em;
       margin: 0 0 2px; color: var(--text-primary);
     }
-    .home-hero h1 .wave { font-weight: 400; }
     .home-hero-date { font-size: 14px; color: var(--text-tertiary); margin: 0; }
 
     .home-block { margin-top: var(--sp-6); }
@@ -274,9 +284,15 @@ interface AttentionItem {
     .mod-icon {
       width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-md);
       display: flex; align-items: center; justify-content: center;
-      box-shadow: var(--shadow-xs);
+      background: var(--primary-soft); color: var(--primary);
     }
-    .mod-icon mat-icon { font-size: 22px; width: 22px; height: 22px; color: #fff; }
+    .mod-icon.tone-success { background: var(--success-soft); color: var(--success-on); }
+    .mod-icon.tone-warning { background: var(--warning-soft); color: var(--warning-on); }
+    .mod-icon.tone-danger  { background: var(--danger-soft);  color: var(--danger-on); }
+    .mod-icon.tone-info    { background: var(--info-soft);    color: var(--info-on); }
+    .mod-icon.tone-purple  { background: var(--purple-soft);  color: var(--purple-on); }
+    .mod-icon.tone-neutral { background: var(--bg-subtle);    color: var(--text-secondary); }
+    .mod-icon mat-icon { font-size: 22px; width: 22px; height: 22px; }
     .mod-text { display: flex; flex-direction: column; min-width: 0; }
     .mod-label { font-size: 14px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mod-desc { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -333,46 +349,48 @@ export class HomeAppComponent implements OnInit {
   // gradienti saturi), così la Home resta calma ma riconoscibile per categoria.
   readonly apps: App[] = [
     // ── Anagrafica ──
-    { label: 'Clienti',    description: 'Anagrafica clienti', icon: 'people',         route: '/clienti',   color: 'linear-gradient(135deg,#0284c7,#0369a1)', category: 'Anagrafica' },
-    { label: 'Fornitori',  description: 'Anagrafica fornitori', icon: 'local_shipping', route: '/fornitori', color: 'linear-gradient(135deg,#0891b2,#0e7490)', category: 'Anagrafica' },
-    { label: 'Prodotti',   description: 'Catalogo, varianti, listini', icon: 'inventory_2', route: '/prodotti', color: 'linear-gradient(135deg,#0d9488,#0f766e)', category: 'Anagrafica' },
+    { label: 'Clienti',    description: 'Anagrafica clienti', icon: 'people',         route: '/clienti',   category: 'Anagrafica' },
+    { label: 'Fornitori',  description: 'Anagrafica fornitori', icon: 'local_shipping', route: '/fornitori', category: 'Anagrafica' },
+    { label: 'Prodotti',   description: 'Catalogo, varianti, listini', icon: 'inventory_2', route: '/prodotti', category: 'Anagrafica' },
 
     // ── Vendite ──
-    { label: 'Preventivi',        description: 'Offerte commerciali',    icon: 'request_quote',   route: '/preventivi',         color: 'linear-gradient(135deg,#4f46e5,#4338ca)', category: 'Vendite' },
-    { label: 'Ordini cliente',    description: 'Ordini da clienti',      icon: 'shopping_cart',   route: '/ordini',             color: 'linear-gradient(135deg,#7c3aed,#6d28d9)', category: 'Vendite' },
-    { label: 'Documenti di trasporto', description: 'Trasporto e consegna merci', icon: 'receipt_long',    route: '/ddt',                color: 'linear-gradient(135deg,#9333ea,#7e22ce)', category: 'Vendite' },
-    { label: 'Fatture',           description: 'Emissione fatture + XML SDI', icon: 'receipt',    route: '/fatture',            color: 'linear-gradient(135deg,#db2777,#be185d)', category: 'Vendite' },
-    { label: 'Note di credito',   description: 'Storni e rimborsi',      icon: 'note_alt',        route: '/note-credito',       color: 'linear-gradient(135deg,#e11d48,#be123c)', category: 'Vendite' },
-    { label: 'Ricorrenti',        description: 'Fatturazione periodica', icon: 'autorenew',       route: '/fatture-ricorrenti', color: 'linear-gradient(135deg,#ea580c,#c2410c)', category: 'Vendite' },
-    { label: 'Listini',           description: 'Prezzi e sconti per cliente', icon: 'sell',       route: '/listini',            color: 'linear-gradient(135deg,#6d28d9,#5b21b6)', category: 'Vendite' },
+    { label: 'Preventivi',        description: 'Offerte commerciali',    icon: 'request_quote',   route: '/preventivi',         category: 'Vendite' },
+    { label: 'Ordini cliente',    description: 'Ordini da clienti',      icon: 'shopping_cart',   route: '/ordini',             category: 'Vendite' },
+    { label: 'Documenti di trasporto', description: 'Trasporto e consegna merci', icon: 'receipt_long',    route: '/ddt',                category: 'Vendite' },
+    { label: 'Fatture',           description: 'Emissione fatture + XML SDI', icon: 'receipt',    route: '/fatture',            category: 'Vendite' },
+    { label: 'Note di credito',   description: 'Storni e rimborsi',      icon: 'note_alt',        route: '/note-credito',       category: 'Vendite' },
+    { label: 'Ricorrenti',        description: 'Fatturazione periodica', icon: 'autorenew',       route: '/fatture-ricorrenti', category: 'Vendite' },
+    { label: 'Listini',           description: 'Prezzi e sconti per cliente', icon: 'sell',       route: '/listini',            category: 'Vendite' },
 
     // ── Acquisti ──
-    { label: 'Acquisti',     description: 'Fatture passive ricevute', icon: 'shopping_bag',  route: '/acquisti',     color: 'linear-gradient(135deg,#d97706,#b45309)', category: 'Acquisti' },
-    { label: 'Ordini fornitore', description: 'Ordini verso i fornitori', icon: 'shopping_cart', route: '/ordini-fornitore', color: 'linear-gradient(135deg,#ea580c,#c2410c)', category: 'Acquisti' },
-    { label: 'Arrivi merce', description: 'Entrate magazzino', icon: 'move_to_inbox', route: '/arrivi-merce', color: 'linear-gradient(135deg,#ca8a04,#a16207)', category: 'Acquisti' },
+    { label: 'Acquisti',     description: 'Fatture passive ricevute', icon: 'shopping_bag',  route: '/acquisti',     category: 'Acquisti' },
+    { label: 'Ordini fornitore', description: 'Ordini verso i fornitori', icon: 'shopping_cart', route: '/ordini-fornitore', category: 'Acquisti' },
+    { label: 'Arrivi merce', description: 'Entrate magazzino', icon: 'move_to_inbox', route: '/arrivi-merce', category: 'Acquisti' },
 
     // ── Magazzino ──
-    { label: 'Movimenti', description: 'Storico carichi/scarichi', icon: 'warehouse', route: '/magazzino', color: 'linear-gradient(135deg,#65a30d,#4d7c0f)', category: 'Magazzino' },
+    { label: 'Movimenti', description: 'Storico carichi/scarichi', icon: 'warehouse', route: '/magazzino', category: 'Magazzino' },
 
     // ── Contabilità ──
-    { label: 'Pagamenti',       description: 'Incassi e pagamenti',     icon: 'payments',        route: '/pagamenti',       color: 'linear-gradient(135deg,#16a34a,#15803d)', category: 'Contabilità' },
-    { label: 'Scadenzario',     description: 'Scadenze attive e passive', icon: 'event',         route: '/scadenzario',     color: 'linear-gradient(135deg,#059669,#047857)', category: 'Contabilità' },
-    { label: 'Prima nota',      description: 'Movimenti cassa/banca',   icon: 'menu_book',       route: '/prima-nota',      color: 'linear-gradient(135deg,#0d9488,#0f766e)', category: 'Contabilità' },
-    { label: 'Riconciliazione', description: 'Import OFX/CSV bancario', icon: 'account_balance', route: '/riconciliazione', color: 'linear-gradient(135deg,#0284c7,#0369a1)', category: 'Contabilità' },
-    { label: 'Compliance',      description: 'LIPE, esterometro, export', icon: 'verified',     route: '/compliance',      color: 'linear-gradient(135deg,#0369a1,#075985)', category: 'Contabilità' },
+    { label: 'Pagamenti',       description: 'Incassi e pagamenti',     icon: 'payments',        route: '/pagamenti',       category: 'Contabilità' },
+    { label: 'Scadenzario',     description: 'Scadenze attive e passive', icon: 'event',         route: '/scadenzario',     category: 'Contabilità' },
+    { label: 'Prima nota',      description: 'Movimenti cassa/banca',   icon: 'menu_book',       route: '/prima-nota',      category: 'Contabilità' },
+    { label: 'Riconciliazione', description: 'Import OFX/CSV bancario', icon: 'account_balance', route: '/riconciliazione', category: 'Contabilità' },
+    { label: 'Compliance',      description: 'LIPE, esterometro, export', icon: 'verified',     route: '/compliance',      category: 'Contabilità' },
 
     // ── Operativo ──
-    { label: 'Agenda',           description: 'Appuntamenti, todo, calendario', icon: 'event_note', route: '/agenda',     color: 'linear-gradient(135deg,#4f46e5,#4338ca)', category: 'Operativo' },
-    { label: 'Lavagna',          description: 'Bacheca di post-it', icon: 'sticky_note_2', route: '/lavagna', color: 'linear-gradient(135deg,#6366f1,#4f46e5)', category: 'Operativo' },
-    { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', color: 'linear-gradient(135deg,#dc2626,#b91c1c)', category: 'Operativo' },
+    { label: 'Agenda',           description: 'Appuntamenti, todo, calendario', icon: 'event_note', route: '/agenda',     category: 'Operativo' },
+    { label: 'Lavagna',          description: 'Bacheca di post-it', icon: 'sticky_note_2', route: '/lavagna', category: 'Operativo' },
+    { label: 'Vendita al banco', description: 'Cassa veloce',            icon: 'point_of_sale',  route: '/vendita-banco', category: 'Operativo' },
 
     // ── Sistema ──
-    { label: 'Dashboard',    description: 'KPI, grafici e cashflow', icon: 'dashboard',  route: '/dashboard',    color: 'linear-gradient(135deg,#475569,#334155)', category: 'Sistema' },
-    { label: 'Report',       description: 'Statistiche e analisi', icon: 'bar_chart',  route: '/report',       color: 'linear-gradient(135deg,#64748b,#475569)', category: 'Sistema' },
-    { label: 'Storico',      description: 'Audit log',             icon: 'history',    route: '/storico',      color: 'linear-gradient(135deg,#94a3b8,#64748b)', category: 'Sistema' },
-    { label: 'Aiuto',        description: 'Manuale + FAQ + scorciatoie', icon: 'menu_book', route: '/aiuto',     color: 'linear-gradient(135deg,#11769b,#15a4a2)', category: 'Sistema' },
-    { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', color: 'linear-gradient(135deg,#3f3f46,#27272a)', category: 'Sistema' },
+    { label: 'Dashboard',    description: 'KPI, grafici e cashflow', icon: 'dashboard',  route: '/dashboard',    category: 'Sistema' },
+    { label: 'Report',       description: 'Statistiche e analisi', icon: 'bar_chart',  route: '/report',       category: 'Sistema' },
+    { label: 'Storico',      description: 'Audit log',             icon: 'history',    route: '/storico',      category: 'Sistema' },
+    { label: 'Aiuto',        description: 'Manuale + FAQ + scorciatoie', icon: 'menu_book', route: '/aiuto',     category: 'Sistema' },
+    { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', category: 'Sistema' },
   ];
+
+  toneFor(category: string): Tone { return CATEGORY_TONE[category] ?? 'primary'; }
 
   constructor(auth: AuthService, private moduli: ModuliService, private ds: DataService, private router: Router) {
     // Edizione desktop offline: l'utente è sempre il placeholder "Utente locale",
