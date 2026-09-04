@@ -327,6 +327,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDest
   clienteCtrl = new FormControl<Cliente | string | null>('');
   private draft = inject(DraftService);
   private destroyRef = inject(DestroyRef);
+  private confirmDraft = inject(ConfirmService);
   private readonly draftTipo = 'note-credito';
   allFatture: Fattura[] = [];
   private usedFatturaIds = new Set<number>();
@@ -645,7 +646,8 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDest
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      if (window.confirm('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il cliente)')) {
+      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il cliente)').then(ok => {
+      if (ok) {
         try {
           const f = { ...(bozza.form || {}) }; delete f.numero;
           this.form.patchValue(f);
@@ -657,6 +659,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDest
       } else {
         this.draft.clear(this.draftTipo);
       }
+      });
     }
     const t = setInterval(() => {
       try {

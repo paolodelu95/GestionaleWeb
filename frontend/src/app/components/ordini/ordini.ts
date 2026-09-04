@@ -344,6 +344,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   clienteCtrl = new FormControl<Cliente | string | null>('');
   private draft = inject(DraftService);
   private destroyRef = inject(DestroyRef);
+  private confirmDraft = inject(ConfirmService);
   private readonly draftTipo = 'ordini';
   fornitori: Fornitore[] = [];
   filteredFornitori: Fornitore[] = [];
@@ -693,7 +694,8 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      if (window.confirm('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla cliente/fornitore)')) {
+      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla cliente/fornitore)').then(ok => {
+      if (ok) {
         try {
           const f = { ...(bozza.form || {}) }; delete f.numero;
           this.form.patchValue(f);
@@ -705,6 +707,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       } else {
         this.draft.clear(this.draftTipo);
       }
+      });
     }
     const t = setInterval(() => {
       try {

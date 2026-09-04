@@ -512,6 +512,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   clienteCtrl = new FormControl<Cliente | string | null>('');
   private draft = inject(DraftService);
   private destroyRef = inject(DestroyRef);
+  private confirmDraft = inject(ConfirmService);
   private readonly draftTipo = 'ddt';
   // Reso a fornitore: controparte fornitore al posto del cliente.
   tipoControparte: 'CLIENTE' | 'FORNITORE' = 'CLIENTE';
@@ -960,19 +961,21 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      if (window.confirm('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla cliente/fornitore)')) {
-        try {
-          const d = { ...(bozza.doc || {}) }; delete d.numero;
-          this.documentoForm.patchValue(d);
-          this.trasportoForm.patchValue(bozza.trasp || {});
-          this.righe = bozza.righe;
-          this.prezziRecenti = new Array(this.righe.length).fill([]);
-          this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
-          this.tuttiCaricati = new Array(this.righe.length).fill(false);
-        } catch { this.draft.clear(this.draftTipo); }
-      } else {
-        this.draft.clear(this.draftTipo);
-      }
+      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla cliente/fornitore)').then(ok => {
+        if (ok) {
+          try {
+            const d = { ...(bozza.doc || {}) }; delete d.numero;
+            this.documentoForm.patchValue(d);
+            this.trasportoForm.patchValue(bozza.trasp || {});
+            this.righe = bozza.righe;
+            this.prezziRecenti = new Array(this.righe.length).fill([]);
+            this.prezziRecentiTutti = new Array(this.righe.length).fill([]);
+            this.tuttiCaricati = new Array(this.righe.length).fill(false);
+          } catch { this.draft.clear(this.draftTipo); }
+        } else {
+          this.draft.clear(this.draftTipo);
+        }
+      });
     }
     const t = setInterval(() => {
       try {

@@ -1,7 +1,7 @@
 import { Component, Inject, Injectable } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -139,6 +139,69 @@ export class TypedConfirmDialogComponent {
   constructor(@Inject(MAT_DIALOG_DATA) public data: TypedConfirmOptions) {}
 }
 
+/** Opzioni del prompt testuale (vedi `ConfirmService.prompt`). */
+export interface PromptOptions {
+  message: string;
+  title?: string;
+  /** Etichetta del campo. Default: "Valore". */
+  label?: string;
+  placeholder?: string;
+  confirmText?: string;
+  cancelText?: string;
+  /** Maschera il testo digitato (es. password). Default: false. */
+  password?: boolean;
+  icon?: string;
+}
+
+/**
+ * Rimpiazzo a tema del `prompt()` nativo: chiede un valore testuale e lo
+ * restituisce (a differenza di `askTyping`, pensato solo per la riscrittura di
+ * una parola nota come conferma). Con `password: true` maschera l'input — cosa
+ * che il `prompt()` nativo non può fare, quindi è anche un miglioramento per i
+ * casi che chiedevano una password in chiaro.
+ */
+@Component({
+  selector: 'app-prompt-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
+            MatFormFieldModule, MatInputModule],
+  template: `
+    <div mat-dialog-title class="cd-head">
+      <span class="cd-icon"><mat-icon>{{ data.icon || 'edit' }}</mat-icon></span>
+      <span class="cd-title">{{ data.title || 'Conferma' }}</span>
+    </div>
+    <mat-dialog-content>
+      <p class="cd-message">{{ data.message }}</p>
+      <mat-form-field appearance="outline" class="cd-field">
+        <mat-label>{{ data.label || 'Valore' }}</mat-label>
+        <input matInput [type]="data.password ? 'password' : 'text'" [(ngModel)]="valore"
+               [placeholder]="data.placeholder || ''" autocomplete="off" spellcheck="false"
+               cdkFocusInitial (keydown.enter)="valore.trim() && dialogRef.close(valore)">
+      </mat-form-field>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button [mat-dialog-close]="null">{{ data.cancelText || 'Annulla' }}</button>
+      <button mat-flat-button color="primary" [disabled]="!valore.trim()"
+              [mat-dialog-close]="valore">{{ data.confirmText || 'Conferma' }}</button>
+    </mat-dialog-actions>`,
+  styles: [`
+    .cd-head { display: flex; align-items: center; gap: 12px; padding-bottom: 4px; }
+    .cd-icon {
+      width: 40px; height: 40px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      background: var(--primary-soft); color: var(--primary); flex-shrink: 0;
+    }
+    .cd-icon mat-icon { font-size: 22px; width: 22px; height: 22px; }
+    .cd-title { font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; }
+    .cd-message { font-size: 14px; line-height: 1.55; color: var(--text-secondary); margin: 4px 0 12px; white-space: pre-line; }
+    .cd-field { width: 100%; }
+  `],
+})
+export class PromptDialogComponent {
+  valore = '';
+  constructor(@Inject(MAT_DIALOG_DATA) public data: PromptOptions, public dialogRef: MatDialogRef<PromptDialogComponent>) {}
+}
+
 @Injectable({ providedIn: 'root' })
 export class ConfirmService {
   constructor(private dialog: MatDialog) {}
@@ -190,6 +253,22 @@ export class ConfirmService {
       restoreFocus: true,
     });
     return firstValueFrom(ref.afterClosed()).then(r => r === true);
+  }
+
+  /**
+   * Rimpiazzo a tema di `prompt()`: chiede un valore testuale (es. una password
+   * o un nome libero) e lo restituisce, o `null` se l'utente annulla.
+   */
+  prompt(opts: string | PromptOptions): Promise<string | null> {
+    const data: PromptOptions = typeof opts === 'string' ? { message: opts } : opts;
+    const ref = this.dialog.open(PromptDialogComponent, {
+      data,
+      width: '440px',
+      maxWidth: '92vw',
+      restoreFocus: true,
+      autoFocus: '[cdkFocusInitial]',
+    });
+    return firstValueFrom(ref.afterClosed()).then(r => (typeof r === 'string' ? r : null));
   }
 
   /** Conferma di eliminazione (rossa, etichetta "Elimina"). */

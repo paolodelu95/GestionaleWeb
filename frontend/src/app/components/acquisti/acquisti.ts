@@ -277,6 +277,7 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
   fornitoreCtrl = new FormControl<Fornitore | string | null>('');
   private draft = inject(DraftService);
   private destroyRef = inject(DestroyRef);
+  private confirmDraft = inject(ConfirmService);
   private readonly draftTipo = 'acquisti';
   private currentFornitoreId(): number | null {
     const v: any = this.fornitoreCtrl.value;
@@ -515,15 +516,17 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      if (window.confirm('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il fornitore)')) {
-        try {
-          const f = { ...(bozza.form || {}) }; delete f.numero;
-          this.form.patchValue(f);
-          this.righe = bozza.righe;
-        } catch { this.draft.clear(this.draftTipo); }
-      } else {
-        this.draft.clear(this.draftTipo);
-      }
+      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il fornitore)').then(ok => {
+        if (ok) {
+          try {
+            const f = { ...(bozza.form || {}) }; delete f.numero;
+            this.form.patchValue(f);
+            this.righe = bozza.righe;
+          } catch { this.draft.clear(this.draftTipo); }
+        } else {
+          this.draft.clear(this.draftTipo);
+        }
+      });
     }
     const t = setInterval(() => {
       try {

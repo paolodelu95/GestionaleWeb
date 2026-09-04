@@ -1267,7 +1267,9 @@ export class ImpostazioniComponent implements OnInit {
     if (!filePath) return;
     const nome = filePath.split(/[\\/]/).pop() || filePath;
     // Se il file è cifrato (.enc) chiedo la password usata per crearlo.
-    const password = /\.enc$/i.test(filePath) ? (window.prompt('Il backup è cifrato. Inserisci la password usata per crearlo:') || '') : undefined;
+    const password = /\.enc$/i.test(filePath)
+      ? (await this.confirm.prompt({ message: 'Il backup è cifrato. Inserisci la password usata per crearlo:', label: 'Password', password: true }) || '')
+      : undefined;
     if (!await this.confirm.delete(`Ripristinare da "${nome}"? I dati attuali verranno sostituiti (ne salvo prima una copia di sicurezza).`)) return;
     this.ds.restoreBackupFromFile(filePath, password).subscribe({
       next: () => { this.snack.open('Ripristino completato. Ricarico…', '', { duration: 2500 }); setTimeout(() => location.reload(), 1200); },
@@ -1301,7 +1303,10 @@ export class ImpostazioniComponent implements OnInit {
         this.snack.open('Imposta prima una password d\'accesso (scheda Sicurezza).', '', { duration: 4000 });
         return;
       }
-      const pw = window.prompt('Conferma la password d\'accesso: il database verrà cifrato con questa e te la richiederà a ogni avvio.');
+      const pw = await this.confirm.prompt({
+        message: 'Conferma la password d\'accesso: il database verrà cifrato con questa e te la richiederà a ogni avvio.',
+        label: 'Password', password: true,
+      });
       if (!pw) return;
       this.cifraturaBusy = true;
       this.ds.setCifratura(true, pw).subscribe({

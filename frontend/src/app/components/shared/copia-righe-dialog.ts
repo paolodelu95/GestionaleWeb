@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DataService } from '../../services/data.service';
+import { ConfirmService } from './confirm-dialog';
 import { RigaDocumento } from '../../models';
 import { docRigaTotale } from '../../utils/doc-calc';
 import { Observable } from 'rxjs';
@@ -267,6 +268,7 @@ export class CopiaRigheDialogComponent implements OnInit {
 
   constructor(
     private ds: DataService,
+    private confirm: ConfirmService,
     public dialogRef: MatDialogRef<CopiaRigheDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: CopiaRigheDialogData
   ) {}
@@ -420,12 +422,12 @@ export class CopiaRigheDialogComponent implements OnInit {
   }
 
   /** Salva le righe del documento in modifica come nuovo kit riutilizzabile. */
-  salvaComeKit() {
+  async salvaComeKit() {
     const righe = (this.data.righeCorrenti ?? [])
       .filter(r => (r.descrizione?.trim() || (r as any).prodottoId))
       .map(r => ({ ...r, id: undefined }));
     if (!righe.length) return;
-    const nome = (window.prompt('Nome del kit:') || '').trim();
+    const nome = ((await this.confirm.prompt('Nome del kit:')) || '').trim();
     if (!nome) return;
     this.ds.creaKit(nome, righe).subscribe({
       next: () => { if (this.selectedTipo === 'kit') this.loadDocumenti(); },
