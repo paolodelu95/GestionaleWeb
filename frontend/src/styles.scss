@@ -1775,8 +1775,10 @@ body.dark-mode { --field-fill: #232c41; --field-fill-disabled: #1c2336; }
   }
   .righe-table td.td-actions { order: 21; flex: 0 0 auto; align-items: flex-end; margin-left: auto; }
 
-  // Input/select full width + target touch
-  .righe-table td > input,
+  // Input/select full width + target touch (non le checkbox: "Scarica magazzino" in
+  // Fatture/DDT è un <input type="checkbox"> semplice, non deve diventare un blocco
+  // a piena larghezza come i campi testo/numero della riga)
+  .righe-table td > input:not([type="checkbox"]):not([type="radio"]),
   .righe-table td > select,
   .righe-table td .riga-input {
     width: 100% !important; min-width: 0 !important; min-height: var(--tap-min);
