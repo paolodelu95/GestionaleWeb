@@ -423,9 +423,9 @@ const AGGREGATI: Record<string, () => any> = {
   'stats/top-clienti': () => genClienti().slice(0, 10).map((c, i) => ({
     clienteId: c.id, ragioneSociale: c.ragioneSociale, totale: round2(48000 - i * 3700), documenti: 40 - i * 3,
   })),
-  'prodotti/count': () => ({ count: N }),
-  'clienti/count': () => ({ count: N }),
-  'ordini/count-aperti': () => ({ count: 14 }),
+  'prodotti/count': () => N,
+  'clienti/count': () => N,
+  'ordini/count-aperti': () => 14,
   'prodotti/valore': () => 184320.55,
   'prodotti/sotto-soglia': () => genProdotti().filter((p) => p.sogliaMinima && p.quantita < p.sogliaMinima).slice(0, 12),
   'ddt/non-fatturati': () => COLLEZIONI['ddt']().filter((d: any) => !d.fatturaId).slice(0, 25),

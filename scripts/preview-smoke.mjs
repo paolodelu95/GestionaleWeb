@@ -123,7 +123,8 @@ async function main() {
         const v = outlet?.nextElementSibling;
         return v ? v.tagName.toLowerCase() : null;
       });
-      const caratteri = (await page.evaluate(() => document.body.innerText || '')).length;
+      const testo = await page.evaluate(() => document.body.innerText || '');
+      const caratteri = testo.length;
       const snackbar = await page.locator('.mat-mdc-snack-bar-container').count();
       const sogliaChars = MIN_CHARS_OVERRIDE[rotta] ?? MIN_CHARS;
       const filtri = STATE === 'full' ? RUMORE_CONSOLE : [...RUMORE_CONSOLE, ...RUMORE_CONSOLE_SOLO_ERRORE];
@@ -131,6 +132,9 @@ async function main() {
 
       if (!componente) problema = 'nessun componente montato sotto <router-outlet>';
       else if (caratteri < sogliaChars) problema = `contenuto troppo scarno (${caratteri} caratteri, minimo ${sogliaChars})`;
+      // Fixture con la forma sbagliata (oggetto invece di numero/stringa attesi):
+      // il binding non lancia un errore, stampa solo "[object Object]" a schermo.
+      else if (testo.includes('[object Object]')) problema = `"[object Object]" reso a schermo (fixture con forma sbagliata)`;
       // Con stato "full" nessuna operazione dovrebbe fallire: una snackbar è un difetto (B1).
       // Con "error"/"error-load" è vero il contrario: un errore silenzioso sarebbe la regressione.
       else if (snackbar > 0 && STATE === 'full') problema = `${snackbar} snackbar inattesa/e all'apertura`;
