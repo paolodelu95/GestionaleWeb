@@ -54,4 +54,8 @@ export const routes: Routes = [
   { path: 'trial-expired', loadComponent: () => import('./components/trial-expired/trial-expired').then(m => m.TrialExpiredComponent) },
   { path: 'billing', loadComponent: () => import('./components/billing/billing').then(m => m.BillingComponent) },
   { path: 'account', loadComponent: () => import('./components/account/account').then(m => m.AccountComponent) },
+  // Rotta sconosciuta → Home. Senza questa, un indirizzo non valido lasciava il
+  // guscio dell'app con l'area contenuti vuota: nessuna spiegazione, nessuna via
+  // d'uscita. Deve restare l'ULTIMA voce dell'elenco.
+  { path: '**', redirectTo: 'app' },
 ];
