@@ -346,6 +346,35 @@ const COLLEZIONI: Record<string, () => any[]> = {
     { id: 1, testo: 'Richiamare Rossi per il preventivo del capannone', colore: 'giallo', x: 40, y: 40 },
     { id: 2, testo: 'Ordinare cemento: scorta sotto soglia', colore: 'rosa', x: 260, y: 90 },
   ])),
+  'audit/recent': () => {
+    const tipi: { entityType: string; azioni: { action: string; payload: any }[] }[] = [
+      { entityType: 'fattura', azioni: [
+        { action: 'CREATE', payload: { numero: '2026/0198', stato: 'BOZZA' } },
+        { action: 'UPDATE', payload: { numero: '2026/0198', before: { stato: 'BOZZA' }, after: { stato: 'EMESSA' } } },
+      ] },
+      { entityType: 'cliente', azioni: [
+        { action: 'CREATE', payload: { numero: 'Bianchi Impianti S.r.l.' } },
+        { action: 'UPDATE', payload: { before: { telefono: '02 1234567' }, after: { telefono: '02 6782542' } } },
+      ] },
+      { entityType: 'prodotto', azioni: [
+        { action: 'UPDATE', payload: { before: { prezzo: 12.5 }, after: { prezzo: 13.9 } } },
+        { action: 'DELETE', payload: { numero: 'MAT-0099' } },
+      ] },
+      { entityType: 'ordine', azioni: [{ action: 'CREATE', payload: { numero: 'RO-42', stato: 'INVIATO' } }] },
+    ];
+    const rows: any[] = [];
+    let id = 1;
+    for (let i = 0; i < 40; i++) {
+      const g = tipi[i % tipi.length];
+      const az = g.azioni[i % g.azioni.length];
+      const d = new Date(2026, 8, 4 - Math.floor(i / 2), 9 + (i % 8), (i * 7) % 60);
+      rows.push({
+        id: id++, entityType: g.entityType, entityId: 100 + i, action: az.action,
+        payload: az.payload, createdAt: d.toISOString().slice(0, 19).replace('T', ' '),
+      });
+    }
+    return rows;
+  },
 };
 
 // ── Statistiche e aggregati ──────────────────────────────────────────────────
