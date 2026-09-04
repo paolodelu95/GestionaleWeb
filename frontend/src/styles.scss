@@ -2756,8 +2756,12 @@ html.density-compact {
     td.mat-mdc-cell { padding: 6px 10px !important; font-size: 13px !important; }
   }
 
-  // ── Sezioni form / strisce totali nei dialog documento ──
-  .form-section { padding: 12px 14px; }
+  // ── Sezioni form / strisce totali nei dialog documento e anagrafica ──
+  // Erano pensate per il web/touch: sezioni larghe, molto gap tra i campi. Su
+  // desktop un form come "Nuovo cliente" (2 sezioni, 4 campi) non ha bisogno di
+  // 500px di dialog per stare in piedi.
+  .form-section { padding: 10px 14px; gap: 4px; margin-bottom: 8px; }
+  .form-section-header { margin-bottom: 0; }
   .doc-totals-strip { padding: 10px 14px; }
 
   // ── Dialog: meno respiro interno ──
