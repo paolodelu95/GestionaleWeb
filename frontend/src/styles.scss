@@ -2737,8 +2737,17 @@ html.density-compact {
   .kpi-card { padding: 14px 16px; }
 
   // ── Tabelle: celle più basse (oltre alla densità Material) ──
-  th.mat-mdc-header-cell { padding: 8px 12px !important; }
-  td.mat-mdc-cell { padding: 8px 12px !important; }
+  // SOLO da tablet in su. Sotto i 768px le tabelle diventano schede (vedi il blocco
+  // `@media (max-width: 767px)` più sopra) e queste due righe — stessa specificità
+  // di quelle del layout a schede, ma posizione successiva nel foglio — ne
+  // annullavano i padding: la casella di selezione, posizionata in assoluto, finiva
+  // sopra le prime cifre del numero documento ("2026/0200" si leggeva "/0200") in
+  // tutte le liste con colonna di selezione. La densità compatta nasce per il
+  // desktop: qui resta.
+  @media (min-width: 768px) {
+    th.mat-mdc-header-cell { padding: 8px 12px !important; }
+    td.mat-mdc-cell { padding: 8px 12px !important; }
+  }
 
   // ── Sezioni form / strisce totali nei dialog documento ──
   .form-section { padding: 12px 14px; }
