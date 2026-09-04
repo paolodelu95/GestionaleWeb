@@ -1227,6 +1227,15 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
   transition: background var(--transition-fast) !important;
 }
 
+// Stesso difetto dei bottoni sopra: il default M3 è molto arrotondato ("pill")
+// anche fuori dal tema glass, dove non è la scelta voluta. La regola più
+// specifica dentro body.glass-ui (sotto, nel blocco del tema) vince comunque.
+.mat-button-toggle-group {
+  border-radius: 8px !important;
+  .mat-button-toggle:first-child { border-top-left-radius: 8px !important; border-bottom-left-radius: 8px !important; }
+  .mat-button-toggle:last-child { border-top-right-radius: 8px !important; border-bottom-right-radius: 8px !important; }
+}
+
 // Campi "filled" — Material 3 in tema viola colora il container lavanda
 // saturo. Forziamo un grigio neutro distinto sia da surface che surface-2
 // per rimanere leggibili dentro le form-section, in light e dark.
