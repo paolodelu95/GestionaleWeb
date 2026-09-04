@@ -2734,9 +2734,14 @@ html.density-compact {
   --topbar-height: 52px;
 
   // ── Contenitori di pagina ──
-  .page { padding: 20px 24px; }
-  .card { padding: 16px; }
-  .kpi-card { padding: 14px 16px; }
+  .page { padding: 16px 20px; }
+  .card { padding: 14px; }
+  .kpi-card { padding: 12px 14px; }
+
+  // ── Intestazione pagina: meno spazio sopra le liste, titolo meno vistoso ──
+  .page-header { margin-bottom: 14px; }
+  .page-title { font-size: 19px; }
+  .filter-bar, .search-field { margin-bottom: 10px; }
 
   // ── Tabelle: celle più basse (oltre alla densità Material) ──
   // SOLO da tablet in su. Sotto i 768px le tabelle diventano schede (vedi il blocco
@@ -2747,8 +2752,8 @@ html.density-compact {
   // tutte le liste con colonna di selezione. La densità compatta nasce per il
   // desktop: qui resta.
   @media (min-width: 768px) {
-    th.mat-mdc-header-cell { padding: 8px 12px !important; }
-    td.mat-mdc-cell { padding: 8px 12px !important; }
+    th.mat-mdc-header-cell { padding: 6px 10px !important; font-size: 11px !important; }
+    td.mat-mdc-cell { padding: 6px 10px !important; font-size: 13px !important; }
   }
 
   // ── Sezioni form / strisce totali nei dialog documento ──
