@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { ConfirmService } from '../shared/confirm-dialog';
@@ -62,7 +63,8 @@ export class CollegaFatturaDialogComponent {
   selector: 'app-ordini-fornitore',
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule, MatMenuModule,
-            MatTooltipModule, MatSnackBarModule, MatDialogModule, EmptyStateComponent],
+            MatTooltipModule, MatSnackBarModule, MatDialogModule, EmptyStateComponent,
+            MatPaginatorModule],
   templateUrl: './ordini-fornitore.html',
 })
 export class OrdiniFornitoreComponent implements OnInit {
@@ -78,6 +80,20 @@ export class OrdiniFornitoreComponent implements OnInit {
 
   load() {
     this.ds.getOrdini().subscribe(o => this.ordini = o.filter(x => x.tipo === 'FORNITORE'));
+  }
+
+  ordPageIndex = 0;
+  ordPageSize = 25;
+  onOrdPage(e: PageEvent) { this.ordPageIndex = e.pageIndex; this.ordPageSize = e.pageSize; }
+
+  get ordPageIndexClamped(): number {
+    const maxIndex = Math.max(0, Math.ceil(this.ordini.length / this.ordPageSize) - 1);
+    return Math.min(this.ordPageIndex, maxIndex);
+  }
+
+  /** Pagina corrente di `ordini` per la tabella (B.8): con dati reali supera le 200 righe. */
+  get ordiniPagina(): Ordine[] {
+    return this.ordini.slice(this.ordPageIndexClamped * this.ordPageSize, (this.ordPageIndexClamped + 1) * this.ordPageSize);
   }
 
   private nextNumero(): string {

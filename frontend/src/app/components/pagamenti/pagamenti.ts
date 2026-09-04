@@ -13,6 +13,7 @@ import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angu
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -223,7 +224,8 @@ export class PagamentoDialogComponent implements OnInit {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatButtonToggleModule,
-            FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule, MatMenuModule, EmptyStateComponent],
+            FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule, MatMenuModule, EmptyStateComponent,
+            MatPaginatorModule],
   templateUrl: './pagamenti.html',
   styleUrl: './pagamenti.scss'
 })
@@ -248,7 +250,7 @@ export class PagamentiComponent implements OnInit {
   pagSortCol = 'data'; pagSortDir: 'asc'|'desc' = 'desc';
   scadSortCol = 'dataScadenza'; scadSortDir: 'asc'|'desc' = 'asc';
 
-  onPagSort(s: { active: string; direction: string }) { this.pagSortCol = s.active; this.pagSortDir = (s.direction || 'desc') as 'asc'|'desc'; }
+  onPagSort(s: { active: string; direction: string }) { this.pagSortCol = s.active; this.pagSortDir = (s.direction || 'desc') as 'asc'|'desc'; this.pagPageIndex = 0; }
   onScadSort(s: { active: string; direction: string }) { this.scadSortCol = s.active; this.scadSortDir = (s.direction || 'asc') as 'asc'|'desc'; }
 
   constructor(private ds: DataService, private dialog: MatDialog, private snack: MatSnackBar) {}
@@ -316,6 +318,24 @@ export class PagamentiComponent implements OnInit {
         ...this.allScadenzario.map(e => e.controparte).filter(Boolean),
       ] as string[])].sort();
     return [...new Set(this.allPagamenti.map(p => p.clienteNome || p.fornitoreNome).filter(Boolean))].sort() as string[];
+  }
+
+  pagPageIndex = 0;
+  pagPageSize = 25;
+
+  onPagPage(e: PageEvent) { this.pagPageIndex = e.pageIndex; this.pagPageSize = e.pageSize; }
+
+  /** Pagina corrente di `pagamenti` per la tabella (B.8): con dati reali la lista
+   *  può superare le 200 righe. Riallinea l'indice se un filtro ne riduce il totale
+   *  sotto la pagina in cui l'utente si trovava, invece di mostrarne una vuota. */
+  get pagamentiPagina(): Pagamento[] {
+    const data = this.pagamenti;
+    return data.slice(this.pagPageIndexClamped * this.pagPageSize, (this.pagPageIndexClamped + 1) * this.pagPageSize);
+  }
+
+  get pagPageIndexClamped(): number {
+    const maxIndex = Math.max(0, Math.ceil(this.pagamenti.length / this.pagPageSize) - 1);
+    return Math.min(this.pagPageIndex, maxIndex);
   }
 
   get pagamenti(): Pagamento[] {

@@ -148,11 +148,13 @@
           <tr mat-header-row *matHeaderRowDef="colMovimenti"></tr>
           <tr mat-row *matRowDef="let row; columns: colMovimenti;"></tr>
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell" [colSpan]="colMovimenti.length" style="padding:32px;color:#94a3b8;text-align:center">
-              Nessun movimento registrato
+            <td class="mat-cell" [colSpan]="colMovimenti.length">
+              <app-empty-state compact icon="warehouse" title="Nessun movimento registrato"
+                message="Carichi e scarichi di magazzino compariranno qui." />
             </td>
           </tr>
         </table>
+        <mat-paginator #paginatorMov [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons />
       </div>
     </mat-tab>
 

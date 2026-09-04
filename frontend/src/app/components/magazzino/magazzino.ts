@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -87,6 +88,7 @@ export class MagazzinoRettificaDialogComponent {
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatTabsModule, MatTooltipModule, MatSnackBarModule, MatDialogModule, EmptyStateComponent,
+    MatPaginatorModule,
   ],
   templateUrl: './magazzino.html',
   styles: [`
@@ -160,6 +162,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
   get totaleScarichi(): number { return this.movimenti.filter(m => m.tipo === 'SCARICO').reduce((s, m) => s + m.quantita, 0); }
 
   @ViewChild('sortMov') sortMov!: MatSort;
+  @ViewChild('paginatorMov') paginatorMov!: MatPaginator;
 
   // ── Storico ────────────────────────────────────────────────────────────────
   dataStorico: string = '';
@@ -283,6 +286,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.dsMovimenti.sort = this.sortMov;
+    this.dsMovimenti.paginator = this.paginatorMov;
     this.dsMovimenti.sortingDataAccessor = (item, col) => {
       if (col === 'data') return item.data;
       if (col === 'quantita') return item.quantita;

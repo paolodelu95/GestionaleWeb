@@ -185,7 +185,7 @@
     }
 
     <div class="card">
-      <table mat-table [dataSource]="pagamenti" matSort (matSortChange)="onPagSort($event)"
+      <table mat-table [dataSource]="pagamentiPagina" matSort (matSortChange)="onPagSort($event)"
              matSortActive="data" matSortDirection="desc" matSortDisableClear class="mat-mdc-table">
 
         <ng-container matColumnDef="data">
@@ -263,6 +263,10 @@
         <tr mat-row *matRowDef="let row; columns: pagamentiCols;"></tr>
       </table>
       @if (!pagamenti.length) { <app-empty-state compact icon="payments" title="Nessun pagamento registrato" message="Qui compaiono incassi e pagamenti man mano che li registri." /> }
+      @if (pagamenti.length) {
+        <mat-paginator [length]="pagamenti.length" [pageSize]="pagPageSize" [pageIndex]="pagPageIndexClamped"
+                        [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons (page)="onPagPage($event)" />
+      }
     </div>
 
     @if (filtro === 'TUTTI') {
