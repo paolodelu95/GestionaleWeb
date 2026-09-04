@@ -5,6 +5,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { MatPaginatorIntl } from '@angular/material/paginator';
 import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
 import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -31,6 +32,11 @@ export const appConfig: ApplicationConfig = {
     // Tetto del 95vw a TUTTI i dialog: evita overflow orizzontale su mobile/tablet
     // anche per i dialog aperti con width fissa in px (senza toccarne le chiamate).
     { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: { maxWidth: '95vw', autoFocus: 'dialog', restoreFocus: true } },
+    // "outline" invece del default "fill": bordo sottile con l'etichetta incastonata
+    // nel notch, non un riquadro a sfondo pieno — permette campi più bassi perché
+    // l'etichetta non deve stare dentro l'altezza del riquadro (vedi styles.scss,
+    // densità compatta desktop).
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
     { provide: MatPaginatorIntl, useFactory: italianPaginatorIntl },
     provideServiceWorker('ngsw-worker.js', {
             enabled: !isDevMode(),

@@ -23,6 +23,7 @@ import { provideRouter } from '@angular/router';
 import { MatPaginatorIntl } from '@angular/material/paginator';
 import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
 import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { provideServiceWorker } from '@angular/service-worker';
 import { registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
@@ -56,6 +57,7 @@ const comuni = [
   { provide: LOCALE_ID, useValue: 'it' },
   { provide: MAT_DATE_LOCALE, useValue: 'it-IT' },
   { provide: MatPaginatorIntl, useFactory: italianPaginatorIntl },
+  { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
   // Disabilitato, ma il provider serve: `App` inietta `SwUpdate` e senza questo
   // il bootstrap fallisce con NG0201 e la pagina resta bianca.
   provideServiceWorker('ngsw-worker.js', { enabled: false }),
