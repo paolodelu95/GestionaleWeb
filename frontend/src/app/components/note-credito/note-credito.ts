@@ -928,7 +928,15 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Id delle note di credito in corso di duplicazione: evita un doppio clic
+   *  rapido sul kebab → "Duplica" (il menu si chiude subito, quindi non basta
+   *  disabilitare il bottone) che creerebbe due copie della stessa nota. */
+  private duplicating = new Set<number>();
+
   duplicate(n: NotaCredito) {
+    if (!n.id || this.duplicating.has(n.id)) return;
+    this.duplicating.add(n.id);
+    const fine = () => this.duplicating.delete(n.id!);
     forkJoin({ full: this.ds.getNotaCreditoById(n.id!), num: this.ds.getNextNumero('note-credito') }).subscribe({
       next: ({ full, num }) => {
         const { id, ...pre } = full as any;
@@ -937,11 +945,11 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
         pre.stato = 'EMESSA';
         pre.fatturaId = null;
         this.ds.createNotaCredito(pre).subscribe({
-          next: () => { this.load(); this.snack.open(`Nota di credito duplicata (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+          next: () => { fine(); this.load(); this.snack.open(`Nota di credito duplicata (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
+      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
     });
   }
 

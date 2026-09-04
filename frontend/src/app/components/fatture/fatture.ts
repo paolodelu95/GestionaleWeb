@@ -1992,7 +1992,15 @@ export class FattureComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Id delle fatture in corso di duplicazione: evita un doppio clic rapido sul
+   *  kebab → "Duplica" (il menu si chiude subito, quindi non basta disabilitare
+   *  il bottone) che creerebbe due copie della stessa fattura. */
+  private duplicating = new Set<number>();
+
   duplicate(f: Fattura) {
+    if (!f.id || this.duplicating.has(f.id)) return;
+    this.duplicating.add(f.id);
+    const fine = () => this.duplicating.delete(f.id!);
     forkJoin({ full: this.ds.getFatturaById(f.id!), num: this.ds.getNextNumero('fatture') }).subscribe({
       next: ({ full, num }) => {
         const { id, ...pre } = full as any;
@@ -2001,11 +2009,11 @@ export class FattureComponent implements OnInit, AfterViewInit {
         pre.stato = 'EMESSA';
         pre.ddtIds = [];
         this.ds.createFattura(pre).subscribe({
-          next: () => { this.load(); this.snack.open(`Fattura duplicata (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+          next: () => { fine(); this.load(); this.snack.open(`Fattura duplicata (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
+      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
     });
   }
 

@@ -912,7 +912,15 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Id degli acquisti in corso di duplicazione: evita un doppio clic rapido sul
+   *  kebab → "Duplica" (il menu si chiude subito, quindi non basta disabilitare
+   *  il bottone) che creerebbe due copie dello stesso acquisto. */
+  private duplicating = new Set<number>();
+
   duplicate(a: Acquisto) {
+    if (!a.id || this.duplicating.has(a.id)) return;
+    this.duplicating.add(a.id);
+    const fine = () => this.duplicating.delete(a.id!);
     forkJoin({ full: this.ds.getAcquistoById(a.id!), num: this.ds.getNextNumero('acquisti') }).subscribe({
       next: ({ full, num }) => {
         const { id, ...pre } = full as any;
@@ -920,11 +928,11 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'RICEVUTA';
         this.ds.createAcquisto(pre).subscribe({
-          next: () => { this.load(); this.snack.open(`Acquisto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+          next: () => { fine(); this.load(); this.snack.open(`Acquisto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
+      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
     });
   }
 

@@ -1324,7 +1324,15 @@ export class DdtComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Id dei DDT in corso di duplicazione: evita un doppio clic rapido sul kebab →
+   *  "Duplica" (il menu si chiude subito, quindi non basta disabilitare il
+   *  bottone) che creerebbe due copie dello stesso documento. */
+  private duplicating = new Set<number>();
+
   duplicate(d: Ddt) {
+    if (!d.id || this.duplicating.has(d.id)) return;
+    this.duplicating.add(d.id);
+    const fine = () => this.duplicating.delete(d.id!);
     forkJoin({ full: this.ds.getDdtById(d.id!), num: this.ds.getNextNumero('ddt') }).subscribe({
       next: ({ full, num }) => {
         const { id, ...pre } = full as any;
@@ -1332,11 +1340,11 @@ export class DdtComponent implements OnInit, AfterViewInit {
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'EMESSO';
         this.ds.createDdt(pre).subscribe({
-          next: () => { this.load(); this.snack.open(`Documento di trasporto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' })
+          next: () => { fine(); this.load(); this.snack.open(`Documento di trasporto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 })
+      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
     });
   }
 
