@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin, of, Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -105,7 +105,9 @@ interface AttentionItem {
           <h2 class="block-title">Azioni rapide</h2>
           <div class="qa-grid">
             @for (q of quickActionsVisibili; track q.route) {
-              <a class="qa-tile" [routerLink]="q.route">
+              <a class="qa-tile" role="button" tabindex="0"
+                 (click)="apriAzione(q)" (keydown.enter)="apriAzione(q)"
+                 (keydown.space)="$event.preventDefault(); apriAzione(q)">
                 <span class="qa-icon"><mat-icon>{{ q.icon }}</mat-icon></span>
                 <span class="qa-label">{{ q.label }}</span>
                 <mat-icon class="qa-plus">add</mat-icon>
@@ -309,14 +311,19 @@ export class HomeAppComponent implements OnInit {
   readonly categories = ['Anagrafica', 'Vendite', 'Acquisti', 'Magazzino', 'Contabilità', 'Operativo', 'Sistema'];
 
   // Azioni rapide: i compiti più frequenti, in cima alla Home. Filtrate per modulo attivo.
-  readonly quickActions: { label: string; icon: string; route: string }[] = [
-    { label: 'Nuova fattura',    icon: 'receipt',        route: '/fatture' },
-    { label: 'Nuovo preventivo', icon: 'request_quote',  route: '/preventivi' },
-    { label: 'Nuovo documento di trasporto', icon: 'local_shipping', route: '/ddt' },
+  readonly quickActions: { label: string; icon: string; route: string; state?: Record<string, any> }[] = [
+    { label: 'Nuova fattura',    icon: 'receipt',        route: '/fatture',    state: { nuovaBozza: {} } },
+    { label: 'Nuovo preventivo', icon: 'request_quote',  route: '/preventivi', state: { nuovaBozza: {} } },
+    { label: 'Nuovo documento di trasporto', icon: 'local_shipping', route: '/ddt', state: { nuovaBozza: {} } },
     { label: 'Vendita al banco', icon: 'point_of_sale',  route: '/vendita-banco' },
-    { label: 'Nuovo cliente',    icon: 'person_add',     route: '/clienti' },
-    { label: 'Registra acquisto',icon: 'shopping_bag',   route: '/acquisti' },
+    { label: 'Nuovo cliente',    icon: 'person_add',     route: '/clienti',    state: { prefill: {} } },
+    { label: 'Registra acquisto',icon: 'shopping_bag',   route: '/acquisti',   state: { nuovaBozza: {} } },
   ];
+
+  /** Naviga a un'azione rapida passando lo stato che apre subito il dialog "nuovo" (B.3). */
+  apriAzione(q: { route: string; state?: Record<string, any> }) {
+    this.router.navigate([q.route], q.state ? { state: q.state } : undefined);
+  }
 
   get quickActionsVisibili(): { label: string; icon: string; route: string }[] {
     return this.quickActions.filter(q => this.moduli.routeAbilitata(q.route));
@@ -367,7 +374,7 @@ export class HomeAppComponent implements OnInit {
     { label: 'Impostazioni', description: 'Configurazione azienda', icon: 'settings',  route: '/impostazioni', color: 'linear-gradient(135deg,#3f3f46,#27272a)', category: 'Sistema' },
   ];
 
-  constructor(auth: AuthService, private moduli: ModuliService, private ds: DataService) {
+  constructor(auth: AuthService, private moduli: ModuliService, private ds: DataService, private router: Router) {
     // Edizione desktop offline: l'utente è sempre il placeholder "Utente locale",
     // quindi il saluto resta neutro ("Buongiorno"). Sul web (multi-tenant) usa il nome.
     const u = auth.getUser();

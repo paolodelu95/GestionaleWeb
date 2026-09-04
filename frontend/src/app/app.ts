@@ -132,7 +132,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   searchQuery = '';
   searchResults: { label: string; tipo: string; route: string; id: number }[] = [];
   /** Comandi di navigazione/azione filtrati (palette ⌘K). */
-  commandResults: { label: string; icon: string; route: string }[] = [];
+  commandResults: { label: string; icon: string; route: string; state?: Record<string, any> }[] = [];
   /** Risposta/bozza interpretata dalla barra comandi (parser deterministico server). */
   smartItem: any = null;
   /** Indice evidenziato nella palette (navigazione con ↑/↓). */
@@ -144,12 +144,12 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   /** Promemoria agenda scattati (campanella in topbar). */
   reminders: Reminder[] = [];
   showReminders = false;
-  readonly quickActions: { label: string; icon: string; route: string }[] = [
-    { label: 'Nuova fattura',     icon: 'receipt_long',   route: '/fatture' },
-    { label: 'Nuovo cliente',     icon: 'person_add',     route: '/clienti' },
-    { label: 'Nuovo prodotto',    icon: 'add_box',        route: '/prodotti' },
-    { label: 'Nuovo preventivo',  icon: 'description',    route: '/preventivi' },
-    { label: 'Nuovo documento di trasporto', icon: 'local_shipping', route: '/ddt' },
+  readonly quickActions: { label: string; icon: string; route: string; state?: Record<string, any> }[] = [
+    { label: 'Nuova fattura',     icon: 'receipt_long',   route: '/fatture',    state: { nuovaBozza: {} } },
+    { label: 'Nuovo cliente',     icon: 'person_add',     route: '/clienti',    state: { prefill: {} } },
+    { label: 'Nuovo prodotto',    icon: 'add_box',        route: '/prodotti',   state: { prefill: {} } },
+    { label: 'Nuovo preventivo',  icon: 'description',    route: '/preventivi', state: { nuovaBozza: {} } },
+    { label: 'Nuovo documento di trasporto', icon: 'local_shipping', route: '/ddt', state: { nuovaBozza: {} } },
     { label: 'Vendita al banco',  icon: 'point_of_sale',  route: '/vendita-banco' },
     { label: 'Vai a dashboard',   icon: 'dashboard',      route: '/dashboard' },
     { label: 'Vai a magazzino',   icon: 'inventory',      route: '/magazzino' },
@@ -476,10 +476,10 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     if (q.length >= 3 && !this.smartItem) this.cmdSubject.next(this.searchQuery);
   }
 
-  navigateToAction(a: { route: string }) {
+  navigateToAction(a: { route: string; state?: Record<string, any> }) {
     this.showSearch = false;
     this.searchQuery = '';
-    this.router.navigate([a.route]);
+    this.router.navigate([a.route], a.state ? { state: a.state } : undefined);
   }
 
   toggleNotif(e: MouseEvent) {
@@ -745,7 +745,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   /** Sezioni navigabili (filtrate per ruolo/moduli) + azioni rapide → comandi della palette. */
-  private get allCommands(): { label: string; icon: string; route: string }[] {
+  private get allCommands(): { label: string; icon: string; route: string; state?: Record<string, any> }[] {
     const sezioni = this.visibleFlatNavItems
       .filter(i => !!i.route)
       .map(i => ({ label: i.label, icon: i.icon, route: i.route! }));
@@ -759,7 +759,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       : [];
     return [
       ...smart,
-      ...this.commandResults.map(c => ({ kind: 'cmd' as const, label: c.label, icon: c.icon, route: c.route })),
+      ...this.commandResults.map(c => ({ kind: 'cmd' as const, label: c.label, icon: c.icon, route: c.route, state: c.state })),
       ...this.searchResults.map(r => ({ kind: 'data' as const, label: r.label, tipo: r.tipo, route: r.route, id: r.id })),
     ];
   }
@@ -789,7 +789,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     if (it) this.executePalette(it);
   }
 
-  executePalette(it: { kind?: string; route: string; tipo?: string; id?: number; smart?: any }) {
+  executePalette(it: { kind?: string; route: string; tipo?: string; id?: number; smart?: any; state?: Record<string, any> }) {
     this.showSearch = false;
     this.searchQuery = '';
     this.searchResults = [];
@@ -797,7 +797,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     this.smartItem = null;
     if (it.smart) { this.runSmart(it.smart); return; }
     if (it.kind === 'data' && this.openCard(it.tipo, it.id)) return;
-    this.router.navigate([it.route]);
+    this.router.navigate([it.route], it.state ? { state: it.state } : undefined);
   }
 
   /** Esegue la voce "intelligente": apre la pagina con la bozza pre-compilata,

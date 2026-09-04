@@ -607,6 +607,8 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     if (ff) { this.filtroAnni = []; this.filtroMesi = []; this.filtroFornitori = [ff]; }
     this.load();
     this.ds.getFornitori().subscribe(f => this.fornitori = f);
+    const bozza = consumePrefill('nuovaBozza');
+    if (bozza) setTimeout(() => this.open(bozza as Acquisto), 0);
   }
 
   ngAfterViewInit() {
