@@ -23,103 +23,129 @@ Poi apri <http://localhost:4300> — è la **galleria schermate**: elenco di tut
 sinistra, l'app vera dentro un iframe, e in alto i selettori dati / schermo / tema / attesa.
 Istruzioni complete: [`frontend/src/preview/README.md`](frontend/src/preview/README.md).
 
-**Prima di ogni commit** verifica che la build spedita compili:
+**Prima di ogni commit** verifica che la build spedita compili, gira lo smoke test e il
+presidio:
 
 ```bash
-npx ng build --configuration offline
+npx ng build --configuration offline     # da frontend/
+node scripts/preview-smoke.mjs           # da root — vedi §B.10 sotto
+./scripts/ui-guard.sh --all              # da root
 ```
 
 ---
 
-## Stato: 7 commit, tutti verificati, working tree pulito
+## Stato: 17 commit, tutti verificati, working tree pulito
 
 | Commit | Cosa |
 |---|---|
-| `feat(preview)` | **Galleria schermate** con backend finto: da 9 a **49 rotte** ispezionabili senza il backend Rust, in 4 stati dei dati e 4 larghezze |
+| `feat(preview)` | **Galleria schermate** con backend finto: da 9 a **49 rotte** (poi 47, vedi rotte morte) ispezionabili senza il backend Rust, in 4 stati dei dati e 4 larghezze |
 | `docs` | Il workflow: contratto anti-regressione, tre lenti, ciclo a 7 passi, backlog di 43 schermate, metriche misurate |
 | `fix(mobile)` | **B.11** — la casella di selezione non copre più il numero documento a 375 px (6 liste) |
 | `fix(errori)` | **B.1** — gli errori HTTP che nessuna schermata gestisce ora si vedono |
-| `fix(dialog)` | **B.2** — zero popup di sistema; aggiunti `confirm.alert()` e `confirm.askTyping()` |
+| `fix(dialog)` | **B.2 (parziale)** — `confirm.alert()` e `confirm.askTyping()` aggiunti; **ma non era finita**, vedi sotto |
 | `fix(rotte)` | **B.12** — rotta jolly `**` → Home |
 | `fix(a11y)` | **B.6** — nessun bottone-icona senza nome su tutte e 48 le rotte |
+| `feat(ux)` | **B.3** — deep-link "nuovo" sulle azioni rapide (Home + barra comandi): riusa `nuovaBozza`/`prefill` già esistenti |
+| `fix(rotte)` | Rimossi **CRM e Timesheet**, codice morto (rotta viva ma fuori menu). **Login non è dead code** (vedi correzione sotto) |
+| `test(preview)` | **B.10** — smoke test automatico (`scripts/preview-smoke.mjs`), tutte le rotte × 4 stati dati. Ha trovato e corretto **6 fixture** della galleria con forma sbagliata |
+| `fix(dashboard)` | Crash reale trovato dallo smoke test: Dashboard esplodeva se le API dei KPI annuali fallivano |
+| `feat(ux)` | **B.7 (parziale)** — stato di caricamento standard (`app-loading-skeleton`) su Fatture, Clienti, Prodotti, Dashboard |
+| `feat(ux)` | **B.8** — paginazione su Pagamenti, Movimenti magazzino, Ordini fornitore; **B16** risolto di riflesso (empty-state su Movimenti magazzino) |
+| `fix(dialog)` | **B.2 (completato)** — 9 popup nativi non coperti dal primo giro (autosalvataggio bozze, successivo a quell'audit): 6 `window.confirm()` + 3 `window.prompt()`. Aggiunto `ConfirmService.prompt()` (mancava, `askTyping()` non è un sostituto) |
+| `chore(ci)` | **Presidio** — `scripts/ui-guard.sh`, agganciato a `tauri-release.yml` come job che blocca la release se rientra un popup nativo |
 
-Controllo finale già fatto: tutte le rotte montano il componente, nessun errore in console,
-nessuna snackbar spuria, build `offline` verde.
+Controllo ripetuto a ogni commit: build `offline` verde, smoke test verde su tutti e 4 gli
+stati dati, nessun popup nativo residuo.
+
+### Due correzioni importanti a quanto scritto qui in precedenza
+
+1. **Il componente Login NON è codice morto.** La decisione presa in questa sessione era di
+   rimuoverlo insieme a CRM/Timesheet, ma un controllo dei riferimenti ha mostrato che è la
+   schermata di autenticazione **reale**: montata condizionalmente in `app.html`
+   (`<app-login (loggedIn)="onLogin()" />`) e non tramite router — per questo sembrava "senza
+   rotta". Rimosso **solo** CRM e Timesheet (rotta viva, voce di menu commentata: quelli sì
+   erano davvero irraggiungibili).
+2. **B.2 non era a 0 come dichiarato.** Il grep del primo audit contava solo i 4 file già
+   noti; 9 punti in più (6 `window.confirm()` per la ripresa bozza nei dialog documento, 3
+   `window.prompt()` per password/nome) erano stati introdotti dall'autosalvataggio bozze
+   (v1.2.34), **dopo** quell'audit, e nessuno li aveva ricontati. Sistemato e ora presidiato
+   da `ui-guard.sh` in CI — non dovrebbe più poter rientrare senza far fallire la release.
+
+### B.9 — investigato, nessuna modifica necessaria
+
+La metrica "16/80 componenti con `ngOnDestroy`" non si traduce in un bug reale: verificato
+ogni `setInterval` (6, tutti nell'autosalvataggio bozze) ha già il cleanup corretto via
+`destroyRef.onDestroy(() => clearInterval(t))`; nessun `setTimeout` ricorsivo/polling; nessuna
+sottoscrizione a stream condivisi (`Router.events`, `fromEvent`, servizi `providedIn:'root'`)
+senza pulizia. Le `valueChanges` senza `takeUntil` sono su `FormGroup`/`FormControl` di
+proprietà del componente stesso: si esauriscono da sole alla distruzione, non un leak. Stessa
+lezione di M5 ("il grep propone, la schermata dispone") — misura sbagliata, non bug.
+Unico punto a rischio minimo, non un leak: `searchTimer`/`previewTimer` (debounce ricerca) in
+`clienti.ts`, `fornitori.ts`, `impostazioni.ts` non cancellati in `ngOnDestroy` — un singolo
+`setTimeout` residuo potrebbe scattare dopo la chiusura se l'utente digita e chiude entro
+250-400ms. Rischio pratico basso; da sistemare se si tocca comunque quella schermata.
 
 ---
 
 ## Cosa manca, in ordine
 
-### 1. B.10 — smoke test automatici
-Oggi la verifica è una **sonda manuale** da eseguire nella console della galleria (§
-"Sonde" qui sotto): funziona bene ma va lanciata a mano. Non esiste alcun test nel
-progetto (`*.spec.ts` = 0, nessun framework nelle devDependencies).
-
-Due strade: aggiungere Vitest/Karma e montare ogni componente coi mock, oppure trasformare
-la sonda in uno script Node+Playwright in `scripts/`. La seconda riusa quello che c'è già
-e verifica l'app assemblata davvero; la prima è più veloce da eseguire in CI.
-
-### 2. B.7 — stato di caricamento standard
-**105 componenti su 126** non mostrano nulla mentre caricano: "vuoto" e "sto caricando"
-sono indistinguibili. Serve un componente/direttiva unico (skeleton per le liste, spinner
-per i dialog) applicato alle viste che fanno fetch.
-Si osserva mettendo l'**attesa a 1,5 s** nella galleria.
-
-### 3. B.8 — paginazione sulle liste lunghe
-Misurato con dati realistici (~200 righe per collezione):
-
-| Schermata | Righe rese in una volta | Paginatore |
-|---|---|---|
-| Pagamenti | **280** | no |
-| Movimenti magazzino | **200** | no |
-| Ordini fornitore | **200** | no |
-
-Per confronto Fatture, Clienti, Prodotti, Preventivi, Scadenzario e Arrivi merce ne mostrano
-25 con paginatore. **Attenzione**: verificare che i filtri restino corretti dopo
-l'aggiunta — è il punto in cui è più facile rompere qualcosa.
-
-Collegato: **Movimenti magazzino non ha stato vuoto** (B16) — a database vuoto resta una
-tabella con le sole intestazioni. Le altre 11 liste controllate hanno `app-empty-state`.
-
-### 4. B.3 — deep-link "nuovo"
-"Nuova fattura", "Nuovo cliente", "Nuovo preventivo" in `app.ts:147` e `home-app.ts:312`
-**non aprono niente**: fanno `router.navigate` alla lista. L'etichetta promette un'azione,
-l'app cambia pagina. Serve un `?nuovo=1` sulle liste documenti e anagrafiche, gestito in
-`ngOnInit` come già avviene per `openId` (che però esiste solo per Clienti, Fornitori e
-Prodotti — vedi `consumePrefill`).
-
-### 5. B.5 — formattazione uniforme
+### 1. B.5 — formattazione uniforme (più complesso di come sembrava)
 27 `toFixed(2)` e 7 `toLocaleString` contro 192 `| currency`; 16 `slice(0,10)`/`split('T')`
-contro 79 `| date`. Stessi importi e stesse date resi in modi diversi da schermata a
-schermata. **Toccare solo la resa a schermo, mai i valori inviati al backend.**
+contro 79 `| date`. **Attenzione**: la maggior parte dei `toFixed(2)` NON sono candidati a un
+semplice swap col pipe `currency`:
+- Molti sono arrotondamenti per un **valore** (`+(...).toFixed(2)` dentro `[value]` di un
+  campo prezzo editabile, o `+this.totale.toFixed(2)` prima di un `createX()`): **non
+  toccare**, sono calcolo non resa a schermo.
+- Altri sono dentro **stringhe TS** (messaggi di conferma, snackbar, tooltip Chart.js): il
+  pipe `currency`/`date` **non è utilizzabile lì** (i pipe funzionano solo nel template
+  Angular). Vanno sostituiti iniettando `CurrencyPipe`/`DatePipe` come servizio
+  (`inject(CurrencyPipe)` poi `.transform(...)`) — `reports.ts:177` lo fa già per il caso
+  `'eur'`, è il modello da seguire.
+- I candidati veri (messaggi/tooltip) individuati: `fatture.ts:1871,1919`,
+  `vendita-banco.ts:513,516`, `sdi-passive.ts:266`, `acquisti.ts:800` (currency); tooltip
+  Chart.js in `dashboard.ts:332,361` e `report.ts:240`; date in `storico.ts:120`,
+  `impostazioni.ts:1340` (probabilmente candidati, da verificare se già dentro un binding di
+  template o costruiti come stringa TS).
+**Non toccare i valori inviati al backend, solo la resa.**
 
-### 6. B.4 — token colore
-200 esadecimali negli SCSS dei componenti, più ~20 gradienti cablati sulle card della Home
-(`home-app.ts:329` e seguenti): palette arcobaleno che ignora il tema scuro.
-**Va verificato a vista in chiaro e in scuro**, non solo compilato.
+### 2. B.4 — token colore (il più grande e rischioso)
+**171 esadecimali nei file `.scss` dei componenti** (misurato ora, era ~200) — ma il numero
+vero è molto più alto se si contano gli `style="color:#..."` inline nei template `.ts`
+(~1200+, mai misurati prima): la home ha ~20 gradienti cablati (`home-app.ts` righe 329+), e
+moltissimi componenti hanno colori di stato (verde/rosso/arancio) scritti a mano invece che coi
+token `--success`/`--danger`/`--warning` di `styles.scss`. **Va verificato a vista in chiaro
+e in scuro**, non solo compilato — è la modifica con il rischio più alto di tutta la Fase B.
+Consiglio: partire dai gradienti Home (più visibili, isolati in un unico file) prima di
+affrontare i colori di stato sparsi in tutti i componenti.
 
-### 7. B.9 — cleanup sottoscrizioni
-Solo 16 componenti su 80 hanno `ngOnDestroy` / `takeUntilDestroyed`. Timer e polling
-sopravvivono all'uscita dalla schermata.
+### 3. Presidio — completare quando B.4/M3 saranno a 0
+`scripts/ui-guard.sh --all` mostra oggi come informativi: bottoni-icona sospetti (61, da
+verificare a video — il grep sovrastima come già successo con M5), colori esadecimali nei
+`.scss` (8 file), `.subscribe(() => …)` senza `error:` su una riga (60, mitigato da B.1 ma non
+zero). Quando questi arriveranno a 0 (o a un livello accettabile), passarli da informativi a
+bloccanti nello script.
 
-### 8. Presidio (§7 del workflow)
-`scripts/ui-guard.sh` che fallisca su: popup nativi, colori esadecimali negli SCSS dei
-componenti, bottoni-icona senza nome. Da agganciare a `.github/workflows/tauri-release.yml`,
-che oggi si limita a compilare. Senza questo le bonifiche si disfano da sole — è già
-successo con i popup nativi (43 → 0 → 8 → 0).
+### 4. Onda 1 — resta da fare
+- **Vendita al banco**: non ha ricevuto lo stato di caricamento (B.7) — è un flusso cassa
+  veloce con un solo fetch di catalogo in background, l'impatto è basso ma va comunque
+  guardato col ciclo a 7 passi.
+- Il giro vero e proprio a 7 passi (§5 del workflow: inventario → osserva → caccia ai bug →
+  audit UI/UX → ripara → verifica → registra) **non è ancora stato fatto per nessuna
+  schermata** — quanto fatto finora sono le bonifiche globali di Fase B, che lo precedono per
+  design. Prossimo passo naturale: Home, Fatture, Clienti, Prodotti, Vendita al banco,
+  Dashboard, con le schede di audit in `docs/audit/`.
 
-### Poi: Onda 1 schermata per schermata
-Home, Fatture, Clienti, Prodotti, Vendita al banco, Dashboard, col ciclo a 7 passi (§5 del
-workflow) e un commit per lente.
+### Poi: Onda 2-6
+Come da backlog originale (§6 del workflow) — Preventivi, Ordini cliente, DDT, ecc.
 
 ---
 
-## Decisione aperta (serve una tua risposta)
+## Decisione presa questa sessione
 
-**Login, `/crm` e `/timesheet` sono codice vivo ma irraggiungibile.** Il componente Login
-(676 righe) non ha nemmeno una rotta; CRM e Timesheet hanno la rotta ma sono commentati fuori
-dal menu (`app.ts:973-974`). Vanno rimessi in navigazione o rimossi? Finché restano sono
-superficie che continuiamo a compilare e auditare per niente.
+**CRM e Timesheet rimossi** (codice morto: rotta viva, voce di menu commentata). **Login
+lasciato intatto** — non era dead code, è l'autenticazione reale (vedi correzione sopra). Le
+rotte backend equivalenti (`src-tauri/src/routes/crm.rs`, `timesheet.rs`) **non sono state
+toccate**: superficie API, decisione distinta da questa pulizia di UI.
 
 ---
 
@@ -134,17 +160,28 @@ superficie che continuiamo a compilare e auditare per niente.
 3. **Niente `cargo` in locale**: il backend Rust si valida solo sul CI (vedi `HANDOFF.md`).
    La galleria esiste proprio per non dipenderne.
 4. **Le fixture mancanti non rompono niente** ma fanno sembrare una schermata più vuota del
-   vero. `window.__fixtureMancanti` le elenca. Ne restano da colmare su **Prima nota** e
-   **Storico** (una ciascuna).
+   vero. `window.__fixtureMancanti` le elenca. **Trappola più insidiosa, trovata da B.10**:
+   una fixture PRESENTE ma con la **forma sbagliata** (oggetto vs array, o campi con nome
+   diverso da quello che il componente si aspetta — es. `stats/cashflow` doveva essere
+   `{daIncassare,daPagare}` e restituiva un array di 12 mesi) non si nota da un giro visivo
+   superficiale: il componente sembra caricare ma poi esplode silenziosamente o mostra
+   `[object Object]`. Lo smoke test automatico (`scripts/preview-smoke.mjs`) le cattura
+   perché controlla anche gli errori in console, non solo che la pagina "sembri piena".
    Trappola dentro la trappola: alcune schermate filtrano lato client una collezione
    condivisa (Ordini fornitore legge `ordini` e tiene solo `tipo === 'FORNITORE'`), quindi
    la fixture deve contenere entrambi i tipi.
 5. **Fuori dalla galleria** restano il primo avvio (`welcome-offline`) e il selettore
    archivi: vivono fuori dal router Angular. Da aggiungere quando si arriva all'Onda 6.
-6. **Le metriche da `grep` vanno confermate a video.** M5 diceva "169 bottoni senza
-   `aria-label`": misurando il DOM vero erano **62**, perché `title` fornisce anch'esso un
-   nome accessibile. Un intervento dimensionato sul grep sarebbe stato tre volte più grande
-   del necessario.
+6. **Le metriche da `grep` vanno confermate a video.** Vale per M5 (bottoni senza nome: 169
+   dal grep, 62 reali) e ora anche per **B.9** (16/80 senza `ngOnDestroy`: zero leak reali
+   dopo verifica puntuale) e per lo stesso **B.2** (dichiarato "0" due volte, in realtà
+   rientrato entrambe le volte). Un intervento dimensionato sul grep rischia di essere enorme
+   e inutile, o — peggio — di dare per risolto qualcosa che non lo è.
+7. **Il window bound del test runner conta ~2 minuti**: `scripts/preview-smoke.mjs` su un
+   singolo stato dati (47 rotte) impiega circa 45-60s per via del riavvio di `ng serve` a
+   ogni esecuzione; lanciare tutti e 4 gli stati in sequenza in un solo comando va oltre i
+   timeout di shell tipici. Lanciarli uno alla volta (`STATE=full|empty|error|error-load node
+   scripts/preview-smoke.mjs`).
 
 ---
 
@@ -152,7 +189,10 @@ superficie che continuiamo a compilare e auditare per niente.
 
 Vanno eseguite sulla **pagina esterna** (la galleria, non l'iframe). Caricano ogni rotta in
 un iframe nascosto e misurano il DOM vero. Tenerle a blocchi di ~12 rotte: oltre, la console
-va in timeout.
+va in timeout. **Nota**: per un controllo strutturale su tutte le rotte è ormai più comodo
+`node scripts/preview-smoke.mjs` (§B.10) — automatico, ripetibile, gira nei 4 stati dati.
+Queste sonde restano utili per controlli mirati (nomi accessibili, righe rese) senza dover
+estendere lo script.
 
 **Smoke — la schermata monta e ha contenuto:**
 
