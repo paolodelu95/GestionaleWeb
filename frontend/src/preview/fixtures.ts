@@ -363,11 +363,58 @@ function mesiAnno(seed: number, base: number): any[] {
 const AGGREGATI: Record<string, () => any> = {
   'stats/vendite-mensili': () => mesiAnno(501, 42000),
   'stats/acquisti-mensili': () => mesiAnno(502, 26000),
-  'stats/cashflow': () => mesiAnno(503, 16000),
-  'stats/cashflow-3060-90': () => ({ a30: 18400.5, a60: 9200.25, a90: 4100, oltre: 1250.75 }),
-  'stats/cashflow-forecast': () => mesiAnno(504, 12000),
+  'stats/cashflow': () => ({ daIncassare: 42800.6, daPagare: 18900.3 }),
+  'stats/cashflow-3060-90': () => ({
+    saldoOggi: 32400.8,
+    bucket30: { in: 18400.5, out: 9200.25, saldo: 41601.05 },
+    bucket60: { in: 12800.4, out: 15300.6, saldo: 39100.85 },
+    bucket90: { in: 9600.2, out: 11200.35, saldo: 37500.7 },
+  }),
+  'scadenze-fiscali': () => ({
+    anno: 2026,
+    config: { ivaPeriodicita: 'trimestrale', sostitutoImposta: false },
+    scadenze: [
+      { id: 1, descrizione: 'Liquidazione IVA mensile', data: iso(-12), importo: 3420.5, pagata: false, tipo: 'IVA' },
+      { id: 2, descrizione: 'Ritenute d\'acconto F24', data: iso(-26), importo: 890.2, pagata: false, tipo: 'F24' },
+      { id: 3, descrizione: 'Acconto IRES', data: iso(18), importo: 5600, pagata: true, tipo: 'IMPOSTE' },
+    ],
+  }),
+  'stats/iva-trimestre': () => ({
+    ivaDebito: 24900.8, ivaCredito: 15200.1, debito: true, saldo: 9700.7,
+    venditePerAliquota: [
+      { aliquota: 22, imponibile: 98400.5, iva: 21648.11 },
+      { aliquota: 10, imponibile: 12520.9, iva: 1252.09 },
+      { aliquota: 4, imponibile: 3000, iva: 120 },
+    ],
+    acquistiPerAliquota: [
+      { aliquota: 22, imponibile: 61200.4, iva: 13464.09 },
+      { aliquota: 10, imponibile: 17360.1, iva: 1736.01 },
+    ],
+    periodo: { from: iso(-90), to: iso(0) },
+  }),
+  'agenda/imminenti': () => ({
+    da: iso(0), a: iso(7),
+    eventi: [
+      { id: 1, titolo: 'Sopralluogo cantiere via Verdi', inizio: iso(-1) + 'T09:30', tuttoGiorno: false, source: 'APPUNTAMENTO' },
+      { id: 2, titolo: 'Scadenza fattura 2026/0180', inizio: iso(-3), tuttoGiorno: true, source: 'SCADENZA_FATTURA' },
+    ],
+  }),
+  'stats/cashflow-forecast': () => {
+    const r = makeRng(504);
+    let cumulativo = 0;
+    const items = Array.from({ length: 60 }, (_, i) => {
+      const d = new Date(2026, 0, 1 + i);
+      const inn = round2(r() < 0.35 ? 800 + r() * 4000 : 0);
+      const out = round2(r() < 0.3 ? 400 + r() * 2500 : 0);
+      cumulativo = round2(cumulativo + inn - out);
+      return { date: d.toISOString().slice(0, 10), in: inn, out, cumulativo };
+    });
+    const totEntrate = round2(items.reduce((s, i) => s + i.in, 0));
+    const totUscite = round2(items.reduce((s, i) => s + i.out, 0));
+    return { items, saldoFinale: cumulativo, totEntrate, totUscite };
+  },
   'stats/kpi-anno': () => ({
-    fatturato: 486320.44, fatturatoPrec: 421900.1, acquisti: 298110.9,
+    fatturato: 486320.44, fatturatoPrec: 421900.1, acquisti: 298110.9, costi: 298110.9,
     margine: 188209.54, insoluti: 24310.8, clientiAttivi: 87, documenti: 642,
   }),
   'stats/top-prodotti': () => genProdotti().slice(0, 10).map((p, i) => ({
@@ -376,14 +423,10 @@ const AGGREGATI: Record<string, () => any> = {
   'stats/top-clienti': () => genClienti().slice(0, 10).map((c, i) => ({
     clienteId: c.id, ragioneSociale: c.ragioneSociale, totale: round2(48000 - i * 3700), documenti: 40 - i * 3,
   })),
-  'stats/iva-trimestre': () => ([
-    { trimestre: 1, ivaVendite: 21400.2, ivaAcquisti: 13100.5, saldo: 8299.7 },
-    { trimestre: 2, ivaVendite: 24900.8, ivaAcquisti: 15200.1, saldo: 9700.7 },
-  ]),
   'prodotti/count': () => ({ count: N }),
   'clienti/count': () => ({ count: N }),
   'ordini/count-aperti': () => ({ count: 14 }),
-  'prodotti/valore': () => ({ valore: 184320.55, valoreAcquisto: 125340.2 }),
+  'prodotti/valore': () => 184320.55,
   'prodotti/sotto-soglia': () => genProdotti().filter((p) => p.sogliaMinima && p.quantita < p.sogliaMinima).slice(0, 12),
   'ddt/non-fatturati': () => COLLEZIONI['ddt']().filter((d: any) => !d.fatturaId).slice(0, 25),
   'prezzi-recenti': () => [],
@@ -393,18 +436,9 @@ const AGGREGATI: Record<string, () => any> = {
   })),
   'pagamenti/scadenzario': () => scadenzario(),
   scadenzario: () => scadenzario(),
-  'scadenze-fiscali': () => ([
-    { id: 1, descrizione: 'Liquidazione IVA mensile', data: iso(-12), importo: 3420.5, pagata: false, tipo: 'IVA' },
-    { id: 2, descrizione: 'Ritenute d\'acconto F24', data: iso(-26), importo: 890.2, pagata: false, tipo: 'F24' },
-    { id: 3, descrizione: 'Acconto IRES', data: iso(18), importo: 5600, pagata: true, tipo: 'IMPOSTE' },
-  ]),
-  'agenda/imminenti': () => ([
-    { id: 1, titolo: 'Sopralluogo cantiere via Verdi', data: iso(-1), ora: '09:30', tipo: 'APPUNTAMENTO' },
-    { id: 2, titolo: 'Scadenza fattura 2026/0180', data: iso(-3), ora: '', tipo: 'SCADENZA_FATTURA' },
-  ]),
   'agenda/appuntamenti': () => ([
-    { id: 1, titolo: 'Sopralluogo cantiere via Verdi', dataInizio: iso(-1) + 'T09:30', dataFine: iso(-1) + 'T11:00', stato: 'DA_FARE', note: '' },
-    { id: 2, titolo: 'Consegna materiale Bianchi', dataInizio: iso(-4) + 'T14:00', dataFine: iso(-4) + 'T15:00', stato: 'DA_FARE', note: '' },
+    { id: 1, titolo: 'Sopralluogo cantiere via Verdi', inizio: iso(-1) + 'T09:30', fine: iso(-1) + 'T11:00', tuttoGiorno: false, stato: 'PIANIFICATO' },
+    { id: 2, titolo: 'Consegna materiale Bianchi', inizio: iso(-4) + 'T14:00', fine: iso(-4) + 'T15:00', tuttoGiorno: false, stato: 'PIANIFICATO' },
   ]),
   'agenda/todo': () => ([
     { id: 1, testo: 'Inviare preventivo a Rossi Costruzioni', stato: 'DA_FARE', scadenza: iso(-2) },

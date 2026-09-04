@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "screenshots": "node take-help-screenshots.mjs"
+    "screenshots": "node take-help-screenshots.mjs",
+    "smoke": "node preview-smoke.mjs"
   },
   "dependencies": {
     "playwright": "^1.49.0"
