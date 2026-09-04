@@ -1931,9 +1931,12 @@ export class FattureComponent implements OnInit, AfterViewInit {
     this.ds.validateFatturaXml(f.id!).subscribe({
       next: async v => {
         if (!v.ok) {
-          const msg = 'Impossibile inviare:\n\n' + v.errors.map(e => '• ' + e).join('\n') +
-                      (v.warnings.length ? '\n\nAvvisi:\n' + v.warnings.map(w => '• ' + w).join('\n') : '');
-          alert(msg);
+          await this.confirm.alert({
+            title: 'Fattura non inviabile',
+            message: 'Prima dell\'invio all\'SDI vanno sistemati questi punti:\n\n' +
+                     v.errors.map(e => '• ' + e).join('\n') +
+                     (v.warnings.length ? '\n\nAvvisi:\n' + v.warnings.map(w => '• ' + w).join('\n') : ''),
+          });
           return;
         }
         const prefix = v.warnings.length
@@ -1945,7 +1948,8 @@ export class FattureComponent implements OnInit, AfterViewInit {
           error: e => this.snack.open('Errore SDI: ' + (e.error?.error || e.message), '', { duration: 5000, panelClass: 'snack-error' })
         });
       },
-      error: () => alert('Errore validazione, riprova.')
+      error: () => this.snack.open('Non è stato possibile controllare la fattura. Riprova.', 'OK',
+                                   { duration: 5000, panelClass: 'snack-error' })
     });
   }
 

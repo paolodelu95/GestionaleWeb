@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 
 interface AnalisiRiga {
@@ -186,6 +187,7 @@ export class AcquistoMagazzinoDialogComponent implements OnInit {
   generating = false;
   analisi: Analisi | null = null;
   errorMsg = '';
+  private snack = inject(MatSnackBar);
 
   constructor(
     public dialogRef: MatDialogRef<AcquistoMagazzinoDialogComponent>,
@@ -242,7 +244,8 @@ export class AcquistoMagazzinoDialogComponent implements OnInit {
       },
       error: e => {
         this.generating = false;
-        alert(e.error?.error || 'Errore generazione arrivo merce');
+        this.snack.open(e.error?.error || 'Non è stato possibile generare l\'arrivo merce.', 'OK',
+                        { duration: 6000, panelClass: 'snack-error' });
       },
     });
   }

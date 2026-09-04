@@ -424,6 +424,9 @@ const AGGREGATI: Record<string, () => any> = {
     marginePerc: round2(100 * (1 - (p.prezzoAcquisto || 0) / (p.prezzo || 1))),
   })),
   'stats/bi': () => ({ fatturato: 486320.44, margine: 188209.54, clienti: N, prodotti: N, documenti: 642 }),
+  // Validazione XML prima dell'invio SDI. Di default passa con un avviso: il caso
+  // "non inviabile" si prova mettendo `ok: false` qui, oppure dallo stato "Letture KO".
+  'fattura-xml': () => ({ ok: true, errors: [], warnings: ['Il codice destinatario del cliente è generico (0000000): la fattura sarà recapitata via PEC.'] }),
   'agenda/promemoria': () => ([{ id: 1, testo: 'Rinnovo polizza assicurativa', data: iso(-9) }]),
   'notifications/badges': () => ({ scadenze: 3, insoluti: 25, riordini: 4, sdi: 0 }),
   me: () => ({ id: 1, nome: 'Utente locale', email: 'locale@ordeva.app', ruolo: 'ADMIN' }),

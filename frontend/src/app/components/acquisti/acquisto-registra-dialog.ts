@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -9,6 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 
 interface AnalisiRiga {
@@ -207,6 +208,7 @@ export class AcquistoRegistraDialogComponent implements OnInit {
   importo = 0;
   metodo = 'Bonifico';
   conto: 'BANCA' | 'CASSA' = 'BANCA';
+  private snack = inject(MatSnackBar);
 
   constructor(
     public dialogRef: MatDialogRef<AcquistoRegistraDialogComponent>,
@@ -261,7 +263,8 @@ export class AcquistoRegistraDialogComponent implements OnInit {
       const imp = Number(this.importo);
       if (!Number.isFinite(imp) || imp <= 0) {
         this.saving = false;
-        alert('Importo pagamento non valido');
+        this.snack.open('Inserisci un importo maggiore di zero.', 'OK',
+                        { duration: 5000, panelClass: 'snack-error' });
         return;
       }
       this.data.api.post('pagamenti', {
@@ -273,7 +276,11 @@ export class AcquistoRegistraDialogComponent implements OnInit {
         tipo: 'USCITA',
       }).subscribe({
         next: () => { result.pagamento = { importo: imp }; this.finish(result); },
-        error: e => { this.saving = false; alert(e.error?.error || 'Errore registrazione pagamento'); },
+        error: e => {
+          this.saving = false;
+          this.snack.open(e.error?.error || 'Non è stato possibile registrare il pagamento.', 'OK',
+                          { duration: 6000, panelClass: 'snack-error' });
+        },
       });
     };
 
@@ -283,7 +290,11 @@ export class AcquistoRegistraDialogComponent implements OnInit {
         personalizzazioni: this.buildPersonalizzazioni(),
       }).subscribe({
         next: (r: any) => { result.arrivo = r; doPagamento(); },
-        error: e => { this.saving = false; alert(e.error?.error || 'Errore carico magazzino'); },
+        error: e => {
+          this.saving = false;
+          this.snack.open(e.error?.error || 'Non è stato possibile caricare la merce in magazzino.', 'OK',
+                          { duration: 6000, panelClass: 'snack-error' });
+        },
       });
     } else {
       doPagamento();

@@ -102,6 +102,7 @@ interface RecentUser {
 })
 export class SuperTenantEditDialogComponent {
   form: { ragioneSociale: string; piano: string; stato: string; trialScadeIl: string | null };
+  private snack = inject(MatSnackBar);
   constructor(
     public dialogRef: MatDialogRef<SuperTenantEditDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { tenant: AdminTenant; api: ApiService },
@@ -119,7 +120,8 @@ export class SuperTenantEditDialogComponent {
       attivo: this.form.stato === 'attiva',
     }).subscribe({
       next: () => this.dialogRef.close({ saved: true }),
-      error: e => alert(e.error?.error || 'Errore salvataggio'),
+      error: e => this.snack.open(e.error?.error || 'Non è stato possibile salvare.', 'OK',
+                                  { duration: 6000, panelClass: 'snack-error' }),
     });
   }
 }
@@ -575,15 +577,15 @@ export class SuperAdminComponent implements OnInit {
     });
   }
 
-  deleteTenant(t: AdminTenant) {
-    const conferma = prompt(
-      `Per eliminare DEFINITIVAMENTE il tenant "${t.ragioneSociale || t.slug}" e tutti i suoi dati,\n` +
-      `digita lo slug "${t.slug}" qui sotto:`
-    );
-    if (conferma !== t.slug) {
-      if (conferma !== null) this.snack.open('Slug non corrispondente, eliminazione annullata.', 'OK', { duration: 4000 });
-      return;
-    }
+  async deleteTenant(t: AdminTenant) {
+    const ok = await this.confirm.askTyping({
+      title: 'Eliminazione definitiva',
+      message: `Stai per eliminare il tenant "${t.ragioneSociale || t.slug}" e tutti i suoi dati.\n` +
+               'L\'operazione non si può annullare.',
+      parola: t.slug,
+      confirmText: 'Elimina definitivamente',
+    });
+    if (!ok) return;
     this.api.delete(`tenants/${t.slug}`).subscribe({
       next: () => {
         this.snack.open('Tenant eliminato', '', { duration: 2500 });
