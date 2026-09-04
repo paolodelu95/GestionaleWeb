@@ -97,10 +97,23 @@
             },
             "preview": {
               "browser": "src/main.preview.ts",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.offline.ts"
+                }
+              ],
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
-              "serviceWorker": false
+              "serviceWorker": false,
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "40kB",
+                  "maximumError": "80kB"
+                }
+              ]
             },
             "offline": {
               "fileReplacements": [

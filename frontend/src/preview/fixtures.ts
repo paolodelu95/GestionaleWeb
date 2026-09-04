@@ -1,0 +1,566 @@
+/**
+ * Dati finti per la GALLERIA SCHERMATE (harness di anteprima).
+ *
+ * NON fa parte dell'app di produzione: viene compilato solo dalla configurazione
+ * `preview` (vedi angular.json). Serve a rispondere a tutte le chiamate `/api/…`
+ * senza backend, così ogni schermata è ispezionabile su qualsiasi macchina.
+ *
+ * Tre stati, scelti dalla galleria (§3 di docs/UI-UX-QUALITY-WORKFLOW.md):
+ *   empty       → tutte le collezioni vuote        (per vedere gli empty state)
+ *   full        → ~200 righe con casi limite       (per vedere overflow e lentezze)
+ *   error       → dati pieni, ma OGNI scrittura fallisce  (per vedere se l'app lo dice)
+ *   error-load  → ogni lettura fallisce            (per vedere la gestione del fetch fallito)
+ *
+ * I dati sono DETERMINISTICI (PRNG con seed fisso): gli screenshot prima/dopo sono
+ * confrontabili perché due esecuzioni producono esattamente le stesse righe.
+ */
+
+export type PreviewState = 'empty' | 'full' | 'error' | 'error-load';
+
+/** Quante righe genera lo stato `full`: abbastanza da rendere evidenti i problemi di scroll. */
+const N = 200;
+
+// ── PRNG deterministico (mulberry32) ─────────────────────────────────────────
+function makeRng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const pick = <T>(r: () => number, arr: T[]): T => arr[Math.floor(r() * arr.length)];
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+// ── Vocabolario realistico (italiano, settore edile/commerciale) ─────────────
+const FORME = ['S.r.l.', 'S.p.A.', 'S.n.c.', 'S.a.s.', '& C.', ''];
+const COGNOMI = ['Rossi', 'Bianchi', 'Verdi', 'Ferrari', 'Esposito', 'Russo', 'Romano', 'Colombo',
+  'Ricci', 'Marino', 'Greco', 'Bruno', 'Gallo', 'Conti', 'De Luca', 'Costa', 'Giordano', 'Mancini'];
+const SETTORI = ['Costruzioni', 'Impianti', 'Servizi', 'Logistica', 'Forniture', 'Edilizia',
+  'Termoidraulica', 'Automazioni', 'Arredamenti', 'Manutenzioni'];
+const CITTA: [string, string, string][] = [
+  ['Milano', 'MI', '20100'], ['Torino', 'TO', '10100'], ['Roma', 'RM', '00100'],
+  ['Napoli', 'NA', '80100'], ['Firenze', 'FI', '50100'], ['Bologna', 'BO', '40100'],
+  ['Venezia', 'VE', '30100'], ['Bari', 'BA', '70100'], ['Palermo', 'PA', '90100'],
+  ['Genova', 'GE', '16100'], ['Verona', 'VR', '37100'], ['Padova', 'PD', '35100'],
+];
+const MATERIALI = ['Cemento Portland 25kg', 'Mattone forato 8x25x25', 'Rete elettrosaldata 2x3',
+  'Trave lamellare abete', 'Pannello isolante EPS 6cm', 'Guaina bituminosa 4mm',
+  'Tubo multistrato Ø20', 'Cavo unipolare 2,5mmq', 'Piastrella gres 60x60',
+  'Malta cementizia premiscelata', 'Profilo alluminio 40x40', 'Vite autofilettante 4,5x60'];
+const SERVIZI = ['Manodopera posa in opera', 'Trasporto e scarico', 'Noleggio ponteggio',
+  'Progettazione esecutiva', 'Direzione lavori', 'Smaltimento macerie'];
+const CATEGORIE = ['Materiali', 'Servizi', 'Utensili', 'Elettrico', 'Idraulico', 'Ferramenta'];
+const UM = ['pz', 'kg', 'm', 'mq', 'h', 'lt'];
+
+/**
+ * Casi limite iniettati nelle prime righe di ogni collezione: è lì che si rompono
+ * i layout. Sono deliberati — non toglierli "per pulizia".
+ */
+const NOME_LUNGHISSIMO =
+  'Consorzio Nazionale Cooperative Costruzioni e Grandi Opere Infrastrutturali del Mezzogiorno Società Consortile per Azioni';
+const IMPORTO_ENORME = 1234567.89;
+
+function iso(daysAgo: number): string {
+  const d = new Date(2026, 8, 4);
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().slice(0, 10);
+}
+
+// ── Generatori per collezione ────────────────────────────────────────────────
+
+function genClienti(): any[] {
+  const r = makeRng(101);
+  return Array.from({ length: N }, (_, i) => {
+    const [citta, prov, cap] = pick(r, CITTA);
+    const nome = i === 0
+      ? NOME_LUNGHISSIMO
+      : `${pick(r, COGNOMI)} ${pick(r, SETTORI)} ${pick(r, FORME)}`.trim();
+    return {
+      id: i + 1,
+      ragioneSociale: nome,
+      // riga 2: anagrafica minima (solo i campi obbligatori) — verifica i fallback "—"
+      ...(i === 1 ? {} : {
+        email: `info@${pick(r, COGNOMI).toLowerCase()}.it`,
+        telefono: `0${2 + Math.floor(r() * 8)} ${1000000 + Math.floor(r() * 8999999)}`,
+        via: `Via ${pick(r, COGNOMI)} ${1 + Math.floor(r() * 180)}`,
+        cap, citta, provincia: prov,
+        codiceFiscale: `RSS${pick(r, COGNOMI).slice(0, 3).toUpperCase()}80A01F205X`,
+        pec: `pec@${pick(r, COGNOMI).toLowerCase()}.legalmail.it`,
+        sdi: r() > 0.4 ? 'M5UXCR1' : '0000000',
+      }),
+      pIva: String(10000000000 + Math.floor(r() * 89999999999)).slice(0, 11),
+      stato: 'IT',
+      tipoPagamentoId: 1 + Math.floor(r() * 2),
+      aliquotaIvaId: 1,
+      listinoId: r() > 0.7 ? 1 : null,
+      ultimoAcquisto: r() > 0.2 ? iso(Math.floor(r() * 400)) : null,
+      fatturatoAnno: i === 2 ? IMPORTO_ENORME : round2(r() * 90000),
+      fattureInsolute: r() > 0.75 ? 1 + Math.floor(r() * 4) : 0,
+      ancheFornitore: r() > 0.9,
+      agenteId: r() > 0.6 ? 1 : null,
+      provvigione: null,
+    };
+  });
+}
+
+function genFornitori(): any[] {
+  const r = makeRng(202);
+  return Array.from({ length: N }, (_, i) => {
+    const [citta, prov, cap] = pick(r, CITTA);
+    return {
+      id: i + 1,
+      ragioneSociale: i === 0 ? NOME_LUNGHISSIMO : `${pick(r, SETTORI)} ${pick(r, COGNOMI)} ${pick(r, FORME)}`.trim(),
+      email: `ordini@${pick(r, COGNOMI).toLowerCase()}.it`,
+      telefono: `0${2 + Math.floor(r() * 8)} ${1000000 + Math.floor(r() * 8999999)}`,
+      via: `Via ${pick(r, SETTORI)} ${1 + Math.floor(r() * 90)}`,
+      cap, citta, provincia: prov,
+      pIva: String(10000000000 + Math.floor(r() * 89999999999)).slice(0, 11),
+      stato: 'IT',
+      tipoPagamentoId: 1 + Math.floor(r() * 2),
+    };
+  });
+}
+
+function genProdotti(): any[] {
+  const r = makeRng(303);
+  return Array.from({ length: N }, (_, i) => {
+    const servizio = r() > 0.78;
+    const nome = i === 0
+      ? 'Pannello sandwich coibentato in lamiera preverniciata con anima in poliuretano espanso — spessore 100 mm, lunghezza su misura'
+      : servizio ? pick(r, SERVIZI) : pick(r, MATERIALI);
+    // Il prezzo fuori scala sta oltre la finestra da cui `righe()` pesca i prodotti:
+    // serve a stressare la colonna prezzo della lista, non a gonfiare ogni documento.
+    const prezzo = i === 150 ? IMPORTO_ENORME : round2(0.4 + r() * 240);
+    const giacenza = servizio ? 0 : Math.floor(r() * 4000);
+    const soglia = servizio ? null : Math.floor(r() * 120);
+    return {
+      id: i + 1,
+      nome,
+      categoria: servizio ? 'Servizi' : pick(r, CATEGORIE),
+      descrizione: r() > 0.6 ? 'Conforme alle norme UNI EN vigenti. Fornitura su bancale.' : '',
+      codice: `${servizio ? 'SRV' : 'MAT'}-${String(i + 1).padStart(4, '0')}`,
+      prezzo,
+      prezzoAcquisto: round2(prezzo * 0.68),
+      quantita: giacenza,
+      sogliaMinima: soglia,
+      // riga 3: sotto soglia, per far comparire l'avviso di scorta
+      ...(i === 2 ? { quantita: 2, sogliaMinima: 50 } : {}),
+      unitaMisura: servizio ? 'h' : pick(r, UM),
+      iva: pick(r, [22, 22, 22, 10, 4]),
+      barcode: servizio ? '' : String(8000000000000 + i),
+      haVarianti: r() > 0.88,
+      haImmagine: r() > 0.7,
+      peso: servizio ? null : round2(r() * 25),
+    };
+  });
+}
+
+function righe(r: () => number, prodotti: any[]): any[] {
+  const n = 1 + Math.floor(r() * 5);
+  const out: any[] = Array.from({ length: n }, () => {
+    const p = pick(r, prodotti.slice(0, 40));
+    const q = 1 + Math.floor(r() * 40);
+    return {
+      prodottoId: p.id, codiceProdotto: p.codice, prodottoNome: p.nome, descrizione: p.nome,
+      quantita: q, unitaMisura: p.unitaMisura, prezzo: p.prezzo,
+      sconto: r() > 0.75 ? 5 * (1 + Math.floor(r() * 3)) : 0,
+      iva: p.iva, tipo: 'PRODOTTO', scaricaMagazzino: true,
+    };
+  });
+  if (r() > 0.7) out.push({ descrizione: 'Consegna prevista entro 10 giorni lavorativi dalla conferma.', tipo: 'NOTA', quantita: 0, prezzo: 0, sconto: 0, iva: 0 });
+  return out;
+}
+
+function totali(rs: any[]): { imponibile: number; totale: number } {
+  const imponibile = round2(rs.reduce((s, g) => s + g.quantita * g.prezzo * (1 - (g.sconto || 0) / 100), 0));
+  const iva = round2(rs.reduce((s, g) => s + g.quantita * g.prezzo * (1 - (g.sconto || 0) / 100) * (g.iva || 0) / 100, 0));
+  return { imponibile, totale: round2(imponibile + iva) };
+}
+
+/** Fabbrica generica per i documenti (fatture, ddt, ordini, preventivi, note di credito, acquisti). */
+function genDocumenti(seed: number, opts: {
+  prefissoNumero: string; stati: string[]; controparte: 'cliente' | 'fornitore'; campoData: string; extra?: (r: () => number, i: number) => any;
+}): any[] {
+  const r = makeRng(seed);
+  const prodotti = genProdotti();
+  const clienti = opts.controparte === 'cliente' ? genClienti() : genFornitori();
+  return Array.from({ length: N }, (_, i) => {
+    const rs = righe(r, prodotti);
+    const t = totali(rs);
+    const c = clienti[Math.floor(r() * 40)];
+    const idKey = opts.controparte === 'cliente' ? 'clienteId' : 'fornitoreId';
+    const nomeKey = opts.controparte === 'cliente' ? 'clienteNome' : 'fornitoreNome';
+    return {
+      id: i + 1,
+      numero: `${opts.prefissoNumero}${String(N - i).padStart(4, '0')}`,
+      [opts.campoData]: iso(Math.floor(i * 1.7)),
+      [idKey]: c.id,
+      [nomeKey]: c.ragioneSociale,
+      controparteNome: c.ragioneSociale,
+      stato: pick(r, opts.stati),
+      note: r() > 0.8 ? 'Merce resa franco cantiere. Garanzia 24 mesi.' : '',
+      imponibile: i === 1 ? IMPORTO_ENORME : t.imponibile,
+      totale: i === 1 ? round2(IMPORTO_ENORME * 1.22) : t.totale,
+      tipoPagamentoId: 1 + Math.floor(r() * 2),
+      righe: rs,
+      ...(opts.extra ? opts.extra(r, i) : {}),
+    };
+  });
+}
+
+// ── Cache: ogni collezione viene generata una sola volta per sessione ────────
+const cache = new Map<string, any[]>();
+function coll(name: string, gen: () => any[]): any[] {
+  if (!cache.has(name)) cache.set(name, gen());
+  return cache.get(name)!;
+}
+
+const COLLEZIONI: Record<string, () => any[]> = {
+  clienti: () => coll('clienti', genClienti),
+  fornitori: () => coll('fornitori', genFornitori),
+  prodotti: () => coll('prodotti', genProdotti),
+  fatture: () => coll('fatture', () => genDocumenti(401, {
+    prefissoNumero: '2026/', stati: ['EMESSA', 'EMESSA', 'PAGATA', 'BOZZA', 'ANNULLATA'],
+    controparte: 'cliente', campoData: 'dataEmissione',
+    extra: (r) => ({ statoSdi: r() > 0.6 ? 'INVIATA' : undefined, ddtIds: [] }),
+  })),
+  ddt: () => coll('ddt', () => genDocumenti(402, {
+    prefissoNumero: 'DDT/', stati: ['EMESSO', 'CONSEGNATO'], controparte: 'cliente', campoData: 'dataEmissione',
+    extra: (r, i) => ({
+      tipo: 'CLIENTE', fatturaId: r() > 0.5 ? i + 1 : null, fatturaNumero: r() > 0.5 ? `2026/${i}` : null,
+      causaleTrasporto: 'Vendita', aspettoBeni: 'Bancali', porto: 'Franco', numeroColli: 1 + Math.floor(r() * 12),
+      pesoLordo: round2(r() * 900), vettore: r() > 0.6 ? 'Trasporti Veloci S.r.l.' : '',
+    }),
+  })),
+  // `ordini` è una collezione sola: la schermata "Ordini fornitore" filtra per
+  // `tipo === 'FORNITORE'` sullo stesso endpoint, quindi le fixture devono contenerli
+  // entrambi — altrimenti quella schermata sembrerebbe vuota per colpa dei dati finti.
+  ordini: () => coll('ordini', () => [
+    ...genDocumenti(403, {
+      prefissoNumero: 'ORD/', stati: ['APERTO', 'EVASO', 'ANNULLATO'], controparte: 'cliente', campoData: 'dataOrdine',
+      extra: () => ({ tipo: 'CLIENTE' }),
+    }),
+    ...genDocumenti(404, {
+      prefissoNumero: 'OF/', stati: ['APERTO', 'EVASO'], controparte: 'fornitore', campoData: 'dataOrdine',
+      extra: () => ({ tipo: 'FORNITORE' }),
+    }).map((o) => ({ ...o, id: o.id + 1000 })),
+  ]),
+  preventivi: () => coll('preventivi', () => genDocumenti(405, {
+    prefissoNumero: 'PRV/', stati: ['EMESSO', 'ACCETTATO', 'RIFIUTATO', 'SCADUTO'],
+    controparte: 'cliente', campoData: 'dataEmissione', extra: () => ({ validita: 30, stampaImmagini: true }),
+  })),
+  'note-credito': () => coll('note-credito', () => genDocumenti(406, {
+    prefissoNumero: 'NC/', stati: ['EMESSA', 'STORNATA'], controparte: 'cliente', campoData: 'dataEmissione',
+    extra: (r, i) => ({ fatturaId: i + 1, fatturaNumero: `2026/${String(N - i).padStart(4, '0')}` }),
+  })),
+  acquisti: () => coll('acquisti', () => genDocumenti(407, {
+    prefissoNumero: 'ACQ/', stati: ['RICEVUTA', 'PAGATA', 'EMESSA'], controparte: 'fornitore', campoData: 'dataEmissione',
+  })),
+  'fatture-ricorrenti': () => coll('ricorrenti', () => {
+    const r = makeRng(408); const cl = genClienti();
+    return Array.from({ length: 24 }, (_, i) => ({
+      id: i + 1, descrizione: `Canone assistenza ${pick(r, SETTORI).toLowerCase()}`,
+      clienteId: cl[i].id, clienteNome: cl[i].ragioneSociale,
+      frequenza: pick(r, ['MENSILE', 'TRIMESTRALE', 'ANNUALE']),
+      giornoEmissione: 1 + Math.floor(r() * 27), prossimaEmissione: iso(-Math.floor(r() * 60)),
+      attiva: r() > 0.25, totale: round2(80 + r() * 900), righe: righe(r, genProdotti()),
+    }));
+  }),
+  'arrivi-merce': () => coll('arrivi', () => {
+    const r = makeRng(409); const f = genFornitori();
+    return Array.from({ length: 60 }, (_, i) => ({
+      id: i + 1, numero: `AM/${String(60 - i).padStart(4, '0')}`, data: iso(i * 2),
+      fornitoreId: f[i].id, fornitoreNome: f[i].ragioneSociale,
+      stato: pick(r, ['APERTO', 'CONFERMATO']), righe: righe(r, genProdotti()),
+    }));
+  }),
+  'vendite-banco': () => coll('vendite-banco', () => {
+    const r = makeRng(410);
+    return Array.from({ length: 80 }, (_, i) => {
+      const rs = righe(r, genProdotti()); const t = totali(rs);
+      return { id: i + 1, numero: String(80 - i), data: iso(Math.floor(i / 3)), ...t, metodo: pick(r, ['CONTANTI', 'CARTA', 'BANCOMAT']), righe: rs };
+    });
+  }),
+  pagamenti: () => coll('pagamenti', () => {
+    const r = makeRng(411); const cl = genClienti();
+    return Array.from({ length: N }, (_, i) => ({
+      id: i + 1, fatturaId: i + 1, fatturaNumero: `2026/${String(N - i).padStart(4, '0')}`,
+      clienteNome: cl[Math.floor(r() * 40)].ragioneSociale,
+      dataPagamento: iso(Math.floor(i * 1.3)), importo: round2(80 + r() * 4000),
+      metodo: pick(r, ['BONIFICO', 'CONTANTI', 'CARTA', 'RIBA']), tipo: 'ENTRATA',
+      conto: pick(r, ['BANCA', 'CASSA']), tipoPagamentoNome: 'Bonifico 30 gg',
+    }));
+  }),
+  'movimenti-magazzino': () => coll('movimenti', () => {
+    const r = makeRng(412); const p = genProdotti();
+    return Array.from({ length: N }, (_, i) => {
+      const pr = p[Math.floor(r() * 60)];
+      return {
+        id: i + 1, data: iso(Math.floor(i / 2)), prodottoId: pr.id, prodottoNome: pr.nome,
+        codiceProdotto: pr.codice, tipo: pick(r, ['CARICO', 'SCARICO', 'RETTIFICA']),
+        quantita: 1 + Math.floor(r() * 120), causale: pick(r, ['Vendita', 'Acquisto', 'Inventario', 'Reso']),
+        giacenzaDopo: Math.floor(r() * 3000),
+      };
+    });
+  }),
+  listini: () => coll('listini', () => {
+    const r = makeRng(413);
+    return Array.from({ length: 12 }, (_, i) => ({
+      id: i + 1, nome: `Listino ${pick(r, ['Rivenditori', 'Privati', 'Cantieri', 'Estero', 'Promo'])} ${2020 + i}`,
+      attivo: r() > 0.2, scontoDefault: Math.floor(r() * 20), dataInizio: iso(300 - i * 20), dataFine: null,
+    }));
+  }),
+  agenti: () => coll('agenti', () => {
+    const r = makeRng(414);
+    return Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1, nome: `${pick(r, COGNOMI)} ${pick(r, ['Marco', 'Luca', 'Anna', 'Giulia', 'Paolo'])}`,
+      email: `agente${i + 1}@ordeva.it`, telefono: `33${i} 1234567`,
+      provvigioneDefault: 3 + Math.floor(r() * 8), attivo: r() > 0.15,
+    }));
+  }),
+  utenti: () => coll('utenti', () => ([
+    { id: 1, nome: 'Utente locale', email: 'locale@ordeva.app', ruolo: 'ADMIN', attivo: true },
+  ])),
+  magazzini: () => coll('magazzini', () => ([
+    { id: 1, nome: 'Magazzino centrale', codice: 'MC', principale: true },
+    { id: 2, nome: 'Deposito cantiere', codice: 'DC', principale: false },
+  ])),
+  'categorie-prodotto': () => CATEGORIE.map((c, i) => ({ id: i + 1, nome: c })),
+  'unita-misura': () => UM.map((u, i) => ({ id: i + 1, simbolo: u, descrizione: u })),
+  'aliquote-iva': () => ([
+    { id: 1, valore: 22, codice: '', descrizione: 'Aliquota ordinaria', attiva: true },
+    { id: 2, valore: 10, codice: '', descrizione: 'Aliquota ridotta', attiva: true },
+    { id: 3, valore: 4, codice: '', descrizione: 'Aliquota minima', attiva: true },
+    { id: 4, valore: 0, codice: 'N4', descrizione: 'Esente art. 10', attiva: true },
+  ]),
+  'tipi-pagamento': () => ([
+    { id: 1, nome: 'Bonifico 30 gg', conto: 'BANCA', immediato: false, giorniScadenza: 30, fineMese: false, attivo: true },
+    { id: 2, nome: 'Rimessa diretta', conto: 'CASSA', immediato: true, giorniScadenza: 0, fineMese: false, attivo: true },
+    { id: 3, nome: 'RiBa 60 gg f.m.', conto: 'BANCA', immediato: false, giorniScadenza: 60, fineMese: true, attivo: true },
+  ]),
+  causali: () => ([{ id: 1, descrizione: 'Vendita' }, { id: 2, descrizione: 'Conto visione' }, { id: 3, descrizione: 'Reso' }]),
+  'note-rapide': () => ([{ id: 1, testo: 'Merce resa franco cantiere' }, { id: 2, testo: 'Garanzia 24 mesi' }]),
+  lavagna: () => coll('lavagna', () => ([
+    { id: 1, testo: 'Richiamare Rossi per il preventivo del capannone', colore: 'giallo', x: 40, y: 40 },
+    { id: 2, testo: 'Ordinare cemento: scorta sotto soglia', colore: 'rosa', x: 260, y: 90 },
+  ])),
+};
+
+// ── Statistiche e aggregati ──────────────────────────────────────────────────
+function mesiAnno(seed: number, base: number): any[] {
+  const r = makeRng(seed);
+  return Array.from({ length: 12 }, (_, i) => ({
+    mese: `2026-${String(i + 1).padStart(2, '0')}`,
+    anno: 2026, numeroMese: i + 1,
+    totale: round2(base * (0.6 + r() * 0.9)),
+    imponibile: round2(base * 0.82 * (0.6 + r() * 0.9)),
+    count: 5 + Math.floor(r() * 40),
+  }));
+}
+
+const AGGREGATI: Record<string, () => any> = {
+  'stats/vendite-mensili': () => mesiAnno(501, 42000),
+  'stats/acquisti-mensili': () => mesiAnno(502, 26000),
+  'stats/cashflow': () => mesiAnno(503, 16000),
+  'stats/cashflow-3060-90': () => ({ a30: 18400.5, a60: 9200.25, a90: 4100, oltre: 1250.75 }),
+  'stats/cashflow-forecast': () => mesiAnno(504, 12000),
+  'stats/kpi-anno': () => ({
+    fatturato: 486320.44, fatturatoPrec: 421900.1, acquisti: 298110.9,
+    margine: 188209.54, insoluti: 24310.8, clientiAttivi: 87, documenti: 642,
+  }),
+  'stats/top-prodotti': () => genProdotti().slice(0, 10).map((p, i) => ({
+    prodottoId: p.id, nome: p.nome, codice: p.codice, quantita: 400 - i * 31, totale: round2(9000 - i * 640),
+  })),
+  'stats/top-clienti': () => genClienti().slice(0, 10).map((c, i) => ({
+    clienteId: c.id, ragioneSociale: c.ragioneSociale, totale: round2(48000 - i * 3700), documenti: 40 - i * 3,
+  })),
+  'stats/iva-trimestre': () => ([
+    { trimestre: 1, ivaVendite: 21400.2, ivaAcquisti: 13100.5, saldo: 8299.7 },
+    { trimestre: 2, ivaVendite: 24900.8, ivaAcquisti: 15200.1, saldo: 9700.7 },
+  ]),
+  'prodotti/count': () => ({ count: N }),
+  'clienti/count': () => ({ count: N }),
+  'ordini/count-aperti': () => ({ count: 14 }),
+  'prodotti/valore': () => ({ valore: 184320.55, valoreAcquisto: 125340.2 }),
+  'prodotti/sotto-soglia': () => genProdotti().filter((p) => p.sogliaMinima && p.quantita < p.sogliaMinima).slice(0, 12),
+  'ddt/non-fatturati': () => COLLEZIONI['ddt']().filter((d: any) => !d.fatturaId).slice(0, 25),
+  'prezzi-recenti': () => [],
+  'riordino/proposte': () => genProdotti().slice(0, 8).map((p) => ({
+    prodottoId: p.id, nome: p.nome, codice: p.codice, giacenza: p.quantita,
+    sogliaMinima: p.sogliaMinima, daOrdinare: 100, fornitoreNome: 'Edil Forniture S.p.A.',
+  })),
+  'pagamenti/scadenzario': () => scadenzario(),
+  scadenzario: () => scadenzario(),
+  'scadenze-fiscali': () => ([
+    { id: 1, descrizione: 'Liquidazione IVA mensile', data: iso(-12), importo: 3420.5, pagata: false, tipo: 'IVA' },
+    { id: 2, descrizione: 'Ritenute d\'acconto F24', data: iso(-26), importo: 890.2, pagata: false, tipo: 'F24' },
+    { id: 3, descrizione: 'Acconto IRES', data: iso(18), importo: 5600, pagata: true, tipo: 'IMPOSTE' },
+  ]),
+  'agenda/imminenti': () => ([
+    { id: 1, titolo: 'Sopralluogo cantiere via Verdi', data: iso(-1), ora: '09:30', tipo: 'APPUNTAMENTO' },
+    { id: 2, titolo: 'Scadenza fattura 2026/0180', data: iso(-3), ora: '', tipo: 'SCADENZA_FATTURA' },
+  ]),
+  'agenda/appuntamenti': () => ([
+    { id: 1, titolo: 'Sopralluogo cantiere via Verdi', dataInizio: iso(-1) + 'T09:30', dataFine: iso(-1) + 'T11:00', stato: 'DA_FARE', note: '' },
+    { id: 2, titolo: 'Consegna materiale Bianchi', dataInizio: iso(-4) + 'T14:00', dataFine: iso(-4) + 'T15:00', stato: 'DA_FARE', note: '' },
+  ]),
+  'agenda/todo': () => ([
+    { id: 1, testo: 'Inviare preventivo a Rossi Costruzioni', stato: 'DA_FARE', scadenza: iso(-2) },
+    { id: 2, testo: 'Verificare giacenza cemento', stato: 'FATTA', scadenza: null },
+  ]),
+  'magazzini/giacenze': () => genProdotti().slice(0, 60).map((p) => ({
+    prodottoId: p.id, nome: p.nome, codice: p.codice, magazzinoId: 1, magazzinoNome: 'Magazzino centrale',
+    quantita: p.quantita, sogliaMinima: p.sogliaMinima, unitaMisura: p.unitaMisura, valore: round2((p.prezzoAcquisto || 0) * (p.quantita || 0)),
+  })),
+  'magazzini/scadenze': () => genProdotti().slice(0, 10).map((p, i) => ({
+    prodottoId: p.id, nome: p.nome, codice: p.codice, lotto: `L-2026-${100 + i}`,
+    scadenza: iso(-15 + i * 9), quantita: 10 + i * 3, magazzinoNome: 'Magazzino centrale',
+  })),
+  'stats/margini': () => genProdotti().slice(0, 15).map((p) => ({
+    prodottoId: p.id, nome: p.nome, codice: p.codice, ricavo: round2((p.prezzo || 0) * 40),
+    costo: round2((p.prezzoAcquisto || 0) * 40), margine: round2(((p.prezzo || 0) - (p.prezzoAcquisto || 0)) * 40),
+    marginePerc: round2(100 * (1 - (p.prezzoAcquisto || 0) / (p.prezzo || 1))),
+  })),
+  'stats/bi': () => ({ fatturato: 486320.44, margine: 188209.54, clienti: N, prodotti: N, documenti: 642 }),
+  'agenda/promemoria': () => ([{ id: 1, testo: 'Rinnovo polizza assicurativa', data: iso(-9) }]),
+  'notifications/badges': () => ({ scadenze: 3, insoluti: 25, riordini: 4, sdi: 0 }),
+  me: () => ({ id: 1, nome: 'Utente locale', email: 'locale@ordeva.app', ruolo: 'ADMIN' }),
+  'agenti/provvigioni': () => COLLEZIONI['agenti']().map((a: any) => ({
+    agenteId: a.id, agenteNome: a.nome, fatturato: round2(20000 + a.id * 7300),
+    provvigione: round2((20000 + a.id * 7300) * a.provvigioneDefault / 100), documenti: 12 + a.id,
+  })),
+  azienda: () => ({
+    id: 1, ragioneSociale: 'La Mia Azienda S.r.l.', indirizzo: 'Via dell\'Industria 42',
+    cap: '20090', citta: 'Assago', provincia: 'MI', stato: 'IT',
+    pIva: '02233445566', codFiscale: '02233445566', email: 'info@lamiaazienda.it',
+    telefono: '02 1234567', pec: 'lamiaazienda@legalmail.it', sdi: 'M5UXCR1',
+    banca: 'Banca Popolare', iban: 'IT60X0542811101000000123456',
+    regimeFiscale: 'RF01', emailMode: 'MAILTO', riordinoAutomatico: false,
+  }),
+  'setup/status': () => ({ aziendaConfigurata: true, hasDati: true }),
+  'setup/password/status': () => ({ enabled: false }),
+  'sistema/lock': () => ({ locked: false }),
+  'sistema/cifratura': () => ({ attiva: false }),
+  'sistema/percorsi': () => ({
+    dataDir: 'C:\\Users\\demo\\Documents\\Ordeva', configPath: 'C:\\Users\\demo\\Documents\\Ordeva\\config.json',
+    files: [{ nome: 'ordeva.db', esiste: true, bytes: 8452096 }],
+  }),
+  'backup/config': () => ({ attivo: true, cartella: 'C:\\Users\\demo\\Dropbox\\Ordeva', frequenza: 'GIORNALIERA', ultimoBackup: iso(1), cifrato: true }),
+  'backup/list': () => ({ files: Array.from({ length: 7 }, (_, i) => ({ name: `ordeva-2026-09-0${i + 1}.db.enc`, encrypted: true, size: 8400000 + i * 1000, mtime: iso(i) })) }),
+  archivi: () => ({ archivi: [{ slug: 'principale', nome: 'Archivio principale', cifrato: false }, { slug: 'prova', nome: 'Prova 2025', cifrato: true }], corrente: 'principale' }),
+  moduli: () => [],
+  'sdi-passive/providers': () => ([{ id: 'FIC', nome: 'Fatture in Cloud' }, { id: 'ARUBA', nome: 'Aruba' }]),
+  'sdi-passive/ricevute': () => COLLEZIONI['acquisti']().slice(0, 30),
+  'crm/stages': () => ([{ id: 1, nome: 'Contatto' }, { id: 2, nome: 'Offerta' }, { id: 3, nome: 'Chiusa' }]),
+  'crm/opportunita': () => [],
+  'admin/stats': () => ({ tenants: 3, utenti: 7, documenti: 642 }),
+  reports: () => [],
+  search: () => [],
+};
+
+function scadenzario(): any[] {
+  const r = makeRng(505);
+  const cl = genClienti();
+  return Array.from({ length: 80 }, (_, i) => {
+    const tot = round2(200 + r() * 6000);
+    const pagato = r() > 0.6 ? round2(tot * r()) : 0;
+    return {
+      id: i + 1, numero: `2026/${String(N - i).padStart(4, '0')}`,
+      dataEmissione: iso(60 + i), dataScadenza: iso(30 - i),
+      controparte: cl[Math.floor(r() * 40)].ragioneSociale,
+      tipoPagamentoNome: 'Bonifico 30 gg', conto: 'BANCA',
+      importoTotale: tot, importoPagato: pagato, rimanente: round2(tot - pagato),
+      tipoEntry: r() > 0.35 ? 'FATTURA' : 'ACQUISTO',
+    };
+  });
+}
+
+// ── Risoluzione della richiesta ──────────────────────────────────────────────
+
+/** Toglie prefisso `/api/`, query string e slash finale: resta il path logico. */
+function normalizza(url: string): string {
+  const senzaQuery = url.split('?')[0];
+  const i = senzaQuery.indexOf('/api/');
+  const p = i >= 0 ? senzaQuery.slice(i + 5) : senzaQuery.replace(/^\/+/, '');
+  return p.replace(/\/+$/, '');
+}
+
+/** `true` per i path che chiedono un singolo elemento di una collezione nota. */
+function dettaglio(path: string): { nome: string; id: number } | null {
+  const m = /^([a-z-]+)\/(\d+)$/.exec(path);
+  if (!m || !COLLEZIONI[m[1]]) return null;
+  return { nome: m[1], id: Number(m[2]) };
+}
+
+/**
+ * Risposta finta per una richiesta. Ritorna sempre qualcosa: una schermata non
+ * deve mai fallire per un endpoint che non abbiamo ancora modellato — se manca,
+ * si degrada a lista vuota / oggetto vuoto, che è renderizzabile.
+ */
+export function risolvi(method: string, url: string, body: any, state: PreviewState): any {
+  const path = normalizza(url);
+  const vuoto = state === 'empty';
+
+  // Scritture: eco del payload con un id, così le liste ottimistiche funzionano.
+  if (method !== 'GET') {
+    if (path.endsWith('/print') || path.includes('xml')) return { ok: true };
+    return { success: true, ok: true, id: Math.floor(Math.random() * 9000) + 1000, ...(body && typeof body === 'object' ? body : {}) };
+  }
+
+  // Numerazione automatica dei documenti
+  if (path.startsWith('next-number')) return { numero: vuoto ? 1 : N + 1 };
+
+  // Dettaglio di un elemento
+  const det = dettaglio(path);
+  if (det) {
+    const lista = COLLEZIONI[det.nome]();
+    return lista.find((x: any) => x.id === det.id) ?? lista[0] ?? {};
+  }
+
+  // Sotto-risorse note del dettaglio (indirizzi, varianti, prezzi, …)
+  if (/^clienti\/\d+\/indirizzi$/.test(path)) {
+    return vuoto ? [] : [{ id: 1, nome: 'Cantiere via Verdi', via: 'Via Verdi 5', cap: '20121', citta: 'Milano', provincia: 'MI' }];
+  }
+  if (/^clienti\/\d+\/fatture-insolute$/.test(path)) {
+    return vuoto ? [] : COLLEZIONI['fatture']().slice(0, 3);
+  }
+  if (/^clienti\/\d+\/top-prodotti$/.test(path)) {
+    return vuoto ? [] : genProdotti().slice(0, 5).map((p) => ({ ...p, occorrenze: 7, quantitaTotale: 1200, ultimaVendita: iso(30) }));
+  }
+  if (/^prodotti\/\d+\/(fornitori|codici-alias)$/.test(path) || /^prodotto-varianti\//.test(path)) return [];
+
+  // Aggregati e singoletti
+  const agg = Object.keys(AGGREGATI).find((k) => path === k || path.startsWith(k + '?') || path.startsWith(k + '/'));
+  if (agg) {
+    const v = AGGREGATI[agg]();
+    if (!vuoto) return v;
+    return Array.isArray(v) ? [] : svuota(v);
+  }
+
+  // Collezioni
+  const c = COLLEZIONI[path];
+  if (c) return vuoto ? [] : c();
+
+  // Sconosciuto: qualcosa di renderizzabile, mai un errore. Il path viene però
+  // annotato: `window.__fixtureMancanti` elenca gli endpoint ancora senza dati
+  // finti, cioè le schermate che l'audit vedrebbe più vuote del vero.
+  segnalaMancante(path);
+  return path.includes('count') || path.includes('status') || path.includes('config') ? {} : [];
+}
+
+/** Endpoint serviti dal fallback generico: da colmare man mano che si auditano le schermate. */
+export const fixtureMancanti = new Set<string>();
+function segnalaMancante(path: string) {
+  fixtureMancanti.add(path);
+  try { (window as any).__fixtureMancanti = [...fixtureMancanti].sort(); } catch { /* non in browser */ }
+}
+
+/** Azzera i numeri di un aggregato mantenendone la forma (stato "empty"). */
+function svuota(v: any): any {
+  if (v === null || typeof v !== 'object') return typeof v === 'number' ? 0 : v;
+  const out: any = Array.isArray(v) ? [] : {};
+  for (const k of Object.keys(v)) out[k] = svuota(v[k]);
+  return out;
+}
