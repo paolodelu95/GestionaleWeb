@@ -1198,6 +1198,11 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
 .mat-mdc-flat-button {
   --mdc-filled-button-container-shape: 8px;
   --mdc-protected-button-container-shape: 8px;
+  // Le due variabili sopra non bastano più su Angular Material 21 (M3): il
+  // border-radius effettivo non le legge, e il bottone torna al default M3
+  // "pill" (angoli pieni) — che è il look voluto SOLO nel tema "glass"
+  // (body.glass-ui, dock flottante), non quello di default. Impostato diretto.
+  border-radius: 8px !important;
   letter-spacing: 0 !important;
   font-weight: 600 !important;
   height: 38px !important;
@@ -1208,6 +1213,7 @@ mat-dialog-content .mat-mdc-form-field.mat-form-field-disabled {
 
 .mat-mdc-outlined-button {
   --mdc-outlined-button-container-shape: 8px;
+  border-radius: 8px !important;
   letter-spacing: 0 !important;
   font-weight: 600 !important;
   height: 38px !important;
