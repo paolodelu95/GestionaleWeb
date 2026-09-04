@@ -64,10 +64,10 @@ avanzamento**: si rimisurano a ogni onda chiusa.
 | # | Misura | Oggi | Obiettivo |
 |---|---|---|---|
 | M1 | Componenti / dialog / rotte | 126 / 66 / 51 | — (perimetro) |
-| M2 | `alert()` e `prompt()` nativi residui | **8 occorrenze in 4 file** | 0 |
-| M3 | `.subscribe(() => …)` **senza ramo `error:`** | **63**, di cui **almeno 39 su scritture/cancellazioni** in 19 file | 0 |
+| M2 | `alert()` e `prompt()` nativi residui | ~~8 in 4 file~~ → **0 ✅** | 0 |
+| M3 | `.subscribe(() => …)` **senza ramo `error:`** | **63**, di cui almeno 39 su scritture in 19 file — ma **non falliscono più in silenzio ✅** (B.1) | 0 |
 | M4 | Copertura aiuto sui campi (`matHint`/FieldHelp su `mat-form-field`) | **54 / 833 ≈ 6%** | ≥ 60% dei campi non ovvi |
-| M5 | `mat-icon-button` senza `aria-label` | **169 in 61 file** | 0 |
+| M5 | Bottoni-icona **senza nome accessibile** | ~~169 «senza aria-label»~~ — misura sbagliata, vedi sotto. Reale: **62 su 48 rotte** → **0 ✅** | 0 |
 | M6 | Colori esadecimali fuori dai token (SCSS) | **200** | solo dentro `styles.scss` |
 | M7 | Liste con `mat-paginator` | **24 / 53** | tutte quelle che possono superare ~100 righe |
 | M8 | Componenti con indicatore di caricamento | **21 / 126** | tutte le viste che fanno una chiamata |
@@ -88,6 +88,14 @@ avanzamento**: si rimisurano a ogni onda chiusa.
   `alert()`/`prompt()` nativi sono rientrati in `acquisti/acquisto-registra-dialog.ts` (3),
   `acquisti/acquisto-magazzino-dialog.ts` (1), `fatture/fatture.ts` (2),
   `super-admin/super-admin.ts` (2). Serve un presidio, non solo una bonifica.
+- **M5 era gonfiata, e la galleria lo ha dimostrato.** Il `grep` contava i
+  `mat-icon-button` privi di `aria-label` e ne trovava 169 — ma `title` fornisce
+  anch'esso un nome accessibile, e l'app lo usa quasi ovunque. Misurando il **DOM vero**
+  su tutte le rotte, i bottoni davvero senza nome erano **62**, concentrati in cinque
+  punti: il selettore colonne condiviso, i kebab di riga di Clienti, Fornitori e SDI
+  ricevute, il bottone "Aggiorna" di due schermate SDI e le frecce del mese in Agenda.
+  Lezione da tenere: **il `grep` propone, la schermata dispone** — le metriche statiche
+  vanno confermate a video prima di dimensionare un intervento.
 - **M12 era il collo di bottiglia del "guarda ogni schermata" — ora è risolto.** L'harness
   copriva 8 dialog documento più Vendita al banco; tutto il resto si vedeva solo compilando
   il backend Rust, che sulla macchina di sviluppo non c'è (vedi `HANDOFF.md`). Con la
@@ -104,7 +112,7 @@ avanzamento**: si rimisurano a ogni onda chiusa.
 | B4 | `home-app.ts:329` e seguenti | ~20 gradienti esadecimali cablati sulle card moduli: palette arcobaleno non tematizzata, ignora il dark mode | UI |
 | B5 | 29 liste senza paginator (M7) | Su archivi reali la pagina rende migliaia di righe: rallentamenti e scroll infinito | BUG/UI |
 | B6 | 105 componenti senza indicatore di caricamento (M8) | Schermata vuota durante il fetch, indistinguibile da "nessun dato" | UX |
-| B7 | 61 file (M5) | Bottoni-icona senza nome accessibile: illeggibili da screen reader, e in alcuni casi senza nemmeno il tooltip | UI/a11y |
+| B7 | 5 punti, 62 bottoni (M5) | Bottoni-icona senza nome accessibile: illeggibili da screen reader. I 25 kebab identici per riga, poi, non dicevano nemmeno *quale* riga | UI/a11y |
 | B8 | 27 `toFixed(2)` + 7 `toLocaleString` contro 192 `currency` | Formattazione importi non uniforme: separatori e simbolo divergono tra schermate | UI |
 | B9 | 16 `slice(0,10)`/`split('T')` contro 79 `date` | Stesse date rese in formati diversi | UI |
 | B10 | `app.routes.ts` vs `app.ts:973-974` | `/crm` e `/timesheet` sono rotte vive ma tolte dal menu (righe commentate): raggiungibili solo per URL e non manutenute | BUG |
@@ -168,16 +176,16 @@ riducono il rumore negli audit successivi.
 
 | # | Bonifica | Risolve | Rischio |
 |---|---|---|---|
-| **B.1** | **Gestione errore centralizzata**: helper `ds.write$()` — oppure un interceptor che mostra uno snackbar rosso sugli errori non gestiti — e aggiunta del ramo `error:` ai punti di M3 | B1 | Basso: aggiunge un ramo, non ne cambia nessuno |
-| **B.2** | **Divieto di dialog nativi**: sostituire gli 8 residui con `ConfirmDialog`/snackbar, più la regola di presidio (§7) | B2, B3 | Nullo |
+| **B.1 ✅** | **Errori HTTP non gestiti resi visibili** — `services/global-error-handler.ts`. Fatta **nell'`ErrorHandler`, non nell'interceptor**: un interceptor non sa se qualcuno gestirà l'errore, quindi parlerebbe anche dove la schermata mostra già un messaggio suo. All'`ErrorHandler` arrivano per definizione solo gli errori che **nessuno** ha gestito (RxJS li rilancia solo in assenza di callback `error:`), quindi si copre il caso mancante **senza toccare i 39 punti e senza doppioni** | B1 | Basso: aggiunge un ramo, non ne cambia nessuno |
+| **B.2 ✅** | **Popup di sistema a zero** — e chiusa la falla che li faceva rientrare: `ConfirmService` copriva solo `confirm()`, mancava l'equivalente a tema di `alert()` e `prompt()`. Aggiunti `confirm.alert()` (un solo bottone) e `confirm.askTyping()` (riscrivi il nome per sbloccare l'azione irreversibile) | B2, B3 | Nullo |
 | **B.3** | **Deep-link "nuovo"**: `?nuovo=1` sulle liste documenti e anagrafiche, così le azioni rapide aprono davvero il dialog | B2 | Basso: nuovo ramo in `ngOnInit` |
 | **B.4** | **Pass sui token colore**: i 200 esadecimali SCSS e i gradienti della Home passano a variabili CSS; nessun colore letterale fuori da `styles.scss` | B4 | Basso, ma **richiede verifica dark mode a vista** |
 | **B.5** | **Formattazione unica**: `currency:'EUR'` e `date:'dd/MM/yyyy'` ovunque; eliminati `toFixed`/`slice(0,10)` nella resa a schermo (non nei payload) | B8, B9 | Medio: **non toccare i valori inviati al backend**, solo la resa |
-| **B.6** | **Nome accessibile obbligatorio**: `aria-label` su tutti i 169 `mat-icon-button`, allineato al `matTooltip` dove c'è | B7 | Nullo |
+| **B.6 ✅** | **Nome accessibile su ogni bottone-icona.** Misurato sul DOM, non col grep: 62 bottoni in 5 punti. I kebab di riga dicono ora *quale* riga ("Azioni per Rossi Costruzioni S.r.l."). Verificato: 0 su tutte e 48 le rotte | B7 | Nullo |
 | **B.7** | **Stato di caricamento standard**: un unico componente/direttiva (skeleton per le liste, spinner per i dialog) applicato alle viste che fanno fetch | B6 | Basso |
 | **B.8** | **Paginazione sulle liste lunghe** — prime tre confermate a vista: Pagamenti (280 righe), Movimenti magazzino (200), Ordini fornitore (200) | B5, B15 | Medio: **verificare che i filtri restino corretti** |
-| **B.11** | **Sovrapposizione casella/numero a 375 px** nelle sei liste documento | B12 | Basso: è una regola CSS del layout a schede |
-| **B.12** | **Rotta jolly `**`** verso una pagina "non trovata" (o rimando alla Home), più decisione su Login/CRM/Timesheet | B13, B14, B10 | Basso |
+| **B.11 ✅** | **Sovrapposizione casella/numero a 375 px** nelle sei liste documento. Causa: `html.density-compact td.mat-mdc-cell` sta fuori da ogni media query e, a pari specificità ma posizione successiva, batteva le regole del layout a schede. Ora è limitata a `min-width: 768px` | B12 | Basso |
+| **B.12 ✅** | **Rotta jolly `**` → Home.** Resta da decidere su Login/CRM/Timesheet (codice morto) | B13 | Basso |
 | **B.9** | **Cleanup sottoscrizioni** con `takeUntilDestroyed` dove ci sono timer o polling | B11 | Basso |
 | **B.10** | **Rete di sicurezza**: smoke test di render per ogni schermata (monta il componente coi mock e verifica che non esploda). Oggi i test sono **zero** | tutto | Basso, valore alto |
 
@@ -384,11 +392,12 @@ approvare prima di partire.
 1. ~~**A1 + A2 + A3** — galleria schermate con quattro stati dei dati.~~ ✅ **Fatta.**
    Ha ripagato subito: B12 (numero documento coperto su mobile in sei liste), B13, B14,
    B15 e B16 sono usciti al primo giro di ricognizione.
-2. **B.10 + B.1** — smoke test e gestione errori. Rete di sicurezza prima di toccare
-   qualsiasi cosa, e chiusura del bug più grave dell'app. La galleria fornisce già lo
-   strumento per verificarla: stato "Scritture KO".
-3. **B.11** — la sovrapposizione a 375 px: una regola CSS, sei schermate sistemate.
-4. **Onda 1** — Home, Fatture, Clienti, Prodotti, Vendita al banco, Dashboard, col ciclo
+2. ~~**B.1**~~ ✅ · ~~**B.2**~~ ✅ · ~~**B.11**~~ ✅ · ~~**B.12**~~ ✅ — i quattro difetti a
+   impatto più largo, ciascuno in un commit isolato e verificato nella galleria.
+3. **B.10** — smoke test automatici. Oggi la verifica è la sonda manuale della galleria
+   (§3): funziona, ma va lanciata a mano.
+4. **B.6 + B.7** — nomi accessibili e stato di caricamento standard.
+5. **Onda 1** — Home, Fatture, Clienti, Prodotti, Vendita al banco, Dashboard, col ciclo
    §5 e un commit per lente.
 
 **Quando fermarsi e chiedere:** se durante un audit emerge che sistemare un difetto

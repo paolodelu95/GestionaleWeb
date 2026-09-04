@@ -49,7 +49,7 @@ const STATI: StatoMeta[] = [
     <div class="page">
       <div class="page-header">
         <h1 class="page-title">Fatture elettroniche — Stato SDI</h1>
-        <button mat-icon-button type="button" (click)="load()" matTooltip="Aggiorna"><mat-icon>refresh</mat-icon></button>
+        <button mat-icon-button type="button" (click)="load()" aria-label="Aggiorna" matTooltip="Aggiorna"><mat-icon>refresh</mat-icon></button>
       </div>
 
       <!-- KPI per stato -->

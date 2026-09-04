@@ -100,7 +100,7 @@ interface Ricevuta {
       <div class="card">
         <div class="card-title-row">
           <h3 style="margin:0">Fatture ricevute ({{ ricevute.length }})</h3>
-          <button mat-icon-button type="button" (click)="load()" matTooltip="Aggiorna"><mat-icon>refresh</mat-icon></button>
+          <button mat-icon-button type="button" (click)="load()" aria-label="Aggiorna" matTooltip="Aggiorna"><mat-icon>refresh</mat-icon></button>
         </div>
 
         @if (loading) {
@@ -138,7 +138,8 @@ interface Ricevuta {
                           matTooltip="Registra pagamento e carico magazzino">
                     <mat-icon>task_alt</mat-icon> Registra
                   </button>
-                  <button mat-icon-button type="button" [matMenuTriggerFor]="m"><mat-icon>more_vert</mat-icon></button>
+                  <button mat-icon-button type="button" [matMenuTriggerFor]="m"
+                          [attr.aria-label]="'Azioni per la fattura ' + (r.numero || r.id)" title="Azioni"><mat-icon>more_vert</mat-icon></button>
                   <mat-menu #m="matMenu">
                     <button mat-menu-item type="button" (click)="vaiAcquisto()"><mat-icon>open_in_new</mat-icon> Apri in Acquisti</button>
                   </mat-menu>

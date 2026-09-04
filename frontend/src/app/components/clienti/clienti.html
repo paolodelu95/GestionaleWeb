@@ -114,7 +114,8 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let c" class="table-actions">
-          <button mat-icon-button type="button" [matMenuTriggerFor]="menuC" [matMenuTriggerData]="{c: c}">
+          <button mat-icon-button type="button" [matMenuTriggerFor]="menuC" [matMenuTriggerData]="{c: c}"
+                  [attr.aria-label]="'Azioni per ' + c.ragioneSociale" title="Azioni">
             <mat-icon>more_vert</mat-icon>
           </button>
         </td>

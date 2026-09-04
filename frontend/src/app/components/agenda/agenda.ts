@@ -471,9 +471,9 @@ export class TodoDialogComponent {
         <mat-tab label="Calendario">
           <div class="card" style="margin-top:16px">
             <div class="cal-toolbar">
-              <button mat-icon-button (click)="meseShift(-1)"><mat-icon>chevron_left</mat-icon></button>
+              <button mat-icon-button aria-label="Mese precedente" (click)="meseShift(-1)"><mat-icon>chevron_left</mat-icon></button>
               <button mat-stroked-button (click)="oggi()">Oggi</button>
-              <button mat-icon-button (click)="meseShift(1)"><mat-icon>chevron_right</mat-icon></button>
+              <button mat-icon-button aria-label="Mese successivo" (click)="meseShift(1)"><mat-icon>chevron_right</mat-icon></button>
               <div class="cal-title">{{ titoloMese() }}</div>
               <div class="cal-legend">
                 <span><span class="dot" style="background:#3b82f6"></span> Appuntamenti</span>

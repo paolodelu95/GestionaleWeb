@@ -34,7 +34,10 @@ export interface ColDef { key: string; label: string; defaultVisible?: boolean; 
     .cdk-drop-list-dragging .col-row:not(.cdk-drag-placeholder) { transition: transform 200ms; }
   `],
   template: `
-    <button mat-icon-button type="button" (click)="toggle($event)" matTooltip="Personalizza colonne" matTooltipPosition="left">
+    <!-- matTooltip non dà un nome accessibile al bottone: senza aria-label
+         questo bottone risultava privo di etichetta in tutte le liste. -->
+    <button mat-icon-button type="button" (click)="toggle($event)" aria-label="Personalizza colonne"
+            matTooltip="Personalizza colonne" matTooltipPosition="left">
       <mat-icon>view_column</mat-icon>
     </button>
     @if (open) {
