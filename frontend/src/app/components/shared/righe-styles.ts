@@ -67,7 +67,7 @@ export const RIGHE_STYLES = `
   .td-drag    { width: 32px; padding: 0 !important; cursor: grab; color: var(--text-muted); }
   .td-search  { width: 40px; padding: 0 !important; }
   .td-history { width: 40px; padding: 0 !important; }
-  .td-desc    { min-width: 200px; }
+  .td-desc    { min-width: 240px; }
   .td-qta     { width: 84px; }
   .td-um      { width: 92px; }
   .td-prezzo  { width: 120px; }
@@ -105,6 +105,11 @@ export const RIGHE_STYLES = `
   :host-context(html.density-compact) .righe-table td { padding: 3px var(--sp-1); }
   :host-context(html.density-compact) .riga-input { padding: 2px 6px; font-size: 12.5px; }
   :host-context(html.density-compact) .riga-codice { padding: 1px 6px; font-size: 10px; }
+  /* Codice/descrizione sono il campo principale da compilare in ogni riga: a
+     differenza dei campi numerici (qtà/prezzo/sconto/iva), restano leggibili
+     anche in densità compatta invece di seguire lo shrink generale. */
+  :host-context(html.density-compact) .riga-input--desc { padding: 5px 8px; font-size: 13.5px; }
+  :host-context(html.density-compact) .riga-codice { padding: 3px 8px; font-size: 11.5px; }
 
   /* ===== Riga NOTA (tokenizzata) ===== */
   .riga-nota td { background: var(--warning-soft); }
