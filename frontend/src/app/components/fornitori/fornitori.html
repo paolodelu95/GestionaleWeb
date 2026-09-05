@@ -1,83 +1,83 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Fornitori</h1>
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo fornitore</button>
-    <span class="header-overflow-item"><app-export-menu [data]="dataSource.data" [columns]="exportCols" filename="fornitori" title="Fornitori"></app-export-menu></span>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+    <h1 class="page-title">{{ 'nav.fornitori' | t }}</h1>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> {{ 'fornitori.new' | t }}</button>
+    <span class="header-overflow-item"><app-export-menu [data]="dataSource.data" [columns]="exportCols" filename="fornitori" [title]="'fornitori.entityLabel' | t"></app-export-menu></span>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> {{ 'fornitori.importExcel' | t }}</button>
     <input #importInput type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden-input" (change)="importExcel($event)">
     <span class="header-overflow-item"><app-column-picker storageKey="fornitori" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
 
-    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFornitori" title="Altre azioni">
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFornitori" [title]="'fornitori.moreActions' | t">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuFornitori="matMenu">
-      <button mat-menu-item type="button" (click)="excel.export(dataSource.data, exportCols, 'fornitori')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
-      <button mat-menu-item type="button" (click)="excel.exportCsv(dataSource.data, exportCols, 'fornitori')"><mat-icon>description</mat-icon> Esporta CSV</button>
-      <button mat-menu-item type="button" (click)="excel.exportPdf(dataSource.data, exportCols, 'fornitori', 'Fornitori')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
-      <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa Excel</button>
+      <button mat-menu-item type="button" (click)="excel.export(dataSource.data, exportCols, 'fornitori')"><mat-icon>grid_on</mat-icon> {{ 'fornitori.exportExcel' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(dataSource.data, exportCols, 'fornitori')"><mat-icon>description</mat-icon> {{ 'fornitori.exportCsv' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(dataSource.data, exportCols, 'fornitori', i18n.t('fornitori.entityLabel'))"><mat-icon>picture_as_pdf</mat-icon> {{ 'fornitori.exportPdf' | t }}</button>
+      <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> {{ 'fornitori.importExcel' | t }}</button>
     </mat-menu>
   </div>
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca fornitori...</mat-label>
+      <mat-label>{{ 'fornitori.search.placeholder' | t }}</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
     <table mat-table [dataSource]="dataSource" matSort class="mat-mdc-table" appKbdRows>
       <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">ID</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'fornitori.col.id' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.id }}</td>
       </ng-container>
       <ng-container matColumnDef="ragioneSociale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-rag-soc">Ragione Sociale</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-rag-soc">{{ 'fornitori.col.ragioneSociale' | t }}</th>
         <td mat-cell *matCellDef="let f" class="col-rag-soc"><b>{{ f.ragioneSociale }}</b></td>
       </ng-container>
       <ng-container matColumnDef="email">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Email</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'fornitori.col.email' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.email }}</td>
       </ng-container>
       <ng-container matColumnDef="telefono">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Telefono</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'fornitori.col.telefono' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.telefono }}</td>
       </ng-container>
       <ng-container matColumnDef="indirizzo">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-citta hide-mobile">Città</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-citta hide-mobile">{{ 'fornitori.col.citta' | t }}</th>
         <td mat-cell *matCellDef="let f" class="col-citta hide-mobile" [matTooltip]="indirizzo(f)" matTooltipPosition="above">
           {{ f.citta || '—' }}@if (f.provincia) { <span class="provincia">&nbsp;({{ f.provincia }})</span> }
         </td>
       </ng-container>
       <ng-container matColumnDef="pIva">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">P. IVA</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'fornitori.col.piva' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.pIva }}</td>
       </ng-container>
       <ng-container matColumnDef="cellulare">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Cellulare</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'fornitori.col.cellulare' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.cellulare }}</td>
       </ng-container>
       <ng-container matColumnDef="sdi">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">SDI</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'fornitori.col.sdi' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.sdi }}</td>
       </ng-container>
       <ng-container matColumnDef="pec">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">PEC</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'fornitori.col.pec' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-tablet">{{ f.pec }}</td>
       </ng-container>
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let f" class="table-actions">
           <button mat-icon-button type="button" [matMenuTriggerFor]="menuF" [matMenuTriggerData]="{f: f}"
-                  [attr.aria-label]="'Azioni per ' + f.ragioneSociale" title="Azioni">
+                  [attr.aria-label]="'fornitori.actionsFor' | t:{ nome: f.ragioneSociale }" [title]="'fornitori.actions' | t">
             <mat-icon>more_vert</mat-icon>
           </button>
         </td>
       </ng-container>
       <mat-menu #menuF="matMenu">
         <ng-template matMenuContent let-f="f">
-          <button mat-menu-item (click)="info(f)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
-          <button mat-menu-item (click)="apriAcquisti(f)"><mat-icon style="color:#d97706">shopping_bag</mat-icon> Acquisti del fornitore</button>
-          <button mat-menu-item (click)="open(f)"><mat-icon>edit</mat-icon> Modifica</button>
-          <button mat-menu-item (click)="delete(f)" style="color:#ef4444"><mat-icon style="color:#ef4444">delete</mat-icon> Elimina</button>
+          <button mat-menu-item (click)="info(f)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> {{ 'fornitori.menu.scheda' | t }}</button>
+          <button mat-menu-item (click)="apriAcquisti(f)"><mat-icon style="color:#d97706">shopping_bag</mat-icon> {{ 'fornitori.menu.acquistiFornitore' | t }}</button>
+          <button mat-menu-item (click)="open(f)"><mat-icon>edit</mat-icon> {{ 'fornitori.menu.modifica' | t }}</button>
+          <button mat-menu-item (click)="delete(f)" style="color:#ef4444"><mat-icon style="color:#ef4444">delete</mat-icon> {{ 'fornitori.menu.elimina' | t }}</button>
         </ng-template>
       </mat-menu>
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
@@ -85,13 +85,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (dataSource.filter) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessun fornitore corrisponde alla ricerca. Prova a cambiare i filtri." />
+            <app-empty-state compact icon="search_off" [title]="'fornitori.empty.searchTitle' | t"
+              [message]="'fornitori.empty.searchMessage' | t" />
           } @else {
-            <app-empty-state icon="local_shipping" title="Ancora nessun fornitore"
-              message="Aggiungi il tuo primo fornitore: ti servirà per registrare acquisti e arrivi merce.">
+            <app-empty-state icon="local_shipping" [title]="'fornitori.empty.title' | t"
+              [message]="'fornitori.empty.message' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuovo fornitore
+                <mat-icon>add</mat-icon> {{ 'fornitori.new' | t }}
               </button>
             </app-empty-state>
           }

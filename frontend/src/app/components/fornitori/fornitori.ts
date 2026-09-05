@@ -33,59 +33,61 @@ import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
-const FORNITORI_FIELDS: FieldDef[] = [
-  { key: 'ragioneSociale', label: 'Ragione Sociale', required: true, aliases: [
+function buildFornitoriFields(i18n: I18nService): FieldDef[] { return [
+  { key: 'ragioneSociale', label: i18n.t('fornitori.field.ragioneSociale'), required: true, aliases: [
     'Ragione Sociale', 'ragioneSociale', 'Denominazione', 'Azienda', 'Nome Azienda',
     'Ragione sociale', 'Company', 'Company Name', 'Fornitore', 'Supplier', 'Nome',
     'Intestazione', 'Intestatario',
   ]},
-  { key: 'email', label: 'Email', aliases: [
+  { key: 'email', label: i18n.t('fornitori.field.email'), aliases: [
     'Email', 'email', 'E-mail', 'E_mail', 'Email Address', 'Indirizzo Email',
     'Posta Elettronica', 'Mail',
   ]},
-  { key: 'telefono', label: 'Telefono', aliases: [
+  { key: 'telefono', label: i18n.t('fornitori.field.telefono'), aliases: [
     'Telefono', 'telefono', 'Tel', 'Tel.', 'Telefono 1', 'Telefono fisso',
     'Cell', 'Cellulare', 'Phone', 'Mobile', 'Phone Number', 'Numero di telefono',
   ]},
-  { key: 'cellulare', label: 'Cellulare', aliases: [
+  { key: 'cellulare', label: i18n.t('fornitori.field.cellulare'), aliases: [
     'Cellulare', 'cellulare', 'Cell', 'Mobile', 'Telefono Mobile', 'Cell.', 'Tel. Mobile',
   ]},
-  { key: 'via', label: 'Via / Indirizzo', aliases: [
+  { key: 'via', label: i18n.t('fornitori.field.via'), aliases: [
     'Via', 'via', 'Indirizzo', 'Indirizzo 1', 'Street', 'Address',
     'Indirizzo stradale', 'Sede', 'Via e numero',
   ]},
-  { key: 'cap', label: 'CAP', aliases: [
+  { key: 'cap', label: i18n.t('fornitori.field.cap'), aliases: [
     'CAP', 'cap', 'Codice Postale', 'ZIP', 'Postal Code', 'ZIP Code', 'C.A.P.',
   ]},
-  { key: 'citta', label: 'Città', aliases: [
+  { key: 'citta', label: i18n.t('fornitori.field.citta'), aliases: [
     'Città', 'Citta', 'citta', 'Comune', 'City', 'Town', 'Localita', 'Località',
   ]},
-  { key: 'provincia', label: 'Provincia', aliases: [
+  { key: 'provincia', label: i18n.t('fornitori.field.provincia'), aliases: [
     'Provincia', 'provincia', 'Prov', 'Prov.', 'Province', 'Sigla Provincia',
   ]},
-  { key: 'stato', label: 'Stato / Paese', aliases: [
+  { key: 'stato', label: i18n.t('fornitori.field.stato'), aliases: [
     'Stato', 'stato', 'Country', 'Nazione', 'Paese', 'Naz.',
   ]},
-  { key: 'pIva', label: 'P. IVA', aliases: [
+  { key: 'pIva', label: i18n.t('fornitori.field.pIva'), aliases: [
     'P. IVA', 'pIva', 'P.IVA', 'Partita IVA', 'Partita_IVA', 'VAT',
     'VAT Number', 'P IVA', 'PIVA', 'CF/PIVA', 'Partita iva',
   ]},
-  { key: 'sdi', label: 'SDI', aliases: [
+  { key: 'sdi', label: i18n.t('fornitori.field.sdi'), aliases: [
     'SDI', 'sdi', 'Codice SDI', 'Codice Destinatario', 'Destinatario SDI',
     'Codice Univoco', 'Cod. Destinatario',
   ]},
-  { key: 'pec', label: 'PEC', aliases: [
+  { key: 'pec', label: i18n.t('fornitori.field.pec'), aliases: [
     'PEC', 'pec', 'Posta Certificata', 'PEC Address', 'Indirizzo PEC',
   ]},
-];
+]; }
 
 // ── Azienda Search Dialog ──────────────────────────────────────────────────────
 @Component({
   selector: 'app-azienda-search-dialog-f',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-            MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+            MatButtonModule, MatIconModule, MatProgressSpinnerModule, TPipe],
   styles: [`
     .azienda-result {
       padding: 10px 12px; cursor: pointer; border-radius: 6px;
@@ -99,12 +101,12 @@ const FORNITORI_FIELDS: FieldDef[] = [
                   padding: 24px 0; font-size: 14px; }
   `],
   template: `
-    <h2 mat-dialog-title>Cerca azienda per ragione sociale</h2>
+    <h2 mat-dialog-title>{{ 'clienti.aziendaSearch.title' | t }}</h2>
     <mat-dialog-content style="width:520px;max-width:90vw;min-height:120px">
       <mat-form-field style="width:100%">
-        <mat-label>Nome azienda</mat-label>
+        <mat-label>{{ 'clienti.aziendaSearch.nomeAzienda' | t }}</mat-label>
         <input matInput [(ngModel)]="query" (ngModelChange)="onQueryChange($event)"
-               placeholder="es. Rossi srl, Fabbrica..." autofocus>
+               [placeholder]="'clienti.aziendaSearch.placeholder' | t" autofocus>
         <span matSuffix style="margin-right:8px">
           @if (loading) { <mat-spinner diameter="18"></mat-spinner> }
           @else { <mat-icon>search</mat-icon> }
@@ -127,16 +129,16 @@ const FORNITORI_FIELDS: FieldDef[] = [
         <div class="no-results">
           @if (serviceUnavailable) {
             <mat-icon style="vertical-align:middle;margin-right:6px;opacity:.5">cloud_off</mat-icon>
-            Servizio di ricerca non disponibile.<br>
-            <small>Inserire manualmente la ragione sociale o attivare il servizio Imprese su openapi.it</small>
+            {{ 'clienti.aziendaSearch.serviceUnavailable' | t }}<br>
+            <small>{{ 'clienti.aziendaSearch.serviceUnavailableHint' | t }}</small>
           } @else {
-            Nessuna azienda trovata per "{{ query }}"
+            {{ 'clienti.aziendaSearch.noResults' | t:{ query } }}
           }
         </div>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Chiudi</button>
+      <button mat-button mat-dialog-close>{{ 'clienti.aziendaSearch.chiudi' | t }}</button>
     </mat-dialog-actions>`
 })
 export class AziendaSearchDialogFComponent {
@@ -182,7 +184,7 @@ export class AziendaSearchDialogFComponent {
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule,
             MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule,
-            MatCheckboxModule, FieldHelpComponent],
+            MatCheckboxModule, FieldHelpComponent, TPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -190,8 +192,8 @@ export class AziendaSearchDialogFComponent {
           <mat-icon>local_shipping</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">{{ data ? data.ragioneSociale : 'Nuovo fornitore' }}</span>
-          <span class="dialog-hero-sub">{{ data ? 'Aggiorna i dati anagrafici e fiscali' : 'Inserisci i dati per gli acquisti' }}</span>
+          <span class="dialog-hero-title">{{ data ? data.ragioneSociale : (('fornitori.dialog.new') | t) }}</span>
+          <span class="dialog-hero-sub">{{ (data ? 'fornitori.dialog.editSub' : 'fornitori.dialog.newSub') | t }}</span>
         </div>
       </div>
 
@@ -201,37 +203,37 @@ export class AziendaSearchDialogFComponent {
         <div class="form-section is-primary">
           <div class="form-section-header">
             <mat-icon>badge</mat-icon>
-            <span>Identità</span>
-            <span class="section-hint">Dati per registrazione acquisti</span>
+            <span>{{ 'fornitori.form.identita' | t }}</span>
+            <span class="section-hint">{{ 'fornitori.form.identitaHint' | t }}</span>
           </div>
           <div class="input-with-action">
             <mat-form-field>
-              <mat-label>Ragione Sociale *</mat-label>
+              <mat-label>{{ 'fornitori.form.ragioneSociale' | t }}</mat-label>
               <input matInput formControlName="ragioneSociale">
             </mat-form-field>
             <button mat-icon-button type="button"
-                    matTooltip="Cerca azienda per nome" (click)="cercaAzienda()">
+                    [matTooltip]="'fornitori.form.cercaAzienda' | t" (click)="cercaAzienda()">
               <mat-icon>business_center</mat-icon>
             </button>
           </div>
           <div class="form-row">
             <div class="input-with-action" style="flex:1">
               <mat-form-field>
-                <mat-label>P. IVA</mat-label>
-                <input matInput formControlName="pIva" placeholder="11 cifre">
+                <mat-label>{{ 'fornitori.form.piva' | t }}</mat-label>
+                <input matInput formControlName="pIva" [placeholder]="'fornitori.form.pivaPlaceholder' | t">
                 <app-field-help matSuffix term="piva" />
                 @if (form.get('pIva')?.hasError('pIva')) {
-                  <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
+                  <mat-error>{{ 'fornitori.form.pivaInvalid' | t }}</mat-error>
                 }
                 @if (form.get('pIva')?.hasError('pivaEsiste')) {
-                  <mat-error>P. IVA già presente nell'anagrafica fornitori</mat-error>
+                  <mat-error>{{ 'fornitori.form.pivaEsiste' | t }}</mat-error>
                 }
                 @if (form.get('pIva')?.pending) {
-                  <mat-hint>Verifica duplicati...</mat-hint>
+                  <mat-hint>{{ 'fornitori.form.pivaVerifica' | t }}</mat-hint>
                 }
               </mat-form-field>
               <button mat-icon-button type="button"
-                      matTooltip="Carica dati da P.IVA"
+                      [matTooltip]="'fornitori.form.caricaDaPiva' | t"
                       [disabled]="lookupLoading || !canLookupPiva"
                       (click)="lookupPiva()">
                 @if (lookupLoading) {
@@ -248,29 +250,28 @@ export class AziendaSearchDialogFComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>receipt_long</mat-icon>
-            <span>Fatturazione elettronica</span>
+            <span>{{ 'fornitori.form.fatturazioneElettronica' | t }}</span>
           </div>
           <div class="form-row">
-            <mat-form-field><mat-label>Codice SDI</mat-label>
-              <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
+            <mat-form-field><mat-label>{{ 'fornitori.form.sdi' | t }}</mat-label>
+              <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" [placeholder]="'fornitori.form.sdiPlaceholder' | t">
               <app-field-help matSuffix term="sdi" />
             </mat-form-field>
-            <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
-              <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
+            <mat-form-field style="flex:2"><mat-label>{{ 'fornitori.form.pec' | t }}</mat-label>
+              <input matInput formControlName="pec" [placeholder]="'fornitori.form.pecPlaceholder' | t">
               <app-field-help matSuffix term="pec" />
             </mat-form-field>
           </div>
           <div class="form-row">
             <mat-checkbox formControlName="estero">
-              Soggetto estero (incluso nell'esterometro / autofattura TD17-TD19)
+              {{ 'fornitori.form.estero' | t }}
             </mat-checkbox>
           </div>
           <div class="form-row" style="align-items:flex-start">
             <div>
-              <mat-checkbox formControlName="ancheCliente">È anche un cliente</mat-checkbox>
+              <mat-checkbox formControlName="ancheCliente">{{ 'fornitori.form.ancheCliente' | t }}</mat-checkbox>
               <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px;max-width:520px">
-                Crea (o collega) un'anagrafica cliente gemella con gli stessi dati, così potrai
-                emettergli preventivi, fatture e documenti di trasporto (es. resi). Le due schede restano sincronizzate.
+                {{ 'fornitori.form.ancheClienteHint' | t }}
               </div>
             </div>
           </div>
@@ -280,27 +281,27 @@ export class AziendaSearchDialogFComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>location_on</mat-icon>
-            <span>Sede legale</span>
+            <span>{{ 'fornitori.form.sedeLegale' | t }}</span>
           </div>
-          <mat-form-field style="width:100%"><mat-label>Via</mat-label><input matInput formControlName="via"></mat-form-field>
+          <mat-form-field style="width:100%"><mat-label>{{ 'fornitori.form.via' | t }}</mat-label><input matInput formControlName="via"></mat-form-field>
           <div class="form-row">
-            <mat-form-field style="max-width:120px"><mat-label>CAP</mat-label>
+            <mat-form-field style="max-width:120px"><mat-label>{{ 'fornitori.form.cap' | t }}</mat-label>
               <input matInput formControlName="cap" maxlength="5">
               @if (form.get('cap')?.hasError('cap') && form.get('cap')?.dirty) {
-                <mat-error>CAP non valido (5 cifre)</mat-error>
+                <mat-error>{{ 'fornitori.form.capInvalid' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Città</mat-label>
+              <mat-label>{{ 'fornitori.form.citta' | t }}</mat-label>
               <input matInput formControlName="citta" [matAutocomplete]="auto">
               <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCitySelected($event.option.value)">
                 @for (c of filteredCities; track c.name) { <mat-option [value]="c.name">{{ c.name }}</mat-option> }
               </mat-autocomplete>
             </mat-form-field>
-            <mat-form-field style="max-width:80px"><mat-label>Prov.</mat-label>
+            <mat-form-field style="max-width:80px"><mat-label>{{ 'fornitori.form.provincia' | t }}</mat-label>
               <input matInput formControlName="provincia" maxlength="2" style="text-transform:uppercase">
-              <mat-hint>sigla</mat-hint></mat-form-field>
-            <mat-form-field style="max-width:120px"><mat-label>Stato</mat-label>
+              <mat-hint>{{ 'fornitori.form.provinciaHint' | t }}</mat-hint></mat-form-field>
+            <mat-form-field style="max-width:120px"><mat-label>{{ 'fornitori.form.stato' | t }}</mat-label>
               <input matInput formControlName="stato"></mat-form-field>
           </div>
         </div>
@@ -309,27 +310,27 @@ export class AziendaSearchDialogFComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>contact_phone</mat-icon>
-            <span>Contatti</span>
+            <span>{{ 'fornitori.form.contatti' | t }}</span>
           </div>
           <div class="form-row">
             <mat-form-field>
-              <mat-label>Email</mat-label>
+              <mat-label>{{ 'fornitori.form.email' | t }}</mat-label>
               <input matInput formControlName="email" type="email">
               <mat-icon matSuffix>alternate_email</mat-icon>
               @if (form.get('email')?.hasError('email') && form.get('email')?.dirty) {
-                <mat-error>Formato email non valido</mat-error>
+                <mat-error>{{ 'fornitori.form.emailInvalid' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Telefono</mat-label>
+              <mat-label>{{ 'fornitori.form.telefono' | t }}</mat-label>
               <input matInput formControlName="telefono">
               <mat-icon matSuffix>call</mat-icon>
               @if (form.get('telefono')?.hasError('telefono') && form.get('telefono')?.dirty) {
-                <mat-error>Inserire solo cifre, +, -, spazi o parentesi</mat-error>
+                <mat-error>{{ 'fornitori.form.telefonoInvalid' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Cellulare</mat-label>
+              <mat-label>{{ 'fornitori.form.cellulare' | t }}</mat-label>
               <input matInput formControlName="cellulare">
               <mat-icon matSuffix>smartphone</mat-icon>
             </mat-form-field>
@@ -338,11 +339,12 @@ export class AziendaSearchDialogFComponent {
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" (click)="save()" [disabled]="!form.get('ragioneSociale')?.valid || form.pending">Salva</button>
+      <button mat-button mat-dialog-close>{{ 'fornitori.form.annulla' | t }}</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="!form.get('ragioneSociale')?.valid || form.pending">{{ 'fornitori.form.salva' | t }}</button>
     </mat-dialog-actions>`
 })
 export class FornitoreDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   form: FormGroup;
   filteredCities: CityResult[] = [];
   lookupLoading = false;
@@ -440,11 +442,11 @@ export class FornitoreDialogComponent implements OnInit {
         if (result.provincia)      patch.provincia = result.provincia;
         if (result.stato)          patch.stato = result.stato;
         this.form.patchValue(patch);
-        this.snack.open('Dati caricati', '', { duration: 2500 });
+        this.snack.open(this.i18n.t('fornitori.msg.datiCaricati'), '', { duration: 2500 });
       },
       error: () => {
         this.lookupLoading = false;
-        this.snack.open('P.IVA non trovata', '', { duration: 3000 });
+        this.snack.open(this.i18n.t('fornitori.msg.pivaNonTrovata'), '', { duration: 3000 });
       }
     });
   }
@@ -462,26 +464,27 @@ export class FornitoreDialogComponent implements OnInit {
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
             MatTooltipModule, MatMenuModule, ColumnPickerComponent, EmptyStateComponent,
-            TableKeyboardNavDirective, ExportMenuComponent],
+            TableKeyboardNavDirective, ExportMenuComponent, TPipe],
   templateUrl: './fornitori.html',
   styleUrl: './fornitori.scss'
 })
 export class FornitoriComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  i18n = inject(I18nService);
   fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Fornitore>([]);
   displayedColumns: string[] = ['ragioneSociale', 'pIva', 'telefono', 'indirizzo', 'azioni'];
 
   readonly allCols: ColDef[] = [
-    { key: 'ragioneSociale', label: 'Ragione Sociale' },
-    { key: 'pIva', label: 'P. IVA' },
-    { key: 'telefono', label: 'Telefono' },
-    { key: 'indirizzo', label: 'Città' },
-    { key: 'email', label: 'Email', defaultVisible: false },
-    { key: 'cellulare', label: 'Cellulare', defaultVisible: false },
-    { key: 'sdi', label: 'SDI', defaultVisible: false },
-    { key: 'pec', label: 'PEC', defaultVisible: false },
-    { key: 'id', label: 'ID', defaultVisible: false },
+    { key: 'ragioneSociale', label: this.i18n.t('fornitori.col.ragioneSociale') },
+    { key: 'pIva', label: this.i18n.t('fornitori.col.piva') },
+    { key: 'telefono', label: this.i18n.t('fornitori.col.telefono') },
+    { key: 'indirizzo', label: this.i18n.t('fornitori.col.citta') },
+    { key: 'email', label: this.i18n.t('fornitori.col.email'), defaultVisible: false },
+    { key: 'cellulare', label: this.i18n.t('fornitori.col.cellulare'), defaultVisible: false },
+    { key: 'sdi', label: this.i18n.t('fornitori.col.sdi'), defaultVisible: false },
+    { key: 'pec', label: this.i18n.t('fornitori.col.pec'), defaultVisible: false },
+    { key: 'id', label: this.i18n.t('fornitori.col.id'), defaultVisible: false },
   ];
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -555,39 +558,40 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       const op = result.id ? this.ds.updateFornitore(result) : this.ds.createFornitore(result);
-      op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+      op.subscribe({ next: () => { this.load(); this.snack.open(this.i18n.t('fornitori.msg.salvato'), '', { duration: 2000 }); },
                      error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' }) });
     });
   }
 
   info(f: Fornitore) {
+    const t = (k: string) => this.i18n.t(k);
     const data: InfoDialogData = {
       title: f.ragioneSociale,
       sections: [
         {
-          title: 'Contatti',
+          title: t('fornitori.info.contatti'),
           rows: [
-            { label: 'Email',     value: f.email },
-            { label: 'Telefono',  value: f.telefono },
-            { label: 'Cellulare', value: f.cellulare },
-            { label: 'PEC',       value: f.pec },
+            { label: t('fornitori.info.email'),     value: f.email },
+            { label: t('fornitori.info.telefono'),  value: f.telefono },
+            { label: t('fornitori.info.cellulare'), value: f.cellulare },
+            { label: t('fornitori.info.pec'),       value: f.pec },
           ],
         },
         {
-          title: 'Sede',
+          title: t('fornitori.info.sede'),
           rows: [
-            { label: 'Via',       value: f.via },
-            { label: 'CAP',       value: f.cap },
-            { label: 'Città',     value: f.citta },
-            { label: 'Provincia', value: f.provincia },
-            { label: 'Stato',     value: f.stato },
+            { label: t('fornitori.info.via'),       value: f.via },
+            { label: t('fornitori.info.cap'),       value: f.cap },
+            { label: t('fornitori.info.citta'),     value: f.citta },
+            { label: t('fornitori.info.provincia'), value: f.provincia },
+            { label: t('fornitori.info.stato'),     value: f.stato },
           ],
         },
         {
-          title: 'Dati fiscali',
+          title: t('fornitori.info.datiFiscali'),
           rows: [
-            { label: 'Partita IVA',  value: f.pIva, mono: true },
-            { label: 'Codice SDI',   value: f.sdi, mono: true },
+            { label: t('fornitori.info.partitaIva'),  value: f.pIva, mono: true },
+            { label: t('fornitori.info.codiceSdi'),   value: f.sdi, mono: true },
           ],
         },
       ],
@@ -596,18 +600,18 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Ragione Sociale', field: 'ragioneSociale', width: 30 },
-    { header: 'Email',           field: 'email',          width: 28 },
-    { header: 'Telefono',        field: 'telefono',       width: 16 },
-    { header: 'Cellulare',       field: 'cellulare',      width: 16 },
-    { header: 'Via',             field: 'via',            width: 28 },
-    { header: 'CAP',             field: 'cap',            width: 8  },
-    { header: 'Città',           field: 'citta',          width: 18 },
-    { header: 'Provincia',       field: 'provincia',      width: 10 },
-    { header: 'Stato',           field: 'stato',          width: 12 },
-    { header: 'P. IVA',          field: 'pIva',           width: 14 },
-    { header: 'SDI',             field: 'sdi',            width: 10 },
-    { header: 'PEC',             field: 'pec',            width: 28 },
+    { header: this.i18n.t('fornitori.field.ragioneSociale'), field: 'ragioneSociale', width: 30 },
+    { header: this.i18n.t('fornitori.field.email'),          field: 'email',          width: 28 },
+    { header: this.i18n.t('fornitori.field.telefono'),       field: 'telefono',       width: 16 },
+    { header: this.i18n.t('fornitori.field.cellulare'),      field: 'cellulare',      width: 16 },
+    { header: this.i18n.t('fornitori.field.via'),            field: 'via',            width: 28 },
+    { header: this.i18n.t('fornitori.field.cap'),            field: 'cap',            width: 8  },
+    { header: this.i18n.t('fornitori.field.citta'),          field: 'citta',          width: 18 },
+    { header: this.i18n.t('fornitori.field.provincia'),      field: 'provincia',      width: 10 },
+    { header: this.i18n.t('fornitori.field.stato'),          field: 'stato',          width: 12 },
+    { header: this.i18n.t('fornitori.field.pIva'),           field: 'pIva',           width: 14 },
+    { header: this.i18n.t('fornitori.field.sdi'),            field: 'sdi',            width: 10 },
+    { header: this.i18n.t('fornitori.field.pec'),            field: 'pec',            width: 28 },
   ];
 
   importExcel(event: Event) {
@@ -615,9 +619,9 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
     if (!file) return;
     (event.target as HTMLInputElement).value = '';
     this.excel.readFile(file).then(rows => {
-      if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
+      if (!rows.length) { this.snack.open(this.i18n.t('fornitori.msg.fileVuoto'), '', { duration: 3000 }); return; }
       this.dialog.open(ImportMappingDialogComponent, {
-        data: { rows, fields: FORNITORI_FIELDS, entityType: 'fornitori', entityLabel: 'Fornitori' },
+        data: { rows, fields: buildFornitoriFields(this.i18n), entityType: 'fornitori', entityLabel: this.i18n.t('fornitori.entityLabel') },
         disableClose: true,
       }).afterClosed().subscribe((result: MappingResult | null) => {
         if (!result) return;
@@ -636,24 +640,24 @@ export class FornitoriComponent implements OnInit, AfterViewInit {
           sdi:       v('sdi', r),
           pec:       v('pec', r),
         })).filter(f => f.ragioneSociale.length > 0);
-        if (!records.length) { this.snack.open('Nessun fornitore valido: controlla la colonna Ragione Sociale', '', { duration: 5000 }); return; }
+        if (!records.length) { this.snack.open(this.i18n.t('fornitori.msg.nessunFornitoreValido'), '', { duration: 5000 }); return; }
         this.ds.importFornitori(records).subscribe({
           next: (res: any) => {
             this.load();
-            this.snack.open(`Importati: ${res.created} nuovi, ${res.updated} aggiornati, ${res.skipped} saltati`, '', { duration: 5000 });
+            this.snack.open(this.i18n.t('fornitori.msg.importResult', { created: res.created, updated: res.updated, skipped: res.skipped }), '', { duration: 5000 });
           },
           error: (err: any) => {
-            this.snack.open('Errore import: ' + (err?.error?.message || err?.message || 'errore sconosciuto'), '', { duration: 6000 });
+            this.snack.open(this.i18n.t('fornitori.msg.erroreImport', { msg: err?.error?.message || err?.message || this.i18n.t('fornitori.msg.erroreSconosciuto') }), '', { duration: 6000 });
           }
         });
       });
     }).catch(() => {
-      this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('fornitori.msg.fileNonLeggibile'), '', { duration: 3000 });
     });
   }
 
   async delete(f: Fornitore) {
-    if (!await this.confirm.delete(`Eliminare ${f.ragioneSociale}?`)) return;
-    this.ds.deleteFornitore(f.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    if (!await this.confirm.delete(this.i18n.t('fornitori.msg.confirmDelete', { nome: f.ragioneSociale }))) return;
+    this.ds.deleteFornitore(f.id!).subscribe(() => { this.load(); this.snack.open(this.i18n.t('fornitori.msg.eliminato'), '', { duration: 2000 }); });
   }
 }
