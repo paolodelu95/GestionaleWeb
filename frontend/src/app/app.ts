@@ -965,16 +965,9 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Compliance',      icon: 'verified',         route: '/compliance' },
       ]
     },
-    {
-      label: 'Report', icon: 'bar_chart',
-      children: [
-        { label: 'Andamento',           icon: 'analytics',  route: '/report' },
-        { label: 'Report tabellari',    icon: 'table_chart', route: '/reports' },
-      ]
-    },
-    // Strumenti trasversali (non legati a un singolo flusso documentale): un solo
-    // slot in barra invece di 4, per lasciare spazio ai moduli "fondamentali" prima
-    // che scatti l'overflow "Altro" nei layout a priority-nav (barra superiore/dock).
+    // Strumenti trasversali (non legati a un singolo flusso documentale) + Report:
+    // un solo slot in barra invece di 5, per lasciare spazio ai moduli "fondamentali"
+    // prima che scatti l'overflow "Altro" nei layout a priority-nav (barra superiore/dock).
     {
       label: 'Tool', icon: 'build',
       children: [
@@ -982,16 +975,18 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Lavagna',   icon: 'sticky_note_2',  route: '/lavagna' },
         { label: 'Archivi',   icon: 'folder_copy',    route: '/archivi' },
         { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },
+        { label: 'Andamento',        icon: 'analytics',   route: '/report' },
+        { label: 'Report tabellari', icon: 'table_chart', route: '/reports' },
       ]
     },
     {
       label: 'Sistema', icon: 'tune',
       children: [
+        { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },
         { label: 'Account',      icon: 'person',   route: '/account', hideOffline: true },
         { label: 'Abbonamento',  icon: 'credit_card', route: '/billing', hideOffline: true },
         { label: 'Aiuto',        icon: 'menu_book', route: '/aiuto' },
         { label: 'Storico',      icon: 'history',  route: '/storico' },
-        // Impostazioni è ora accessibile dall'icona ingranaggio nella topbar (vicino a Esci).
       ]
     },
     // Amministrazione e Console SaaS ora sono schede dentro Impostazioni (gated per ruolo),
