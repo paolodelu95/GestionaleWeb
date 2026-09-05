@@ -183,7 +183,7 @@ async fn provvigioni(
              WHERE f.agente_id IS NOT NULL AND f.data_emissione>=?1 AND f.data_emissione<=?2 \
              ORDER BY f.data_emissione",
         )?;
-        fstmt
+        let rows = fstmt
             .query_map(params![da, a], |r| {
                 Ok((
                     r.get::<_, i64>(0)?,
@@ -196,7 +196,8 @@ async fn provvigioni(
                     r.get::<_, Option<String>>(7)?.unwrap_or_default(),
                 ))
             })?
-            .collect::<Result<Vec<_>, _>>()?
+            .collect::<Result<Vec<_>, _>>()?;
+        rows
     };
 
     // (baseTotale, provvigioneTotale, documenti) per agente.
