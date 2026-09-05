@@ -704,7 +704,7 @@ export class ImpostazioniComponent implements OnInit {
       next: updated => {
         const i = this.moduli.findIndex(x => x.slug === m.slug);
         if (i >= 0) this.moduli[i] = updated;
-        // Aggiorna lo stato globale così menu/HomeApp filtrano subito
+        // Aggiorna lo stato globale così il menu filtra subito
         this.ds.invalidateModuli();
         this.moduliSvc.load(true).subscribe();
         this.moduliSaving = false;

@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'app', pathMatch: 'full' },
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   // ── Public routes (accessibili senza login) ──────────────────────────────
   { path: 'faq',     loadComponent: () => import('./components/faq/faq').then(m => m.FaqComponent) },
   { path: 'guida',   redirectTo: 'faq', pathMatch: 'full' },
@@ -11,7 +11,6 @@ export const routes: Routes = [
   { path: 'reset-password', loadComponent: () => import('./components/reset-password/reset-password').then(m => m.ResetPasswordComponent) },
   { path: 'verify-email',   loadComponent: () => import('./components/verify-email/verify-email').then(m => m.VerifyEmailComponent) },
   // ─────────────────────────────────────────────────────────────────────────
-  { path: 'app',          loadComponent: () => import('./components/home-app/home-app').then(m => m.HomeAppComponent) },
   { path: 'dashboard',    loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent) },
   { path: 'prodotti',     loadComponent: () => import('./components/prodotti/prodotti').then(m => m.ProdottiComponent) },
   { path: 'clienti',      loadComponent: () => import('./components/clienti/clienti').then(m => m.ClientiComponent) },
@@ -52,8 +51,8 @@ export const routes: Routes = [
   { path: 'trial-expired', loadComponent: () => import('./components/trial-expired/trial-expired').then(m => m.TrialExpiredComponent) },
   { path: 'billing', loadComponent: () => import('./components/billing/billing').then(m => m.BillingComponent) },
   { path: 'account', loadComponent: () => import('./components/account/account').then(m => m.AccountComponent) },
-  // Rotta sconosciuta → Home. Senza questa, un indirizzo non valido lasciava il
-  // guscio dell'app con l'area contenuti vuota: nessuna spiegazione, nessuna via
-  // d'uscita. Deve restare l'ULTIMA voce dell'elenco.
-  { path: '**', redirectTo: 'app' },
+  // Rotta sconosciuta → Dashboard. Senza questa, un indirizzo non valido lasciava
+  // il guscio dell'app con l'area contenuti vuota: nessuna spiegazione, nessuna
+  // via d'uscita. Deve restare l'ULTIMA voce dell'elenco.
+  { path: '**', redirectTo: 'dashboard' },
 ];

@@ -916,7 +916,6 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   }
 
   readonly navItems: NavItem[] = [
-    { label: 'Home',         icon: 'apps',           route: '/app' },
     { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
     {
       label: 'Anagrafiche', icon: 'contacts',
@@ -973,15 +972,23 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
         { label: 'Compliance',      icon: 'verified',         route: '/compliance' },
       ]
     },
-    { label: 'Agenda',    icon: 'event_note',     route: '/agenda' },
-    { label: 'Lavagna',   icon: 'sticky_note_2',  route: '/lavagna' },
-    { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },
-    { label: 'Archivi',      icon: 'folder_copy',    route: '/archivi' },
     {
       label: 'Report', icon: 'bar_chart',
       children: [
         { label: 'Andamento',           icon: 'analytics',  route: '/report' },
         { label: 'Report tabellari',    icon: 'table_chart', route: '/reports' },
+      ]
+    },
+    // Strumenti trasversali (non legati a un singolo flusso documentale): un solo
+    // slot in barra invece di 4, per lasciare spazio ai moduli "fondamentali" prima
+    // che scatti l'overflow "Altro" nei layout a priority-nav (barra superiore/dock).
+    {
+      label: 'Tool', icon: 'build',
+      children: [
+        { label: 'Agenda',    icon: 'event_note',     route: '/agenda' },
+        { label: 'Lavagna',   icon: 'sticky_note_2',  route: '/lavagna' },
+        { label: 'Archivi',   icon: 'folder_copy',    route: '/archivi' },
+        { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },
       ]
     },
     {

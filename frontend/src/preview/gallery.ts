@@ -17,7 +17,6 @@ interface Gruppo { titolo: string; voci: Voce[]; }
 /** Raggruppamento speculare alla navigazione dell'app (app.ts). */
 const GRUPPI: Gruppo[] = [
   { titolo: 'Quotidiano', voci: [
-    { label: 'Home', path: 'app' },
     { label: 'Dashboard', path: 'dashboard' },
     { label: 'Vendita al banco', path: 'vendita-banco' },
     { label: 'Agenda', path: 'agenda' },
@@ -160,7 +159,7 @@ interface Stato { screen: string; doc: string | null; state: string; latency: nu
 function leggiStato(): Stato {
   const p = new URLSearchParams(location.search);
   return {
-    screen: p.get('screen') || 'app',
+    screen: p.get('screen') || 'dashboard',
     doc: p.get('gdoc'),
     state: p.get('state') || 'full',
     latency: Number(p.get('latency') ?? 200),
