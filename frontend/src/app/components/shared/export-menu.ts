@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { ExcelService, ExcelColumn } from '../../services/excel.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 /**
  * Pulsante "Esporta" con menu Excel / CSV / PDF, riutilizzabile in tutte le liste.
@@ -11,10 +12,10 @@ import { ExcelService, ExcelColumn } from '../../services/excel.service';
 @Component({
   selector: 'app-export-menu',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [MatButtonModule, MatIconModule, MatMenuModule, TPipe],
   template: `
     <button mat-stroked-button type="button" [matMenuTriggerFor]="menu" [disabled]="!data.length">
-      <mat-icon>download</mat-icon> {{ label }}
+      <mat-icon>download</mat-icon> {{ label ?? ('shared.exportMenu.esporta' | t) }}
     </button>
     <mat-menu #menu="matMenu">
       <button mat-menu-item type="button" (click)="esporta('xlsx')">
@@ -34,7 +35,7 @@ export class ExportMenuComponent {
   @Input() columns: ExcelColumn<any>[] = [];
   @Input() filename = 'export';
   @Input() title?: string;
-  @Input() label = 'Esporta';
+  @Input() label?: string;
 
   constructor(private excel: ExcelService) {}
 

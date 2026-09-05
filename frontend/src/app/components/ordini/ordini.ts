@@ -41,13 +41,16 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ViewStateService } from '../../services/view-state.service';
 import { DocumentDirtyService } from '../../services/document-dirty.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 @Component({
   selector: 'app-ordine-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule, TPipe, TnPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -56,19 +59,19 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
         </div>
         <div class="dialog-hero-text">
           <span class="dialog-hero-title">
-            {{ data?.id ? ('Ordine n. ' + (data?.numero || '')) : 'Nuovo ordine' }}
+            {{ data?.id ? i18n.t('ordini.dialog.titoloEsistente', { numero: data?.numero || '' }) : ('ordini.dialog.nuovo' | t) }}
             @if (data?.id && locked) {
-              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>{{ 'fatture.dialog.bloccato' | t }}</span>
             }
           </span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe e intestatario' : 'Seleziona tipo e intestatario' }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'ordini.dialog.subEsistente' : 'ordini.dialog.subNuovo') | t }}</span>
         </div>
         @if (data?.id) {
           <button mat-icon-button type="button"
                   class="dialog-lock-btn"
                   [class.is-locked]="locked"
                   [class.is-unlocked]="!locked"
-                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  [matTooltip]="(locked ? 'fatture.dialog.tooltipBloccato' : 'fatture.dialog.tooltipSbloccato') | t"
                   (click)="toggleLock()">
             <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
           </button>
@@ -82,15 +85,15 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
         <div class="form-section is-primary">
           <div class="form-section-header">
             <mat-icon>{{ isFornitore ? 'business' : 'person' }}</mat-icon>
-            <span>Intestazione</span>
-            <span class="doc-chip">{{ isFornitore ? 'Ordine fornitore' : 'Ordine cliente' }}</span>
+            <span>{{ 'fatture.dialog.intestazione' | t }}</span>
+            <span class="doc-chip">{{ (isFornitore ? 'ordini.dialog.chipOrdineFornitore' : 'ordini.dialog.chipOrdineCliente') | t }}</span>
           </div>
           <div class="doc-field-grid" [formGroup]="form">
             @if (!isFornitore) {
               <mat-form-field>
-                <mat-label>Cliente</mat-label>
+                <mat-label>{{ 'ordini.dialog.cliente' | t }}</mat-label>
                 <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                       (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente...">
+                       (keyup.enter)="autoSelectCliente()" [placeholder]="'ordini.dialog.cercaClientePh' | t">
                 <mat-icon matSuffix>search</mat-icon>
                 <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
                   @for (c of filteredClienti; track c.id) {
@@ -101,9 +104,9 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
             }
             @if (isFornitore) {
               <mat-form-field>
-                <mat-label>Fornitore</mat-label>
+                <mat-label>{{ 'ordini.dialog.fornitore' | t }}</mat-label>
                 <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
-                       (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore...">
+                       (keyup.enter)="autoSelectFornitore()" [placeholder]="'ordini.dialog.cercaFornitorePh' | t">
                 <mat-icon matSuffix>search</mat-icon>
                 <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
                   @for (f of filteredFornitori; track f.id) {
@@ -113,14 +116,14 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
               </mat-form-field>
             }
             <mat-form-field>
-              <mat-label>Numero *</mat-label>
+              <mat-label>{{ 'fatture.dialog.numero' | t }}</mat-label>
               <input matInput formControlName="numero">
               @if (form.get('numero')?.hasError('numeroDuplicato')) {
-                <mat-error>Numero già esistente</mat-error>
+                <mat-error>{{ 'fatture.dialog.numeroEsistente' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Data ordine *</mat-label>
+              <mat-label>{{ 'ordini.dialog.dataOrdine' | t }}</mat-label>
               <input matInput type="date" formControlName="dataOrdine">
             </mat-form-field>
           </div>
@@ -129,30 +132,30 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
       <div class="form-section">
         <div class="righe-header">
           <div class="righe-header-title">
-            <span>Righe</span>
+            <span>{{ 'ordini.dialog.righe' | t }}</span>
           </div>
           <div class="righe-actions">
             @if (!isFornitore) {
               <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-                <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-                <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+                <mat-button-toggle [value]="false">{{ 'fatture.dialog.ivato' | t }}</mat-button-toggle>
+                <mat-button-toggle [value]="true">{{ 'fatture.dialog.netto' | t }}</mat-button-toggle>
               </mat-button-toggle-group>
             }
             <button mat-flat-button color="primary" type="button" (click)="addRiga()">
-              <mat-icon>add</mat-icon> Aggiungi riga
+              <mat-icon>add</mat-icon> {{ 'fatture.dialog.aggiungiRiga' | t }}
             </button>
             <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-              <mat-icon>content_copy</mat-icon> Copia da...
+              <mat-icon>content_copy</mat-icon> {{ 'fatture.dialog.copiaDa' | t }}
             </button>
             <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-              <mat-icon>note_add</mat-icon> Aggiungi nota
+              <mat-icon>note_add</mat-icon> {{ 'preventivi.dialog.aggiungiNota' | t }}
             </button>
             <mat-menu #menuNota="matMenu">
               <button mat-menu-item type="button" (click)="addNota('')">
-                <mat-icon>edit_note</mat-icon> Nota libera
+                <mat-icon>edit_note</mat-icon> {{ 'fatture.dialog.notaLibera' | t }}
               </button>
               @if (noteRapideList.length) {
-                <div class="menu-section-label">Note rapide</div>
+                <div class="menu-section-label">{{ 'fatture.dialog.noteRapide' | t }}</div>
                 @for (nr of noteRapideList; track nr.id) {
                   <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                 }
@@ -165,17 +168,17 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
           <thead>
             <tr>
               <th class="td-drag"></th>
-              @if (isFornitore) { <th class="td-codfornitore">Vostro codice</th> }
-              <th class="td-desc">Codice / Descrizione</th>
+              @if (isFornitore) { <th class="td-codfornitore">{{ 'ordini.dialog.colVostroCodice' | t }}</th> }
+              <th class="td-desc">{{ 'fatture.dialog.colCodiceDescrizione' | t }}</th>
               <th class="td-search"></th>
               @if (!isFornitore) { <th class="td-history"></th> }
-              <th class="td-qta">Qtà</th>
-              <th class="td-um">UM</th>
+              <th class="td-qta">{{ 'fatture.dialog.colQta' | t }}</th>
+              <th class="td-um">{{ 'fatture.dialog.colUm' | t }}</th>
               @if (!isFornitore) {
-                <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
-                <th class="td-sconto">Sconto%</th>
-                <th class="td-iva">IVA%</th>
-                <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                <th class="td-prezzo">{{ (showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t }}</th>
+                <th class="td-sconto">{{ 'fatture.dialog.colSconto' | t }}</th>
+                <th class="td-iva">{{ 'preventivi.dialog.colIva' | t }}</th>
+                <th class="td-totale">{{ (showNetto ? 'fatture.dialog.colTotaleNetto' : 'fatture.dialog.colTotaleIvato') | t }}</th>
               }
               <th class="td-actions"></th>
             </tr>
@@ -186,7 +189,7 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
                 <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                   <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                   <td class="td-nota" [attr.colspan]="isFornitore ? 5 : 9">
-                    <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                    <input class="riga-input" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.notaPlaceholder' | t">
                   </td>
                   <td class="td-actions">
                     <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -198,37 +201,37 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
               <tr cdkDrag cdkDragPreviewContainer="parent">
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                 @if (isFornitore) {
-                  <td class="td-codfornitore" [attr.data-label]="'Vostro codice'"><input class="riga-input" [(ngModel)]="riga.codiceFornitore" placeholder="Cod. fornitore"></td>
+                  <td class="td-codfornitore" [attr.data-label]="'ordini.dialog.colVostroCodice' | t"><input class="riga-input" [(ngModel)]="riga.codiceFornitore" [placeholder]="'ordini.dialog.codFornitorePh' | t"></td>
                 }
                 <td class="td-desc">
                   <div class="codice-desc-stack">
-                    <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                    <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                    <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" [placeholder]="'fatture.dialog.codicePh' | t" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                    <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.descrizionePh' | t">
                   </div>
                 </td>
                 <td class="td-search">
-                  <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                  <button mat-icon-button type="button" (click)="searchProdotto($index)" [title]="'fatture.dialog.cercaProdotto' | t">
                     <mat-icon>search</mat-icon>
                   </button>
                 </td>
                 @if (!isFornitore) {
                   <td class="td-history">
                     @if (prezziRecenti[$index]?.length) {
-                      <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti - questo cliente">
+                      <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" [title]="'fatture.dialog.prezziRecentiClienteTooltip' | t">
                         <mat-icon class="icon-primary">history</mat-icon>
                       </button>
                     }
                     @if (riga.prodottoId) {
-                      <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
+                      <button mat-icon-button type="button" [title]="'fatture.dialog.prezziTuttiClientiTooltip' | t" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
                         <mat-icon class="icon-muted">groups</mat-icon>
                       </button>
                       <mat-menu #menuTutti="matMenu">
-                        <div class="menu-section-label">Tutti i clienti</div>
+                        <div class="menu-section-label">{{ 'fatture.dialog.tuttiClienti' | t }}</div>
                         @if (!tuttiCaricati[$index]) {
-                          <div class="menu-empty">Clicca per caricare...</div>
+                          <div class="menu-empty">{{ 'fatture.dialog.clicPerCaricare' | t }}</div>
                         }
                         @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                          <div class="menu-empty">Nessun prezzo trovato</div>
+                          <div class="menu-empty">{{ 'fatture.dialog.nessunPrezzoTrovato' | t }}</div>
                         }
                         @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
                           <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
@@ -243,10 +246,10 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
                     }
                   </td>
                 }
-                <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
+                <td class="td-qta" [attr.data-label]="'fatture.dialog.colQta' | t"><input class="riga-input" type="number" min="0"
                   [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                   [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                <td class="td-um" [attr.data-label]="'UM'">
+                <td class="td-um" [attr.data-label]="'fatture.dialog.colUm' | t">
                   <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                     <option value="">—</option>
                     @for (u of unitaMisura; track u.id) {
@@ -255,12 +258,12 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
                   </select>
                 </td>
                 @if (!isFornitore) {
-                  <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
+                  <td class="td-prezzo" [attr.data-label]="(showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t"><input class="riga-input" type="number" min="0" step="0.01"
                     [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                     (change)="setPrezzoFromInput(riga, $event)"></td>
-                  <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
-                  <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                  <td class="td-totale" [attr.data-label]="'Totale'">
+                  <td class="td-sconto" [attr.data-label]="'fatture.dialog.colSconto' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
+                  <td class="td-iva" [attr.data-label]="'preventivi.dialog.colIva' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                  <td class="td-totale" [attr.data-label]="'fatture.dialog.totale' | t">
                     {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                   </td>
                 }
@@ -293,17 +296,17 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
 
       @if (!isFornitore) {
         <div class="doc-totals-strip">
-          <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-          <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.imponibile' | t }}</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.iva' | t }}</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
           <span class="totals-spacer"></span>
-          <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-grand"><span class="totals-label">{{ 'fatture.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
         </div>
       }
 
       <div class="form-section is-flat" [formGroup]="form">
-        <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+        <div class="form-section-header"><mat-icon>notes</mat-icon><span>{{ 'fatture.dialog.noteInterne' | t }}</span></div>
         <mat-form-field>
-          <mat-label>Annotazioni ad uso interno (non stampate)</mat-label>
+          <mat-label>{{ 'fatture.dialog.annotazioniInterne' | t }}</mat-label>
           <textarea matInput rows="2" formControlName="note"></textarea>
         </mat-form-field>
       </div>
@@ -312,20 +315,21 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="esportaPdf()">
-          <mat-icon>print</mat-icon> Esporta PDF
+          <mat-icon>print</mat-icon> {{ 'fatture.dialog.esportaPdf' | t }}
         </button>
       }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid || locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : (form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : '')">Salva</button>
+              [matTooltip]="locked ? ('fatture.dialog.sbloccaTooltip' | t) : (form.get('numero')?.hasError('numeroDuplicato') ? ('fatture.dialog.numeroEsistente' | t) : '')">{{ 'fatture.dialog.salva' | t }}</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES + `
     .dialog-hero-icon.is-warning { background: linear-gradient(135deg, var(--warning) 0%, var(--warning-on) 100%); box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--warning) 35%, transparent); }
   `]
 })
 export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
   private documentDirty = inject(DocumentDirtyService);
   locked = false;
   toggleLock() { this.locked = !this.locked; }
@@ -335,7 +339,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (target.closest('.dialog-lock-btn')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+    this.snack.open(this.i18n.t('fatture.dialog.msgDocBloccato'), 'OK', { duration: 2600 });
   }
   form: FormGroup;
   numeriEsistenti = new Set<string>();
@@ -596,7 +600,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       if (r.sorgente === 'BASE') return;
       riga.prezzo = r.prezzo;
       riga.sconto = r.sconto;
-      if (r.listinoNome) this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+      if (r.listinoNome) this.snack.open(this.i18n.t('fatture.dialog.msg.prezzoListinoApplicato', { nome: r.listinoNome }), '', { duration: 2200 });
     });
   }
 
@@ -694,7 +698,7 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla cliente/fornitore)').then(ok => {
+      this.confirmDraft.ask(this.i18n.t('ordini.dialog.msg.riprendiBozza')).then(ok => {
       if (ok) {
         try {
           const f = { ...(bozza.form || {}) }; delete f.numero;
@@ -732,18 +736,19 @@ export class OrdineDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
             MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent,
-            TableKeyboardNavDirective, ExportMenuComponent],
+            TableKeyboardNavDirective, ExportMenuComponent, TPipe, TnPipe],
   templateUrl: './ordini.html',
   styleUrl: './ordini.scss'
 })
 export class OrdiniComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   private allOrdini: Ordine[] = [];
   dataSource = new MatTableDataSource<Ordine>([]);
   displayedColumns = ['select', 'numero', 'dataOrdine', 'controparte', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Ordine>(true, []);
 
-  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  readonly mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: this.i18n.t('fatture.mese.' + v) }));
   // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi).
   filtroAnni: number[] = [];
   filtroMesi: number[] = [];
@@ -854,20 +859,21 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(o=>`<tr><td>${o.numero}</td><td>${d(o.dataOrdine)}</td><td>${o.tipo}</td><td>${o.clienteNome||o.fornitoreNome||'—'}</td><td class="r">${e(o.totale)}</td><td>${o.stato}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Ordini</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Ordini</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Tipo</th><th>Controparte</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('ordini.title')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${t('ordini.title')}</h1><table><thead><tr><th>${t('ordini.col.numero')}</th><th>${t('ordini.col.data')}</th><th>${t('ordini.col.tipo')}</th><th>${t('ordini.col.controparte')}</th><th class="r">${t('ordini.col.importo')}</th><th>${t('ordini.col.stato')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Numero',  field: 'numero',      width: 14 },
-    { header: 'Data',    field: 'dataOrdine',  width: 14 },
-    { header: 'Cliente', field: 'clienteNome', width: 30 },
-    { header: 'Importo', field: 'totale',      width: 14 },
-    { header: 'Stato',   field: 'stato',       width: 16 },
+    { header: this.i18n.t('ordini.col.numero'),  field: 'numero',      width: 14 },
+    { header: this.i18n.t('ordini.col.data'),    field: 'dataOrdine',  width: 14 },
+    { header: this.i18n.t('ordini.col.cliente'), field: 'clienteNome', width: 30 },
+    { header: this.i18n.t('ordini.col.importo'), field: 'totale',      width: 14 },
+    { header: this.i18n.t('ordini.col.stato'),   field: 'stato',       width: 16 },
   ];
   /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
   get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
@@ -887,7 +893,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     if (!ids.length) return;
     forkJoin(ids.map(id => this.ds.setOrdineStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
-      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+      error: e => this.snack.open(e?.error?.error || e?.message || this.i18n.t('ordini.msg.erroreStato'), '', { duration: 3000 })
     });
   }
 
@@ -895,17 +901,18 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} ordin${n === 1 ? 'e' : 'i'} selezionat${n === 1 ? 'o' : 'i'}?`)) return;
+    if (!await this.confirm.delete(this.i18n.tn('ordini.msg.confermaEliminaBulk', n))) return;
     forkJoin(sel.map(o => this.ds.getOrdineById(o.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
       const backups = fulls.filter(Boolean);
       forkJoin(sel.map(o => this.ds.deleteOrdine(o.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
         const errori = results.filter((r: any) => r && r.__error).length;
         this.selection.clear();
         this.load();
-        const ref = this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} ordini eliminati`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const msg = errori ? this.i18n.t('ordini.msg.eliminatiParziali', { ok: n - errori, errori }) : this.i18n.tn('ordini.msg.eliminatiBulk', n);
+        const ref = this.snack.open(msg, this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createOrdine(p).pipe(catchError(() => of(null))); }))
-            .subscribe(() => { this.load(); this.snack.open('Ordini ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+            .subscribe(() => { this.load(); this.snack.open(this.i18n.t('ordini.msg.ripristinatiBulk'), '', { duration: 2000, panelClass: 'snack-ok' }); });
         });
       });
     });
@@ -920,7 +927,7 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
       if (!result) return;
       const op = result.id ? this.ds.updateOrdine(result) : this.ds.createOrdine(result);
       op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('ordini.msg.salvato'), '', { duration: 2000 }); },
         error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
       });
     });
@@ -939,8 +946,8 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
-          title: `Invia ordine n. ${o.numero}`,
-          subtitle: parte?.ragioneSociale ? `A: ${parte.ragioneSociale}` : undefined,
+          title: this.i18n.t('ordini.msg.inviaTitolo', { numero: o.numero }),
+          subtitle: parte?.ragioneSociale ? this.i18n.t('preventivi.msg.aCliente', { nome: parte.ragioneSociale }) : undefined,
           destinatario: parte?.email || '',
           testo: az?.emailCorpoDocumento || '',
         },
@@ -948,18 +955,18 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
       ref.afterClosed().subscribe(result => {
         if (!result) return;
         this.ds.sendOrdineEmail(o.id!, result.destinatario, result.testo || undefined).subscribe({
-          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+          next: () => this.snack.open(this.i18n.t('preventivi.msg.emailInviata'), '', { duration: 2000 }),
+          error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreEmail', { msg: e.error?.error || e.message }), '', { duration: 4000 })
         });
       });
     });
   }
 
   async convertiInDdt(o: Ordine) {
-    if (!await this.confirm.ask(`Convertire l'ordine ${o.numero} in documento di trasporto?`)) return;
+    if (!await this.confirm.ask(this.i18n.t('ordini.msg.confermaConvertiDdt', { numero: o.numero }))) return;
     this.ds.ordineToDD(o.id!).subscribe({
-      next: r => { this.load(); this.snack.open(`Documento di trasporto ${r.numero} creato`, '', { duration: 3000 }); },
-      error: e => this.snack.open(e.message || 'Errore conversione', '', { duration: 3000 }),
+      next: r => { this.load(); this.snack.open(this.i18n.t('ordini.msg.ddtCreato', { numero: r.numero }), '', { duration: 3000 }); },
+      error: e => this.snack.open(e.message || this.i18n.t('ordini.msg.erroreConversione'), '', { duration: 3000 }),
     });
   }
 
@@ -967,14 +974,15 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   async bulkConvertiInDdt() {
     const sel = this.selection.selected.slice();
     if (!sel.length) return;
-    if (!await this.confirm.ask(`Convertire ${sel.length} ordini in documenti di trasporto?`)) return;
+    if (!await this.confirm.ask(this.i18n.t('ordini.msg.confermaBulkDdt', { n: sel.length }))) return;
     forkJoin(sel.map(o => this.ds.ordineToDD(o.id!).pipe(catchError(() => of(null)))))
       .subscribe((res: any[]) => {
         const ok = res.filter(Boolean).length;
         this.selection.clear();
         this.load();
         const falliti = sel.length - ok;
-        this.snack.open(`${ok} ${ok === 1 ? 'documento di trasporto' : 'documenti di trasporto'} creat${ok === 1 ? 'o' : 'i'}${falliti ? ` · ${falliti} non convertiti` : ''}`, '', { duration: 4000 });
+        const msg = this.i18n.tn('preventivi.msg.creatiDdt', ok) + (falliti ? this.i18n.t('preventivi.msg.nonConvertiti', { n: falliti }) : '');
+        this.snack.open(msg, '', { duration: 4000 });
       });
   }
 
@@ -987,9 +995,9 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
       const cp = isCliente ? doc.cliente : doc.fornitore;
       this.dialog.open(DocInfoDialogComponent, {
         data: {
-          tipo: 'ORDINE', sottotitolo: isCliente ? 'Ordine cliente' : 'Ordine fornitore',
+          tipo: 'ORDINE', sottotitolo: this.i18n.t(isCliente ? 'ordini.dialog.chipOrdineCliente' : 'ordini.dialog.chipOrdineFornitore'),
           numero: doc.numero, data: doc.dataOrdine, stato: doc.stato,
-          controparteLabel: isCliente ? 'CLIENTE' : 'FORNITORE',
+          controparteLabel: this.i18n.t(isCliente ? 'preventivi.info.clienteLabel' : 'acquisti.info.fornitore'),
           controparte: cp?.ragioneSociale || (isCliente ? o.clienteNome : o.fornitoreNome) || '—',
           controparteInfo: cp ? [
             [cp.via, [cp.cap, cp.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
@@ -1004,16 +1012,16 @@ export class OrdiniComponent implements OnInit, AfterViewInit {
   }
 
   async delete(o: Ordine) {
-    if (!await this.confirm.delete(`Eliminare Ordine ${o.numero}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('ordini.msg.confermaElimina', { numero: o.numero }))) return;
     this.ds.getOrdineById(o.id!).subscribe(full => {
       this.ds.deleteOrdine(o.id!).subscribe(() => {
         this.load();
-        const ref = this.snack.open(`Ordine ${o.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const ref = this.snack.open(this.i18n.t('ordini.msg.eliminato', { numero: o.numero }), this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           const { id, ...payload } = full as any;
           this.ds.createOrdine(payload).subscribe({
-            next: () => { this.load(); this.snack.open('Ordine ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
-            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+            next: () => { this.load(); this.snack.open(this.i18n.t('ordini.msg.ripristinato'), '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreRipristino', { msg: e.message || '' }), 'OK', { duration: 4000, panelClass: 'snack-error' })
           });
         });
       });
