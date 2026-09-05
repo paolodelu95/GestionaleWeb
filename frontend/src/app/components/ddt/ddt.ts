@@ -47,6 +47,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
 import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 @Component({
   selector: 'app-ddt-dialog',
@@ -55,7 +58,7 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
     CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
     MatAutocompleteModule, MatTableModule, MatIconModule,
-    MatButtonToggleModule, MatMenuModule, MatTabsModule, MatTooltipModule, DragDropModule,
+    MatButtonToggleModule, MatMenuModule, MatTabsModule, MatTooltipModule, DragDropModule, TPipe, TnPipe,
   ],
   template: `
     <mat-dialog-content>
@@ -65,19 +68,19 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
         </div>
         <div class="dialog-hero-text">
           <span class="dialog-hero-title">
-            {{ data?.id ? ('Documento di trasporto n. ' + (data?.numero || '')) : 'Nuovo documento di trasporto' }}
+            {{ data?.id ? i18n.t('ddt.dialog.titoloEsistente', { numero: data?.numero || '' }) : ('ddt.nuovo' | t) }}
             @if (data?.id && locked) {
-              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>{{ 'fatture.dialog.bloccato' | t }}</span>
             }
           </span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe e dati di trasporto' : 'Documento di trasporto merci' }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'ddt.dialog.subEsistente' : 'ddt.dialog.subNuovo') | t }}</span>
         </div>
         @if (data?.id) {
           <button mat-icon-button type="button"
                   class="dialog-lock-btn"
                   [class.is-locked]="locked"
                   [class.is-unlocked]="!locked"
-                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  [matTooltip]="(locked ? 'fatture.dialog.tooltipBloccato' : 'fatture.dialog.tooltipSbloccato') | t"
                   (click)="toggleLock()">
             <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
           </button>
@@ -89,23 +92,23 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
       <mat-tab-group>
 
         <!-- ── TAB 1: Documento ──────────────────────────────────── -->
-        <mat-tab label="Documento">
+        <mat-tab [label]="'fatture.dialog.tabDocumento' | t">
           <div class="doc-form">
 
             <div class="form-section is-primary">
-              <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+              <div class="form-section-header"><mat-icon>person</mat-icon><span>{{ 'fatture.dialog.intestazione' | t }}</span></div>
               <mat-button-toggle-group [value]="tipoControparte" (change)="setTipoControparte($event.value)"
                                        [hideSingleSelectionIndicator]="true" class="tipo-controparte-toggle"
                                        [disabled]="locked || !isNew" style="margin-bottom:12px">
-                <mat-button-toggle value="CLIENTE"><mat-icon>person</mat-icon> Cliente</mat-button-toggle>
-                <mat-button-toggle value="FORNITORE"><mat-icon>local_shipping</mat-icon> Fornitore (reso)</mat-button-toggle>
+                <mat-button-toggle value="CLIENTE"><mat-icon>person</mat-icon> {{ 'ddt.dialog.toggleCliente' | t }}</mat-button-toggle>
+                <mat-button-toggle value="FORNITORE"><mat-icon>local_shipping</mat-icon> {{ 'ddt.dialog.toggleFornitoreReso' | t }}</mat-button-toggle>
               </mat-button-toggle-group>
               <div class="doc-field-grid" [formGroup]="documentoForm">
                 @if (tipoControparte === 'CLIENTE') {
                   <mat-form-field>
-                    <mat-label>Cliente *</mat-label>
+                    <mat-label>{{ 'fatture.dialog.cliente' | t }}</mat-label>
                     <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                           (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
+                           (keyup.enter)="autoSelectCliente()" [placeholder]="'preventivi.dialog.cercaClientePh' | t"
                            [class.input-error]="submitted && !hasCliente">
                     <mat-icon matSuffix>search</mat-icon>
                     <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
@@ -114,14 +117,14 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                       }
                     </mat-autocomplete>
                     @if (submitted && !hasCliente) {
-                      <mat-error>Seleziona un cliente</mat-error>
+                      <mat-error>{{ 'fatture.dialog.selezionaCliente' | t }}</mat-error>
                     }
                   </mat-form-field>
                 } @else {
                   <mat-form-field>
-                    <mat-label>Fornitore *</mat-label>
+                    <mat-label>{{ 'ddt.dialog.fornitoreReq' | t }}</mat-label>
                     <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
-                           (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore per ragione sociale o P.IVA..."
+                           (keyup.enter)="autoSelectFornitore()" [placeholder]="'ddt.dialog.cercaFornitorePh' | t"
                            [class.input-error]="submitted && !hasFornitore">
                     <mat-icon matSuffix>search</mat-icon>
                     <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
@@ -130,19 +133,19 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                       }
                     </mat-autocomplete>
                     @if (submitted && !hasFornitore) {
-                      <mat-error>Seleziona un fornitore</mat-error>
+                      <mat-error>{{ 'ddt.dialog.selezionaFornitore' | t }}</mat-error>
                     }
                   </mat-form-field>
                 }
                 <mat-form-field>
-                  <mat-label>Numero *</mat-label>
+                  <mat-label>{{ 'fatture.dialog.numero' | t }}</mat-label>
                   <input matInput formControlName="numero">
                   @if (documentoForm.get('numero')?.hasError('numeroDuplicato')) {
-                    <mat-error>Numero già esistente</mat-error>
+                    <mat-error>{{ 'fatture.dialog.numeroEsistente' | t }}</mat-error>
                   }
                 </mat-form-field>
                 <mat-form-field>
-                  <mat-label>Data emissione *</mat-label>
+                  <mat-label>{{ 'fatture.dialog.dataEmissione' | t }}</mat-label>
                   <input matInput type="date" formControlName="dataEmissione">
                 </mat-form-field>
               </div>
@@ -151,31 +154,31 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
             <div class="form-section">
               <div class="righe-header">
                 <div class="righe-header-title">
-                  <span>Righe *</span>
+                  <span>{{ 'fatture.dialog.righe' | t }}</span>
                   @if (submitted && !hasRighe) {
-                    <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
+                    <span class="righe-error"><mat-icon>error_outline</mat-icon> {{ 'fatture.dialog.aggiungiRigaAlmeno' | t }}</span>
                   }
                 </div>
                 <div class="righe-actions">
                   <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-                    <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-                    <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+                    <mat-button-toggle [value]="false">{{ 'fatture.dialog.ivato' | t }}</mat-button-toggle>
+                    <mat-button-toggle [value]="true">{{ 'fatture.dialog.netto' | t }}</mat-button-toggle>
                   </mat-button-toggle-group>
                   <button mat-flat-button color="primary" type="button" (click)="addRiga()">
-                    <mat-icon>add</mat-icon> Aggiungi riga
+                    <mat-icon>add</mat-icon> {{ 'fatture.dialog.aggiungiRiga' | t }}
                   </button>
                   <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-                    <mat-icon>content_copy</mat-icon> Copia da...
+                    <mat-icon>content_copy</mat-icon> {{ 'fatture.dialog.copiaDa' | t }}
                   </button>
                   <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-                    <mat-icon>note_add</mat-icon> Aggiungi nota
+                    <mat-icon>note_add</mat-icon> {{ 'preventivi.dialog.aggiungiNota' | t }}
                   </button>
                   <mat-menu #menuNota="matMenu">
                     <button mat-menu-item type="button" (click)="addNota('')">
-                      <mat-icon>edit_note</mat-icon> Nota libera
+                      <mat-icon>edit_note</mat-icon> {{ 'fatture.dialog.notaLibera' | t }}
                     </button>
                     @if (noteRapideList.length) {
-                      <div class="menu-section-label">Note rapide</div>
+                      <div class="menu-section-label">{{ 'fatture.dialog.noteRapide' | t }}</div>
                       @for (nr of noteRapideList; track nr.id) {
                         <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                       }
@@ -188,16 +191,16 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                 <thead>
                   <tr>
                     <th class="td-drag"></th>
-                    <th class="td-desc">Codice / Descrizione</th>
+                    <th class="td-desc">{{ 'fatture.dialog.colCodiceDescrizione' | t }}</th>
                     <th class="td-search"></th>
-                    <th class="td-qta">Qtà</th>
-                    <th class="td-um">UM</th>
-                    <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+                    <th class="td-qta">{{ 'fatture.dialog.colQta' | t }}</th>
+                    <th class="td-um">{{ 'fatture.dialog.colUm' | t }}</th>
+                    <th class="td-prezzo">{{ (showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t }}</th>
                     <th class="td-history"></th>
-                    <th class="td-sconto">Sconto%</th>
-                    <th class="td-iva">IVA%</th>
-                    <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
-                    <th class="td-scarico" title="Spunta le righe da scaricare dal magazzino">Scarico</th>
+                    <th class="td-sconto">{{ 'fatture.dialog.colSconto' | t }}</th>
+                    <th class="td-iva">{{ 'preventivi.dialog.colIva' | t }}</th>
+                    <th class="td-totale">{{ (showNetto ? 'fatture.dialog.colTotaleNetto' : 'fatture.dialog.colTotaleIvato') | t }}</th>
+                    <th class="td-scarico" [title]="'fatture.dialog.scaricoTooltip' | t">{{ 'fatture.dialog.colScarico' | t }}</th>
                     <th class="td-actions"></th>
                   </tr>
                 </thead>
@@ -207,7 +210,7 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                       <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                         <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                         <td class="td-nota" colspan="10">
-                          <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                          <input class="riga-input" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.notaPlaceholder' | t">
                         </td>
                         <td class="td-actions">
                           <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -220,19 +223,19 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                       <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                       <td class="td-desc">
                         <div class="codice-desc-stack">
-                          <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                          <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                          <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" [placeholder]="'fatture.dialog.codicePh' | t" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                          <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.descrizionePh' | t">
                         </div>
                       </td>
                       <td class="td-search">
-                        <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                        <button mat-icon-button type="button" (click)="searchProdotto($index)" [title]="'fatture.dialog.cercaProdotto' | t">
                           <mat-icon>search</mat-icon>
                         </button>
                       </td>
-                      <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
+                      <td class="td-qta" [attr.data-label]="'fatture.dialog.colQta' | t"><input class="riga-input" type="number" min="0"
                         [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                         [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                      <td class="td-um" [attr.data-label]="'UM'">
+                      <td class="td-um" [attr.data-label]="'fatture.dialog.colUm' | t">
                         <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                           <option value="">—</option>
                           @for (u of unitaMisura; track u.id) {
@@ -240,16 +243,16 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                           }
                         </select>
                       </td>
-                      <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
+                      <td class="td-prezzo" [attr.data-label]="(showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t"><input class="riga-input" type="number" min="0" step="0.01"
                         [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                         (change)="setPrezzoFromInput(riga, $event)"></td>
                       <td class="td-history">
                         @if (prezziRecenti[$index]?.length) {
-                          <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
+                          <button mat-icon-button type="button" [title]="'fatture.dialog.prezziRecentiClienteTooltip' | t" [matMenuTriggerFor]="menuPrezzi">
                             <mat-icon class="icon-primary">history</mat-icon>
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
-                            <div class="menu-section-label">Prezzi recenti</div>
+                            <div class="menu-section-label">{{ 'fatture.dialog.prezziRecenti' | t }}</div>
                             @for (pr of prezziRecenti[rowIdx]; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                                 <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
@@ -260,16 +263,16 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                           </mat-menu>
                         }
                         @if (riga.prodottoId) {
-                          <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
+                          <button mat-icon-button type="button" [title]="'fatture.dialog.prezziTuttiClientiTooltip' | t" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
                             <mat-icon class="icon-muted">groups</mat-icon>
                           </button>
                           <mat-menu #menuTutti="matMenu">
-                            <div class="menu-section-label">Tutti i clienti</div>
+                            <div class="menu-section-label">{{ 'fatture.dialog.tuttiClienti' | t }}</div>
                             @if (!tuttiCaricati[$index]) {
-                              <div class="menu-empty">Clicca per caricare...</div>
+                              <div class="menu-empty">{{ 'fatture.dialog.clicPerCaricare' | t }}</div>
                             }
                             @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                              <div class="menu-empty">Nessun prezzo trovato</div>
+                              <div class="menu-empty">{{ 'fatture.dialog.nessunPrezzoTrovato' | t }}</div>
                             }
                             @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
@@ -283,19 +286,19 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
                           </mat-menu>
                         }
                       </td>
-                      <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                      <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                      <td class="td-totale" [attr.data-label]="'Totale'">
+                      <td class="td-sconto" [attr.data-label]="'fatture.dialog.colSconto' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
+                      <td class="td-iva" [attr.data-label]="'preventivi.dialog.colIva' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                      <td class="td-totale" [attr.data-label]="'fatture.dialog.totale' | t">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
-                      <td class="td-scarico" [attr.data-label]="'Scarica magazzino'">
+                      <td class="td-scarico" [attr.data-label]="'fatture.dialog.colScarico' | t">
                         @if (riga.prodottoId) {
                           <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
-                                 title="Scarica questa riga dal magazzino">
+                                 [title]="'fatture.dialog.scaricoTooltip' | t">
                         } @else {
                           <input type="checkbox" class="riga-check riga-check--crea" [checked]="false"
                                  (click)="creaProdottoPerRiga($index, $event)"
-                                 matTooltip="Prodotto non a catalogo: clicca per crearlo e abilitare lo scarico dal magazzino">
+                                 [matTooltip]="'fatture.dialog.creaProdottoTooltip' | t">
                         }
                       </td>
                       <td class="td-actions">
@@ -312,16 +315,16 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
             </div>
 
             <div class="doc-totals-strip">
-              <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-              <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.imponibile' | t }}</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.iva' | t }}</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
               <span class="totals-spacer"></span>
-              <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <div class="totals-grand"><span class="totals-label">{{ 'fatture.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
             </div>
 
             <div class="form-section is-flat" [formGroup]="documentoForm">
-              <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+              <div class="form-section-header"><mat-icon>notes</mat-icon><span>{{ 'fatture.dialog.noteInterne' | t }}</span></div>
               <mat-form-field>
-                <mat-label>Annotazioni ad uso interno (non stampate)</mat-label>
+                <mat-label>{{ 'fatture.dialog.annotazioniInterne' | t }}</mat-label>
                 <textarea matInput rows="2" formControlName="note"></textarea>
               </mat-form-field>
             </div>
@@ -332,7 +335,7 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
         <mat-tab>
           <ng-template mat-tab-label>
             <mat-icon class="tab-lead-icon">local_shipping</mat-icon>
-            Dati trasporto
+            {{ 'ddt.dialog.tabDatiTrasporto' | t }}
             @if (!trasportoForm.get('dataOraInizioTrasporto')?.value) {
               <mat-icon class="tab-status-icon icon-warning">warning_amber</mat-icon>
             } @else {
@@ -343,118 +346,118 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
             <form [formGroup]="trasportoForm">
 
               <div class="form-section is-primary">
-                <div class="form-section-header"><mat-icon>local_shipping</mat-icon><span>Trasporto</span></div>
+                <div class="form-section-header"><mat-icon>local_shipping</mat-icon><span>{{ 'ddt.dialog.sectionTrasporto' | t }}</span></div>
                 <div class="doc-field-grid has-2-extra">
                   <mat-form-field>
-                    <mat-label>Data e ora inizio trasporto *</mat-label>
+                    <mat-label>{{ 'ddt.dialog.dataOraInizioTrasporto' | t }}</mat-label>
                     <input matInput type="datetime-local" formControlName="dataOraInizioTrasporto">
                     @if (trasportoForm.get('dataOraInizioTrasporto')?.invalid && trasportoForm.get('dataOraInizioTrasporto')?.touched) {
-                      <mat-error>Campo obbligatorio</mat-error>
+                      <mat-error>{{ 'ddt.dialog.campoObbligatorio' | t }}</mat-error>
                     }
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>Causale</mat-label>
+                    <mat-label>{{ 'ddt.dialog.causale' | t }}</mat-label>
                     <mat-select formControlName="causaleTrasporto">
-                      <mat-option value="Vendita">Vendita</mat-option>
-                      <mat-option value="Reso">Reso</mat-option>
-                      <mat-option value="C/Riparazione">C/Riparazione</mat-option>
-                      <mat-option value="C/Conto lavoro">C/Conto lavoro</mat-option>
-                      <mat-option value="C/Conto visione">C/Conto visione</mat-option>
-                      <mat-option value="Omaggio">Omaggio</mat-option>
-                      <mat-option value="Campioni">Campioni</mat-option>
-                      <mat-option value="Esposizione">Esposizione</mat-option>
+                      <mat-option value="Vendita">{{ 'ddt.dialog.causaleOpt.vendita' | t }}</mat-option>
+                      <mat-option value="Reso">{{ 'ddt.dialog.causaleOpt.reso' | t }}</mat-option>
+                      <mat-option value="C/Riparazione">{{ 'ddt.dialog.causaleOpt.cRiparazione' | t }}</mat-option>
+                      <mat-option value="C/Conto lavoro">{{ 'ddt.dialog.causaleOpt.cContoLavoro' | t }}</mat-option>
+                      <mat-option value="C/Conto visione">{{ 'ddt.dialog.causaleOpt.cContoVisione' | t }}</mat-option>
+                      <mat-option value="Omaggio">{{ 'ddt.dialog.causaleOpt.omaggio' | t }}</mat-option>
+                      <mat-option value="Campioni">{{ 'ddt.dialog.causaleOpt.campioni' | t }}</mat-option>
+                      <mat-option value="Esposizione">{{ 'ddt.dialog.causaleOpt.esposizione' | t }}</mat-option>
                     </mat-select>
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>Porto</mat-label>
+                    <mat-label>{{ 'ddt.dialog.porto' | t }}</mat-label>
                     <mat-select formControlName="porto">
-                      <mat-option value="Franco">Franco (pagato dal mittente)</mat-option>
-                      <mat-option value="Assegnato">Assegnato (pagato dal destinatario)</mat-option>
-                      <mat-option value="Reso">Reso</mat-option>
+                      <mat-option value="Franco">{{ 'ddt.dialog.portoOpt.franco' | t }}</mat-option>
+                      <mat-option value="Assegnato">{{ 'ddt.dialog.portoOpt.assegnato' | t }}</mat-option>
+                      <mat-option value="Reso">{{ 'ddt.dialog.portoOpt.reso' | t }}</mat-option>
                     </mat-select>
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>Aspetto dei beni</mat-label>
+                    <mat-label>{{ 'ddt.dialog.aspettoBeni' | t }}</mat-label>
                     <mat-select formControlName="aspettoBeni">
-                      <mat-option value="">— non specificato —</mat-option>
-                      <mat-option value="A vista">A vista</mat-option>
-                      <mat-option value="Scatole">Scatole</mat-option>
-                      <mat-option value="Bancali">Bancali</mat-option>
-                      <mat-option value="Pallet">Pallet</mat-option>
-                      <mat-option value="Sacchi">Sacchi</mat-option>
-                      <mat-option value="Rotoli">Rotoli</mat-option>
-                      <mat-option value="Fusti">Fusti</mat-option>
-                      <mat-option value="Colli">Colli</mat-option>
-                      <mat-option value="Sfuso">Sfuso</mat-option>
+                      <mat-option value="">{{ 'fatture.dialog.nonSpecificato' | t }}</mat-option>
+                      <mat-option value="A vista">{{ 'ddt.dialog.aspettoOpt.aVista' | t }}</mat-option>
+                      <mat-option value="Scatole">{{ 'ddt.dialog.aspettoOpt.scatole' | t }}</mat-option>
+                      <mat-option value="Bancali">{{ 'ddt.dialog.aspettoOpt.bancali' | t }}</mat-option>
+                      <mat-option value="Pallet">{{ 'ddt.dialog.aspettoOpt.pallet' | t }}</mat-option>
+                      <mat-option value="Sacchi">{{ 'ddt.dialog.aspettoOpt.sacchi' | t }}</mat-option>
+                      <mat-option value="Rotoli">{{ 'ddt.dialog.aspettoOpt.rotoli' | t }}</mat-option>
+                      <mat-option value="Fusti">{{ 'ddt.dialog.aspettoOpt.fusti' | t }}</mat-option>
+                      <mat-option value="Colli">{{ 'ddt.dialog.aspettoOpt.colli' | t }}</mat-option>
+                      <mat-option value="Sfuso">{{ 'ddt.dialog.aspettoOpt.sfuso' | t }}</mat-option>
                     </mat-select>
                   </mat-form-field>
                 </div>
               </div>
 
               <div class="form-section">
-                <div class="form-section-header"><mat-icon>inventory_2</mat-icon><span>Colli e peso</span></div>
+                <div class="form-section-header"><mat-icon>inventory_2</mat-icon><span>{{ 'ddt.dialog.sectionColliPeso' | t }}</span></div>
                 <div class="form-row colli-row">
                   <mat-form-field>
-                    <mat-label>Numero colli</mat-label>
+                    <mat-label>{{ 'ddt.dialog.numeroColli' | t }}</mat-label>
                     <input matInput type="number" min="0" formControlName="numeroColli">
-                    <mat-hint>Somma quantità righe: {{ totalQuantita }}</mat-hint>
+                    <mat-hint>{{ i18n.t('ddt.dialog.hintSommaQuantita', { n: totalQuantita }) }}</mat-hint>
                   </mat-form-field>
                   <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaColli()"
-                          matTooltip="Numero colli = somma delle quantità delle righe">
-                    <mat-icon>calculate</mat-icon> Calcola da righe
+                          [matTooltip]="'ddt.dialog.calcolaDaRigheTooltip' | t">
+                    <mat-icon>calculate</mat-icon> {{ 'ddt.dialog.calcolaDaRighe' | t }}
                   </button>
                   <mat-form-field>
-                    <mat-label>Peso lordo (kg)</mat-label>
+                    <mat-label>{{ 'ddt.dialog.pesoLordo' | t }}</mat-label>
                     <input matInput type="number" min="0" step="0.01" formControlName="pesoLordo">
                     @if (pesoCalcolato !== null) {
-                      <mat-hint>Dai pesi prodotto: {{ pesoCalcolato | number:'1.0-2' }} kg</mat-hint>
+                      <mat-hint>{{ i18n.t('ddt.dialog.hintDaiPesiProdotto', { n: (pesoCalcolato | number:'1.0-2') ?? '' }) }}</mat-hint>
                     }
                   </mat-form-field>
                   <button mat-stroked-button type="button" class="colli-calc-btn" (click)="calcolaPeso()"
-                          matTooltip="Peso lordo = somma di quantità × peso unitario dei prodotti">
-                    <mat-icon>scale</mat-icon> Calcola dai pesi
+                          [matTooltip]="'ddt.dialog.calcolaDaiPesiTooltip' | t">
+                    <mat-icon>scale</mat-icon> {{ 'ddt.dialog.calcolaDaiPesi' | t }}
                   </button>
                 </div>
               </div>
 
               <div class="form-section">
-                <div class="form-section-header"><mat-icon>place</mat-icon><span>Destinazione e vettore</span></div>
+                <div class="form-section-header"><mat-icon>place</mat-icon><span>{{ 'ddt.dialog.sectionDestinazione' | t }}</span></div>
                 <div class="form-row">
                   <mat-form-field>
-                    <mat-label>Incaricato del trasporto</mat-label>
+                    <mat-label>{{ 'ddt.dialog.incaricatoTrasporto' | t }}</mat-label>
                     <mat-select formControlName="incaricatoTrasporto">
-                      <mat-option value="Mittente">Mittente</mat-option>
-                      <mat-option value="Destinatario">Destinatario</mat-option>
-                      <mat-option value="Corriere">Corriere / Vettore</mat-option>
+                      <mat-option value="Mittente">{{ 'ddt.dialog.incaricatoOpt.mittente' | t }}</mat-option>
+                      <mat-option value="Destinatario">{{ 'ddt.dialog.incaricatoOpt.destinatario' | t }}</mat-option>
+                      <mat-option value="Corriere">{{ 'ddt.dialog.incaricatoOpt.corriere' | t }}</mat-option>
                     </mat-select>
                   </mat-form-field>
                   @if (trasportoForm.get('incaricatoTrasporto')?.value === 'Corriere') {
                     <mat-form-field>
-                      <mat-label>Nome corriere / vettore</mat-label>
-                      <input matInput formControlName="vettore" placeholder="Es. GLS, BRT...">
+                      <mat-label>{{ 'ddt.dialog.nomeCorriere' | t }}</mat-label>
+                      <input matInput formControlName="vettore" [placeholder]="'ddt.dialog.nomeCorrierePh' | t">
                     </mat-form-field>
                   }
                 </div>
 
                 @if (indirizziCliente.length) {
                   <mat-form-field>
-                    <mat-label>Destinazione salvata</mat-label>
+                    <mat-label>{{ 'ddt.dialog.destinazioneSalvata' | t }}</mat-label>
                     <mat-select [(ngModel)]="destinazioneId" [ngModelOptions]="{standalone:true}" (ngModelChange)="onDestinazioneChange($event)">
-                      <mat-option [value]="null">— indirizzo principale cliente —</mat-option>
+                      <mat-option [value]="null">{{ 'ddt.dialog.indirizzoPrincipale' | t }}</mat-option>
                       @for (addr of indirizziCliente; track addr.id) {
                         <mat-option [value]="addr.id">{{ addr.nome }} — {{ [addr.via, addr.cap, addr.citta].filter(v => !!v).join(', ') }}</mat-option>
                       }
-                      <mat-option [value]="-1">Altra destinazione (manuale)</mat-option>
+                      <mat-option [value]="-1">{{ 'ddt.dialog.altraDestinazione' | t }}</mat-option>
                     </mat-select>
                   </mat-form-field>
                 }
                 <mat-form-field>
-                  <mat-label>Destinazione (se diversa dall'indirizzo cliente)</mat-label>
-                  <input matInput formControlName="destinazioneDiversa" placeholder="Via, Città, CAP...">
+                  <mat-label>{{ 'ddt.dialog.destinazioneDiversa' | t }}</mat-label>
+                  <input matInput formControlName="destinazioneDiversa" [placeholder]="'ddt.dialog.destinazioneDiversaPh' | t">
                 </mat-form-field>
 
                 <mat-form-field>
-                  <mat-label>Note trasporto</mat-label>
+                  <mat-label>{{ 'ddt.dialog.noteTrasporto' | t }}</mat-label>
                   <textarea matInput rows="2" formControlName="noteTrasporto"></textarea>
                 </mat-form-field>
               </div>
@@ -466,20 +469,21 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
-          <mat-icon>print</mat-icon> Esporta PDF </button>
+          <mat-icon>print</mat-icon> {{ 'fatture.dialog.esportaPdf' | t }}</button>
       }
       <button mat-flat-button type="button" (click)="save()"
               [disabled]="locked || documentoForm.get('numero')?.hasError('numeroDuplicato')"
-              [matTooltip]="documentoForm.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : (locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : '')">
-        <mat-icon>save</mat-icon> Salva
+              [matTooltip]="documentoForm.get('numero')?.hasError('numeroDuplicato') ? ('fatture.dialog.numeroEsistente' | t) : (locked ? ('fatture.dialog.sbloccaTooltip' | t) : '')">
+        <mat-icon>save</mat-icon> {{ 'fatture.dialog.salva' | t }}
       </button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
 export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
 
   private documentDirty = inject(DocumentDirtyService);
 
@@ -502,7 +506,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (target.closest('.dialog-lock-btn')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+    this.snack.open(this.i18n.t('fatture.dialog.msgDocBloccato'), 'OK', { duration: 2600 });
   }
 
   documentoForm: FormGroup;
@@ -609,12 +613,12 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }).length;
     const peso = this.pesoCalcolato;
     if (peso === null) {
-      this.snack.open('Nessun prodotto in riga ha un peso configurato (scheda prodotto → Logistica)', '', { duration: 3500 });
+      this.snack.open(this.i18n.t('ddt.msg.nessunPesoConfigurato'), '', { duration: 3500 });
       return;
     }
     this.trasportoForm.patchValue({ pesoLordo: peso });
     if (senzaPeso > 0) {
-      this.snack.open(`Peso parziale: ${senzaPeso} righe senza peso prodotto`, '', { duration: 3000 });
+      this.snack.open(this.i18n.t('ddt.msg.pesoParziale', { n: senzaPeso }), '', { duration: 3000 });
     }
   }
 
@@ -817,9 +821,9 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.prodotti = [...this.prodotti, nuovo];
         this.applyProdottoToRiga(index, nuovo);
         this.righe[index].scaricaMagazzino = true;
-        this.snack.open(`Prodotto "${nuovo.nome}" creato e collegato alla riga`, '', { duration: 2500 });
+        this.snack.open(this.i18n.t('fatture.dialog.msg.prodottoCreatoCollegato', { nome: nuovo.nome }), '', { duration: 2500 });
       },
-      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore creazione prodotto', '', { duration: 3500 }),
+      error: e => this.snack.open(e?.error?.error || e?.message || this.i18n.t('fatture.dialog.msg.erroreCreazioneProdotto'), '', { duration: 3500 }),
     });
   }
 
@@ -890,7 +894,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       if (r.sorgente === 'BASE') return;
       riga.prezzo = r.prezzo;
       riga.sconto = r.sconto;
-      if (r.listinoNome) this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+      if (r.listinoNome) this.snack.open(this.i18n.t('fatture.dialog.msg.prezzoListinoApplicato', { nome: r.listinoNome }), '', { duration: 2200 });
     });
   }
 
@@ -961,7 +965,7 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla cliente/fornitore)').then(ok => {
+      this.confirmDraft.ask(this.i18n.t('ordini.dialog.msg.riprendiBozza')).then(ok => {
         if (ok) {
           try {
             const d = { ...(bozza.doc || {}) }; delete d.numero;
@@ -1026,18 +1030,19 @@ export class DdtDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent, TableKeyboardNavDirective, ExportMenuComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent, TableKeyboardNavDirective, ExportMenuComponent, TPipe, TnPipe],
   templateUrl: './ddt.html',
   styleUrl: './ddt.scss'
 })
 export class DdtComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   private allDdt: Ddt[] = [];
   dataSource = new MatTableDataSource<Ddt>();
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'fattura', 'azioni'];
   selection = new SelectionModel<Ddt>(true, []);
 
-  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  readonly mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: this.i18n.t('fatture.mese.' + v) }));
   // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi/clienti).
   filtroAnni: number[] = [];
   filtroMesi: number[] = [];
@@ -1074,11 +1079,11 @@ export class DdtComponent implements OnInit, AfterViewInit {
   get totaleLista(): number { return this.dataSource.data.reduce((s, r) => s + (Number((r as any).totale) || 0), 0); }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Numero',  field: 'numero',         width: 14 },
-    { header: 'Data',    field: 'dataEmissione',  width: 14 },
-    { header: 'Cliente / Fornitore', field: 'clienteNome', width: 30 },
-    { header: 'Importo', field: 'totale',         width: 14 },
-    { header: 'Stato',   field: 'stato',          width: 14 },
+    { header: this.i18n.t('ddt.col.numero'),           field: 'numero',        width: 14 },
+    { header: this.i18n.t('ddt.col.data'),             field: 'dataEmissione', width: 14 },
+    { header: this.i18n.t('ddt.col.clienteFornitore'), field: 'clienteNome',   width: 30 },
+    { header: this.i18n.t('ddt.col.importo'),          field: 'totale',        width: 14 },
+    { header: this.i18n.t('ddt.col.stato'),            field: 'stato',         width: 14 },
   ];
   /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
   get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
@@ -1161,11 +1166,12 @@ export class DdtComponent implements OnInit, AfterViewInit {
   }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(r=>`<tr><td>${r.numero}</td><td>${d(r.dataEmissione)}</td><td>${r.clienteNome||'—'}</td><td class="r">${e(r.totale)}</td><td>${r.stato}</td><td>${r.fatturaNumero||'—'}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Documenti di trasporto</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Documenti di trasporto</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th><th>Fattura</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('ddt.title')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${t('ddt.title')}</h1><table><thead><tr><th>${t('ddt.col.numero')}</th><th>${t('ddt.col.data')}</th><th>${t('ddt.filtri.cliente')}</th><th class="r">${t('ddt.col.importo')}</th><th>${t('ddt.col.stato')}</th><th>${t('ddt.col.fattura')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
@@ -1184,7 +1190,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
     if (!ids.length) return;
     forkJoin(ids.map(id => this.ds.setDdtStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
-      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+      error: e => this.snack.open(e?.error?.error || e?.message || this.i18n.t('ddt.msg.erroreStato'), '', { duration: 3000 })
     });
   }
 
@@ -1192,17 +1198,18 @@ export class DdtComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} document${n === 1 ? 'o' : 'i'} di trasporto selezionat${n === 1 ? 'o' : 'i'}?`)) return;
+    if (!await this.confirm.delete(this.i18n.tn('ddt.msg.confermaEliminaBulk', n))) return;
     forkJoin(sel.map(d => this.ds.getDdtById(d.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
       const backups = fulls.filter(Boolean);
       forkJoin(sel.map(d => this.ds.deleteDdt(d.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
         const errori = results.filter((r: any) => r && r.__error).length;
         this.selection.clear();
         this.load();
-        const ref = this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} documenti eliminati`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const msg = errori ? this.i18n.t('ddt.msg.eliminatiParziali', { ok: n - errori, errori }) : this.i18n.tn('ddt.msg.eliminatiBulk', n);
+        const ref = this.snack.open(msg, this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createDdt(p).pipe(catchError(() => of(null))); }))
-            .subscribe(() => { this.load(); this.snack.open('Documenti ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+            .subscribe(() => { this.load(); this.snack.open(this.i18n.t('ddt.msg.ripristinatiBulk'), '', { duration: 2000, panelClass: 'snack-ok' }); });
         });
       });
     });
@@ -1216,8 +1223,8 @@ export class DdtComponent implements OnInit, AfterViewInit {
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
-          title: `Invia documento di trasporto n. ${d.numero}`,
-          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          title: this.i18n.t('ddt.msg.inviaTitolo', { numero: d.numero }),
+          subtitle: cliente?.ragioneSociale ? this.i18n.t('preventivi.msg.aCliente', { nome: cliente.ragioneSociale }) : undefined,
           destinatario: cliente?.email || '',
           testo: az?.emailCorpoDocumento || '',
         },
@@ -1225,8 +1232,8 @@ export class DdtComponent implements OnInit, AfterViewInit {
       ref.afterClosed().subscribe(result => {
         if (!result) return;
         this.ds.sendDdtEmail(d.id!, result.destinatario, result.testo || undefined).subscribe({
-          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+          next: () => this.snack.open(this.i18n.t('preventivi.msg.emailInviata'), '', { duration: 2000 }),
+          error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreEmail', { msg: e.error?.error || e.message }), '', { duration: 4000 })
         });
       });
     });
@@ -1235,7 +1242,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
   generaFattura(ddt: Ddt) {
     forkJoin({ full: this.ds.getDdtById(ddt.id!), num: this.ds.getNextNumero('fatture') }).subscribe({
       next: ({ full, num }) => {
-        if (!full) { this.snack.open('Documento di trasporto non disponibile', 'OK', { duration: 3000, panelClass: 'snack-error' }); return; }
+        if (!full) { this.snack.open(this.i18n.t('ddt.msg.documentoNonDisponibile'), 'OK', { duration: 3000, panelClass: 'snack-error' }); return; }
         const pre: Fattura = {
           numero: String(num.numero),
           dataEmissione: new Date().toISOString().substring(0, 10),
@@ -1246,12 +1253,12 @@ export class DdtComponent implements OnInit, AfterViewInit {
           .afterClosed().subscribe(result => {
             if (!result) return;
             this.ds.createFattura(result).subscribe({
-              next: () => { this.load(); this.snack.open('Fattura creata', '', { duration: 2000, panelClass: 'snack-ok' }); },
-              error: e => this.snack.open(e.message || 'Errore creazione fattura', 'OK', { duration: 4000, panelClass: 'snack-error' })
+              next: () => { this.load(); this.snack.open(this.i18n.t('ddt.msg.fatturaCreata'), '', { duration: 2000, panelClass: 'snack-ok' }); },
+              error: e => this.snack.open(e.message || this.i18n.t('ddt.msg.erroreCreazioneFattura'), 'OK', { duration: 4000, panelClass: 'snack-error' })
             });
           });
       },
-      error: e => this.snack.open('Errore caricamento documento di trasporto: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+      error: e => this.snack.open(this.i18n.t('ddt.msg.erroreCaricamento', { msg: e.message || '' }), 'OK', { duration: 4000, panelClass: 'snack-error' })
     });
   }
 
@@ -1260,7 +1267,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
       data: f, width: '90vw', maxWidth: '1400px', maxHeight: '95vh'
     }).afterClosed().subscribe(result => {
       if (!result) return;
-      this.ds.updateFattura(result).subscribe({ next: () => this.snack.open('Salvato', '', { duration: 2000 }) });
+      this.ds.updateFattura(result).subscribe({ next: () => this.snack.open(this.i18n.t('ddt.msg.salvato'), '', { duration: 2000 }) });
     }));
   }
 
@@ -1274,7 +1281,7 @@ export class DdtComponent implements OnInit, AfterViewInit {
       const salva = () => {
         const op = result.id ? this.ds.updateDdt(result) : this.ds.createDdt(result);
         op.subscribe({
-          next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+          next: () => { this.load(); this.snack.open(this.i18n.t('ddt.msg.salvato'), '', { duration: 2000 }); },
           error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
         });
       };
@@ -1304,14 +1311,14 @@ export class DdtComponent implements OnInit, AfterViewInit {
       const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
       const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
       const extra: { label: string; value: string }[] = [];
-      if (doc.causaleTrasporto) extra.push({ label: 'Causale', value: doc.causaleTrasporto });
-      if (doc.porto) extra.push({ label: 'Porto', value: doc.porto });
-      if (doc.fatturaNumero) extra.push({ label: 'Fattura', value: doc.fatturaNumero });
+      if (doc.causaleTrasporto) extra.push({ label: this.i18n.t('ddt.dialog.causale'), value: doc.causaleTrasporto });
+      if (doc.porto) extra.push({ label: this.i18n.t('ddt.dialog.porto'), value: doc.porto });
+      if (doc.fatturaNumero) extra.push({ label: this.i18n.t('ddt.col.fattura'), value: doc.fatturaNumero });
       this.dialog.open(DocInfoDialogComponent, {
         data: {
-          tipo: 'DDT', sottotitolo: 'Documento di Trasporto',
+          tipo: 'DDT', sottotitolo: this.i18n.t('ddt.info.sottotitolo'),
           numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
-          controparteLabel: 'DESTINATARIO',
+          controparteLabel: this.i18n.t('ddt.info.destinatarioLabel'),
           controparte: doc.cliente?.ragioneSociale || d.clienteNome || '—',
           controparteInfo: [
             [doc.cliente?.via, [doc.cliente?.cap, doc.cliente?.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
@@ -1340,25 +1347,25 @@ export class DdtComponent implements OnInit, AfterViewInit {
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'EMESSO';
         this.ds.createDdt(pre).subscribe({
-          next: () => { fine(); this.load(); this.snack.open(`Documento di trasporto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
+          next: () => { fine(); this.load(); this.snack.open(this.i18n.t('ddt.msg.duplicato', { numero: pre.numero }), '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || this.i18n.t('preventivi.msg.erroreDuplicazione'), 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
+      error: e => { fine(); this.snack.open(this.i18n.t('preventivi.msg.erroreGenerico', { msg: e.message || '' }), 'OK', { duration: 4000 }); }
     });
   }
 
   async delete(d: Ddt) {
-    if (!await this.confirm.delete(`Eliminare il documento di trasporto ${d.numero}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('ddt.msg.confermaElimina', { numero: d.numero }))) return;
     this.ds.getDdtById(d.id!).subscribe(full => {
       this.ds.deleteDdt(d.id!).subscribe(() => {
         this.load();
-        const ref = this.snack.open(`Documento di trasporto ${d.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const ref = this.snack.open(this.i18n.t('ddt.msg.eliminato', { numero: d.numero }), this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           const { id, ...payload } = full as any;
           this.ds.createDdt(payload).subscribe({
-            next: () => { this.load(); this.snack.open('Documento di trasporto ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
-            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+            next: () => { this.load(); this.snack.open(this.i18n.t('ddt.msg.ripristinato'), '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreRipristino', { msg: e.message || '' }), 'OK', { duration: 4000, panelClass: 'snack-error' })
           });
         });
       });

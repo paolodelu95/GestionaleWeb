@@ -1,41 +1,41 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Documenti di trasporto</h1>
+    <h1 class="page-title">{{ 'ddt.title' | t }}</h1>
     @if (selection.hasValue()) {
       <div class="bulk-bar">
-        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <span class="bulk-count">{{ selection.selected.length | tn:'ddt.selected' }}</span>
         <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('ANNULLATO')">
-          <mat-icon>cancel</mat-icon> Annulla
+          <mat-icon>cancel</mat-icon> {{ 'ddt.bulk.annulla' | t }}
         </button>
         <button mat-stroked-button type="button" color="warn" (click)="bulkElimina()">
-          <mat-icon>delete</mat-icon> Elimina
+          <mat-icon>delete</mat-icon> {{ 'ddt.bulk.elimina' | t }}
         </button>
-        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+        <button mat-button type="button" (click)="selection.clear()">{{ 'ddt.bulk.deseleziona' | t }}</button>
       </div>
     }
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo documento di trasporto</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="ddt" title="Documenti di trasporto"></app-export-menu></span>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> {{ 'ddt.nuovo' | t }}</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'ddt.stampa' | t }}</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="ddt" [title]="'ddt.title' | t"></app-export-menu></span>
 
-    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuDdt" title="Altre azioni">
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuDdt" [title]="'ddt.altreAzioni' | t">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuDdt="matMenu">
-      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'ddt')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
-      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'ddt')"><mat-icon>description</mat-icon> Esporta CSV</button>
-      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'ddt', 'Documenti di trasporto')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'ddt.stampa' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'ddt')"><mat-icon>grid_on</mat-icon> {{ 'ddt.esportaExcel' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'ddt')"><mat-icon>description</mat-icon> {{ 'ddt.esportaCsv' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'ddt', 'Documenti di trasporto')"><mat-icon>picture_as_pdf</mat-icon> {{ 'ddt.esportaPdf' | t }}</button>
     </mat-menu>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" placeholder="Anno" multiple>
+    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" [placeholder]="'ddt.filtri.anno' | t" multiple>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" placeholder="Mese" multiple>
+    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" [placeholder]="'ddt.filtri.mese' | t" multiple>
       @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" placeholder="Cliente" multiple>
+    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" [placeholder]="'ddt.filtri.cliente' | t" multiple>
       @for (c of clientiList; track c.id) { <mat-option [value]="c.id">{{ c.nome }}</mat-option> }
     </mat-select>
     <button mat-stroked-button type="button"
@@ -44,19 +44,19 @@
             [style.background]="filtroDaFatturare ? '#f5f3ff' : ''"
             (click)="filtroDaFatturare=!filtroDaFatturare; applyFilters()">
       <mat-icon [style.color]="filtroDaFatturare ? '#0e7490' : '#f59e0b'">receipt_long</mat-icon>
-      Da fatturare
+      {{ 'ddt.filtri.daFatturare' | t }}
       @if (daFatturareCount > 0) {
         <span style="background:#0e7490;color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">{{ daFatturareCount }}</span>
       }
     </button>
     @if (filtroAnni.length || filtroMesi.length || filtroClienti.length || filtroDaFatturare) {
-      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+      <button mat-icon-button type="button" [title]="'ddt.filtri.rimuovi' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>
 
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca documenti di trasporto...</mat-label>
+      <mat-label>{{ 'ddt.cerca' | t }}</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
@@ -73,42 +73,42 @@
       </ng-container>
 
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ddt.col.numero' | t }}</th>
         <td mat-cell *matCellDef="let d"><b>{{ d.numero }}</b></td>
       </ng-container>
 
       <ng-container matColumnDef="dataEmissione">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Data</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">{{ 'ddt.col.data' | t }}</th>
         <td mat-cell *matCellDef="let d" class="hide-mobile">{{ d.dataEmissione | date:'dd/MM/yyyy' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="clienteNome">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente / Fornitore</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ddt.col.clienteFornitore' | t }}</th>
         <td mat-cell *matCellDef="let d">
           @if (d.tipo === 'FORNITORE') {
-            <span class="stato-chip annullato" style="margin-right:6px" title="Reso a fornitore">RESO</span>
+            <span class="stato-chip annullato" style="margin-right:6px" [title]="'ddt.resoTooltip' | t">{{ 'ddt.reso' | t }}</span>
           }
           {{ d.controparteNome || d.clienteNome || '—' }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="totale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ddt.col.importo' | t }}</th>
         <td mat-cell *matCellDef="let d" class="euro">{{ (d.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="stato">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Stato</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">{{ 'ddt.col.stato' | t }}</th>
         <td mat-cell *matCellDef="let d" class="hide-mobile">
-          <span class="stato-chip" [class]="d.stato.toLowerCase()">{{ d.stato }}</span>
+          <span class="stato-chip" [class]="d.stato.toLowerCase()">{{ ('ddt.stato.' + d.stato.toLowerCase()) | t }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="fattura">
-        <th mat-header-cell *matHeaderCellDef class="hide-tablet">Fattura</th>
+        <th mat-header-cell *matHeaderCellDef class="hide-tablet">{{ 'ddt.col.fattura' | t }}</th>
         <td mat-cell *matCellDef="let d" class="hide-tablet">
           @if (d.fatturaId) {
-            <span class="fattura-badge" (click)="apriImpostazioniFattura(d.fatturaId)" style="cursor:pointer" title="Apri fattura {{ d.fatturaNumero }}">
+            <span class="fattura-badge" (click)="apriImpostazioniFattura(d.fatturaId)" style="cursor:pointer" [title]="i18n.t('ddt.apriFatturaTooltip', { numero: d.fatturaNumero })">
               <mat-icon style="font-size:14px;height:14px;width:14px">receipt</mat-icon>
               {{ d.fatturaNumero }}
             </span>
@@ -121,26 +121,26 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let d" class="table-actions">
-          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="menuDdtAz"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" [title]="'ddt.altreAzioni' | t" [matMenuTriggerFor]="menuDdtAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuDdtAz="matMenu">
-            <button mat-menu-item type="button" (click)="info(d)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
-            <button mat-menu-item type="button" (click)="printDoc(d)"><mat-icon>print</mat-icon> Stampa</button>
+            <button mat-menu-item type="button" (click)="info(d)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> {{ 'ddt.azioni.scheda' | t }}</button>
+            <button mat-menu-item type="button" (click)="printDoc(d)"><mat-icon>print</mat-icon> {{ 'ddt.stampa' | t }}</button>
             <button mat-menu-item type="button" (click)="inviaEmail(d)">
-              <mat-icon>mail</mat-icon> Invia per email
+              <mat-icon>mail</mat-icon> {{ 'ddt.azioni.inviaEmail' | t }}
             </button>
             @if (!d.fatturaId && d.stato !== 'ANNULLATO' && d.tipo !== 'FORNITORE') {
               <button mat-menu-item type="button" (click)="generaFattura(d)">
-                <mat-icon>receipt_long</mat-icon> Genera Fattura
+                <mat-icon>receipt_long</mat-icon> {{ 'ddt.azioni.generaFattura' | t }}
               </button>
             }
             <button mat-menu-item type="button" (click)="duplicate(d)">
-              <mat-icon>content_copy</mat-icon> Duplica
+              <mat-icon>content_copy</mat-icon> {{ 'ddt.azioni.duplica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="open(d)">
-              <mat-icon>edit</mat-icon> Modifica
+              <mat-icon>edit</mat-icon> {{ 'ddt.azioni.modifica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="delete(d)" style="color:#dc2626">
-              <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+              <mat-icon style="color:#dc2626">delete</mat-icon> {{ 'ddt.azioni.elimina' | t }}
             </button>
           </mat-menu>
         </td>
@@ -151,13 +151,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (dataSource.filter) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessun documento di trasporto corrisponde alla ricerca." />
+            <app-empty-state compact icon="search_off" [title]="'ddt.empty.nessunRisultatoTitle' | t"
+              [message]="'ddt.empty.nessunRisultatoMsg' | t" />
           } @else {
-            <app-empty-state icon="local_shipping" title="Ancora nessun documento di trasporto"
-              message="Crea il primo documento di trasporto: da qui potrai poi generare la fattura.">
+            <app-empty-state icon="local_shipping" [title]="'ddt.empty.title' | t"
+              [message]="'ddt.empty.msg' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuovo documento di trasporto
+                <mat-icon>add</mat-icon> {{ 'ddt.nuovo' | t }}
               </button>
             </app-empty-state>
           }
@@ -166,10 +166,10 @@
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
     <div class="list-totali">
-      <span class="lt-count">{{ dataSource.data.length }} document{{ dataSource.data.length === 1 ? 'o' : 'i' }}</span>
-      <span class="lt-tot">Totale: <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+      <span class="lt-count">{{ dataSource.data.length | tn:'ddt.listTotali.documenti' }}</span>
+      <span class="lt-tot">{{ 'ddt.listTotali.totale' | t }} <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       @if (selection.hasValue()) {
-        <span class="lt-sel">{{ selection.selected.length }} selezionat{{ selection.selected.length === 1 ? 'o' : 'i' }}: <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+        <span class="lt-sel">{{ selection.selected.length | tn:'ddt.listTotali.selezionati' }} <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       }
     </div>
   </div>
