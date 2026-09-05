@@ -1,45 +1,45 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Prodotti</h1>
+    <h1 class="page-title">{{ 'nav.prodotti' | t }}</h1>
     @if (selection.hasValue()) {
       <div class="bulk-bar">
-        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <span class="bulk-count">{{ selection.selected.length | tn:'prodotti.selected' }}</span>
         <button mat-stroked-button type="button" color="warn" [disabled]="busyBulk" (click)="bulkDelete()">
-          <mat-icon>delete</mat-icon> Elimina selezionati
+          <mat-icon>delete</mat-icon> {{ 'prodotti.bulkDelete' | t }}
         </button>
-        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+        <button mat-button type="button" (click)="selection.clear()">{{ 'prodotti.deselect' | t }}</button>
       </div>
     }
     <button mat-flat-button type="button" (click)="open()">
-      <mat-icon>add</mat-icon> Nuovo prodotto
+      <mat-icon>add</mat-icon> {{ 'prodotti.new' | t }}
     </button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="quickAdd()" matTooltip="Inserisci pi&ugrave; prodotti uno dopo l'altro">
-      <mat-icon>flash_on</mat-icon> Rapido
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="quickAdd()" [matTooltip]="'prodotti.quickAddTooltip' | t">
+      <mat-icon>flash_on</mat-icon> {{ 'prodotti.quickAddBtn' | t }}
     </button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <span class="header-overflow-item"><app-export-menu [data]="dataSource.data" [columns]="exportCols" filename="prodotti" title="Prodotti"></app-export-menu></span>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa prodotti</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'prodotti.print' | t }}</button>
+    <span class="header-overflow-item"><app-export-menu [data]="dataSource.data" [columns]="exportCols" filename="prodotti" [title]="'prodotti.entityLabel' | t"></app-export-menu></span>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> {{ 'prodotti.importProdotti' | t }}</button>
     <input #importInput type="file" accept=".xlsx,.xls,.xlsm,.xlsb,.ods,.fods,.csv,.tsv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet,text/csv,text/tab-separated-values" class="hidden-input" (change)="importExcel($event)">
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> Listino fornitore</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> {{ 'prodotti.listinoFornitore' | t }}</button>
     <span class="header-overflow-item"><app-column-picker storageKey="prodotti" [allCols]="allCols" (colsChange)="onColsChange($event)"></app-column-picker></span>
 
-    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuProd" title="Altre azioni">
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuProd" [title]="'prodotti.moreActions' | t">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuProd="matMenu">
-      <button mat-menu-item type="button" (click)="quickAdd()"><mat-icon>flash_on</mat-icon> Inserimento rapido</button>
-      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="excel.export(dataSource.data, exportCols, 'prodotti')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
-      <button mat-menu-item type="button" (click)="excel.exportCsv(dataSource.data, exportCols, 'prodotti')"><mat-icon>description</mat-icon> Esporta CSV</button>
-      <button mat-menu-item type="button" (click)="excel.exportPdf(dataSource.data, exportCols, 'prodotti', 'Prodotti')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
-      <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> Importa prodotti</button>
-      <button mat-menu-item type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> Importa listino fornitore</button>
+      <button mat-menu-item type="button" (click)="quickAdd()"><mat-icon>flash_on</mat-icon> {{ 'prodotti.menu.quickAddFull' | t }}</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'prodotti.print' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.export(dataSource.data, exportCols, 'prodotti')"><mat-icon>grid_on</mat-icon> {{ 'prodotti.exportExcel' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(dataSource.data, exportCols, 'prodotti')"><mat-icon>description</mat-icon> {{ 'prodotti.exportCsv' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(dataSource.data, exportCols, 'prodotti', i18n.t('prodotti.entityLabel'))"><mat-icon>picture_as_pdf</mat-icon> {{ 'prodotti.exportPdf' | t }}</button>
+      <button mat-menu-item type="button" (click)="importInput.click()"><mat-icon>upload</mat-icon> {{ 'prodotti.importProdotti' | t }}</button>
+      <button mat-menu-item type="button" (click)="openImportListino()"><mat-icon>sell</mat-icon> {{ 'prodotti.menu.importListinoFornitore' | t }}</button>
     </mat-menu>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroCategoria" (selectionChange)="applyFilters()" placeholder="Categoria">
-      <mat-option [value]="null">Tutte le categorie</mat-option>
+    <mat-select [(ngModel)]="filtroCategoria" (selectionChange)="applyFilters()" [placeholder]="'prodotti.filter.categoria' | t">
+      <mat-option [value]="null">{{ 'prodotti.filter.tutteCategorie' | t }}</mat-option>
       @for (c of categorieList; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
     </mat-select>
     <button mat-stroked-button type="button"
@@ -48,7 +48,7 @@
             [style.background]="filtroSottoSoglia ? '#fff1f2' : ''"
             (click)="filtroSottoSoglia=!filtroSottoSoglia; applyFilters()">
       <mat-icon [style.color]="filtroSottoSoglia ? '#dc2626' : '#f59e0b'">warning_amber</mat-icon>
-      Sotto soglia
+      {{ 'prodotti.filter.sottoSoglia' | t }}
       @if (sottoSogliaCount > 0) {
         <span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">{{ sottoSogliaCount }}</span>
       }
@@ -59,23 +59,23 @@
             [style.background]="filtroMargineBasso ? '#fff7ed' : ''"
             (click)="filtroMargineBasso=!filtroMargineBasso; applyFilters()">
       <mat-icon [style.color]="filtroMargineBasso ? '#f97316' : '#94a3b8'">trending_down</mat-icon>
-      Margine &lt; 15%
+      {{ 'prodotti.filter.margineBasso' | t }}
     </button>
     @if (filtroCategoria || filtroSottoSoglia || filtroMargineBasso) {
-      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+      <button mat-icon-button type="button" [title]="'prodotti.filter.rimuoviFiltri' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
     <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-      <span style="font-size:12px;color:var(--text-tertiary,#94a3b8)">Prezzi</span>
+      <span style="font-size:12px;color:var(--text-tertiary,#94a3b8)">{{ 'prodotti.prezziLabel' | t }}</span>
       <mat-button-toggle-group [value]="prezzoVista" (change)="setPrezzoVista($event.value)" [hideSingleSelectionIndicator]="true">
-        <mat-button-toggle value="netto">Netto</mat-button-toggle>
-        <mat-button-toggle value="ivato">Ivato</mat-button-toggle>
+        <mat-button-toggle value="netto">{{ 'prodotti.netto' | t }}</mat-button-toggle>
+        <mat-button-toggle value="ivato">{{ 'prodotti.ivato' | t }}</mat-button-toggle>
       </mat-button-toggle-group>
     </div>
   </div>
 
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca prodotti...</mat-label>
+      <mat-label>{{ 'prodotti.search.placeholder' | t }}</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
@@ -93,34 +93,34 @@
         </td>
       </ng-container>
       <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">ID</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'prodotti.col.id' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet">{{ p.id }}</td>
       </ng-container>
       <ng-container matColumnDef="nome">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Nome</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'prodotti.col.nome' | t }}</th>
         <td mat-cell *matCellDef="let p"><b>{{ p.nome }}</b></td>
       </ng-container>
       <ng-container matColumnDef="categoria">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Categoria</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">{{ 'prodotti.col.categoria' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-mobile">{{ p.categoria }}</td>
       </ng-container>
       <ng-container matColumnDef="codice">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Codice</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'prodotti.col.codice' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet">{{ p.codice }}</td>
       </ng-container>
       <ng-container matColumnDef="barcode">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Barcode</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'prodotti.col.barcode' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet" style="font-size:12px;color:#64748b">
           {{ p.barcode || '—' }}
-          @if (p.haVarianti) { <span style="margin-left:4px;background:#cffafe;color:#6d28d9;padding:2px 6px;border-radius:99px;font-size:10px;font-weight:700">VARIANTI</span> }
+          @if (p.haVarianti) { <span style="margin-left:4px;background:#cffafe;color:#6d28d9;padding:2px 6px;border-radius:99px;font-size:10px;font-weight:700">{{ 'prodotti.col.varianti' | t }}</span> }
         </td>
       </ng-container>
       <ng-container matColumnDef="prezzo">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Prezzo {{ prezzoVista === 'ivato' ? '(ivato)' : '(netto)' }}</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ (prezzoVista === 'ivato' ? 'prodotti.col.prezzoIvato' : 'prodotti.col.prezzoNetto') | t }}</th>
         <td mat-cell *matCellDef="let p" class="euro">{{ prezzoVisualizzato(p, 'prezzo') | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
       <ng-container matColumnDef="margine">
-        <th mat-header-cell *matHeaderCellDef class="hide-mobile">Margine</th>
+        <th mat-header-cell *matHeaderCellDef class="hide-mobile">{{ 'prodotti.col.margine' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-mobile">
           @if (marginePerc(p) === null) {
             <span style="color:#94a3b8;font-size:12px">—</span>
@@ -133,7 +133,7 @@
         </td>
       </ng-container>
       <ng-container matColumnDef="quantita">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Qtà</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'prodotti.col.quantita' | t }}</th>
         <td mat-cell *matCellDef="let p" [class.warn]="isSottoSoglia(p)">
           {{ p.quantita }}
           @if (p.haVarianti && p.varianti?.length) {
@@ -149,35 +149,35 @@
         </td>
       </ng-container>
       <ng-container matColumnDef="sogliaMinima">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Soglia min.</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'prodotti.col.sogliaMinima' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet">{{ p.sogliaMinima }}</td>
       </ng-container>
       <ng-container matColumnDef="iva">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">IVA</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'prodotti.col.iva' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet">{{ p.iva }}%</td>
       </ng-container>
       <ng-container matColumnDef="codiceFornitore">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Cod. Fornitore</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'prodotti.col.codiceFornitore' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet" style="font-size:12px;color:#64748b">{{ p.codiceFornitore }}</td>
       </ng-container>
       <ng-container matColumnDef="prezzoAcquisto">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">Prezzo Acq. {{ prezzoVista === 'ivato' ? '(ivato)' : '(netto)' }}</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ (prezzoVista === 'ivato' ? 'prodotti.col.prezzoAcqIvato' : 'prodotti.col.prezzoAcqNetto') | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet euro">{{ prezzoVisualizzato(p, 'prezzoAcquisto') | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
       <ng-container matColumnDef="unitaMisura">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">U.M.</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-tablet">{{ 'prodotti.col.unitaMisura' | t }}</th>
         <td mat-cell *matCellDef="let p" class="hide-tablet">{{ p.unitaMisura }}</td>
       </ng-container>
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let p" class="table-actions">
-          <button mat-icon-button type="button" [matMenuTriggerFor]="prodMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" [matMenuTriggerFor]="prodMenu" [title]="'prodotti.actions' | t"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #prodMenu="matMenu">
-            <button mat-menu-item type="button" (click)="info(p)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
-            <button mat-menu-item type="button" (click)="openRettifica(p)"><mat-icon style="color:#0891b2">tune</mat-icon> Rettifica giacenza</button>
-            <button mat-menu-item type="button" (click)="open(p)"><mat-icon>edit</mat-icon> Modifica</button>
-            <button mat-menu-item type="button" (click)="duplica(p)"><mat-icon>content_copy</mat-icon> Duplica</button>
-            <button mat-menu-item type="button" (click)="delete(p)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+            <button mat-menu-item type="button" (click)="info(p)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> {{ 'prodotti.menu.scheda' | t }}</button>
+            <button mat-menu-item type="button" (click)="openRettifica(p)"><mat-icon style="color:#0891b2">tune</mat-icon> {{ 'prodotti.menu.rettifica' | t }}</button>
+            <button mat-menu-item type="button" (click)="open(p)"><mat-icon>edit</mat-icon> {{ 'prodotti.menu.modifica' | t }}</button>
+            <button mat-menu-item type="button" (click)="duplica(p)"><mat-icon>content_copy</mat-icon> {{ 'prodotti.menu.duplica' | t }}</button>
+            <button mat-menu-item type="button" (click)="delete(p)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> {{ 'prodotti.menu.elimina' | t }}</button>
           </mat-menu>
         </td>
       </ng-container>
@@ -186,13 +186,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (dataSource.filter) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessun prodotto corrisponde alla ricerca. Prova a cambiare i filtri." />
+            <app-empty-state compact icon="search_off" [title]="'prodotti.empty.searchTitle' | t"
+              [message]="'prodotti.empty.searchMessage' | t" />
           } @else {
-            <app-empty-state icon="inventory_2" title="Ancora nessun prodotto"
-              message="Aggiungi il tuo primo prodotto o servizio: potrai inserirlo nei documenti con un clic.">
+            <app-empty-state icon="inventory_2" [title]="'prodotti.empty.title' | t"
+              [message]="'prodotti.empty.message' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuovo prodotto
+                <mat-icon>add</mat-icon> {{ 'prodotti.new' | t }}
               </button>
             </app-empty-state>
           }

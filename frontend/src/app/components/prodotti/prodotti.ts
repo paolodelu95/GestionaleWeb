@@ -36,56 +36,59 @@ import { ImportListinoDialogComponent } from './import-listino-dialog';
 import { BarcodeScannerDialogComponent } from '../shared/barcode-scanner-dialog';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { unitaFrazionabile, stepPerUnita, arrotondaPerUnita } from '../../utils/unita';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
-const PRODOTTI_FIELDS: FieldDef[] = [
-  { key: 'nome', label: 'Nome', required: true, aliases: [
+function buildProdottiFields(i18n: I18nService): FieldDef[] { return [
+  { key: 'nome', label: i18n.t('prodotti.field.nome'), required: true, aliases: [
     'Nome', 'nome', 'Prodotto', 'Articolo', 'Descrizione Articolo', 'Product Name',
     'Item Name', 'Denominazione', 'Name', 'Desc.', 'Descrizione Breve',
   ]},
-  { key: 'categoria', label: 'Categoria', aliases: [
+  { key: 'categoria', label: i18n.t('prodotti.field.categoria'), aliases: [
     'Categoria', 'categoria', 'Categoria Merceologica', 'Category', 'Gruppo',
     'Tipo', 'Famiglia', 'Linea',
   ]},
-  { key: 'descrizione', label: 'Descrizione', aliases: [
+  { key: 'descrizione', label: i18n.t('prodotti.field.descrizione'), aliases: [
     'Descrizione', 'descrizione', 'Descrizione Estesa', 'Note', 'Description',
     'Note Prodotto', 'Annotazioni',
   ]},
-  { key: 'codice', label: 'Codice', aliases: [
+  { key: 'codice', label: i18n.t('prodotti.field.codice'), aliases: [
     'Codice', 'codice', 'Codice Articolo', 'Cod. Articolo', 'SKU', 'Cod.',
     'Item Code', 'Codice Prodotto', 'Art.', 'Articolo', 'Riferimento',
   ]},
-  { key: 'codiceFornitore', label: 'Codice Fornitore', aliases: [
+  { key: 'codiceFornitore', label: i18n.t('prodotti.field.codiceFornitore'), aliases: [
     'Codice Fornitore', 'codiceFornitore', 'Cod. Fornitore', 'Supplier Code',
     'Codice Interno Fornitore', 'Ref. Fornitore',
   ]},
-  { key: 'barcode', label: 'Barcode', aliases: [
+  { key: 'barcode', label: i18n.t('prodotti.field.barcode'), aliases: [
     'Barcode', 'barcode', 'EAN', 'EAN13', 'Codice a Barre', 'UPC', 'GTIN',
     'Cod. Barre', 'EAN-13',
   ]},
-  { key: 'prezzo', label: 'Prezzo vendita', type: 'number', aliases: [
+  { key: 'prezzo', label: i18n.t('prodotti.field.prezzo'), type: 'number', aliases: [
     'Prezzo vendita', 'Prezzo', 'prezzo', 'Prezzo di Vendita', 'Prezzo Vendita',
     'Selling Price', 'Price', 'Listino', 'Prezzo al pubblico', 'Prezzo Cliente',
   ]},
-  { key: 'prezzoAcquisto', label: 'Prezzo acquisto', type: 'number', aliases: [
+  { key: 'prezzoAcquisto', label: i18n.t('prodotti.field.prezzoAcquisto'), type: 'number', aliases: [
     'Prezzo acquisto', 'prezzoAcquisto', 'Prezzo di Acquisto', 'Costo',
     'Purchase Price', 'Cost', 'Costo Acquisto', 'Prezzo Fornitore',
   ]},
-  { key: 'iva', label: 'IVA (%)', type: 'number', defaultValue: 22, aliases: [
+  { key: 'iva', label: i18n.t('prodotti.field.iva'), type: 'number', defaultValue: 22, aliases: [
     'IVA', 'iva', 'Aliquota IVA', 'VAT Rate', 'IVA %', 'IVA%', 'Aliquota',
   ]},
-  { key: 'quantita', label: 'Quantità', type: 'integer', defaultValue: 0, aliases: [
+  { key: 'quantita', label: i18n.t('prodotti.field.quantita'), type: 'integer', defaultValue: 0, aliases: [
     'Quantità', 'quantita', 'Qty', 'Quantity', 'Giacenza', 'Stock',
     'Disponibile', 'Qtà', 'Qta', 'Scorta',
   ]},
-  { key: 'sogliaMinima', label: 'Soglia Minima', type: 'integer', defaultValue: 0, aliases: [
+  { key: 'sogliaMinima', label: i18n.t('prodotti.field.sogliaMinima'), type: 'integer', defaultValue: 0, aliases: [
     'Soglia Minima', 'sogliaMinima', 'Riordino', 'Min Stock', 'Minimo',
     'Stock Minimo', 'Soglia di Riordino', 'Scorta Minima',
   ]},
-  { key: 'unitaMisura', label: 'Unità Misura', defaultValue: 'pz', aliases: [
+  { key: 'unitaMisura', label: i18n.t('prodotti.field.unitaMisura'), defaultValue: 'pz', aliases: [
     'Unità Misura', 'unitaMisura', 'U.M.', 'UM', 'UdM', 'Unit',
     'Unit of Measure', 'Unita di Misura', 'Unità di misura',
   ]},
-];
+]; }
 
 // ── Dialog ──────────────────────────────────────────────────────────────────
 @Component({
@@ -93,7 +96,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatSelectModule, MatAutocompleteModule, MatButtonModule,
-            MatIconModule, MatCheckboxModule, MatButtonToggleModule, MatTooltipModule, FieldHelpComponent],
+            MatIconModule, MatCheckboxModule, MatButtonToggleModule, MatTooltipModule, FieldHelpComponent, TPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -101,8 +104,8 @@ const PRODOTTI_FIELDS: FieldDef[] = [
           <mat-icon>inventory_2</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">{{ data ? data.nome : 'Nuovo prodotto' }}</span>
-          <span class="dialog-hero-sub">{{ data ? 'Modifica anagrafica e prezzi' : 'Aggiungi un articolo al catalogo' }}</span>
+          <span class="dialog-hero-title">{{ data ? data.nome : (('prodotti.dialog.new') | t) }}</span>
+          <span class="dialog-hero-sub">{{ (data ? 'prodotti.dialog.editSub' : 'prodotti.dialog.newSub') | t }}</span>
         </div>
       </div>
 
@@ -112,18 +115,18 @@ const PRODOTTI_FIELDS: FieldDef[] = [
         <div class="form-section is-primary">
           <div class="form-section-header">
             <mat-icon>label</mat-icon>
-            <span>Identità prodotto</span>
-            <span class="section-hint">Dati di riconoscimento</span>
+            <span>{{ 'prodotti.form.identita' | t }}</span>
+            <span class="section-hint">{{ 'prodotti.form.identitaHint' | t }}</span>
           </div>
-          <mat-form-field style="width:100%"><mat-label>Nome *</mat-label>
-            <input matInput formControlName="nome" placeholder="es. Maglietta cotone manica corta"></mat-form-field>
+          <mat-form-field style="width:100%"><mat-label>{{ 'prodotti.form.nome' | t }}</mat-label>
+            <input matInput formControlName="nome" [placeholder]="'prodotti.form.nomePlaceholder' | t"></mat-form-field>
           <div class="form-row">
-            <mat-form-field><mat-label>Codice interno</mat-label>
+            <mat-form-field><mat-label>{{ 'prodotti.form.codiceInterno' | t }}</mat-label>
               <input matInput formControlName="codice"></mat-form-field>
             <mat-form-field>
-              <mat-label>Categoria</mat-label>
+              <mat-label>{{ 'prodotti.form.categoria' | t }}</mat-label>
               <mat-select formControlName="categoria">
-                <mat-option value="">— nessuna —</mat-option>
+                <mat-option value="">{{ 'prodotti.form.nessunaCategoria' | t }}</mat-option>
                 @for (c of categorie; track c.id) {
                   <mat-option [value]="c.nome">{{ c.nome }}</mat-option>
                 }
@@ -133,10 +136,10 @@ const PRODOTTI_FIELDS: FieldDef[] = [
           <div class="form-row">
             <div class="input-with-action" style="flex:1">
               <mat-form-field>
-                <mat-label>Barcode</mat-label>
-                <input matInput formControlName="barcode" placeholder="Scansiona o digita...">
+                <mat-label>{{ 'prodotti.form.barcode' | t }}</mat-label>
+                <input matInput formControlName="barcode" [placeholder]="'prodotti.form.barcodePlaceholder' | t">
               </mat-form-field>
-              <button mat-icon-button type="button" matTooltip="Scansiona barcode con la fotocamera"
+              <button mat-icon-button type="button" [matTooltip]="'prodotti.form.scansionaBarcode' | t"
                       (click)="scannerBarcode()">
                 <mat-icon>qr_code_scanner</mat-icon>
               </button>
@@ -148,18 +151,18 @@ const PRODOTTI_FIELDS: FieldDef[] = [
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>sell</mat-icon>
-            <span>Prezzi & IVA</span>
+            <span>{{ 'prodotti.form.prezziIva' | t }}</span>
             <span class="section-hint">
               <mat-button-toggle-group [value]="prezzoMode" (change)="onPrezzoModeChange($event.value)"
                                       [hideSingleSelectionIndicator]="true" class="prezzo-mode-toggle">
-                <mat-button-toggle value="netto">Netto</mat-button-toggle>
-                <mat-button-toggle value="ivato">Ivato</mat-button-toggle>
+                <mat-button-toggle value="netto">{{ 'prodotti.netto' | t }}</mat-button-toggle>
+                <mat-button-toggle value="ivato">{{ 'prodotti.ivato' | t }}</mat-button-toggle>
               </mat-button-toggle-group>
             </span>
           </div>
           <div class="form-row">
             <mat-form-field>
-              <mat-label>IVA</mat-label>
+              <mat-label>{{ 'prodotti.form.iva' | t }}</mat-label>
               <mat-select formControlName="iva">
                 @for (a of aliquoteIva; track a.id) {
                   <mat-option [value]="a.valore">{{ a.nome }} – {{ a.valore }}%</mat-option>
@@ -168,7 +171,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
               <app-field-help matSuffix term="aliquotaIva" />
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Unità misura</mat-label>
+              <mat-label>{{ 'prodotti.form.unitaMisura' | t }}</mat-label>
               <mat-select formControlName="unitaMisura">
                 @for (u of unitaMisura; track u.id) {
                   <mat-option [value]="u.simbolo">{{ u.nome }} ({{ u.simbolo }})</mat-option>
@@ -178,27 +181,27 @@ const PRODOTTI_FIELDS: FieldDef[] = [
           </div>
           <div class="form-row" style="align-items:flex-start">
             <mat-form-field>
-              <mat-label>Prezzo vendita ({{ prezzoMode }}) €</mat-label>
+              <mat-label>{{ 'prodotti.form.prezzoVendita' | t:{ mode: (prezzoMode === 'ivato' ? ('prodotti.ivato' | t) : ('prodotti.netto' | t)) } }}</mat-label>
               <input matInput type="number" step="0.01" min="0"
                      [(ngModel)]="prezzoInput" [ngModelOptions]="{standalone:true}"
                      (ngModelChange)="onPrezzoModelChange('prezzo', $event)">
               <mat-icon matSuffix>euro</mat-icon>
               @if (prezzoMode === 'ivato') {
-                <mat-hint>Netto: {{ form.value.prezzo | number:'1.4-4' }} €</mat-hint>
+                <mat-hint>{{ 'prodotti.form.hintNetto' | t:{ v: (form.value.prezzo | number:'1.4-4') || '' } }}</mat-hint>
               } @else {
-                <mat-hint>Ivato: {{ prezzoIvato('prezzo') | number:'1.2-2' }} €</mat-hint>
+                <mat-hint>{{ 'prodotti.form.hintIvato' | t:{ v: (prezzoIvato('prezzo') | number:'1.2-2') || '' } }}</mat-hint>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Prezzo acquisto ({{ prezzoMode }}) €</mat-label>
+              <mat-label>{{ 'prodotti.form.prezzoAcquisto' | t:{ mode: (prezzoMode === 'ivato' ? ('prodotti.ivato' | t) : ('prodotti.netto' | t)) } }}</mat-label>
               <input matInput type="number" step="0.01" min="0"
                      [(ngModel)]="prezzoAcquistoInput" [ngModelOptions]="{standalone:true}"
                      (ngModelChange)="onPrezzoModelChange('prezzoAcquisto', $event)">
               <mat-icon matSuffix>shopping_cart</mat-icon>
               @if (margine !== null) {
-                <mat-hint>Margine: <b [style.color]="margine >= 0 ? '#10b981' : '#ef4444'">{{ margine | number:'1.1-1' }}%</b></mat-hint>
+                <mat-hint>{{ 'prodotti.form.margine' | t }} <b [style.color]="margine >= 0 ? '#10b981' : '#ef4444'">{{ margine | number:'1.1-1' }}%</b></mat-hint>
               } @else {
-                <mat-hint>Per calcolo margini</mat-hint>
+                <mat-hint>{{ 'prodotti.form.margineHint' | t }}</mat-hint>
               }
             </mat-form-field>
           </div>
@@ -208,17 +211,17 @@ const PRODOTTI_FIELDS: FieldDef[] = [
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>local_shipping</mat-icon>
-            <span>Fornitori</span>
-            <span class="section-hint">Codice e prezzo per ciascun fornitore</span>
+            <span>{{ 'prodotti.form.fornitori' | t }}</span>
+            <span class="section-hint">{{ 'prodotti.form.fornitoriHint' | t }}</span>
           </div>
           @for (f of fornitori; track $index) {
             <div class="form-row" style="align-items:flex-start;gap:8px">
               <mat-form-field style="flex:2">
-                <mat-label>Fornitore</mat-label>
+                <mat-label>{{ 'prodotti.form.fornitore' | t }}</mat-label>
                 <input matInput [matAutocomplete]="autoForn"
                        [(ngModel)]="f.cercaFornitore" [ngModelOptions]="{ standalone: true }"
                        (focus)="$any($event.target).select()" (blur)="syncFornitoreText(f)"
-                       placeholder="Cerca per nome, P.IVA o città...">
+                       [placeholder]="'prodotti.form.fornitorePlaceholder' | t">
                 <mat-icon matSuffix>search</mat-icon>
                 <mat-autocomplete #autoForn="matAutocomplete"
                                   (optionSelected)="onFornitorePick(f, $event.option.value)">
@@ -231,47 +234,47 @@ const PRODOTTI_FIELDS: FieldDef[] = [
                 </mat-autocomplete>
               </mat-form-field>
               <mat-form-field style="flex:1">
-                <mat-label>Codice</mat-label>
-                <input matInput [(ngModel)]="f.codiceFornitore" [ngModelOptions]="{ standalone: true }" placeholder="Codice del fornitore">
+                <mat-label>{{ 'prodotti.form.codiceFornitore' | t }}</mat-label>
+                <input matInput [(ngModel)]="f.codiceFornitore" [ngModelOptions]="{ standalone: true }" [placeholder]="'prodotti.form.codiceFornitorePlaceholder' | t">
               </mat-form-field>
               <mat-form-field style="flex:1">
-                <mat-label>Prezzo netto €</mat-label>
+                <mat-label>{{ 'prodotti.form.prezzoNettoEuro' | t }}</mat-label>
                 <input matInput type="number" step="0.01" min="0" [(ngModel)]="f.prezzoAcquisto" [ngModelOptions]="{ standalone: true }">
               </mat-form-field>
               <button mat-icon-button type="button" style="margin-top:6px"
                       [color]="f.predefinito ? 'primary' : undefined"
-                      [title]="f.predefinito ? 'Fornitore predefinito' : 'Imposta come predefinito'"
+                      [title]="(f.predefinito ? 'prodotti.form.fornitorePredefinito' : 'prodotti.form.impostaPredefinito') | t"
                       (click)="setPredefinito($index)">
                 <mat-icon>{{ f.predefinito ? 'star' : 'star_border' }}</mat-icon>
               </button>
-              <button mat-icon-button type="button" style="margin-top:6px" title="Rimuovi fornitore" (click)="removeFornitore($index)">
+              <button mat-icon-button type="button" style="margin-top:6px" [title]="'prodotti.form.rimuoviFornitore' | t" (click)="removeFornitore($index)">
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
           }
           <button mat-stroked-button type="button" (click)="addFornitore()">
-            <mat-icon>add</mat-icon> Aggiungi fornitore
+            <mat-icon>add</mat-icon> {{ 'prodotti.form.aggiungiFornitore' | t }}
           </button>
           @if (!fornitori.length) {
             <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px">
-              Aggiungi i fornitori da cui acquisti questo prodotto, ciascuno col proprio codice. Negli ordini il prodotto userà il codice del fornitore scelto.
+              {{ 'prodotti.form.aggiungiFornitoriHint' | t }}
             </div>
           }
 
           @if (codiciAlias.length) {
             <div style="margin-top:14px">
               <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px">
-                <mat-icon style="font-size:15px;width:15px;height:15px">bookmark</mat-icon> Codici memorizzati
+                <mat-icon style="font-size:15px;width:15px;height:15px">bookmark</mat-icon> {{ 'prodotti.form.codiciMemorizzati' | t }}
               </div>
               <div style="font-size:11px;color:var(--text-tertiary);margin:2px 0 8px">
-                Codici riconosciuti automaticamente nei prossimi import listino. Rimuovi quelli sbagliati.
+                {{ 'prodotti.form.codiciMemorizzatiHint' | t }}
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:6px">
                 @for (a of codiciAlias; track a.id) {
                   <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:99px;padding:3px 6px 3px 10px;font-size:12px;background:var(--surface-2, transparent)">
                     <span style="font-family:monospace;font-weight:700;color:var(--primary)">{{ a.codice }}</span>
                     @if (a.fornitoreNome) { <span style="color:var(--text-tertiary)">· {{ a.fornitoreNome }}</span> }
-                    <button mat-icon-button type="button" title="Rimuovi codice memorizzato"
+                    <button mat-icon-button type="button" [title]="'prodotti.form.rimuoviCodiceMemorizzato' | t"
                             style="width:22px;height:22px;line-height:22px" (click)="removeCodiceAlias(a)">
                       <mat-icon style="font-size:15px;width:15px;height:15px">close</mat-icon>
                     </button>
@@ -286,24 +289,24 @@ const PRODOTTI_FIELDS: FieldDef[] = [
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>warehouse</mat-icon>
-            <span>Magazzino</span>
-            <span class="section-hint">Disponibilità e scorte</span>
+            <span>{{ 'prodotti.form.magazzino' | t }}</span>
+            <span class="section-hint">{{ 'prodotti.form.magazzinoHint' | t }}</span>
           </div>
           <div>
-            <mat-checkbox formControlName="haVarianti">Gestisci taglie / colori</mat-checkbox>
-            <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;padding-left:32px">Se attivo, la quantità è gestita per variante</div>
+            <mat-checkbox formControlName="haVarianti">{{ 'prodotti.form.gestisciVarianti' | t }}</mat-checkbox>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;padding-left:32px">{{ 'prodotti.form.gestisciVariantiHint' | t }}</div>
           </div>
           @if (!form.value.haVarianti) {
             <div class="form-row">
-              <mat-form-field><mat-label>Quantità</mat-label>
+              <mat-form-field><mat-label>{{ 'prodotti.form.quantita' | t }}</mat-label>
                 <input matInput type="number" formControlName="quantita">
                 <mat-icon matSuffix>inventory</mat-icon>
               </mat-form-field>
-              <mat-form-field><mat-label>Soglia minima</mat-label>
+              <mat-form-field><mat-label>{{ 'prodotti.form.sogliaMinima' | t }}</mat-label>
                 <input matInput type="number" min="0" step="1" formControlName="sogliaMinima"
-                       placeholder="Nessun avviso">
+                       [placeholder]="'prodotti.form.sogliaMinimaPlaceholder' | t">
                 <mat-icon matSuffix>warning</mat-icon>
-                <mat-hint>Lascia vuoto per non ricevere avvisi (es. articoli su ordinazione)</mat-hint>
+                <mat-hint>{{ 'prodotti.form.sogliaMinimaHint' | t }}</mat-hint>
               </mat-form-field>
             </div>
           }
@@ -313,40 +316,40 @@ const PRODOTTI_FIELDS: FieldDef[] = [
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>straighten</mat-icon>
-            <span>Logistica & immagine</span>
-            <span class="section-hint">Peso, dimensioni e foto del prodotto</span>
+            <span>{{ 'prodotti.form.logistica' | t }}</span>
+            <span class="section-hint">{{ 'prodotti.form.logisticaHint' | t }}</span>
           </div>
           <div class="form-row">
             <mat-form-field subscriptSizing="dynamic">
-              <mat-label>Peso unitario (kg)</mat-label>
-              <input matInput type="number" min="0" step="0.001" formControlName="peso" placeholder="es. 2,5">
+              <mat-label>{{ 'prodotti.form.pesoUnitario' | t }}</mat-label>
+              <input matInput type="number" min="0" step="0.001" formControlName="peso" [placeholder]="'prodotti.form.pesoPlaceholder' | t">
               <mat-icon matSuffix>scale</mat-icon>
-              <mat-hint>Usato per calcolare il peso lordo dei documenti di trasporto</mat-hint>
+              <mat-hint>{{ 'prodotti.form.pesoHint' | t }}</mat-hint>
             </mat-form-field>
             <mat-form-field subscriptSizing="dynamic">
-              <mat-label>Dimensioni</mat-label>
-              <input matInput formControlName="dimensioni" placeholder="es. 120×80×40 cm">
+              <mat-label>{{ 'prodotti.form.dimensioni' | t }}</mat-label>
+              <input matInput formControlName="dimensioni" [placeholder]="'prodotti.form.dimensioniPlaceholder' | t">
               <mat-icon matSuffix>straighten</mat-icon>
-              <mat-hint>Testo libero: compare nei listini e nelle schede preventivo</mat-hint>
+              <mat-hint>{{ 'prodotti.form.dimensioniHint' | t }}</mat-hint>
             </mat-form-field>
           </div>
           <div class="img-row">
             @if (immagine) {
-              <img [src]="immagine" alt="Immagine prodotto" class="img-preview">
+              <img [src]="immagine" [alt]="'prodotti.form.immagineAlt' | t" class="img-preview">
               <div class="img-actions">
                 <button mat-stroked-button type="button" (click)="imgInput.click()">
-                  <mat-icon>swap_horiz</mat-icon> Sostituisci
+                  <mat-icon>swap_horiz</mat-icon> {{ 'prodotti.form.sostituisci' | t }}
                 </button>
                 <button mat-stroked-button type="button" color="warn" (click)="rimuoviImmagine()">
-                  <mat-icon>delete</mat-icon> Rimuovi
+                  <mat-icon>delete</mat-icon> {{ 'prodotti.form.rimuovi' | t }}
                 </button>
               </div>
             } @else {
               <button mat-stroked-button type="button" (click)="imgInput.click()" [disabled]="immagineLoading">
                 <mat-icon>add_photo_alternate</mat-icon>
-                {{ immagineLoading ? 'Caricamento…' : 'Carica immagine' }}
+                {{ (immagineLoading ? 'prodotti.form.caricamento' : 'prodotti.form.caricaImmagine') | t }}
               </button>
-              <span class="img-hint">JPG o PNG · ridimensionata automaticamente · usabile nelle schede prodotto dei preventivi</span>
+              <span class="img-hint">{{ 'prodotti.form.immagineHint' | t }}</span>
             }
             <input #imgInput type="file" accept="image/*" class="hidden-input" (change)="onImmagineSelected($event)">
           </div>
@@ -356,28 +359,28 @@ const PRODOTTI_FIELDS: FieldDef[] = [
         <div class="form-section is-flat">
           <div class="form-section-header">
             <mat-icon>description</mat-icon>
-            <span>Descrizione</span>
+            <span>{{ 'prodotti.form.descrizione' | t }}</span>
           </div>
-          <mat-form-field style="width:100%"><mat-label>Descrizione</mat-label>
-            <textarea matInput rows="2" formControlName="descrizione" placeholder="Note descrittive opzionali"></textarea></mat-form-field>
+          <mat-form-field style="width:100%"><mat-label>{{ 'prodotti.form.descrizione' | t }}</mat-label>
+            <textarea matInput rows="2" formControlName="descrizione" [placeholder]="'prodotti.form.descrizionePlaceholder' | t"></textarea></mat-form-field>
         </div>
 
         @if (form.value.haVarianti) {
           <div class="varianti-box">
             <div class="varianti-header">
-              <span class="varianti-title">Varianti (Taglie / Colori)</span>
+              <span class="varianti-title">{{ 'prodotti.form.varianti' | t }}</span>
               <button mat-stroked-button type="button" (click)="addVariante()">
-                <mat-icon>add</mat-icon> Aggiungi variante
+                <mat-icon>add</mat-icon> {{ 'prodotti.form.aggiungiVariante' | t }}
               </button>
             </div>
             <div class="var-table-wrap">
             <table class="var-table">
               <thead>
                 <tr style="background:#f8fafc">
-                  <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Taglia</th>
-                  <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Colore</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Qtà</th>
-                  <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Barcode variante</th>
+                  <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">{{ 'prodotti.form.colTaglia' | t }}</th>
+                  <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">{{ 'prodotti.form.colColore' | t }}</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">{{ 'prodotti.form.colQta' | t }}</th>
+                  <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">{{ 'prodotti.form.colBarcodeVariante' | t }}</th>
                   <th style="width:44px;border-bottom:2px solid #e2e8f0"></th>
                 </tr>
               </thead>
@@ -385,17 +388,17 @@ const PRODOTTI_FIELDS: FieldDef[] = [
                 @for (v of varianti; track $index; let i = $index) {
                   <tr>
                     <td style="padding:4px 4px">
-                      <input class="var-input" [(ngModel)]="v.taglia" [ngModelOptions]="{standalone:true}" placeholder="es. M, L, 42…">
+                      <input class="var-input" [(ngModel)]="v.taglia" [ngModelOptions]="{standalone:true}" [placeholder]="'prodotti.form.tagliaPh' | t">
                     </td>
                     <td style="padding:4px 4px">
-                      <input class="var-input" [(ngModel)]="v.colore" [ngModelOptions]="{standalone:true}" placeholder="es. Rosso…">
+                      <input class="var-input" [(ngModel)]="v.colore" [ngModelOptions]="{standalone:true}" [placeholder]="'prodotti.form.colorePh' | t">
                     </td>
                     <td style="padding:4px 4px">
                       <input class="var-input num" type="number" min="0" step="1"
                              [(ngModel)]="v.quantita" [ngModelOptions]="{standalone:true}">
                     </td>
                     <td style="padding:4px 4px">
-                      <input class="var-input" [(ngModel)]="v.barcode" [ngModelOptions]="{standalone:true}" placeholder="Barcode…">
+                      <input class="var-input" [(ngModel)]="v.barcode" [ngModelOptions]="{standalone:true}" [placeholder]="'prodotti.form.barcodeVariantePh' | t">
                     </td>
                     <td style="padding:4px 4px">
                       <button mat-icon-button type="button" color="warn" (click)="removeVariante(i)">
@@ -406,7 +409,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
                 }
                 @if (!varianti.length) {
                   <tr><td colspan="5" style="text-align:center;padding:16px;color:#94a3b8;font-size:13px">
-                    Nessuna variante — clicca "Aggiungi variante"
+                    {{ 'prodotti.form.nessunaVariante' | t }}
                   </td></tr>
                 }
               </tbody>
@@ -414,7 +417,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
             </div>
             @if (varianti.length) {
               <div style="text-align:right;padding-top:8px;font-size:12px;color:#64748b">
-                Totale quantità: <b style="color:#1e293b">{{ totaleVarianti }}</b>
+                {{ 'prodotti.form.totaleQuantita' | t }} <b style="color:#1e293b">{{ totaleVarianti }}</b>
               </div>
             }
           </div>
@@ -422,8 +425,8 @@ const PRODOTTI_FIELDS: FieldDef[] = [
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
+      <button mat-button mat-dialog-close>{{ 'prodotti.form.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.invalid">{{ 'prodotti.form.salva' | t }}</button>
     </mat-dialog-actions>`,
   styles: [`
     .var-input { border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:13px;width:100%;box-sizing:border-box; }
@@ -455,6 +458,7 @@ const PRODOTTI_FIELDS: FieldDef[] = [
   `]
 })
 export class ProdottoDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   form: FormGroup;
   categorie: CategoriaProdotto[] = [];
   unitaMisura: UnitaMisura[] = [];
@@ -631,7 +635,10 @@ export class ProdottoDialogComponent implements OnInit {
   }
 
   async removeCodiceAlias(a: CodiceAlias) {
-    if (!await this.confirm.delete(`Rimuovere il codice memorizzato "${a.codice}"${a.fornitoreNome ? ' di ' + a.fornitoreNome : ''}? Non verrà più riconosciuto automaticamente nei prossimi import.`)) return;
+    const msg = a.fornitoreNome
+      ? this.i18n.t('prodotti.msg.confermaRimuoviAliasConFornitore', { codice: a.codice, fornitore: a.fornitoreNome })
+      : this.i18n.t('prodotti.msg.confermaRimuoviAliasSenzaFornitore', { codice: a.codice });
+    if (!await this.confirm.delete(msg)) return;
     this.ds.deleteCodiceAlias(a.id).subscribe(() => {
       this.codiciAlias = this.codiciAlias.filter(x => x.id !== a.id);
     });
@@ -712,16 +719,16 @@ export class ProdottoDialogComponent implements OnInit {
 @Component({
   selector: 'app-rettifica-giacenza-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Rettifica giacenza</h2>
+    <h2 mat-dialog-title>{{ 'prodotti.rettifica.title' | t }}</h2>
     <mat-dialog-content style="min-width:360px">
       <p style="margin:0 0 4px;font-weight:600">{{ data.prodotto.nome }}</p>
       <p style="margin:0 0 16px;font-size:13px;color:var(--text-tertiary,#94a3b8)">
-        Giacenza attuale: <b>{{ data.prodotto.quantita }}</b> {{ data.prodotto.unitaMisura || '' }}
+        {{ 'prodotti.rettifica.giacenzaAttuale' | t:{ q: data.prodotto.quantita ?? 0, um: data.prodotto.unitaMisura || '' } }}
       </p>
       <mat-form-field appearance="outline" style="width:100%">
-        <mat-label>Nuova giacenza reale *</mat-label>
+        <mat-label>{{ 'prodotti.rettifica.nuovaGiacenza' | t }}</mat-label>
         <input matInput type="number" [step]="step" [min]="0" [(ngModel)]="nuova"
                (keyup.enter)="save()" autofocus>
         <span matTextSuffix>{{ data.prodotto.unitaMisura || 'pz' }}</span>
@@ -729,17 +736,17 @@ export class ProdottoDialogComponent implements OnInit {
       @if (nuova !== null && delta !== 0) {
         <p style="margin:-6px 0 12px;font-size:13px" [style.color]="delta > 0 ? '#16a34a' : '#dc2626'">
           <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">{{ delta > 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
-          {{ delta > 0 ? '+' : '' }}{{ delta }} — verrà registrato un movimento di rettifica.
+          {{ 'prodotti.rettifica.deltaNote' | t:{ sign: (delta > 0 ? '+' : ''), delta } }}
         </p>
       }
       <mat-form-field appearance="outline" style="width:100%">
-        <mat-label>Motivo (facoltativo)</mat-label>
-        <input matInput [(ngModel)]="note" placeholder="es. inventario, rottura, ammanco…">
+        <mat-label>{{ 'prodotti.rettifica.motivo' | t }}</mat-label>
+        <input matInput [(ngModel)]="note" [placeholder]="'prodotti.rettifica.motivoPlaceholder' | t">
       </mat-form-field>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" (click)="save()" [disabled]="nuova === null">Salva rettifica</button>
+      <button mat-button mat-dialog-close>{{ 'prodotti.rettifica.annulla' | t }}</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="nuova === null">{{ 'prodotti.rettifica.salva' | t }}</button>
     </mat-dialog-actions>`
 })
 export class RettificaGiacenzaDialogComponent {
@@ -769,12 +776,13 @@ export class RettificaGiacenzaDialogComponent {
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule,
             MatSortModule, MatSelectModule, MatPaginatorModule, MatTooltipModule, MatMenuModule,
             MatCheckboxModule, MatButtonToggleModule, ColumnPickerComponent, EmptyStateComponent,
-            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent],
+            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent, TPipe, TnPipe],
   templateUrl: './prodotti.html',
   styleUrl: './prodotti.scss'
 })
 export class ProdottiComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  i18n = inject(I18nService);
   private allProdotti: Prodotto[] = [];
   loading = true;
   dataSource = new MatTableDataSource<Prodotto>([]);
@@ -784,19 +792,19 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   busyBulk = false;
 
   readonly allCols: ColDef[] = [
-    { key: 'nome', label: 'Nome' },
-    { key: 'categoria', label: 'Categoria' },
-    { key: 'codice', label: 'Codice', defaultVisible: false },
-    { key: 'codiceFornitore', label: 'Cod. Fornitore', defaultVisible: false },
-    { key: 'barcode', label: 'Barcode', defaultVisible: false },
-    { key: 'prezzo', label: 'Prezzo' },
-    { key: 'prezzoAcquisto', label: 'Prezzo Acquisto', defaultVisible: false },
-    { key: 'margine', label: 'Margine %' },
-    { key: 'quantita', label: 'Qtà' },
-    { key: 'sogliaMinima', label: 'Soglia min.' },
-    { key: 'iva', label: 'IVA', defaultVisible: false },
-    { key: 'unitaMisura', label: 'U.M.', defaultVisible: false },
-    { key: 'id', label: 'ID', defaultVisible: false },
+    { key: 'nome', label: this.i18n.t('prodotti.col.nome') },
+    { key: 'categoria', label: this.i18n.t('prodotti.col.categoria') },
+    { key: 'codice', label: this.i18n.t('prodotti.col.codice'), defaultVisible: false },
+    { key: 'codiceFornitore', label: this.i18n.t('prodotti.col.codiceFornitore'), defaultVisible: false },
+    { key: 'barcode', label: this.i18n.t('prodotti.col.barcode'), defaultVisible: false },
+    { key: 'prezzo', label: this.i18n.t('prodotti.col.prezzoNetto') },
+    { key: 'prezzoAcquisto', label: this.i18n.t('prodotti.field.prezzoAcquisto'), defaultVisible: false },
+    { key: 'margine', label: this.i18n.t('prodotti.col.margine') + ' %' },
+    { key: 'quantita', label: this.i18n.t('prodotti.col.quantita') },
+    { key: 'sogliaMinima', label: this.i18n.t('prodotti.col.sogliaMinima') },
+    { key: 'iva', label: this.i18n.t('prodotti.col.iva'), defaultVisible: false },
+    { key: 'unitaMisura', label: this.i18n.t('prodotti.col.unitaMisura'), defaultVisible: false },
+    { key: 'id', label: this.i18n.t('prodotti.col.id'), defaultVisible: false },
   ];
 
   filtroCategoria: string | null = null;
@@ -916,9 +924,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length || this.busyBulk) return;
     const n = sel.length;
-    if (!await this.confirm.delete(
-      `Eliminare ${n} prodott${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}? L'operazione non è reversibile.`
-    )) return;
+    if (!await this.confirm.delete(this.i18n.tn('prodotti.msg.bulkDeleteConfirm', n))) return;
     this.busyBulk = true;
     const backups = sel.map(p => ({ ...p }));   // righe già complete: ricreabili così com'è
     forkJoin(sel.map(p =>
@@ -930,23 +936,24 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       this.load();
       if (errori) {
         this.snack.open(
-          `${n - errori} eliminat${n - errori === 1 ? 'o' : 'i'}, ${errori} non eliminabil${errori === 1 ? 'e' : 'i'} (forse usati in documenti)`,
+          `${this.i18n.tn('prodotti.msg.bulkDeleted', n - errori)}, ${this.i18n.tn('prodotti.msg.bulkFailed', errori)}`,
           'OK', { duration: 6000, panelClass: 'snack-error' });
       } else {
-        const ref = this.snack.open(`${n} prodott${n === 1 ? 'o eliminato' : 'i eliminati'}`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const ref = this.snack.open(this.i18n.tn('prodotti.msg.bulkDeleted', n), this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createProdotto(p).pipe(catchError(() => of(null))); }))
-            .subscribe(() => { this.load(); this.snack.open('Prodotti ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+            .subscribe(() => { this.load(); this.snack.open(this.i18n.t('prodotti.msg.prodottiRipristinati'), '', { duration: 2000, panelClass: 'snack-ok' }); });
         });
       }
     });
   }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.dataSource.data;
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(p=>`<tr><td>${p.nome}</td><td>${p.categoria||'—'}</td><td>${p.codice||'—'}</td><td>${p.barcode||'—'}</td><td class="r">${e(p.prezzo)}</td><td class="r">${p.quantita??0}</td><td class="r">${p.sogliaMinima??0}</td><td class="r">${p.iva??0}%</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Prodotti</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right}</style></head><body><h1>Prodotti</h1><table><thead><tr><th>Nome</th><th>Categoria</th><th>Codice</th><th>Barcode</th><th class="r">Prezzo</th><th class="r">Qtà</th><th class="r">Soglia min.</th><th class="r">IVA</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('prodotti.entityLabel')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right}</style></head><body><h1>${t('prodotti.entityLabel')}</h1><table><thead><tr><th>${t('prodotti.field.nome')}</th><th>${t('prodotti.field.categoria')}</th><th>${t('prodotti.field.codice')}</th><th>${t('prodotti.field.barcode')}</th><th class="r">${t('prodotti.col.prezzoNetto')}</th><th class="r">${t('prodotti.col.quantita')}</th><th class="r">${t('prodotti.col.sogliaMinima')}</th><th class="r">${t('prodotti.col.iva')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
@@ -959,7 +966,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       const op = result.id ? this.ds.updateProdotto(result) : this.ds.createProdotto(result);
-      op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+      op.subscribe({ next: () => { this.load(); this.snack.open(this.i18n.t('prodotti.msg.salvato'), '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
   }
@@ -984,7 +991,7 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       ref.afterClosed().subscribe(result => {
         if (!result) return;
         this.ds.createProdotto(result).subscribe({
-          next: () => { this.load(); this.snack.open('Prodotto duplicato', '', { duration: 2000 }); },
+          next: () => { this.load(); this.snack.open(this.i18n.t('prodotti.msg.prodottoDuplicato'), '', { duration: 2000 }); },
           error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 }),
         });
       });
@@ -1003,59 +1010,60 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     ref.afterClosed().subscribe((count: number) => {
       if (count && count > 0) {
         this.load();
-        this.snack.open(`${count} ${count === 1 ? 'prodotto aggiunto' : 'prodotti aggiunti'}`, '', { duration: 2500 });
+        this.snack.open(this.i18n.tn('prodotti.msg.quickAddResult', count), '', { duration: 2500 });
       }
     });
   }
 
   info(p: Prodotto) {
+    const t = (k: string, params?: Record<string, string | number>) => this.i18n.t(k, params);
     const fmt = (n: number | undefined) => n != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n) : undefined;
     const data: InfoDialogData = {
       title: p.nome,
       subtitle: p.categoria || undefined,
       sections: [
         {
-          title: 'Identificazione',
+          title: t('prodotti.info.identificazione'),
           rows: [
-            { label: 'Codice',           value: p.codice,          mono: true },
-            { label: 'Barcode',          value: p.barcode,         mono: true },
-            { label: 'Cod. fornitore',   value: p.codiceFornitore, mono: true },
-            { label: 'Descrizione',      value: p.descrizione },
+            { label: t('prodotti.info.codice'),         value: p.codice,          mono: true },
+            { label: t('prodotti.info.barcode'),        value: p.barcode,         mono: true },
+            { label: t('prodotti.info.codFornitore'),   value: p.codiceFornitore, mono: true },
+            { label: t('prodotti.info.descrizione'),    value: p.descrizione },
           ],
         },
         {
-          title: 'Prezzi',
+          title: t('prodotti.info.prezzi'),
           rows: [
-            { label: 'Prezzo vendita',   value: fmt(p.prezzo) },
-            { label: 'Prezzo acquisto',  value: fmt(p.prezzoAcquisto) },
-            { label: 'IVA',              value: p.iva != null ? `${p.iva}%` : undefined },
+            { label: t('prodotti.info.prezzoVendita'),  value: fmt(p.prezzo) },
+            { label: t('prodotti.info.prezzoAcquisto'), value: fmt(p.prezzoAcquisto) },
+            { label: t('prodotti.info.iva'),            value: p.iva != null ? `${p.iva}%` : undefined },
           ],
         },
         {
-          title: 'Magazzino',
+          title: t('prodotti.info.magazzino'),
           rows: [
-            { label: 'Quantità',         value: p.quantita != null ? String(p.quantita) + (p.unitaMisura ? ' ' + p.unitaMisura : '') : undefined },
-            { label: 'Soglia minima',    value: p.sogliaMinima != null ? String(p.sogliaMinima) : undefined },
-            { label: 'Unità di misura',  value: p.unitaMisura },
-            { label: 'Con varianti',     value: p.haVarianti ? 'Sì' : undefined },
+            { label: t('prodotti.info.quantita'),       value: p.quantita != null ? String(p.quantita) + (p.unitaMisura ? ' ' + p.unitaMisura : '') : undefined },
+            { label: t('prodotti.info.sogliaMinima'),   value: p.sogliaMinima != null ? String(p.sogliaMinima) : undefined },
+            { label: t('prodotti.info.unitaMisura'),    value: p.unitaMisura },
+            { label: t('prodotti.info.conVarianti'),    value: p.haVarianti ? t('prodotti.info.si') : undefined },
           ],
         },
         {
-          title: 'Logistica',
+          title: t('prodotti.info.logistica'),
           rows: [
-            { label: 'Peso unitario',    value: p.peso != null ? `${p.peso} kg` : undefined },
-            { label: 'Dimensioni',       value: p.dimensioni || undefined },
-            { label: 'Immagine',         value: p.haImmagine ? 'Sì' : undefined },
+            { label: t('prodotti.info.pesoUnitario'),   value: p.peso != null ? `${p.peso} kg` : undefined },
+            { label: t('prodotti.info.dimensioni'),     value: p.dimensioni || undefined },
+            { label: t('prodotti.info.immagine'),       value: p.haImmagine ? t('prodotti.info.si') : undefined },
           ],
         },
       ],
     };
     if (p.haVarianti && p.varianti?.length) {
       data.sections.push({
-        title: 'Varianti',
+        title: t('prodotti.info.varianti'),
         rows: p.varianti.map(v => ({
           label: [v.taglia, v.colore].filter(x => !!x).join(' / ') || `#${v.id}`,
-          value: `Qtà: ${v.quantita}${v.barcode ? ' · ' + v.barcode : ''}`,
+          value: t('prodotti.info.qtaLabel', { q: v.quantita }) + (v.barcode ? ' · ' + v.barcode : ''),
         })),
       });
     }
@@ -1063,18 +1071,18 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Nome',             field: 'nome',            width: 30 },
-    { header: 'Categoria',        field: 'categoria',       width: 18 },
-    { header: 'Descrizione',      field: 'descrizione',     width: 32 },
-    { header: 'Codice',           field: 'codice',          width: 14 },
-    { header: 'Codice Fornitore', field: 'codiceFornitore', width: 16 },
-    { header: 'Barcode',          field: 'barcode',         width: 16 },
-    { header: 'Prezzo vendita',   field: 'prezzo',          width: 12 },
-    { header: 'Prezzo acquisto', field: 'prezzoAcquisto',  width: 14 },
-    { header: 'IVA',              field: 'iva',             width: 8  },
-    { header: 'Quantità',         field: 'quantita',        width: 10 },
-    { header: 'Soglia Minima',    field: 'sogliaMinima',    width: 12 },
-    { header: 'Unità Misura',     field: 'unitaMisura',     width: 12 },
+    { header: this.i18n.t('prodotti.field.nome'),            field: 'nome',            width: 30 },
+    { header: this.i18n.t('prodotti.field.categoria'),       field: 'categoria',       width: 18 },
+    { header: this.i18n.t('prodotti.field.descrizione'),     field: 'descrizione',     width: 32 },
+    { header: this.i18n.t('prodotti.field.codice'),          field: 'codice',          width: 14 },
+    { header: this.i18n.t('prodotti.field.codiceFornitore'), field: 'codiceFornitore', width: 16 },
+    { header: this.i18n.t('prodotti.field.barcode'),         field: 'barcode',         width: 16 },
+    { header: this.i18n.t('prodotti.field.prezzo'),          field: 'prezzo',          width: 12 },
+    { header: this.i18n.t('prodotti.field.prezzoAcquisto'),  field: 'prezzoAcquisto',  width: 14 },
+    { header: this.i18n.t('prodotti.field.iva'),             field: 'iva',             width: 8  },
+    { header: this.i18n.t('prodotti.field.quantita'),        field: 'quantita',        width: 10 },
+    { header: this.i18n.t('prodotti.field.sogliaMinima'),    field: 'sogliaMinima',    width: 12 },
+    { header: this.i18n.t('prodotti.field.unitaMisura'),     field: 'unitaMisura',     width: 12 },
   ];
 
   importExcel(event: Event) {
@@ -1082,12 +1090,12 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
     if (!file) return;
     (event.target as HTMLInputElement).value = '';
     this.excel.readFile(file).then(rows => {
-      if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
+      if (!rows.length) { this.snack.open(this.i18n.t('prodotti.msg.fileVuoto'), '', { duration: 3000 }); return; }
       this.dialog.open(ImportMappingDialogComponent, {
-        data: { rows, fields: PRODOTTI_FIELDS, entityType: 'prodotti', entityLabel: 'Prodotti',
+        data: { rows, fields: buildProdottiFields(this.i18n), entityType: 'prodotti', entityLabel: this.i18n.t('prodotti.entityLabel'),
                 priceVatFields: [
-                  { key: 'prezzo', label: 'Prezzo di vendita' },
-                  { key: 'prezzoAcquisto', label: 'Prezzo di acquisto (fornitore)' },
+                  { key: 'prezzo', label: this.i18n.t('prodotti.field.prezzoVenditaLabel') },
+                  { key: 'prezzoAcquisto', label: this.i18n.t('prodotti.field.prezzoAcquistoLabel') },
                 ] },
         disableClose: true,
       }).afterClosed().subscribe((result: MappingResult | null) => {
@@ -1122,21 +1130,21 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
           };
         }).filter(p => p.nome.length > 0);
         if (!records.length) {
-          this.snack.open('Nessun prodotto valido: controlla che la colonna Nome sia mappata correttamente', '', { duration: 5000 });
+          this.snack.open(this.i18n.t('prodotti.msg.nessunProdottoValido'), '', { duration: 5000 });
           return;
         }
         this.ds.importProdotti(records).subscribe({
           next: (res: any) => {
             this.load();
-            this.snack.open(`Importati: ${res.created} nuovi, ${res.updated} aggiornati, ${res.skipped} saltati`, '', { duration: 5000 });
+            this.snack.open(this.i18n.t('prodotti.msg.importResult', { created: res.created, updated: res.updated, skipped: res.skipped }), '', { duration: 5000 });
           },
           error: (err: any) => {
-            this.snack.open('Errore import: ' + (err?.error?.message || err?.message || JSON.stringify(err?.error) || 'errore sconosciuto'), '', { duration: 6000 });
+            this.snack.open(this.i18n.t('prodotti.msg.erroreImport', { msg: err?.error?.message || err?.message || JSON.stringify(err?.error) || this.i18n.t('prodotti.msg.erroreSconosciuto') }), '', { duration: 6000 });
           }
         });
       });
     }).catch(() => {
-      this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('prodotti.msg.fileNonLeggibile'), '', { duration: 3000 });
     });
   }
 
@@ -1145,14 +1153,14 @@ export class ProdottiComponent implements OnInit, AfterViewInit {
       .afterClosed().subscribe(res => {
         if (!res) return;
         this.ds.rettificaGiacenza(p.id!, res.quantita, res.note).subscribe({
-          next: () => { this.load(); this.snack.open('Giacenza aggiornata', '', { duration: 2000 }); },
-          error: e => this.snack.open(e.error?.error || 'Errore rettifica', '', { duration: 3000 })
+          next: () => { this.load(); this.snack.open(this.i18n.t('prodotti.msg.giacenzaAggiornata'), '', { duration: 2000 }); },
+          error: e => this.snack.open(e.error?.error || this.i18n.t('prodotti.msg.erroreRettifica'), '', { duration: 3000 })
         });
       });
   }
 
   async delete(p: Prodotto) {
-    if (!await this.confirm.delete(`Eliminare ${p.nome}?`)) return;
-    this.ds.deleteProdotto(p.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    if (!await this.confirm.delete(this.i18n.t('prodotti.msg.confirmDelete', { nome: p.nome }))) return;
+    this.ds.deleteProdotto(p.id!).subscribe(() => { this.load(); this.snack.open(this.i18n.t('prodotti.msg.eliminato'), '', { duration: 2000 }); });
   }
 }

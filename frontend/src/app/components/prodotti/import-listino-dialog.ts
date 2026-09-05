@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -15,6 +15,9 @@ import { ExcelService } from '../../services/excel.service';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
 import { Fornitore, ListinoRigaNonTrovata, ListinoCandidato, VariazionePrezzo } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 /** Riga in revisione: la riga di listino non abbinata + i candidati + la scelta utente. */
 interface RigaMatchVM {
@@ -35,14 +38,14 @@ interface RigaMatchVM {
   selector: 'app-import-listino-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatFormFieldModule, MatInputModule, MatSelectModule, MatRadioModule, MatProgressSpinnerModule],
+            MatFormFieldModule, MatInputModule, MatSelectModule, MatRadioModule, MatProgressSpinnerModule, TPipe, TnPipe],
   template: `
     <h2 mat-dialog-title style="display:flex;align-items:center;gap:8px">
       @if (fase === 'rivedi') {
         <button mat-icon-button type="button" (click)="tornaEsito()" style="margin-right:2px"><mat-icon>arrow_back</mat-icon></button>
-        Rivedi abbinamenti
+        {{ 'prodotti.listino.rivediAbbinamenti' | t }}
       } @else {
-        Importa listino fornitore
+        {{ 'prodotti.listino.title' | t }}
       }
     </h2>
 
@@ -51,12 +54,11 @@ interface RigaMatchVM {
       <!-- ── STEP 1: form ──────────────────────────────────────────────── -->
       @if (fase === 'form') {
         <p style="font-size:13px;color:var(--text-tertiary);margin:0 0 14px">
-          Carica il listino (Excel o CSV). Abbino il <b>codice del file</b> al <b>codice fornitore</b>
-          salvato nella scheda prodotto per il fornitore scelto, e aggiorno il prezzo d'acquisto.
+          {{ 'prodotti.listino.intro' | t }}
         </p>
 
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Fornitore *</mat-label>
+          <mat-label>{{ 'prodotti.listino.fornitore' | t }}</mat-label>
           <mat-select [(ngModel)]="fornitoreId">
             @for (f of fornitori; track f.id) { <mat-option [value]="f.id">{{ f.ragioneSociale }}</mat-option> }
           </mat-select>
@@ -66,44 +68,44 @@ interface RigaMatchVM {
           <input #fileInput type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                  style="display:none" (change)="onFile($event)">
           <button mat-stroked-button type="button" (click)="fileInput.click()">
-            <mat-icon>upload_file</mat-icon> {{ rows.length ? 'Cambia file' : 'Scegli file Excel/CSV' }}
+            <mat-icon>upload_file</mat-icon> {{ (rows.length ? 'prodotti.listino.cambiaFile' : 'prodotti.listino.scegliFile') | t }}
           </button>
-          @if (rows.length) { <span style="margin-left:10px;font-size:13px;color:var(--text-secondary)">{{ rows.length }} righe lette</span> }
+          @if (rows.length) { <span style="margin-left:10px;font-size:13px;color:var(--text-secondary)">{{ 'prodotti.listino.righeLette' | t:{ n: rows.length } }}</span> }
         </div>
 
         @if (rows.length) {
           <div class="form-row" style="display:flex;gap:12px">
             <mat-form-field appearance="outline" style="flex:1">
-              <mat-label>Colonna Codice</mat-label>
+              <mat-label>{{ 'prodotti.listino.colonnaCodice' | t }}</mat-label>
               <mat-select [(ngModel)]="colCodice">
                 @for (c of colonne; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline" style="flex:1">
-              <mat-label>Colonna Prezzo</mat-label>
+              <mat-label>{{ 'prodotti.listino.colonnaPrezzo' | t }}</mat-label>
               <mat-select [(ngModel)]="colPrezzo">
                 @for (c of colonne; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
               </mat-select>
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline" style="width:100%">
-            <mat-label>Colonna Descrizione (per suggerire gli abbinamenti)</mat-label>
+            <mat-label>{{ 'prodotti.listino.colonnaDescrizione' | t }}</mat-label>
             <mat-select [(ngModel)]="colDescrizione">
-              <mat-option [value]="''">— nessuna —</mat-option>
+              <mat-option [value]="''">{{ 'prodotti.listino.nessuna' | t }}</mat-option>
               @for (c of colonne; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
             </mat-select>
           </mat-form-field>
           <p style="font-size:12px;color:var(--text-tertiary);margin:-6px 0 8px">
-            Serve per proporre il prodotto giusto ai codici non ancora abbinati.
+            {{ 'prodotti.listino.suggerimentoHint' | t }}
           </p>
 
-          <div style="margin:6px 0 4px;font-size:13px;font-weight:600;color:var(--text-secondary)">I prezzi del listino sono:</div>
+          <div style="margin:6px 0 4px;font-size:13px;font-weight:600;color:var(--text-secondary)">{{ 'prodotti.listino.prezziSono' | t }}</div>
           <mat-radio-group [(ngModel)]="ivato" style="display:flex;gap:20px">
-            <mat-radio-button [value]="false">IVA esclusa (netto)</mat-radio-button>
-            <mat-radio-button [value]="true">IVA inclusa</mat-radio-button>
+            <mat-radio-button [value]="false">{{ 'prodotti.listino.ivaEsclusa' | t }}</mat-radio-button>
+            <mat-radio-button [value]="true">{{ 'prodotti.listino.ivaInclusa' | t }}</mat-radio-button>
           </mat-radio-group>
           <p style="font-size:12px;color:var(--text-tertiary);margin:8px 0 0">
-            Salvo sempre il prezzo in netto: se è IVA inclusa lo converto con l'aliquota del prodotto.
+            {{ 'prodotti.listino.nettoHint' | t }}
           </p>
         }
       }
@@ -112,13 +114,13 @@ interface RigaMatchVM {
       @if (fase === 'esito' && esito) {
         <div style="text-align:center;padding:8px 0">
           <mat-icon style="font-size:42px;width:42px;height:42px;color:var(--success-on)">task_alt</mat-icon>
-          <div style="font-size:16px;font-weight:700;margin-top:6px">{{ esito.aggiornati }} prezz{{ esito.aggiornati === 1 ? 'o' : 'i' }} aggiornat{{ esito.aggiornati === 1 ? 'o' : 'i' }}</div>
+          <div style="font-size:16px;font-weight:700;margin-top:6px">{{ esito.aggiornati | tn:'prodotti.listino.prezziAggiornati' }}</div>
 
           @if (variazioni.length) {
             <div style="margin-top:8px;text-align:left">
               <button mat-button type="button" (click)="mostraVariazioni = !mostraVariazioni" style="font-size:12px">
                 <mat-icon>{{ mostraVariazioni ? 'expand_less' : 'expand_more' }}</mat-icon>
-                {{ nRincari }} rincar{{ nRincari === 1 ? 'o' : 'i' }}, {{ nRibassi }} ribass{{ nRibassi === 1 ? 'o' : 'i' }} di prezzo
+                {{ nRincari | tn:'prodotti.listino.rincari' }}, {{ nRibassi | tn:'prodotti.listino.ribassi' }} {{ 'prodotti.listino.diPrezzo' | t }}
               </button>
               @if (mostraVariazioni) {
                 <div style="max-height:160px;overflow:auto;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-md);padding:6px 8px">
@@ -136,19 +138,19 @@ interface RigaMatchVM {
 
           @if (esito.nonTrovati.length) {
             <div style="margin-top:14px;text-align:left">
-              <div style="font-size:13px;font-weight:600;color:var(--warning-on)">{{ esito.nonTrovati.length }} codici non abbinati</div>
+              <div style="font-size:13px;font-weight:600;color:var(--warning-on)">{{ 'prodotti.listino.codiciNonAbbinati' | t:{ n: esito.nonTrovati.length } }}</div>
 
               @if (matchabili.length) {
                 <p style="font-size:12px;color:var(--text-tertiary);margin:6px 0 10px">
-                  Per {{ matchabili.length }} di questi posso suggerire il prodotto a magazzino in base alla descrizione del listino.
+                  {{ 'prodotti.listino.possoSuggerire' | t:{ n: matchabili.length } }}
                 </p>
                 <button mat-flat-button color="primary" [disabled]="matching" (click)="caricaMatch()">
                   @if (matching) { <mat-spinner diameter="18" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner> }
-                  Rivedi e abbina ({{ matchabili.length }})
+                  {{ 'prodotti.listino.rivediEAbbina' | t:{ n: matchabili.length } }}
                 </button>
               } @else {
                 <p style="font-size:12px;color:var(--text-tertiary);margin-top:6px">
-                  Nessuna descrizione disponibile nel file: non posso suggerire abbinamenti. Imposta i codici nelle schede prodotto, oppure reimporta indicando la colonna Descrizione.
+                  {{ 'prodotti.listino.nessunaDescrizioneHint' | t }}
                 </p>
               }
 
@@ -163,12 +165,12 @@ interface RigaMatchVM {
       <!-- ── STEP 3: rivedi abbinamenti ────────────────────────────────── -->
       @if (fase === 'rivedi') {
         <p style="font-size:13px;color:var(--text-tertiary);margin:0 0 10px">
-          Ti propongo il prodotto più probabile per ogni codice. Conferma, cambia o salta. Confermando, il codice resta salvato: i prossimi import saranno automatici.
+          {{ 'prodotti.listino.rivediIntro' | t }}
         </p>
 
         @if (haAlta) {
           <button mat-stroked-button type="button" (click)="accettaAlta()" style="margin-bottom:12px">
-            <mat-icon>done_all</mat-icon> Accetta tutti ad alta confidenza
+            <mat-icon>done_all</mat-icon> {{ 'prodotti.listino.accettaAlta' | t }}
           </button>
         }
 
@@ -182,15 +184,15 @@ interface RigaMatchVM {
 
             <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
               <mat-form-field appearance="outline" style="flex:1" subscriptSizing="dynamic">
-                <mat-label>Prodotto a magazzino</mat-label>
+                <mat-label>{{ 'prodotti.listino.prodottoMagazzino' | t }}</mat-label>
                 <mat-select [(ngModel)]="r.scelto">
-                  <mat-option [value]="null">— salta (non abbinare) —</mat-option>
+                  <mat-option [value]="null">{{ 'prodotti.listino.salta' | t }}</mat-option>
                   @for (c of r.candidati; track c.prodottoId) {
                     <mat-option [value]="c.prodottoId">{{ c.nome }}{{ c.codice ? ' · ' + c.codice : '' }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
-              <button mat-icon-button type="button" title="Cerca a mano" (click)="cercaManuale(r)"><mat-icon>search</mat-icon></button>
+              <button mat-icon-button type="button" [title]="'prodotti.listino.cercaManuale' | t" (click)="cercaManuale(r)"><mat-icon>search</mat-icon></button>
             </div>
 
             @if (candidatoSel(r); as c) {
@@ -199,11 +201,11 @@ interface RigaMatchVM {
                   <mat-icon style="font-size:14px;width:14px;height:14px">{{ fasciaIcon(c.fascia) }}</mat-icon>{{ fasciaLabel(c.fascia) }}
                 </span>
                 <span style="color:var(--text-tertiary)">· {{ c.perche }}</span>
-                @if (c.quantita != null) { <span style="color:var(--text-tertiary)">· giac. {{ c.quantita }}</span> }
+                @if (c.quantita != null) { <span style="color:var(--text-tertiary)">· {{ 'prodotti.listino.giacenza' | t }} {{ c.quantita }}</span> }
               </div>
             } @else {
               <div style="margin-top:6px;font-size:12px;color:var(--text-tertiary)">
-                {{ r.candidati.length ? 'Nessun prodotto selezionato' : 'Nessun suggerimento: cerca a mano' }}
+                {{ (r.candidati.length ? 'prodotti.listino.nessunProdottoSelezionato' : 'prodotti.listino.nessunSuggerimento') | t }}
               </div>
             }
           </div>
@@ -213,24 +215,25 @@ interface RigaMatchVM {
 
     <mat-dialog-actions align="end">
       @if (fase === 'form') {
-        <button mat-button mat-dialog-close>Annulla</button>
+        <button mat-button mat-dialog-close>{{ 'prodotti.listino.annulla' | t }}</button>
         <button mat-flat-button color="primary" [disabled]="!canImport || importing" (click)="importa()">
           @if (importing) { <mat-spinner diameter="18" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner> }
-          Importa prezzi
+          {{ 'prodotti.listino.importaPrezzi' | t }}
         </button>
       } @else if (fase === 'esito') {
-        <button mat-button mat-dialog-close>Chiudi</button>
+        <button mat-button mat-dialog-close>{{ 'prodotti.listino.chiudi' | t }}</button>
       } @else if (fase === 'rivedi') {
-        <span style="flex:1;font-size:13px;color:var(--text-secondary);padding-left:6px">{{ nSelezionati }} pront{{ nSelezionati === 1 ? 'o' : 'i' }}</span>
-        <button mat-button (click)="tornaEsito()">Indietro</button>
+        <span style="flex:1;font-size:13px;color:var(--text-secondary);padding-left:6px">{{ nSelezionati | tn:'prodotti.listino.pronti' }}</span>
+        <button mat-button (click)="tornaEsito()">{{ 'prodotti.listino.indietro' | t }}</button>
         <button mat-flat-button color="primary" [disabled]="!nSelezionati || abbinando" (click)="associa()">
           @if (abbinando) { <mat-spinner diameter="18" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner> }
-          Associa {{ nSelezionati || '' }}
+          {{ nSelezionati ? ('prodotti.listino.associaN' | t:{ n: nSelezionati }) : ('prodotti.listino.associa' | t) }}
         </button>
       }
     </mat-dialog-actions>`,
 })
 export class ImportListinoDialogComponent {
+  private i18n = inject(I18nService);
   fornitori: Fornitore[] = [];
   fornitoreId: number | null = null;
   ivato = false;
@@ -295,7 +298,7 @@ export class ImportListinoDialogComponent {
       this.colPrezzo = this.guess(['prezzo', 'price', 'netto', 'costo', 'importo', 'listino']);
       this.colDescrizione = this.guess(['descrizione', 'denominazione', 'desc', 'articolo', 'prodotto', 'nome']);
     } catch {
-      this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('prodotti.listino.msg.fileNonLeggibile'), '', { duration: 3000 });
     }
   }
   private guess(keys: string[]): string {
@@ -314,7 +317,7 @@ export class ImportListinoDialogComponent {
     this.importing = true;
     this.ds.importListino(this.fornitoreId!, this.ivato, righe).subscribe({
       next: res => { this.importing = false; this.esito = res; this.fase = 'esito'; },
-      error: e => { this.importing = false; this.snack.open(e.error?.error || 'Errore durante l\'import', '', { duration: 3500 }); },
+      error: e => { this.importing = false; this.snack.open(e.error?.error || this.i18n.t('prodotti.listino.msg.erroreImport'), '', { duration: 3500 }); },
     });
   }
 
@@ -335,7 +338,7 @@ export class ImportListinoDialogComponent {
         this.fase = 'rivedi';
         this.dialogRef.updateSize('760px');
       },
-      error: e => { this.matching = false; this.snack.open(e.error?.error || 'Errore nel calcolo dei suggerimenti', '', { duration: 3500 }); },
+      error: e => { this.matching = false; this.snack.open(e.error?.error || this.i18n.t('prodotti.listino.msg.erroreSuggerimenti'), '', { duration: 3500 }); },
     });
   }
 
@@ -371,9 +374,9 @@ export class ImportListinoDialogComponent {
       .map(r => ({ codice: r.codice, prodottoId: r.scelto!, prezzo: r.prezzo }));
     if (!abbinamenti.length) return;
     const ok = await this.confirm.ask({
-      title: 'Conferma abbinamenti',
-      message: `Associo ${abbinamenti.length} ${abbinamenti.length === 1 ? 'codice' : 'codici'} fornitore ai prodotti scelti e aggiorno i relativi prezzi d'acquisto. Procedo?`,
-      confirmText: 'Associa',
+      title: this.i18n.t('prodotti.listino.msg.confermaTitle'),
+      message: this.i18n.tn('prodotti.listino.msg.confermaMessage', abbinamenti.length),
+      confirmText: this.i18n.t('prodotti.listino.msg.confermaBtn'),
     });
     if (!ok) return;
 
@@ -382,8 +385,8 @@ export class ImportListinoDialogComponent {
       next: res => {
         this.abbinando = false;
         const tot = res.associati + res.aggiornati;
-        let msg = `${tot} ${tot === 1 ? 'codice associato' : 'codici associati'}`;
-        if (res.saltati.length) msg += `, ${res.saltati.length} saltat${res.saltati.length === 1 ? 'o' : 'i'}`;
+        let msg = this.i18n.tn('prodotti.listino.msg.codiciAssociati', tot);
+        if (res.saltati.length) msg += `, ${this.i18n.tn('prodotti.listino.msg.saltati', res.saltati.length)}`;
         this.snack.open(msg, '', { duration: 3500 });
 
         // togli dall'elenco le righe abbinate con successo
@@ -396,7 +399,7 @@ export class ImportListinoDialogComponent {
         }
         if (!this.righeMatch.length) this.tornaEsito();
       },
-      error: e => { this.abbinando = false; this.snack.open(e.error?.error || 'Errore durante l\'abbinamento', '', { duration: 3500 }); },
+      error: e => { this.abbinando = false; this.snack.open(e.error?.error || this.i18n.t('prodotti.listino.msg.erroreAbbinamento'), '', { duration: 3500 }); },
     });
   }
 
@@ -410,7 +413,7 @@ export class ImportListinoDialogComponent {
     return f === 'alta' ? 'var(--success-on)' : f === 'media' ? 'var(--warning-on)' : 'var(--text-tertiary)';
   }
   fasciaLabel(f: string): string {
-    return f === 'alta' ? 'Alta' : f === 'media' ? 'Media' : 'Bassa';
+    return f === 'alta' ? this.i18n.t('prodotti.listino.fasciaAlta') : f === 'media' ? this.i18n.t('prodotti.listino.fasciaMedia') : this.i18n.t('prodotti.listino.fasciaBassa');
   }
   fasciaIcon(f: string): string {
     return f === 'alta' ? 'check_circle' : f === 'media' ? 'help' : 'remove_circle_outline';

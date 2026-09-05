@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -12,6 +12,9 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService } from '../../services/data.service';
 import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 @Component({
   selector: 'app-quick-add-prodotto-dialog',
@@ -19,7 +22,7 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
   imports: [
     CommonModule, FormsModule, MatDialogModule,
     MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule,
-    MatIconModule, MatSnackBarModule, MatButtonToggleModule, MatTooltipModule,
+    MatIconModule, MatSnackBarModule, MatButtonToggleModule, MatTooltipModule, TPipe, TnPipe,
   ],
   template: `
     <mat-dialog-content class="quick-add-content">
@@ -28,8 +31,8 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
           <mat-icon>flash_on</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">Inserimento veloce</span>
-          <span class="dialog-hero-sub">Compila i campi essenziali e premi "Salva e nuovo" per aggiungerne un altro. Categoria, IVA e U.M. restano memorizzate.</span>
+          <span class="dialog-hero-title">{{ 'prodotti.quickAdd.title' | t }}</span>
+          <span class="dialog-hero-sub">{{ 'prodotti.quickAdd.subtitle' | t }}</span>
         </div>
       </div>
 
@@ -37,25 +40,25 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
         <div class="form-section is-primary">
           <div class="form-section-header">
             <mat-icon>label</mat-icon>
-            <span>Prodotto</span>
-            <span class="section-hint">* obbligatorio</span>
+            <span>{{ 'prodotti.quickAdd.sectionProdotto' | t }}</span>
+            <span class="section-hint">{{ 'prodotti.quickAdd.obbligatorio' | t }}</span>
           </div>
 
           <mat-form-field style="width:100%">
-            <mat-label>Nome *</mat-label>
+            <mat-label>{{ 'prodotti.form.nome' | t }}</mat-label>
             <input #nomeInput matInput [(ngModel)]="p.nome" name="nome" autocomplete="off"
                    (keydown.enter)="$event.preventDefault(); saveAndNew()" required>
           </mat-form-field>
 
           <div class="form-row">
             <mat-form-field>
-              <mat-label>Codice</mat-label>
+              <mat-label>{{ 'prodotti.quickAdd.codice' | t }}</mat-label>
               <input matInput [(ngModel)]="p.codice" name="codice" autocomplete="off">
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Categoria</mat-label>
+              <mat-label>{{ 'prodotti.form.categoria' | t }}</mat-label>
               <mat-select [(ngModel)]="p.categoria" name="categoria">
-                <mat-option value="">— nessuna —</mat-option>
+                <mat-option value="">{{ 'prodotti.form.nessunaCategoria' | t }}</mat-option>
                 @for (c of categorie; track c.id) {
                   <mat-option [value]="c.nome">{{ c.nome }}</mat-option>
                 }
@@ -67,24 +70,24 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>sell</mat-icon>
-            <span>Prezzo & quantità</span>
+            <span>{{ 'prodotti.quickAdd.sectionPrezzoQuantita' | t }}</span>
             <span class="section-hint">
               <mat-button-toggle-group [value]="prezzoMode" (change)="onPrezzoModeChange($event.value)"
                                       [hideSingleSelectionIndicator]="true" class="qa-mode-toggle">
-                <mat-button-toggle value="netto">Netto</mat-button-toggle>
-                <mat-button-toggle value="ivato">Ivato</mat-button-toggle>
+                <mat-button-toggle value="netto">{{ 'prodotti.netto' | t }}</mat-button-toggle>
+                <mat-button-toggle value="ivato">{{ 'prodotti.ivato' | t }}</mat-button-toggle>
               </mat-button-toggle-group>
             </span>
           </div>
 
           <div class="form-row">
             <mat-form-field>
-              <mat-label>Prezzo ({{ prezzoMode }}) €</mat-label>
+              <mat-label>{{ 'prodotti.quickAdd.prezzo' | t:{ mode: (prezzoMode === 'ivato' ? ('prodotti.ivato' | t) : ('prodotti.netto' | t)) } }}</mat-label>
               <input matInput type="number" step="0.01" min="0" inputmode="decimal"
                      [value]="prezzoDisplay()" (input)="onPrezzoInput($event)">
             </mat-form-field>
             <mat-form-field>
-              <mat-label>IVA</mat-label>
+              <mat-label>{{ 'prodotti.form.iva' | t }}</mat-label>
               <mat-select [(ngModel)]="p.iva" name="iva">
                 @for (a of aliquoteIva; track a.id) {
                   <mat-option [value]="a.valore">{{ a.nome }} – {{ a.valore }}%</mat-option>
@@ -95,12 +98,12 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
 
           <div class="form-row">
             <mat-form-field>
-              <mat-label>Quantità iniziale</mat-label>
+              <mat-label>{{ 'prodotti.quickAdd.quantitaIniziale' | t }}</mat-label>
               <input matInput type="number" min="0" inputmode="numeric"
                      [(ngModel)]="p.quantita" name="quantita">
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Unità misura</mat-label>
+              <mat-label>{{ 'prodotti.form.unitaMisura' | t }}</mat-label>
               <mat-select [(ngModel)]="p.unitaMisura" name="um">
                 @for (u of unitaMisura; track u.id) {
                   <mat-option [value]="u.simbolo">{{ u.nome }} ({{ u.simbolo }})</mat-option>
@@ -115,7 +118,7 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
         <div class="recap-section">
           <div class="recap-header">
             <mat-icon>check_circle</mat-icon>
-            <span><b>{{ creati.length }}</b> {{ creati.length === 1 ? 'prodotto creato' : 'prodotti creati' }} in questa sessione</span>
+            <span>{{ creati.length | tn:'prodotti.quickAdd.creatiSessione' }}</span>
           </div>
           <div class="recap-list">
             @for (r of creati.slice().reverse().slice(0, 8); track r.id) {
@@ -128,20 +131,20 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
               </div>
             }
             @if (creati.length > 8) {
-              <div class="recap-more">…e altri {{ creati.length - 8 }}</div>
+              <div class="recap-more">{{ 'prodotti.quickAdd.eAltri' | t:{ n: creati.length - 8 } }}</div>
             }
           </div>
         </div>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="close()">Chiudi</button>
+      <button mat-button type="button" (click)="close()">{{ 'prodotti.quickAdd.chiudi' | t }}</button>
       <button mat-stroked-button type="button" color="primary" (click)="saveAndClose()" [disabled]="!isValid() || saving">
-        <mat-icon>done</mat-icon> Salva e chiudi
+        <mat-icon>done</mat-icon> {{ 'prodotti.quickAdd.salvaChiudi' | t }}
       </button>
       <button mat-flat-button type="button" color="primary" (click)="saveAndNew()" [disabled]="!isValid() || saving"
-              matTooltip="⏎ Invio nel campo Nome">
-        <mat-icon>add</mat-icon> Salva e nuovo
+              [matTooltip]="'prodotti.quickAdd.enterTooltip' | t">
+        <mat-icon>add</mat-icon> {{ 'prodotti.quickAdd.salvaNuovo' | t }}
       </button>
     </mat-dialog-actions>
   `,
@@ -205,6 +208,7 @@ import { Prodotto, CategoriaProdotto, UnitaMisura, AliquotaIva } from '../../mod
   `]
 })
 export class QuickAddProdottoDialogComponent implements OnInit, AfterViewInit {
+  private i18n = inject(I18nService);
   @ViewChild('nomeInput') nomeInputRef?: ElementRef<HTMLInputElement>;
 
   categorie: CategoriaProdotto[] = [];
@@ -288,13 +292,13 @@ export class QuickAddProdottoDialogComponent implements OnInit, AfterViewInit {
         const created: Prodotto = { ...(this.p as Prodotto), id: r.id };
         this.creati.push(created);
         this.saving = false;
-        this.snack.open(`"${this.p.nome}" creato`, '', { duration: 1500 });
+        this.snack.open(this.i18n.t('prodotti.quickAdd.msg.creato', { nome: this.p.nome! }), '', { duration: 1500 });
         this.p = this.blank();
         setTimeout(() => this.nomeInputRef?.nativeElement?.focus(), 50);
       },
       error: () => {
         this.saving = false;
-        this.snack.open('Errore creazione prodotto', '', { duration: 3000 });
+        this.snack.open(this.i18n.t('prodotti.quickAdd.msg.erroreCreazione'), '', { duration: 3000 });
       },
     });
   }
@@ -312,7 +316,7 @@ export class QuickAddProdottoDialogComponent implements OnInit, AfterViewInit {
       },
       error: () => {
         this.saving = false;
-        this.snack.open('Errore creazione prodotto', '', { duration: 3000 });
+        this.snack.open(this.i18n.t('prodotti.quickAdd.msg.erroreCreazione'), '', { duration: 3000 });
       },
     });
   }
