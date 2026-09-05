@@ -21,20 +21,20 @@
         @if (!item.children) {
           <a class="top-nav-btn top-nav-item" [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
             <mat-icon>{{ item.icon }}</mat-icon>
-            <span class="top-nav-label">{{ item.label }}</span>
+            <span class="top-nav-label">{{ item.label | t }}</span>
           </a>
         } @else {
           <button class="top-nav-btn top-nav-item" type="button" [matMenuTriggerFor]="grpMenuTop"
                   [class.active-link]="isGroupActive(item)">
             <mat-icon>{{ item.icon }}</mat-icon>
-            <span class="top-nav-label">{{ item.label }}</span>
+            <span class="top-nav-label">{{ item.label | t }}</span>
             <mat-icon class="top-nav-caret">expand_more</mat-icon>
           </button>
           <mat-menu #grpMenuTop="matMenu">
             @for (child of item.children; track child.label) {
               <a mat-menu-item [routerLink]="child.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                 <mat-icon>{{ child.icon }}</mat-icon>
-                <span>{{ child.label }}</span>
+                <span>{{ child.label | t }}</span>
               </a>
             }
           </mat-menu>
@@ -44,25 +44,25 @@
         <button class="top-nav-btn top-nav-more" type="button" [matMenuTriggerFor]="altroMenuTop"
                 [class.active-link]="overflowActive" aria-label="Altre sezioni">
           <mat-icon>more_horiz</mat-icon>
-          <span class="top-nav-label">Altro</span>
+          <span class="top-nav-label">{{ 'nav.altro' | t }}</span>
         </button>
         <mat-menu #altroMenuTop="matMenu">
           @for (o of overflowNavItems; track o.label) {
             @if (!o.children) {
               <a mat-menu-item [routerLink]="o.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                 <mat-icon>{{ o.icon }}</mat-icon>
-                <span>{{ o.label }}</span>
+                <span>{{ o.label | t }}</span>
               </a>
             } @else {
               <button mat-menu-item type="button" [matMenuTriggerFor]="subMenuTop">
                 <mat-icon>{{ o.icon }}</mat-icon>
-                <span>{{ o.label }}</span>
+                <span>{{ o.label | t }}</span>
               </button>
               <mat-menu #subMenuTop="matMenu">
                 @for (c of o.children; track c.label) {
                   <a mat-menu-item [routerLink]="c.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                     <mat-icon>{{ c.icon }}</mat-icon>
-                    <span>{{ c.label }}</span>
+                    <span>{{ c.label | t }}</span>
                   </a>
                 }
               </mat-menu>
@@ -85,7 +85,7 @@
     <div class="sidenav-header">
       @if (!collapsed) {
         <span class="sidenav-title">Ordeva</span>
-        <span class="sidenav-sub">Gestionale ERP</span>
+        <span class="sidenav-sub">{{ 'app.tagline' | t }}</span>
       } @else {
         <mat-icon class="collapsed-logo">business</mat-icon>
       }
@@ -95,7 +95,7 @@
       <div class="nav-icons">
         @for (item of visibleFlatNavItems; track item.label) {
           <a class="nav-icon-btn" [routerLink]="item.route" routerLinkActive="active-link"
-             [matTooltip]="item.label" matTooltipPosition="right" (click)="closeOnMobile()">
+             [matTooltip]="item.label | t" matTooltipPosition="right" (click)="closeOnMobile()">
             <mat-icon>{{ item.icon }}</mat-icon>
           </a>
         }
@@ -106,20 +106,20 @@
           @if (!item.children) {
             <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-              <span matListItemTitle>{{ item.label }}</span>
+              <span matListItemTitle>{{ item.label | t }}</span>
             </a>
           } @else {
             <mat-expansion-panel class="sidenav-panel">
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-icon">{{ item.icon }}</mat-icon>
-                  {{ item.label }}
+                  {{ item.label | t }}
                 </mat-panel-title>
               </mat-expansion-panel-header>
               @for (child of item.children; track child.label) {
                 <a mat-list-item [routerLink]="child.route" routerLinkActive="active-link" class="sub-item" (click)="closeOnMobile()">
                   <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
-                  <span matListItemTitle>{{ child.label }}</span>
+                  <span matListItemTitle>{{ child.label | t }}</span>
                 </a>
               }
             </mat-expansion-panel>
@@ -130,9 +130,9 @@
 
     <div class="sidenav-footer">
       <button class="sidenav-footer-btn" (click)="openBugReport()"
-              [matTooltip]="collapsed ? 'Segnala un problema' : ''" matTooltipPosition="right">
+              [matTooltip]="collapsed ? ('topbar.reportProblem' | t) : ''" matTooltipPosition="right">
         <mat-icon>bug_report</mat-icon>
-        @if (!collapsed) { <span>Segnala problema</span> }
+        @if (!collapsed) { <span>{{ 'topbar.reportProblem' | t }}</span> }
       </button>
     </div>
   </aside>
@@ -141,7 +141,7 @@
   <div class="main-content">
     <mat-toolbar class="topbar">
       @if (layout.navLayout() === 'side') {
-        <button mat-icon-button type="button" class="toggle-btn" (click)="toggleSidebar()" [title]="collapsed ? 'Espandi menu' : 'Comprimi menu'">
+        <button mat-icon-button type="button" class="toggle-btn" (click)="toggleSidebar()" [title]="(collapsed ? 'topbar.expandMenu' : 'topbar.collapseMenu') | t">
           <mat-icon>{{ collapsed ? 'menu' : 'menu_open' }}</mat-icon>
         </button>
       }
@@ -150,7 +150,7 @@
           {{ (azienda?.ragioneSociale || 'A').charAt(0).toUpperCase() }}
         </div>
         <div class="company-info">
-          <span class="topbar-company">{{ azienda?.ragioneSociale || 'La tua azienda' }}</span>
+          <span class="topbar-company">{{ azienda?.ragioneSociale || ('app.defaultCompanyName' | t) }}</span>
           @if (azienda?.pIva || azienda?.citta) {
             <span class="topbar-sub">
               @if (azienda?.pIva) { P.IVA {{ azienda!.pIva }} }
@@ -171,7 +171,7 @@
       <div class="search-box">
         <mat-icon class="search-icon">search</mat-icon>
         <input #searchInput class="search-input" type="text"
-               placeholder="Cerca o vai a... (⌘K)"
+               [placeholder]="'topbar.searchPlaceholder' | t"
                [(ngModel)]="searchQuery" (input)="onSearchInput(searchQuery)"
                (focus)="onSearchFocus()" (click)="onSearchFocus()" autocomplete="off"
                (keydown.arrowdown)="$event.preventDefault(); paletteMove(1)"
@@ -180,7 +180,7 @@
         @if (showSearch) {
           <div class="search-dropdown">
             @if (!searchQuery) {
-              <div class="search-section-title">Azioni rapide</div>
+              <div class="search-section-title">{{ 'search.quickActions' | t }}</div>
               @for (a of quickActions; track a.label) {
                 <div class="search-result quick-action" (click)="navigateToAction(a)">
                   <mat-icon class="qa-icon">{{ a.icon }}</mat-icon>
@@ -211,7 +211,7 @@
                 }
               }
             } @else {
-              <div class="search-empty">Nessun risultato per "{{ searchQuery }}"</div>
+              <div class="search-empty">{{ 'search.noResults' | t:{ query: searchQuery } }}</div>
             }
           </div>
         }
@@ -219,7 +219,7 @@
 
       <!-- Promemoria agenda: campanella con i promemoria scattati -->
       <div class="notif-wrap">
-        <button mat-icon-button type="button" title="Promemoria" (click)="toggleReminders($event)">
+        <button mat-icon-button type="button" [title]="'topbar.notifications' | t" (click)="toggleReminders($event)">
           <mat-icon>{{ reminders.length ? 'notifications_active' : 'notifications' }}</mat-icon>
           @if (reminders.length) {
             <span class="notif-dot">{{ reminders.length > 9 ? '9+' : reminders.length }}</span>
@@ -228,15 +228,15 @@
         @if (showReminders) {
           <div class="notif-dropdown">
             <div class="notif-header">
-              <span>Promemoria</span>
+              <span>{{ 'topbar.notifications' | t }}</span>
               @if (desktopPermission === 'default') {
                 <button class="notif-enable" type="button" (click)="enableDesktopNotifications()">
-                  Abilita desktop
+                  {{ 'notif.enableDesktop' | t }}
                 </button>
               }
             </div>
             @if (!reminders.length) {
-              <div class="notif-empty">Nessun promemoria attivo</div>
+              <div class="notif-empty">{{ 'notif.empty' | t }}</div>
             } @else {
               @for (r of reminders; track r.id + '@' + r.inizio) {
                 <div class="notif-item rem-item" (click)="openReminder(r)">
@@ -245,7 +245,7 @@
                     <span class="rem-title">{{ r.titolo }}</span>
                     <small class="rem-meta">{{ reminderWhen(r) }}@if (r.luogo) { · {{ r.luogo }}}</small>
                   </div>
-                  <button class="rem-x" type="button" title="Ignora" (click)="dismissReminder(r, $event)">
+                  <button class="rem-x" type="button" [title]="'notif.dismiss' | t" (click)="dismissReminder(r, $event)">
                     <mat-icon>close</mat-icon>
                   </button>
                 </div>
@@ -255,11 +255,11 @@
         }
       </div>
 
-      <button mat-icon-button type="button" title="Segnala un problema" (click)="openBugReport()">
+      <button mat-icon-button type="button" [title]="'topbar.reportProblem' | t" (click)="openBugReport()">
         <mat-icon>report_problem</mat-icon>
       </button>
       @if (!offline) {
-        <button mat-icon-button type="button" title="Esci" (click)="logout()">
+        <button mat-icon-button type="button" [title]="'topbar.logout' | t" (click)="logout()">
           <mat-icon>logout</mat-icon>
         </button>
       }
@@ -343,22 +343,22 @@
         @for (item of priorityNavItems; track item.label) {
           @if (!item.children) {
             <a class="dock-btn top-nav-item" [routerLink]="item.route" routerLinkActive="active"
-               [matTooltip]="item.label" matTooltipPosition="above" (click)="closeOnMobile()">
+               [matTooltip]="item.label | t" matTooltipPosition="above" (click)="closeOnMobile()">
               <mat-icon>{{ item.icon }}</mat-icon>
-              <span class="dock-label">{{ item.label }}</span>
+              <span class="dock-label">{{ item.label | t }}</span>
             </a>
           } @else {
             <button class="dock-btn top-nav-item" type="button" [matMenuTriggerFor]="grpMenu"
                     [class.active]="isGroupActive(item)"
-                    [matTooltip]="item.label" matTooltipPosition="above">
+                    [matTooltip]="item.label | t" matTooltipPosition="above">
               <mat-icon>{{ item.icon }}</mat-icon>
-              <span class="dock-label">{{ item.label }}</span>
+              <span class="dock-label">{{ item.label | t }}</span>
             </button>
             <mat-menu #grpMenu="matMenu" class="dock-menu">
               @for (child of item.children; track child.label) {
                 <a mat-menu-item [routerLink]="child.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                   <mat-icon>{{ child.icon }}</mat-icon>
-                  <span>{{ child.label }}</span>
+                  <span>{{ child.label | t }}</span>
                 </a>
               }
             </mat-menu>
@@ -368,25 +368,25 @@
           <button class="dock-btn dock-more top-nav-more" type="button" [matMenuTriggerFor]="altroMenu"
                   [class.active]="overflowActive" aria-label="Altre sezioni">
             <mat-icon>apps</mat-icon>
-            <span class="dock-label">Altro</span>
+            <span class="dock-label">{{ 'nav.altro' | t }}</span>
           </button>
           <mat-menu #altroMenu="matMenu" class="dock-menu">
             @for (o of overflowNavItems; track o.label) {
               @if (!o.children) {
                 <a mat-menu-item [routerLink]="o.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                   <mat-icon>{{ o.icon }}</mat-icon>
-                  <span>{{ o.label }}</span>
+                  <span>{{ o.label | t }}</span>
                 </a>
               } @else {
                 <button mat-menu-item type="button" [matMenuTriggerFor]="subMenu">
                   <mat-icon>{{ o.icon }}</mat-icon>
-                  <span>{{ o.label }}</span>
+                  <span>{{ o.label | t }}</span>
                 </button>
                 <mat-menu #subMenu="matMenu" class="dock-menu">
                   @for (c of o.children; track c.label) {
                     <a mat-menu-item [routerLink]="c.route" routerLinkActive="active-link" (click)="closeOnMobile()">
                       <mat-icon>{{ c.icon }}</mat-icon>
-                      <span>{{ c.label }}</span>
+                      <span>{{ c.label | t }}</span>
                     </a>
                   }
                 </mat-menu>

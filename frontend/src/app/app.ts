@@ -24,6 +24,8 @@ import { OfflineService } from './services/offline.service';
 import { ModuliService } from './services/moduli.service';
 import { DocLockService } from './services/doc-lock.service';
 import { LayoutService } from './services/layout.service';
+import { I18nService } from './services/i18n.service';
+import { TPipe } from './pipes/t.pipe';
 import { WindowTitleService } from './services/window-title.service';
 import { NativeMenuService } from './services/native-menu.service';
 import { DesktopService } from './services/desktop.service';
@@ -59,6 +61,7 @@ interface NavItem {
     MatIconModule, MatExpansionModule, MatMenuModule, MatButtonModule, MatTooltipModule,
     MatBadgeModule, MatInputModule, MatFormFieldModule, FormsModule,
     LoginComponent, CookieConsentComponent, LockScreenComponent,
+    TPipe,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'
@@ -185,6 +188,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     private windowTitle: WindowTitleService,
     private nativeMenu: NativeMenuService,
     private desktop: DesktopService,
+    private i18n: I18nService,
   ) {
     this.loggedIn = authSvc.isLoggedIn();
     this.updatePublicRoute(this.router.url);
@@ -753,7 +757,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   private get allCommands(): { label: string; icon: string; route: string; state?: Record<string, any> }[] {
     const sezioni = this.visibleFlatNavItems
       .filter(i => !!i.route)
-      .map(i => ({ label: i.label, icon: i.icon, route: i.route! }));
+      .map(i => ({ label: this.i18n.t(i.label), icon: i.icon, route: i.route! }));
     return [...this.quickActions, ...sezioni];
   }
 
@@ -908,85 +912,87 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     a.remove();
   }
 
+  // I "label" sono chiavi di traduzione (I18nService/pipe `t`), non testo da
+  // mostrare direttamente — vedi frontend/src/app/i18n/*.ts.
   readonly navItems: NavItem[] = [
-    { label: 'Dashboard',    icon: 'dashboard',      route: '/dashboard' },
+    { label: 'nav.dashboard',    icon: 'dashboard',      route: '/dashboard' },
     {
-      label: 'Anagrafiche', icon: 'contacts',
+      label: 'nav.anagrafiche', icon: 'contacts',
       children: [
-        { label: 'Clienti',   icon: 'people',         route: '/clienti' },
-        { label: 'Fornitori', icon: 'local_shipping', route: '/fornitori' },
+        { label: 'nav.clienti',   icon: 'people',         route: '/clienti' },
+        { label: 'nav.fornitori', icon: 'local_shipping', route: '/fornitori' },
       ]
     },
     {
-      label: 'Vendite', icon: 'point_of_sale',
+      label: 'nav.vendite', icon: 'point_of_sale',
       children: [
-        { label: 'Preventivi',       icon: 'request_quote',   route: '/preventivi' },
-        { label: 'Ordini cliente',   icon: 'shopping_cart',   route: '/ordini' },
-        { label: 'Documenti di trasporto', icon: 'receipt_long', route: '/ddt' },
-        { label: 'Fatture',          icon: 'receipt',         route: '/fatture' },
-        { label: 'Note di Credito',  icon: 'note_alt',        route: '/note-credito' },
-        { label: 'Ricorrenti',       icon: 'autorenew',       route: '/fatture-ricorrenti' },
-        { label: 'Vendita al banco', icon: 'point_of_sale',   route: '/vendita-banco' },
-        { label: 'Listini',          icon: 'sell',            route: '/listini' },
-        { label: 'Agenti',           icon: 'support_agent',   route: '/agenti' },
+        { label: 'nav.preventivi',     icon: 'request_quote',   route: '/preventivi' },
+        { label: 'nav.ordiniCliente',  icon: 'shopping_cart',   route: '/ordini' },
+        { label: 'nav.ddt',            icon: 'receipt_long',    route: '/ddt' },
+        { label: 'nav.fatture',        icon: 'receipt',         route: '/fatture' },
+        { label: 'nav.noteCredito',    icon: 'note_alt',        route: '/note-credito' },
+        { label: 'nav.ricorrenti',     icon: 'autorenew',       route: '/fatture-ricorrenti' },
+        { label: 'nav.venditaBanco',   icon: 'point_of_sale',   route: '/vendita-banco' },
+        { label: 'nav.listini',        icon: 'sell',            route: '/listini' },
+        { label: 'nav.agenti',         icon: 'support_agent',   route: '/agenti' },
       ]
     },
     {
-      label: 'Acquisti', icon: 'shopping_bag',
+      label: 'nav.acquisti', icon: 'shopping_bag',
       children: [
-        { label: 'Acquisti',          icon: 'shopping_bag',     route: '/acquisti' },
-        { label: 'Ordini fornitore',  icon: 'shopping_cart',    route: '/ordini-fornitore' },
-        { label: 'Arrivi merce',      icon: 'move_to_inbox',    route: '/arrivi-merce' },
-        { label: 'OCR fatture (PDF)', icon: 'document_scanner', route: '/ocr-fatture', hideOffline: true },
+        { label: 'nav.acquisti',      icon: 'shopping_bag',     route: '/acquisti' },
+        { label: 'nav.ordiniFornitore', icon: 'shopping_cart',  route: '/ordini-fornitore' },
+        { label: 'nav.arriviMerce',   icon: 'move_to_inbox',    route: '/arrivi-merce' },
+        { label: 'nav.ocrFatture',    icon: 'document_scanner', route: '/ocr-fatture', hideOffline: true },
       ]
     },
     {
-      label: 'Fatture elettroniche', icon: 'cloud_sync',
+      label: 'nav.fattureElettroniche', icon: 'cloud_sync',
       children: [
-        { label: 'Emesse (SDI)',   icon: 'fact_check',      route: '/fatture-elettroniche' },
-        { label: 'Ricevute (SDI)', icon: 'cloud_download',  route: '/sdi-passive' },
+        { label: 'nav.emesseSdi',   icon: 'fact_check',      route: '/fatture-elettroniche' },
+        { label: 'nav.ricevuteSdi', icon: 'cloud_download',  route: '/sdi-passive' },
       ]
     },
     {
-      label: 'Magazzino', icon: 'warehouse',
+      label: 'nav.magazzino', icon: 'warehouse',
       children: [
-        { label: 'Prodotti',  icon: 'inventory_2', route: '/prodotti' },
-        { label: 'Movimenti', icon: 'warehouse',   route: '/magazzino' },
+        { label: 'nav.prodotti',  icon: 'inventory_2', route: '/prodotti' },
+        { label: 'nav.movimenti', icon: 'warehouse',   route: '/magazzino' },
       ]
     },
     {
-      label: 'Contabilità', icon: 'account_balance',
+      label: 'nav.contabilita', icon: 'account_balance',
       children: [
-        { label: 'Pagamenti',       icon: 'payments',         route: '/pagamenti' },
-        { label: 'Scadenzario',     icon: 'event',            route: '/scadenzario' },
-        { label: 'Scadenze fiscali', icon: 'event_available', route: '/scadenze-fiscali' },
-        { label: 'Prima nota',      icon: 'menu_book',        route: '/prima-nota' },
-        { label: 'Riconciliazione', icon: 'account_balance',  route: '/riconciliazione' },
-        { label: 'Compliance',      icon: 'verified',         route: '/compliance' },
+        { label: 'nav.pagamenti',       icon: 'payments',         route: '/pagamenti' },
+        { label: 'nav.scadenzario',     icon: 'event',            route: '/scadenzario' },
+        { label: 'nav.scadenzeFiscali', icon: 'event_available', route: '/scadenze-fiscali' },
+        { label: 'nav.primaNota',       icon: 'menu_book',        route: '/prima-nota' },
+        { label: 'nav.riconciliazione', icon: 'account_balance',  route: '/riconciliazione' },
+        { label: 'nav.compliance',      icon: 'verified',         route: '/compliance' },
       ]
     },
     // Strumenti trasversali (non legati a un singolo flusso documentale) + Report:
     // un solo slot in barra invece di 5, per lasciare spazio ai moduli "fondamentali"
     // prima che scatti l'overflow "Altro" nei layout a priority-nav (barra superiore/dock).
     {
-      label: 'Tool', icon: 'build',
+      label: 'nav.tool', icon: 'build',
       children: [
-        { label: 'Agenda',    icon: 'event_note',     route: '/agenda' },
-        { label: 'Lavagna',   icon: 'sticky_note_2',  route: '/lavagna' },
-        { label: 'Archivi',   icon: 'folder_copy',    route: '/archivi' },
-        { label: 'E-commerce', icon: 'shopping_basket', route: '/ecommerce' },
-        { label: 'Andamento',        icon: 'analytics',   route: '/report' },
-        { label: 'Report tabellari', icon: 'table_chart', route: '/reports' },
+        { label: 'nav.agenda',    icon: 'event_note',     route: '/agenda' },
+        { label: 'nav.lavagna',   icon: 'sticky_note_2',  route: '/lavagna' },
+        { label: 'nav.archivi',   icon: 'folder_copy',    route: '/archivi' },
+        { label: 'nav.ecommerce', icon: 'shopping_basket', route: '/ecommerce' },
+        { label: 'nav.andamento',       icon: 'analytics',   route: '/report' },
+        { label: 'nav.reportTabellari', icon: 'table_chart', route: '/reports' },
       ]
     },
     {
-      label: 'Sistema', icon: 'tune',
+      label: 'nav.sistema', icon: 'tune',
       children: [
-        { label: 'Impostazioni', icon: 'settings', route: '/impostazioni' },
-        { label: 'Account',      icon: 'person',   route: '/account', hideOffline: true },
-        { label: 'Abbonamento',  icon: 'credit_card', route: '/billing', hideOffline: true },
-        { label: 'Aiuto',        icon: 'menu_book', route: '/aiuto' },
-        { label: 'Storico',      icon: 'history',  route: '/storico' },
+        { label: 'nav.impostazioni', icon: 'settings', route: '/impostazioni' },
+        { label: 'nav.account',      icon: 'person',   route: '/account', hideOffline: true },
+        { label: 'nav.abbonamento',  icon: 'credit_card', route: '/billing', hideOffline: true },
+        { label: 'nav.aiuto',        icon: 'menu_book', route: '/aiuto' },
+        { label: 'nav.storico',      icon: 'history',  route: '/storico' },
       ]
     },
     // Amministrazione e Console SaaS ora sono schede dentro Impostazioni (gated per ruolo),

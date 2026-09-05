@@ -3,6 +3,8 @@ import { environment } from '../../../environments/environment';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { LayoutService, NavLayout, Density } from '../../services/layout.service';
+import { I18nService, Lang, LANGS } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -410,13 +412,15 @@ export class PrefissoConfermaDialogComponent {
             MatAutocompleteModule, MatSelectModule, MatCheckboxModule,
             MatSlideToggleModule, MatProgressSpinnerModule, MatRadioModule, MatMenuModule,
             MatExpansionModule, MatButtonToggleModule, MatSliderModule, MatTooltipModule, DragDropModule,
-            EmptyStateComponent, AdminComponent, SuperAdminComponent],
+            EmptyStateComponent, AdminComponent, SuperAdminComponent, TPipe],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.scss'
 })
 export class ImpostazioniComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private layout = inject(LayoutService);
+  i18n = inject(I18nService);
+  readonly langs = LANGS;
   private authSvc = inject(AuthService);
   private desktop = inject(DesktopService);
   readonly update = inject(UpdateService);
@@ -536,6 +540,10 @@ export class ImpostazioniComponent implements OnInit {
   /** Tema chiaro/scuro (spostato qui dall'icona in topbar). */
   get darkMode(): boolean { return this.layout.darkMode(); }
   setDarkMode(v: boolean) { this.layout.setDarkMode(v); }
+
+  /** Lingua dell'interfaccia (scelta anche al primo avvio). */
+  get language(): Lang { return this.i18n.lang() ?? 'it'; }
+  setLanguage(v: Lang) { this.i18n.setLang(v); }
   form: FormGroup;
   filteredCities: CityResult[] = [];
   private cityMap = new Map<string, CityResult>();

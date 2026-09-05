@@ -232,6 +232,19 @@
               <mat-icon>dark_mode</mat-icon> Scuro
             </mat-button-toggle>
           </mat-button-toggle-group>
+
+          <h3 class="section-title" style="margin-top:24px">{{ 'settings.appearance.language' | t }}</h3>
+          <p style="color:#64748b;font-size:13px;margin:0 0 14px">
+            {{ 'settings.appearance.languageHint' | t }}
+          </p>
+          <mat-form-field appearance="outline" style="max-width:260px">
+            <mat-label>{{ 'settings.appearance.language' | t }}</mat-label>
+            <mat-select [value]="language" (selectionChange)="setLanguage($event.value)">
+              @for (l of langs; track l) {
+                <mat-option [value]="l">{{ i18n.t('lang.' + l) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
       </div>
       }

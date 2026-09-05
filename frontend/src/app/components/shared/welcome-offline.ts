@@ -13,6 +13,8 @@ import { DataService } from '../../services/data.service';
 import { DesktopService } from '../../services/desktop.service';
 import { Azienda } from '../../models';
 import { environment } from '../../../environments/environment';
+import { I18nService, Lang, LANGS } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 /**
  * Schermata di benvenuto al PRIMO AVVIO dell'edizione offline desktop.
@@ -29,6 +31,7 @@ import { environment } from '../../../environments/environment';
   imports: [
     CommonModule, FormsModule, MatIconModule, MatButtonModule,
     MatInputModule, MatFormFieldModule, MatProgressSpinnerModule, MatCheckboxModule,
+    TPipe,
   ],
   template: `
     @if (visible) {
@@ -36,7 +39,24 @@ import { environment } from '../../../environments/environment';
         <div class="wel-card">
           <div class="wel-brand"><span class="wel-logo">O</span> Ordeva</div>
 
-          @if (step === 'choice') {
+          @if (step === 'lang') {
+            <h1 class="wel-title">{{ 'welcome.lang.title' | t }}</h1>
+            <p class="wel-sub">{{ 'welcome.lang.sub' | t }}</p>
+            <div class="wel-langs">
+              @for (l of langs; track l) {
+                <button type="button" class="wel-lang" [class.selected]="selectedLang === l" (click)="selectedLang = l">
+                  {{ i18n.t('lang.' + l) }}
+                </button>
+              }
+            </div>
+            <div class="wel-actions">
+              <button mat-flat-button color="primary" type="button" (click)="continueLang()">
+                {{ 'welcome.lang.continue' | t }}
+              </button>
+            </div>
+          }
+
+          @else if (step === 'choice') {
             <h1 class="wel-title">Benvenuto in Ordeva</h1>
             <p class="wel-sub">Il tuo gestionale è pronto. Per cominciare, scegli come partire.</p>
 
@@ -249,6 +269,14 @@ import { environment } from '../../../environments/environment';
     .wel-folder-path { font-size: 12.5px; color: #0f172a; word-break: break-all; max-width: 100%; }
     .wel-folder-empty { font-size: 12.5px; color: #94a3b8; }
     .wel-note { font-size: 12.5px; color: #64748b; margin: 2px 0 0; }
+    .wel-langs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+    .wel-lang {
+      padding: 10px 18px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      background: #fff; color: #0f172a; font-size: 14px; font-weight: 600;
+      font-family: inherit; cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .wel-lang:hover { border-color: #11769b; }
+    .wel-lang.selected { border-color: #11769b; background: rgba(17,118,155,0.08); color: #11769b; }
     .wel-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
     .wel-actions button mat-spinner { display: inline-block; }
     .wel-err { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #fef2f2; color: #b91c1c; font-size: 13px; }
@@ -264,7 +292,9 @@ export class WelcomeOfflineComponent implements OnInit {
   @Output() done = new EventEmitter<void>();
 
   visible = false;
-  step: 'choice' | 'form' | 'password' | 'backup' | 'restore' = 'choice';
+  step: 'lang' | 'choice' | 'form' | 'password' | 'backup' | 'restore' = 'lang';
+  readonly langs = LANGS;
+  selectedLang: Lang = this.guessLang();
   loading = false;
   errore = '';
   az: Azienda = { ragioneSociale: '' };
@@ -287,7 +317,18 @@ export class WelcomeOfflineComponent implements OnInit {
   /** Hint per la lock screen: evita il flash all'avvio sapendo subito se c'è password. */
   private readonly PWD_HINT = 'ordeva_app_password_enabled';
 
-  constructor(private ds: DataService, private desktop: DesktopService) {}
+  constructor(private ds: DataService, private desktop: DesktopService, public i18n: I18nService) {}
+
+  /** Preseleziona la lingua del sistema operativo, se tra quelle disponibili — altrimenti italiano. */
+  private guessLang(): Lang {
+    const nav = (typeof navigator !== 'undefined' ? navigator.language : '').slice(0, 2).toLowerCase();
+    return (this.langs as string[]).includes(nav) ? (nav as Lang) : 'it';
+  }
+
+  continueLang(): void {
+    this.i18n.setLang(this.selectedLang);
+    this.step = 'choice';
+  }
 
   ngOnInit(): void {
     if (!environment.offline) return;
