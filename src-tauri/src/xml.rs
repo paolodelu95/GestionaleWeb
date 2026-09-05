@@ -53,6 +53,52 @@ fn pad_cap(s: &str) -> String {
     }
 }
 
+/// Nome nazione (campo libero "Stato" in anagrafica cliente) → codice ISO
+/// 3166-1 alpha-2 per IdPaese/Nazione nell'XML. None = stringa non vuota ma
+/// non riconosciuta: i chiamanti in xml.rs ricadono su IT (comportamento
+/// storico), ma fattura_xml.rs::validate usa questo None per avvisare che lo
+/// stato scritto in anagrafica non è tra quelli riconosciuti, cosi' un nome
+/// scritto male (o un paese non ancora in elenco) non genera silenziosamente
+/// un IdPaese sbagliato senza che nessuno se ne accorga.
+pub(crate) fn country_code_opt(nome: &str) -> Option<&'static str> {
+    let n = nome.trim().to_lowercase();
+    let code = match n.as_str() {
+        "" | "italia" => "IT",
+        "germania" => "DE", "francia" => "FR", "spagna" => "ES",
+        "regno unito" | "inghilterra" | "gran bretagna" => "GB",
+        "stati uniti" | "stati uniti d'america" | "usa" => "US",
+        "svizzera" => "CH", "austria" => "AT", "belgio" => "BE",
+        "paesi bassi" | "olanda" => "NL", "portogallo" => "PT", "grecia" => "GR",
+        "polonia" => "PL", "repubblica ceca" | "cechia" => "CZ", "romania" => "RO",
+        "bulgaria" => "BG", "ungheria" => "HU", "slovacchia" => "SK", "slovenia" => "SI",
+        "croazia" => "HR", "danimarca" => "DK", "svezia" => "SE", "finlandia" => "FI",
+        "irlanda" => "IE", "lussemburgo" => "LU", "malta" => "MT", "cipro" => "CY",
+        "estonia" => "EE", "lettonia" => "LV", "lituania" => "LT", "norvegia" => "NO",
+        "san marino" => "SM", "citta' del vaticano" | "città del vaticano" | "vaticano" => "VA",
+        "monaco" => "MC", "liechtenstein" => "LI", "andorra" => "AD", "islanda" => "IS",
+        "cina" => "CN", "giappone" => "JP", "canada" => "CA", "brasile" => "BR",
+        "australia" => "AU", "nuova zelanda" => "NZ", "india" => "IN", "russia" => "RU",
+        "turchia" => "TR", "emirati arabi uniti" => "AE", "arabia saudita" => "SA",
+        "corea del sud" => "KR", "messico" => "MX", "argentina" => "AR", "cile" => "CL",
+        "colombia" => "CO", "peru" | "perù" => "PE", "venezuela" => "VE", "ecuador" => "EC",
+        "sudafrica" => "ZA", "israele" => "IL", "ucraina" => "UA", "serbia" => "RS",
+        "albania" => "AL", "bosnia ed erzegovina" => "BA", "macedonia del nord" => "MK",
+        "montenegro" => "ME", "hong kong" => "HK", "singapore" => "SG",
+        "egitto" => "EG", "marocco" => "MA", "tunisia" => "TN", "algeria" => "DZ",
+        "nigeria" => "NG", "kenya" => "KE", "thailandia" => "TH", "vietnam" => "VN",
+        "indonesia" => "ID", "malaysia" => "MY", "filippine" => "PH", "pakistan" => "PK",
+        "taiwan" => "TW",
+        _ => return None,
+    };
+    Some(code)
+}
+
+/// Come `country_code_opt`, ma con fallback IT per il caso non riconosciuto:
+/// usato nella generazione XML, dove serve comunque un valore.
+fn country_code(nome: &str) -> &'static str {
+    country_code_opt(nome).unwrap_or("IT")
+}
+
 /// FPA12 = 6 char → PA; FPR12 = 7 char → privato/B2B.
 fn detect_formato(sdi: &str) -> (&'static str, String) {
     let v: String = sdi.trim().to_uppercase().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
@@ -332,7 +378,13 @@ pub fn build_fattura_pa(conn: &Connection, id: i64, is_nota: bool) -> anyhow::Re
     let fiscali_block = format!("{ritenuta_block}{bollo_block}{cassa_block}");
 
     let p_iva_az = clean_piva(if az.p_iva.is_empty() { "00000000000" } else { &az.p_iva });
-    let (formato, cod_dest) = detect_formato(&doc.c_sdi);
+    let c_paese = country_code(&doc.c_stato);
+    let (formato, mut cod_dest) = detect_formato(&doc.c_sdi);
+    // Cliente estero senza codice SDI: convenzione "XXXXXXX" (non "0000000",
+    // riservato al caso domestico "consegna via PEC/sconosciuto").
+    if cod_dest == "0000000" && c_paese != "IT" {
+        cod_dest = "XXXXXXX".to_string();
+    }
     let has_pec = cod_dest == "0000000" && !doc.c_pec.is_empty();
     let progressivo = sanitize_progressivo(&doc.numero);
     let scadenza = calc_scadenza(&doc.data_emissione, doc.tp_giorni, doc.tp_fine_mese != 0);
@@ -356,7 +408,7 @@ pub fn build_fattura_pa(conn: &Connection, id: i64, is_nota: bool) -> anyhow::Re
     };
 
     let piva_client_block = if !doc.c_piva.is_empty() {
-        format!("\n        <IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>{}</IdCodice></IdFiscaleIVA>", esc(&clean_piva(&doc.c_piva)))
+        format!("\n        <IdFiscaleIVA><IdPaese>{}</IdPaese><IdCodice>{}</IdCodice></IdFiscaleIVA>", c_paese, esc(&clean_piva(&doc.c_piva)))
     } else {
         String::new()
     };
@@ -477,7 +529,7 @@ pub fn build_fattura_pa(conn: &Connection, id: i64, is_nota: bool) -> anyhow::Re
         <Indirizzo>{c_via}</Indirizzo>
         <CAP>{c_cap}</CAP>
         <Comune>{c_citta}</Comune>{prov_client_block}
-        <Nazione>IT</Nazione>
+        <Nazione>{c_paese}</Nazione>
       </Sede>
     </CessionarioCommittente>
   </FatturaElettronicaHeader>
@@ -543,6 +595,7 @@ struct DocData {
     c_cap: String,
     c_citta: String,
     c_provincia: String,
+    c_stato: String,
     c_piva: String,
     c_cf: String,
     c_sdi: String,
@@ -573,6 +626,7 @@ fn load_doc(r: &rusqlite::Row, is_fattura: bool) -> DocData {
         c_cap: s("c_cap"),
         c_citta: s("c_citta"),
         c_provincia: s("c_provincia"),
+        c_stato: s("c_stato"),
         c_piva: s("c_piva"),
         c_cf: s("c_cf"),
         c_sdi: s("c_sdi"),
