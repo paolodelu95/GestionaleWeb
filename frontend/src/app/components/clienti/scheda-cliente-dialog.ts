@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,13 +8,15 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 import { Cliente, Fattura } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 /** Scheda riassuntiva del cliente: dati, indicatori economici, ultime fatture e top prodotti.
  *  Compone dati già esistenti (fatture filtrate per clienteId + top prodotti). */
 @Component({
   selector: 'app-scheda-cliente-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, TPipe],
   template: `
     <div class="sc-head">
       <div class="sc-avatar">{{ (cliente.ragioneSociale || '?').charAt(0).toUpperCase() }}</div>
@@ -35,23 +37,23 @@ import { Cliente, Fattura } from '../../models';
     } @else {
       <div class="sc-kpi">
         <div class="sc-card">
-          <div class="sc-k-label">Fatturato {{ anno }}</div>
+          <div class="sc-k-label">{{ 'clienti.scheda.fatturato' | t:{ anno } }}</div>
           <div class="sc-k-val">{{ fatturatoAnno | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
         </div>
         <div class="sc-card" [class.sc-warn]="saldoAperto > 0">
-          <div class="sc-k-label">Da incassare</div>
+          <div class="sc-k-label">{{ 'clienti.scheda.daIncassare' | t }}</div>
           <div class="sc-k-val">{{ saldoAperto | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
         </div>
         <div class="sc-card">
-          <div class="sc-k-label">Fatture</div>
+          <div class="sc-k-label">{{ 'clienti.scheda.fatture' | t }}</div>
           <div class="sc-k-val">{{ nFatture }}</div>
-          @if (ultimaData) { <div class="sc-k-note">ultima {{ ultimaData | date:'dd/MM/yy' }}</div> }
+          @if (ultimaData) { <div class="sc-k-note">{{ 'clienti.scheda.ultima' | t:{ data: (ultimaData | date:'dd/MM/yy') || '' } }}</div> }
         </div>
       </div>
 
       <div class="sc-cols">
         <div class="sc-col">
-          <div class="sc-sec">Ultime fatture</div>
+          <div class="sc-sec">{{ 'clienti.scheda.ultimeFatture' | t }}</div>
           @if (ultimeFatture.length) {
             @for (f of ultimeFatture; track f.id) {
               <div class="sc-row">
@@ -63,11 +65,11 @@ import { Cliente, Fattura } from '../../models';
                 <b style="min-width:82px;text-align:right">{{ f.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
               </div>
             }
-          } @else { <div class="sc-empty">Nessuna fattura</div> }
+          } @else { <div class="sc-empty">{{ 'clienti.scheda.nessunaFattura' | t }}</div> }
         </div>
 
         <div class="sc-col">
-          <div class="sc-sec">Prodotti più acquistati</div>
+          <div class="sc-sec">{{ 'clienti.scheda.prodottiPiuAcquistati' | t }}</div>
           @if (topProdotti.length) {
             @for (p of topProdotti; track p.id) {
               <div class="sc-row">
@@ -78,7 +80,7 @@ import { Cliente, Fattura } from '../../models';
                 <span class="sc-muted">{{ p.occorrenze }}×</span>
               </div>
             }
-          } @else { <div class="sc-empty">Nessun acquisto registrato</div> }
+          } @else { <div class="sc-empty">{{ 'clienti.scheda.nessunAcquisto' | t }}</div> }
         </div>
       </div>
     }

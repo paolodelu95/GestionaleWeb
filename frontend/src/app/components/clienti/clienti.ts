@@ -37,63 +37,65 @@ import { ImportMappingDialogComponent, FieldDef, MappingResult } from '../shared
 import { ColumnPickerComponent, ColDef } from '../shared/column-picker';
 import { InfoDialogComponent, InfoDialogData } from '../shared/info-dialog';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
-const CLIENTI_FIELDS: FieldDef[] = [
-  { key: 'ragioneSociale', label: 'Ragione Sociale', required: true, aliases: [
+function buildClientiFields(i18n: I18nService): FieldDef[] { return [
+  { key: 'ragioneSociale', label: i18n.t('clienti.field.ragioneSociale'), required: true, aliases: [
     'Ragione Sociale', 'ragioneSociale', 'Denominazione', 'Azienda', 'Nome Azienda',
     'Ragione sociale', 'Company', 'Company Name', 'Nominativo', 'Nome Cliente',
     'Cliente', 'Intestazione', 'Intestatario',
   ]},
-  { key: 'email', label: 'Email', aliases: [
+  { key: 'email', label: i18n.t('clienti.field.email'), aliases: [
     'Email', 'email', 'E-mail', 'E_mail', 'Email Address', 'Indirizzo Email',
     'Posta Elettronica', 'Mail',
   ]},
-  { key: 'telefono', label: 'Telefono', aliases: [
+  { key: 'telefono', label: i18n.t('clienti.field.telefono'), aliases: [
     'Telefono', 'telefono', 'Tel', 'Tel.', 'Telefono 1', 'Telefono fisso',
     'Cell', 'Cellulare', 'Phone', 'Mobile', 'Phone Number', 'Numero di telefono',
   ]},
-  { key: 'cellulare', label: 'Cellulare', aliases: [
+  { key: 'cellulare', label: i18n.t('clienti.field.cellulare'), aliases: [
     'Cellulare', 'cellulare', 'Cell', 'Mobile', 'Telefono Mobile', 'Cell.', 'Tel. Mobile',
   ]},
-  { key: 'via', label: 'Via / Indirizzo', aliases: [
+  { key: 'via', label: i18n.t('clienti.field.via'), aliases: [
     'Via', 'via', 'Indirizzo', 'Indirizzo 1', 'Street', 'Address',
     'Indirizzo stradale', 'Sede', 'Via e numero',
   ]},
-  { key: 'cap', label: 'CAP', aliases: [
+  { key: 'cap', label: i18n.t('clienti.field.cap'), aliases: [
     'CAP', 'cap', 'Codice Postale', 'ZIP', 'Postal Code', 'ZIP Code', 'C.A.P.',
   ]},
-  { key: 'citta', label: 'Città', aliases: [
+  { key: 'citta', label: i18n.t('clienti.field.citta'), aliases: [
     'Città', 'Citta', 'citta', 'Comune', 'City', 'Town', 'Localita', 'Località',
   ]},
-  { key: 'provincia', label: 'Provincia', aliases: [
+  { key: 'provincia', label: i18n.t('clienti.field.provincia'), aliases: [
     'Provincia', 'provincia', 'Prov', 'Prov.', 'Province', 'Sigla Provincia',
   ]},
-  { key: 'stato', label: 'Stato / Paese', aliases: [
+  { key: 'stato', label: i18n.t('clienti.field.stato'), aliases: [
     'Stato', 'stato', 'Country', 'Nazione', 'Paese', 'Naz.',
   ]},
-  { key: 'codiceFiscale', label: 'Codice Fiscale', aliases: [
+  { key: 'codiceFiscale', label: i18n.t('clienti.field.codiceFiscale'), aliases: [
     'Codice Fiscale', 'codiceFiscale', 'C.F.', 'CF', 'Cod. Fiscale',
     'Tax Code', 'Fiscal Code', 'Cod.Fiscale',
   ]},
-  { key: 'pIva', label: 'P. IVA', aliases: [
+  { key: 'pIva', label: i18n.t('clienti.field.pIva'), aliases: [
     'P. IVA', 'pIva', 'P.IVA', 'Partita IVA', 'Partita_IVA', 'VAT',
     'VAT Number', 'P IVA', 'PIVA', 'CF/PIVA', 'Partita iva',
   ]},
-  { key: 'sdi', label: 'SDI', aliases: [
+  { key: 'sdi', label: i18n.t('clienti.field.sdi'), aliases: [
     'SDI', 'sdi', 'Codice SDI', 'Codice Destinatario', 'Destinatario SDI',
     'Codice Univoco', 'Cod. Destinatario',
   ]},
-  { key: 'pec', label: 'PEC', aliases: [
+  { key: 'pec', label: i18n.t('clienti.field.pec'), aliases: [
     'PEC', 'pec', 'Posta Certificata', 'PEC Address', 'Indirizzo PEC',
   ]},
-];
+]; }
 
 // ── Azienda Search Dialog ──────────────────────────────────────────────────────
 @Component({
   selector: 'app-azienda-search-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-            MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+            MatButtonModule, MatIconModule, MatProgressSpinnerModule, TPipe],
   styles: [`
     .azienda-result {
       padding: 10px 12px; cursor: pointer; border-radius: 6px;
@@ -107,12 +109,12 @@ const CLIENTI_FIELDS: FieldDef[] = [
                   padding: 24px 0; font-size: 14px; }
   `],
   template: `
-    <h2 mat-dialog-title>Cerca azienda per ragione sociale</h2>
+    <h2 mat-dialog-title>{{ 'clienti.aziendaSearch.title' | t }}</h2>
     <mat-dialog-content style="width:520px;max-width:90vw;min-height:120px">
       <mat-form-field style="width:100%">
-        <mat-label>Nome azienda</mat-label>
+        <mat-label>{{ 'clienti.aziendaSearch.nomeAzienda' | t }}</mat-label>
         <input matInput [(ngModel)]="query" (ngModelChange)="onQueryChange($event)"
-               placeholder="es. Rossi srl, Fabbrica..." autofocus>
+               [placeholder]="'clienti.aziendaSearch.placeholder' | t" autofocus>
         <span matSuffix style="margin-right:8px">
           @if (loading) { <mat-spinner diameter="18"></mat-spinner> }
           @else { <mat-icon>search</mat-icon> }
@@ -135,16 +137,16 @@ const CLIENTI_FIELDS: FieldDef[] = [
         <div class="no-results">
           @if (serviceUnavailable) {
             <mat-icon style="vertical-align:middle;margin-right:6px;opacity:.5">cloud_off</mat-icon>
-            Servizio di ricerca non disponibile.<br>
-            <small>Inserire manualmente la ragione sociale o attivare il servizio Imprese su openapi.it</small>
+            {{ 'clienti.aziendaSearch.serviceUnavailable' | t }}<br>
+            <small>{{ 'clienti.aziendaSearch.serviceUnavailableHint' | t }}</small>
           } @else {
-            Nessuna azienda trovata per "{{ query }}"
+            {{ 'clienti.aziendaSearch.noResults' | t:{ query } }}
           }
         </div>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Chiudi</button>
+      <button mat-button mat-dialog-close>{{ 'clienti.aziendaSearch.chiudi' | t }}</button>
     </mat-dialog-actions>`
 })
 export class AziendaSearchDialogComponent {
@@ -191,56 +193,56 @@ export class AziendaSearchDialogComponent {
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatAutocompleteModule, MatSelectModule,
             MatSnackBarModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, MatTabsModule,
-            MatSlideToggleModule, FieldHelpComponent],
+            MatSlideToggleModule, FieldHelpComponent, TPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
         <div class="dialog-hero-icon"><mat-icon>person</mat-icon></div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">{{ data ? data.ragioneSociale : 'Nuovo cliente' }}</span>
-          <span class="dialog-hero-sub">{{ data ? 'Aggiorna i dati anagrafici e fiscali' : 'Inserisci i dati per la fatturazione' }}</span>
+          <span class="dialog-hero-title">{{ data ? data.ragioneSociale : (('clienti.dialog.new') | t) }}</span>
+          <span class="dialog-hero-sub">{{ (data ? 'clienti.dialog.editSub' : 'clienti.dialog.newSub') | t }}</span>
         </div>
       </div>
 
       <mat-tab-group>
-        <mat-tab label="Anagrafica">
+        <mat-tab [label]="'clienti.tab.anagrafica' | t">
       <form [formGroup]="form" class="dialog-form" style="padding-top:16px">
 
         <!-- ── Identità ─────────────────────────────────── -->
         <div class="form-section is-primary">
           <div class="form-section-header">
             <mat-icon>badge</mat-icon>
-            <span>Identità</span>
-            <span class="section-hint">Dati per fatturazione e ricerca</span>
+            <span>{{ 'clienti.form.identita' | t }}</span>
+            <span class="section-hint">{{ 'clienti.form.identitaHint' | t }}</span>
           </div>
           <div class="input-with-action">
             <mat-form-field>
-              <mat-label>Ragione Sociale *</mat-label>
+              <mat-label>{{ 'clienti.form.ragioneSociale' | t }}</mat-label>
               <input matInput formControlName="ragioneSociale">
             </mat-form-field>
             <button mat-icon-button type="button"
-                    matTooltip="Cerca azienda per nome" (click)="cercaAzienda()">
+                    [matTooltip]="'clienti.form.cercaAzienda' | t" (click)="cercaAzienda()">
               <mat-icon>business_center</mat-icon>
             </button>
           </div>
           <div class="form-row">
             <div class="input-with-action" style="flex:1">
               <mat-form-field>
-                <mat-label>P. IVA</mat-label>
-                <input matInput formControlName="pIva" placeholder="11 cifre">
+                <mat-label>{{ 'clienti.form.piva' | t }}</mat-label>
+                <input matInput formControlName="pIva" [placeholder]="'clienti.form.pivaPlaceholder' | t">
                 <app-field-help matSuffix term="piva" />
                 @if (form.get('pIva')?.hasError('pIva')) {
-                  <mat-error>P. IVA non valida (deve essere di 11 cifre)</mat-error>
+                  <mat-error>{{ 'clienti.form.pivaInvalid' | t }}</mat-error>
                 }
                 @if (form.get('pIva')?.hasError('pivaEsiste')) {
-                  <mat-error>P. IVA già presente nell'anagrafica clienti</mat-error>
+                  <mat-error>{{ 'clienti.form.pivaEsiste' | t }}</mat-error>
                 }
                 @if (form.get('pIva')?.pending) {
-                  <mat-hint>Verifica duplicati...</mat-hint>
+                  <mat-hint>{{ 'clienti.form.pivaVerifica' | t }}</mat-hint>
                 }
               </mat-form-field>
               <button mat-icon-button type="button"
-                      matTooltip="Carica dati da P.IVA"
+                      [matTooltip]="'clienti.form.caricaDaPiva' | t"
                       [disabled]="lookupLoading || !canLookupPiva"
                       (click)="lookupPiva()">
                 @if (lookupLoading) {
@@ -251,11 +253,11 @@ export class AziendaSearchDialogComponent {
               </button>
             </div>
             <mat-form-field>
-              <mat-label>Codice Fiscale</mat-label>
+              <mat-label>{{ 'clienti.form.codiceFiscale' | t }}</mat-label>
               <input matInput formControlName="codiceFiscale" style="text-transform:uppercase">
               <app-field-help matSuffix term="codiceFiscale" />
               @if (form.get('codiceFiscale')?.hasError('codiceFiscale')) {
-                <mat-error>Codice fiscale non valido (16 caratteri o 11 cifre)</mat-error>
+                <mat-error>{{ 'clienti.form.codiceFiscaleInvalid' | t }}</mat-error>
               }
             </mat-form-field>
           </div>
@@ -265,37 +267,37 @@ export class AziendaSearchDialogComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>receipt_long</mat-icon>
-            <span>Fatturazione elettronica</span>
+            <span>{{ 'clienti.form.fatturazioneElettronica' | t }}</span>
           </div>
           <div class="form-row">
             <mat-form-field style="max-width:180px">
-              <mat-label>Tipo soggetto</mat-label>
+              <mat-label>{{ 'clienti.form.tipoSoggetto' | t }}</mat-label>
               <mat-select formControlName="tipoSoggetto">
-                <mat-option value="PRIVATO">Privato / B2B</mat-option>
-                <mat-option value="PA">Pubblica Amministrazione</mat-option>
-                <mat-option value="PROFESSIONISTA">Professionista</mat-option>
+                <mat-option value="PRIVATO">{{ 'clienti.form.tipoSoggettoPrivato' | t }}</mat-option>
+                <mat-option value="PA">{{ 'clienti.form.tipoSoggettoPA' | t }}</mat-option>
+                <mat-option value="PROFESSIONISTA">{{ 'clienti.form.tipoSoggettoProfessionista' | t }}</mat-option>
               </mat-select>
             </mat-form-field>
-            <mat-form-field><mat-label>Codice SDI</mat-label>
-              <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" placeholder="es. ABC1234">
+            <mat-form-field><mat-label>{{ 'clienti.form.sdi' | t }}</mat-label>
+              <input matInput formControlName="sdi" style="text-transform:uppercase" maxlength="7" [placeholder]="'clienti.form.sdiPlaceholder' | t">
               <app-field-help matSuffix term="sdi" />
             </mat-form-field>
-            <mat-form-field style="flex:2"><mat-label>PEC</mat-label>
-              <input matInput formControlName="pec" placeholder="indirizzo@pec.it">
+            <mat-form-field style="flex:2"><mat-label>{{ 'clienti.form.pec' | t }}</mat-label>
+              <input matInput formControlName="pec" [placeholder]="'clienti.form.pecPlaceholder' | t">
               <app-field-help matSuffix term="pec" />
             </mat-form-field>
           </div>
           @if (form.get('tipoSoggetto')?.value === 'PA') {
             <div class="form-row" style="margin-top:4px">
               <mat-form-field>
-                <mat-label>CIG</mat-label>
+                <mat-label>{{ 'clienti.form.cig' | t }}</mat-label>
                 <input matInput formControlName="cig" placeholder="es. Z123456789" style="text-transform:uppercase">
-                <mat-hint>Codice Identificativo Gara (opzionale)</mat-hint>
+                <mat-hint>{{ 'clienti.form.cigHint' | t }}</mat-hint>
               </mat-form-field>
               <mat-form-field>
-                <mat-label>CUP</mat-label>
+                <mat-label>{{ 'clienti.form.cup' | t }}</mat-label>
                 <input matInput formControlName="cup" placeholder="es. C57I18000050006" style="text-transform:uppercase">
-                <mat-hint>Codice Unico Progetto (opzionale)</mat-hint>
+                <mat-hint>{{ 'clienti.form.cupHint' | t }}</mat-hint>
               </mat-form-field>
             </div>
           }
@@ -305,19 +307,19 @@ export class AziendaSearchDialogComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>location_on</mat-icon>
-            <span>Sede legale</span>
+            <span>{{ 'clienti.form.sedeLegale' | t }}</span>
           </div>
-          <mat-form-field style="width:100%"><mat-label>Via</mat-label>
+          <mat-form-field style="width:100%"><mat-label>{{ 'clienti.form.via' | t }}</mat-label>
             <input matInput formControlName="via"></mat-form-field>
           <div class="form-row">
-            <mat-form-field style="max-width:120px"><mat-label>CAP</mat-label>
+            <mat-form-field style="max-width:120px"><mat-label>{{ 'clienti.form.cap' | t }}</mat-label>
               <input matInput formControlName="cap" maxlength="5">
               @if (form.get('cap')?.hasError('cap') && form.get('cap')?.dirty) {
-                <mat-error>CAP non valido (5 cifre)</mat-error>
+                <mat-error>{{ 'clienti.form.capInvalid' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Città</mat-label>
+              <mat-label>{{ 'clienti.form.citta' | t }}</mat-label>
               <input matInput formControlName="citta" [matAutocomplete]="auto">
               <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCitySelected($event.option.value)">
                 @for (c of filteredCities; track c.name) {
@@ -325,10 +327,10 @@ export class AziendaSearchDialogComponent {
                 }
               </mat-autocomplete>
             </mat-form-field>
-            <mat-form-field style="max-width:80px"><mat-label>Prov.</mat-label>
+            <mat-form-field style="max-width:80px"><mat-label>{{ 'clienti.form.provincia' | t }}</mat-label>
               <input matInput formControlName="provincia" maxlength="2" style="text-transform:uppercase">
-              <mat-hint>sigla</mat-hint></mat-form-field>
-            <mat-form-field style="max-width:120px"><mat-label>Stato</mat-label>
+              <mat-hint>{{ 'clienti.form.provinciaHint' | t }}</mat-hint></mat-form-field>
+            <mat-form-field style="max-width:120px"><mat-label>{{ 'clienti.form.stato' | t }}</mat-label>
               <input matInput formControlName="stato"></mat-form-field>
           </div>
         </div>
@@ -337,27 +339,27 @@ export class AziendaSearchDialogComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>contact_phone</mat-icon>
-            <span>Contatti</span>
+            <span>{{ 'clienti.form.contatti' | t }}</span>
           </div>
           <div class="form-row">
             <mat-form-field>
-              <mat-label>Email</mat-label>
+              <mat-label>{{ 'clienti.form.email' | t }}</mat-label>
               <input matInput formControlName="email" type="email">
               <mat-icon matSuffix>alternate_email</mat-icon>
               @if (form.get('email')?.hasError('email') && form.get('email')?.dirty) {
-                <mat-error>Formato email non valido</mat-error>
+                <mat-error>{{ 'clienti.form.emailInvalid' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Telefono</mat-label>
+              <mat-label>{{ 'clienti.form.telefono' | t }}</mat-label>
               <input matInput formControlName="telefono">
               <mat-icon matSuffix>call</mat-icon>
               @if (form.get('telefono')?.hasError('telefono') && form.get('telefono')?.dirty) {
-                <mat-error>Inserire solo cifre, +, -, spazi o parentesi</mat-error>
+                <mat-error>{{ 'clienti.form.telefonoInvalid' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Cellulare</mat-label>
+              <mat-label>{{ 'clienti.form.cellulare' | t }}</mat-label>
               <input matInput formControlName="cellulare">
               <mat-icon matSuffix>smartphone</mat-icon>
             </mat-form-field>
@@ -368,14 +370,14 @@ export class AziendaSearchDialogComponent {
         <div class="form-section">
           <div class="form-section-header">
             <mat-icon>tune</mat-icon>
-            <span>Preferenze commerciali</span>
-            <span class="section-hint">Applicate in automatico nei nuovi documenti</span>
+            <span>{{ 'clienti.form.preferenze' | t }}</span>
+            <span class="section-hint">{{ 'clienti.form.preferenzeHint' | t }}</span>
           </div>
           <div class="form-row">
             <mat-form-field>
-              <mat-label>Metodo di pagamento preferito</mat-label>
+              <mat-label>{{ 'clienti.form.metodoPagamento' | t }}</mat-label>
               <mat-select formControlName="tipoPagamentoId">
-                <mat-option [value]="null">— nessuno —</mat-option>
+                <mat-option [value]="null">{{ 'clienti.form.nessuno' | t }}</mat-option>
                 @for (t of tipiPagamento; track t.id) {
                   <mat-option [value]="t.id">{{ t.nome }}</mat-option>
                 }
@@ -383,9 +385,9 @@ export class AziendaSearchDialogComponent {
               <mat-icon matSuffix>payments</mat-icon>
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Aliquota IVA predefinita</mat-label>
+              <mat-label>{{ 'clienti.form.aliquotaIva' | t }}</mat-label>
               <mat-select formControlName="aliquotaIvaId">
-                <mat-option [value]="null">— 22% (predefinita) —</mat-option>
+                <mat-option [value]="null">{{ 'clienti.form.aliquotaDefault' | t }}</mat-option>
                 @for (a of aliquoteIva; track a.id) {
                   <mat-option [value]="a.id">
                     {{ a.valore }}% {{ a.codice ? '(' + a.codice + ')' : '' }} — {{ a.nome }}
@@ -393,14 +395,14 @@ export class AziendaSearchDialogComponent {
                 }
               </mat-select>
               <mat-icon matSuffix>percent</mat-icon>
-              <mat-hint>Applicata alle nuove righe nei documenti</mat-hint>
+              <mat-hint>{{ 'clienti.form.aliquotaHint' | t }}</mat-hint>
             </mat-form-field>
           </div>
           <div class="form-row">
             <mat-form-field>
-              <mat-label>Listino prezzi</mat-label>
+              <mat-label>{{ 'clienti.form.listino' | t }}</mat-label>
               <mat-select formControlName="listinoId">
-                <mat-option [value]="null">— prezzo base —</mat-option>
+                <mat-option [value]="null">{{ 'clienti.form.prezzoBase' | t }}</mat-option>
                 @for (l of listini; track l.id) {
                   <mat-option [value]="l.id">
                     {{ l.nome }}
@@ -410,24 +412,24 @@ export class AziendaSearchDialogComponent {
               </mat-select>
               <mat-icon matSuffix>price_change</mat-icon>
               @if (form.value.listinoId) {
-                <mat-hint>I prezzi del listino verranno applicati automaticamente</mat-hint>
+                <mat-hint>{{ 'clienti.form.listinoHint' | t }}</mat-hint>
               }
             </mat-form-field>
           </div>
           @if (agenti.length) {
             <div class="form-row">
               <mat-form-field>
-                <mat-label>Agente</mat-label>
+                <mat-label>{{ 'clienti.form.agente' | t }}</mat-label>
                 <mat-select formControlName="agenteId">
-                  <mat-option [value]="null">— nessuno —</mat-option>
+                  <mat-option [value]="null">{{ 'clienti.form.nessuno' | t }}</mat-option>
                   @for (ag of agenti; track ag.id) { <mat-option [value]="ag.id">{{ ag.nome }}</mat-option> }
                 </mat-select>
                 <mat-icon matSuffix>support_agent</mat-icon>
               </mat-form-field>
               @if (form.value.agenteId) {
                 <mat-form-field>
-                  <mat-label>Provvigione (override)</mat-label>
-                  <input matInput type="number" min="0" max="100" step="0.5" formControlName="provvigione" placeholder="% default agente">
+                  <mat-label>{{ 'clienti.form.provvigione' | t }}</mat-label>
+                  <input matInput type="number" min="0" max="100" step="0.5" formControlName="provvigione" [placeholder]="'clienti.form.provvigionePlaceholder' | t">
                   <span matSuffix>%</span>
                 </mat-form-field>
               }
@@ -435,10 +437,9 @@ export class AziendaSearchDialogComponent {
           }
           <div class="form-row" style="align-items:flex-start">
             <div>
-              <mat-slide-toggle formControlName="ancheFornitore">È anche un fornitore</mat-slide-toggle>
+              <mat-slide-toggle formControlName="ancheFornitore">{{ 'clienti.form.ancheFornitore' | t }}</mat-slide-toggle>
               <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px;max-width:520px">
-                Crea (o collega) un'anagrafica fornitore gemella con gli stessi dati, così potrai
-                registrarci acquisti e ordini fornitore. Le due schede restano sincronizzate.
+                {{ 'clienti.form.ancheFornitoreHint' | t }}
               </div>
             </div>
           </div>
@@ -450,60 +451,60 @@ export class AziendaSearchDialogComponent {
         <mat-tab>
           <ng-template mat-tab-label>
             <mat-icon style="font-size:18px;margin-right:4px;vertical-align:middle">place</mat-icon>
-            Indirizzi
+            {{ 'clienti.tab.indirizzi' | t }}
           </ng-template>
           <div style="padding-top:16px;min-height:200px">
             @if (!data?.id) {
               <div style="color:#94a3b8;text-align:center;padding:32px 0;font-size:14px">
                 <mat-icon style="font-size:40px;width:40px;height:40px;display:block;margin:0 auto 8px">info_outline</mat-icon>
-                Salva prima il cliente per gestire gli indirizzi aggiuntivi
+                {{ 'clienti.form.salvaPrimaIndirizzi' | t }}
               </div>
             } @else {
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                <span style="font-size:13px;color:#64748b">Destinazioni di consegna salvate per questo cliente</span>
+                <span style="font-size:13px;color:#64748b">{{ 'clienti.form.destinazioniSalvate' | t }}</span>
                 <button mat-stroked-button type="button" (click)="addIndirizzo()">
-                  <mat-icon>add</mat-icon> Aggiungi
+                  <mat-icon>add</mat-icon> {{ 'clienti.form.aggiungi' | t }}
                 </button>
               </div>
               @if (!indirizzi.length) {
-                <div style="color:#94a3b8;text-align:center;padding:24px 0;font-size:13px">Nessun indirizzo aggiuntivo</div>
+                <div style="color:#94a3b8;text-align:center;padding:24px 0;font-size:13px">{{ 'clienti.form.nessunIndirizzo' | t }}</div>
               }
               @for (addr of indirizzi; track addr.id ?? $index) {
                 @if (editingId === addr.id) {
                   <div class="addr-card addr-card--editing">
                     <div class="addr-edit-row">
                       <mat-form-field style="flex:1">
-                        <mat-label>Nome / Etichetta</mat-label>
-                        <input matInput [(ngModel)]="editBuf.nome" placeholder="es. Sede operativa">
+                        <mat-label>{{ 'clienti.form.nomeEtichetta' | t }}</mat-label>
+                        <input matInput [(ngModel)]="editBuf.nome" [placeholder]="'clienti.form.nomeEtichettaPh1' | t">
                       </mat-form-field>
                     </div>
                     <div class="addr-edit-row">
                       <mat-form-field style="flex:2">
-                        <mat-label>Via</mat-label>
+                        <mat-label>{{ 'clienti.form.via' | t }}</mat-label>
                         <input matInput [(ngModel)]="editBuf.via">
                       </mat-form-field>
                       <mat-form-field style="max-width:90px">
-                        <mat-label>CAP</mat-label>
+                        <mat-label>{{ 'clienti.form.cap' | t }}</mat-label>
                         <input matInput [(ngModel)]="editBuf.cap" maxlength="5">
                       </mat-form-field>
                     </div>
                     <div class="addr-edit-row">
                       <mat-form-field style="flex:2">
-                        <mat-label>Città</mat-label>
+                        <mat-label>{{ 'clienti.form.citta' | t }}</mat-label>
                         <input matInput [(ngModel)]="editBuf.citta">
                       </mat-form-field>
                       <mat-form-field style="max-width:70px">
-                        <mat-label>Prov.</mat-label>
+                        <mat-label>{{ 'clienti.form.provincia' | t }}</mat-label>
                         <input matInput [(ngModel)]="editBuf.provincia" maxlength="2" style="text-transform:uppercase">
                       </mat-form-field>
                       <mat-form-field style="max-width:100px">
-                        <mat-label>Stato</mat-label>
+                        <mat-label>{{ 'clienti.form.stato' | t }}</mat-label>
                         <input matInput [(ngModel)]="editBuf.stato">
                       </mat-form-field>
                     </div>
                     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-                      <button mat-button type="button" (click)="cancelEdit()">Annulla</button>
-                      <button mat-flat-button type="button" (click)="saveIndirizzo(addr)">Salva</button>
+                      <button mat-button type="button" (click)="cancelEdit()">{{ 'clienti.form.annulla' | t }}</button>
+                      <button mat-flat-button type="button" (click)="saveIndirizzo(addr)">{{ 'clienti.form.salva' | t }}</button>
                     </div>
                   </div>
                 } @else {
@@ -516,10 +517,10 @@ export class AziendaSearchDialogComponent {
                         </div>
                       </div>
                       <div style="display:flex;gap:2px">
-                        <button mat-icon-button type="button" (click)="startEdit(addr)" title="Modifica">
+                        <button mat-icon-button type="button" (click)="startEdit(addr)" [title]="'clienti.form.modificaIndirizzo' | t">
                           <mat-icon style="font-size:18px">edit</mat-icon>
                         </button>
-                        <button mat-icon-button color="warn" type="button" (click)="deleteIndirizzo(addr)" title="Elimina">
+                        <button mat-icon-button color="warn" type="button" (click)="deleteIndirizzo(addr)" [title]="'clienti.form.eliminaIndirizzo' | t">
                           <mat-icon style="font-size:18px">delete</mat-icon>
                         </button>
                       </div>
@@ -531,37 +532,37 @@ export class AziendaSearchDialogComponent {
                 <div class="addr-card addr-card--editing" style="margin-top:8px">
                   <div class="addr-edit-row">
                     <mat-form-field style="flex:1">
-                      <mat-label>Nome / Etichetta *</mat-label>
-                      <input matInput [(ngModel)]="editBuf.nome" placeholder="es. Magazzino, Sede distaccata">
+                      <mat-label>{{ 'clienti.form.nomeEtichettaReq' | t }}</mat-label>
+                      <input matInput [(ngModel)]="editBuf.nome" [placeholder]="'clienti.form.nomeEtichettaPh2' | t">
                     </mat-form-field>
                   </div>
                   <div class="addr-edit-row">
                     <mat-form-field style="flex:2">
-                      <mat-label>Via</mat-label>
+                      <mat-label>{{ 'clienti.form.via' | t }}</mat-label>
                       <input matInput [(ngModel)]="editBuf.via">
                     </mat-form-field>
                     <mat-form-field style="max-width:90px">
-                      <mat-label>CAP</mat-label>
+                      <mat-label>{{ 'clienti.form.cap' | t }}</mat-label>
                       <input matInput [(ngModel)]="editBuf.cap" maxlength="5">
                     </mat-form-field>
                   </div>
                   <div class="addr-edit-row">
                     <mat-form-field style="flex:2">
-                      <mat-label>Città</mat-label>
+                      <mat-label>{{ 'clienti.form.citta' | t }}</mat-label>
                       <input matInput [(ngModel)]="editBuf.citta">
                     </mat-form-field>
                     <mat-form-field style="max-width:70px">
-                      <mat-label>Prov.</mat-label>
+                      <mat-label>{{ 'clienti.form.provincia' | t }}</mat-label>
                       <input matInput [(ngModel)]="editBuf.provincia" maxlength="2" style="text-transform:uppercase">
                     </mat-form-field>
                     <mat-form-field style="max-width:100px">
-                      <mat-label>Stato</mat-label>
+                      <mat-label>{{ 'clienti.form.stato' | t }}</mat-label>
                       <input matInput [(ngModel)]="editBuf.stato">
                     </mat-form-field>
                   </div>
                   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-                    <button mat-button type="button" (click)="cancelEdit()">Annulla</button>
-                    <button mat-flat-button type="button" (click)="createIndirizzo()">Aggiungi</button>
+                    <button mat-button type="button" (click)="cancelEdit()">{{ 'clienti.form.annulla' | t }}</button>
+                    <button mat-flat-button type="button" (click)="createIndirizzo()">{{ 'clienti.form.aggiungi' | t }}</button>
                   </div>
                 </div>
               }
@@ -572,8 +573,8 @@ export class AziendaSearchDialogComponent {
       </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.pending">Salva</button>
+      <button mat-button mat-dialog-close>{{ 'clienti.dialog.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.pending">{{ 'clienti.dialog.salva' | t }}</button>
     </mat-dialog-actions>`,
   styles: [`
     .addr-card {
@@ -585,6 +586,7 @@ export class AziendaSearchDialogComponent {
   `]
 })
 export class ClienteDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   form: FormGroup;
   filteredCities: CityResult[] = [];
   tipiPagamento: TipoPagamento[] = [];
@@ -619,7 +621,7 @@ export class ClienteDialogComponent implements OnInit {
     if (!this.data?.id || !this.editBuf.nome.trim()) return;
     this.ds.createClienteIndirizzo(this.data.id, this.editBuf).subscribe({
       next: () => { this.loadIndirizzi(); this.cancelEdit(); },
-      error: () => this.snack.open('Errore salvataggio indirizzo', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('clienti.msg.erroreSalvataggioIndirizzo'), '', { duration: 3000 }),
     });
   }
 
@@ -627,7 +629,7 @@ export class ClienteDialogComponent implements OnInit {
     if (!this.data?.id) return;
     this.ds.updateClienteIndirizzo(this.data.id, { ...this.editBuf, id: addr.id }).subscribe({
       next: () => { this.loadIndirizzi(); this.cancelEdit(); },
-      error: () => this.snack.open('Errore aggiornamento indirizzo', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('clienti.msg.erroreAggiornamentoIndirizzo'), '', { duration: 3000 }),
     });
   }
 
@@ -635,7 +637,7 @@ export class ClienteDialogComponent implements OnInit {
     if (!this.data?.id || !addr.id) return;
     this.ds.deleteClienteIndirizzo(this.data.id, addr.id).subscribe({
       next: () => this.loadIndirizzi(),
-      error: () => this.snack.open('Errore eliminazione indirizzo', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('clienti.msg.erroreEliminazioneIndirizzo'), '', { duration: 3000 }),
     });
   }
 
@@ -754,11 +756,11 @@ export class ClienteDialogComponent implements OnInit {
         if (result.provincia)      patch.provincia = result.provincia;
         if (result.stato)          patch.stato = result.stato;
         this.form.patchValue(patch);
-        this.snack.open('Dati caricati', '', { duration: 2500 });
+        this.snack.open(this.i18n.t('clienti.msg.datiCaricati'), '', { duration: 2500 });
       },
       error: () => {
         this.lookupLoading = false;
-        this.snack.open('P.IVA non trovata', '', { duration: 3000 });
+        this.snack.open(this.i18n.t('clienti.msg.pivaNonTrovata'), '', { duration: 3000 });
       }
     });
   }
@@ -767,7 +769,7 @@ export class ClienteDialogComponent implements OnInit {
     this.form.markAllAsTouched();
     if (this.form.pending) return;
     if (!this.form.valid) {
-      this.snack.open('Correggi i campi evidenziati prima di salvare', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('clienti.msg.correggiCampi'), '', { duration: 3000 });
       return;
     }
     this.dialogRef.close({ ...this.data, ...this.form.value });
@@ -781,16 +783,18 @@ export class ClienteDialogComponent implements OnInit {
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSortModule, MatPaginatorModule,
             MatTooltipModule, MatMenuModule, ColumnPickerComponent, EmptyStateComponent,
-            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent],
+            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent, TPipe],
   templateUrl: './clienti.html',
   styleUrl: './clienti.scss'
 })
 export class ClientiComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  i18n = inject(I18nService);
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.dataSource.data;
     const body = rows.map(c=>`<tr><td>${c.ragioneSociale}</td><td>${c.email||'—'}</td><td>${c.telefono||'—'}</td><td>${this.indirizzo(c)||'—'}</td><td>${c.codiceFiscale||'—'}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Clienti</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}</style></head><body><h1>Clienti</h1><table><thead><tr><th>Ragione Sociale</th><th>Email</th><th>Telefono</th><th>Indirizzo</th><th>Cod. Fiscale</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('clienti.entityLabel')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}</style></head><body><h1>${t('clienti.entityLabel')}</h1><table><thead><tr><th>${t('clienti.field.ragioneSociale')}</th><th>${t('clienti.field.email')}</th><th>${t('clienti.field.telefono')}</th><th>${t('clienti.col.citta')}</th><th>${t('clienti.col.codiceFiscale')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
   clienti: Cliente[] = [];
@@ -799,19 +803,19 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = ['ragioneSociale', 'pIva', 'telefono', 'indirizzo', 'azioni'];
 
   readonly allCols: ColDef[] = [
-    { key: 'ragioneSociale', label: 'Ragione Sociale' },
-    { key: 'pIva', label: 'P. IVA' },
-    { key: 'telefono', label: 'Telefono' },
-    { key: 'indirizzo', label: 'Città' },
-    { key: 'fatturatoAnno', label: 'Fatturato anno', defaultVisible: false },
-    { key: 'ultimoAcquisto', label: 'Ultimo acquisto', defaultVisible: false },
-    { key: 'fattureInsolute', label: 'Insoluti', defaultVisible: false },
-    { key: 'email', label: 'Email', defaultVisible: false },
-    { key: 'cellulare', label: 'Cellulare', defaultVisible: false },
-    { key: 'codiceFiscale', label: 'Cod. Fiscale', defaultVisible: false },
-    { key: 'sdi', label: 'SDI', defaultVisible: false },
-    { key: 'pec', label: 'PEC', defaultVisible: false },
-    { key: 'id', label: 'ID', defaultVisible: false },
+    { key: 'ragioneSociale', label: this.i18n.t('clienti.col.ragioneSociale') },
+    { key: 'pIva', label: this.i18n.t('clienti.col.piva') },
+    { key: 'telefono', label: this.i18n.t('clienti.col.telefono') },
+    { key: 'indirizzo', label: this.i18n.t('clienti.col.citta') },
+    { key: 'fatturatoAnno', label: this.i18n.t('clienti.col.fatturatoAnno'), defaultVisible: false },
+    { key: 'ultimoAcquisto', label: this.i18n.t('clienti.col.ultimoAcquisto'), defaultVisible: false },
+    { key: 'fattureInsolute', label: this.i18n.t('clienti.col.insoluti'), defaultVisible: false },
+    { key: 'email', label: this.i18n.t('clienti.col.email'), defaultVisible: false },
+    { key: 'cellulare', label: this.i18n.t('clienti.col.cellulare'), defaultVisible: false },
+    { key: 'codiceFiscale', label: this.i18n.t('clienti.col.codiceFiscale'), defaultVisible: false },
+    { key: 'sdi', label: this.i18n.t('clienti.col.sdi'), defaultVisible: false },
+    { key: 'pec', label: this.i18n.t('clienti.col.pec'), defaultVisible: false },
+    { key: 'id', label: this.i18n.t('clienti.col.id'), defaultVisible: false },
   ];
 
   filtroDormienti = false;
@@ -918,7 +922,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       const op = result.id ? this.ds.updateCliente(result) : this.ds.createCliente(result);
-      op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+      op.subscribe({ next: () => { this.load(); this.snack.open(this.i18n.t('clienti.msg.salvato'), '', { duration: 2000 }); },
                      error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' }) });
     });
   }
@@ -926,42 +930,43 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   info(c: Cliente) {
     const fmtCurrency = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
     const fmtDate = (s: string) => { const p = s.substring(0, 10).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : s; };
+    const t = (k: string, params?: Record<string, string | number>) => this.i18n.t(k, params);
     const baseData: InfoDialogData = {
       title: c.ragioneSociale,
       sections: [
         {
-          title: 'Attività commerciale',
+          title: t('clienti.info.attivitaCommerciale'),
           rows: [
-            { label: 'Ultimo acquisto', value: c.ultimoAcquisto ? fmtDate(c.ultimoAcquisto) : 'Mai' },
-            { label: 'Fatturato anno',  value: c.fatturatoAnno != null ? fmtCurrency(c.fatturatoAnno) : null },
-            { label: 'Insoluti',        value: (c.fattureInsolute ?? 0) > 0 ? `${c.fattureInsolute} fatt.` : null },
+            { label: t('clienti.info.ultimoAcquisto'), value: c.ultimoAcquisto ? fmtDate(c.ultimoAcquisto) : t('clienti.info.mai') },
+            { label: t('clienti.info.fatturatoAnno'),  value: c.fatturatoAnno != null ? fmtCurrency(c.fatturatoAnno) : null },
+            { label: t('clienti.info.insoluti'),        value: (c.fattureInsolute ?? 0) > 0 ? t('clienti.info.insolutiValue', { n: c.fattureInsolute! }) : null },
           ],
         },
         {
-          title: 'Contatti',
+          title: t('clienti.info.contatti'),
           rows: [
-            { label: 'Email',     value: c.email },
-            { label: 'Telefono',  value: c.telefono },
-            { label: 'Cellulare', value: c.cellulare },
-            { label: 'PEC',       value: c.pec },
+            { label: t('clienti.info.email'),     value: c.email },
+            { label: t('clienti.info.telefono'),  value: c.telefono },
+            { label: t('clienti.info.cellulare'), value: c.cellulare },
+            { label: t('clienti.info.pec'),       value: c.pec },
           ],
         },
         {
-          title: 'Sede legale',
+          title: t('clienti.info.sedeLegale'),
           rows: [
-            { label: 'Via',      value: c.via },
-            { label: 'CAP',      value: c.cap },
-            { label: 'Città',    value: c.citta },
-            { label: 'Provincia',value: c.provincia },
-            { label: 'Stato',    value: c.stato },
+            { label: t('clienti.info.via'),      value: c.via },
+            { label: t('clienti.info.cap'),      value: c.cap },
+            { label: t('clienti.info.citta'),    value: c.citta },
+            { label: t('clienti.info.provincia'),value: c.provincia },
+            { label: t('clienti.info.stato'),    value: c.stato },
           ],
         },
         {
-          title: 'Dati fiscali',
+          title: t('clienti.info.datiFiscali'),
           rows: [
-            { label: 'Partita IVA',    value: c.pIva, mono: true },
-            { label: 'Codice Fiscale', value: c.codiceFiscale, mono: true },
-            { label: 'Codice SDI',     value: c.sdi, mono: true },
+            { label: t('clienti.info.partitaIva'),    value: c.pIva, mono: true },
+            { label: t('clienti.info.codiceFiscale'), value: c.codiceFiscale, mono: true },
+            { label: t('clienti.info.codiceSdi'),     value: c.sdi, mono: true },
           ],
         },
       ],
@@ -970,7 +975,7 @@ export class ClientiComponent implements OnInit, AfterViewInit {
       this.ds.getClienteIndirizzi(c.id).subscribe(addrs => {
         if (addrs.length) {
           baseData.sections.push({
-            title: 'Destinazioni salvate',
+            title: t('clienti.info.destinazioniSalvate'),
             rows: addrs.map(a => ({
               label: a.nome,
               value: [a.via, a.cap, a.citta, a.provincia].filter(v => !!v).join(', '),
@@ -990,19 +995,19 @@ export class ClientiComponent implements OnInit, AfterViewInit {
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Ragione Sociale', field: 'ragioneSociale', width: 30 },
-    { header: 'Email',          field: 'email',          width: 28 },
-    { header: 'Telefono',       field: 'telefono',       width: 16 },
-    { header: 'Cellulare',      field: 'cellulare',      width: 16 },
-    { header: 'Via',            field: 'via',            width: 28 },
-    { header: 'CAP',            field: 'cap',            width: 8  },
-    { header: 'Città',          field: 'citta',          width: 18 },
-    { header: 'Provincia',      field: 'provincia',      width: 10 },
-    { header: 'Stato',          field: 'stato',          width: 12 },
-    { header: 'Codice Fiscale', field: 'codiceFiscale',  width: 18 },
-    { header: 'P. IVA',         field: 'pIva',           width: 14 },
-    { header: 'SDI',            field: 'sdi',            width: 10 },
-    { header: 'PEC',            field: 'pec',            width: 28 },
+    { header: this.i18n.t('clienti.field.ragioneSociale'), field: 'ragioneSociale', width: 30 },
+    { header: this.i18n.t('clienti.field.email'),          field: 'email',          width: 28 },
+    { header: this.i18n.t('clienti.field.telefono'),       field: 'telefono',       width: 16 },
+    { header: this.i18n.t('clienti.field.cellulare'),      field: 'cellulare',      width: 16 },
+    { header: this.i18n.t('clienti.field.via'),            field: 'via',            width: 28 },
+    { header: this.i18n.t('clienti.field.cap'),            field: 'cap',            width: 8  },
+    { header: this.i18n.t('clienti.field.citta'),          field: 'citta',          width: 18 },
+    { header: this.i18n.t('clienti.field.provincia'),      field: 'provincia',      width: 10 },
+    { header: this.i18n.t('clienti.field.stato'),          field: 'stato',          width: 12 },
+    { header: this.i18n.t('clienti.field.codiceFiscale'),  field: 'codiceFiscale',  width: 18 },
+    { header: this.i18n.t('clienti.field.pIva'),           field: 'pIva',           width: 14 },
+    { header: this.i18n.t('clienti.field.sdi'),            field: 'sdi',            width: 10 },
+    { header: this.i18n.t('clienti.field.pec'),            field: 'pec',            width: 28 },
   ];
 
   importExcel(event: Event) {
@@ -1010,9 +1015,9 @@ export class ClientiComponent implements OnInit, AfterViewInit {
     if (!file) return;
     (event.target as HTMLInputElement).value = '';
     this.excel.readFile(file).then(rows => {
-      if (!rows.length) { this.snack.open('File vuoto', '', { duration: 3000 }); return; }
+      if (!rows.length) { this.snack.open(this.i18n.t('clienti.msg.fileVuoto'), '', { duration: 3000 }); return; }
       this.dialog.open(ImportMappingDialogComponent, {
-        data: { rows, fields: CLIENTI_FIELDS, entityType: 'clienti', entityLabel: 'Clienti' },
+        data: { rows, fields: buildClientiFields(this.i18n), entityType: 'clienti', entityLabel: this.i18n.t('clienti.entityLabel') },
         disableClose: true,
       }).afterClosed().subscribe((result: MappingResult | null) => {
         if (!result) return;
@@ -1032,41 +1037,41 @@ export class ClientiComponent implements OnInit, AfterViewInit {
           sdi:            v('sdi', r),
           pec:            v('pec', r),
         })).filter(c => c.ragioneSociale.length > 0);
-        if (!records.length) { this.snack.open('Nessun cliente valido: controlla la colonna Ragione Sociale', '', { duration: 5000 }); return; }
+        if (!records.length) { this.snack.open(this.i18n.t('clienti.msg.nessunClienteValido'), '', { duration: 5000 }); return; }
         this.ds.importClienti(records).subscribe({
           next: (res: any) => {
             this.load();
-            this.snack.open(`Importati: ${res.created} nuovi, ${res.updated} aggiornati, ${res.skipped} saltati`, '', { duration: 5000 });
+            this.snack.open(this.i18n.t('clienti.msg.importResult', { created: res.created, updated: res.updated, skipped: res.skipped }), '', { duration: 5000 });
           },
           error: (err: any) => {
-            this.snack.open('Errore import: ' + (err?.error?.message || err?.message || 'errore sconosciuto'), '', { duration: 6000 });
+            this.snack.open(this.i18n.t('clienti.msg.erroreImport', { msg: err?.error?.message || err?.message || this.i18n.t('clienti.msg.erroreSconosciuto') }), '', { duration: 6000 });
           }
         });
       });
     }).catch(() => {
-      this.snack.open('File non leggibile o formato non supportato', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('clienti.msg.fileNonLeggibile'), '', { duration: 3000 });
     });
   }
 
   async delete(c: Cliente) {
-    if (!await this.confirm.delete(`Eliminare ${c.ragioneSociale}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('clienti.msg.confirmDelete', { nome: c.ragioneSociale }))) return;
     this.ds.deleteCliente(c.id!).subscribe({
-      next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      next: () => { this.load(); this.snack.open(this.i18n.t('clienti.msg.eliminato'), '', { duration: 2000 }); },
       error: (err) => {
         if (err.status === 409 && err.error?.counts) {
           const { fatture, ddt, preventivi, ordini, noteCredito } = err.error.counts;
           const parts: string[] = [];
-          if (fatture > 0)     parts.push(`${fatture} fattur${fatture === 1 ? 'a' : 'e'}`);
-          if (ddt > 0)         parts.push(`${ddt} document${ddt === 1 ? 'o' : 'i'} di trasporto`);
-          if (preventivi > 0)  parts.push(`${preventivi} preventiv${preventivi === 1 ? 'o' : 'i'}`);
-          if (ordini > 0)      parts.push(`${ordini} ordin${ordini === 1 ? 'e' : 'i'}`);
-          if (noteCredito > 0) parts.push(`${noteCredito} nota${noteCredito === 1 ? ' di credito' : ' di credito'}`);
+          if (fatture > 0)     parts.push(this.i18n.tn('clienti.msg.part.fatture', fatture));
+          if (ddt > 0)         parts.push(this.i18n.tn('clienti.msg.part.ddt', ddt));
+          if (preventivi > 0)  parts.push(this.i18n.tn('clienti.msg.part.preventivi', preventivi));
+          if (ordini > 0)      parts.push(this.i18n.tn('clienti.msg.part.ordini', ordini));
+          if (noteCredito > 0) parts.push(this.i18n.tn('clienti.msg.part.noteCredito', noteCredito));
           this.snack.open(
-            `Impossibile eliminare: ${c.ragioneSociale} ha ${parts.join(', ')} collegati.`,
+            this.i18n.t('clienti.msg.impossibileEliminare', { nome: c.ragioneSociale!, parts: parts.join(', ') }),
             'OK', { duration: 8000 }
           );
         } else {
-          this.snack.open('Errore durante l\'eliminazione', '', { duration: 3000 });
+          this.snack.open(this.i18n.t('clienti.msg.erroreEliminazione'), '', { duration: 3000 });
         }
       }
     });
