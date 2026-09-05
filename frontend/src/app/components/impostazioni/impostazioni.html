@@ -377,6 +377,35 @@
             Configura l'API dell'intermediario per l'invio delle e-fatture al Sistema di Interscambio (SDI).
             Il gestionale genererà il file XML FatturaPA e lo invierà all'URL configurato.
           </p>
+          @if (!sdiConfigured) {
+            <div class="sdi-guide">
+              <div class="sdi-guide-title"><mat-icon>info</mat-icon> Come funziona l'invio</div>
+              <p>
+                Diventare un canale accreditato direttamente verso il Sistema di Interscambio richiede
+                requisiti tecnici e societari che un progetto personale/open source non ha. La strada
+                realistica è appoggiarsi a un <b>intermediario già accreditato</b> che offre invio e
+                ricezione via API (Aruba, Fatture in Cloud, o un altro provider a tua scelta).
+              </p>
+              <ol>
+                <li>Verifica sul tuo account dell'intermediario che il piano includa l'accesso
+                  <b>API</b> (non solo il portale web) e recupera endpoint e chiave nella sezione
+                  sviluppatori/API del loro sito.</li>
+                <li>Scegli il provider qui sotto: per Aruba e Fatture in Cloud l'URL si precompila da
+                  solo; con "Altro intermediario" inserisci l'endpoint fornito dal tuo provider.</li>
+                <li>Incolla la chiave API e salva: da quel momento "Invia all'SDI" sulle fatture userà
+                  questa configurazione.</li>
+              </ol>
+              <div class="sdi-guide-fallback">
+                <mat-icon>download</mat-icon>
+                <span>
+                  Senza configurare nulla qui, ogni fattura resta comunque scaricabile come XML
+                  FatturaPA valido (menu ⋮ sulla fattura → "Scarica XML FatturaPA"): puoi caricarlo tu
+                  sul portale del tuo intermediario, oppure gratuitamente su "Fatture e Corrispettivi"
+                  dell'Agenzia delle Entrate.
+                </span>
+              </div>
+            </div>
+          }
           <form [formGroup]="form" class="dialog-form">
             <mat-form-field style="width:100%">
               <mat-label>Provider</mat-label>

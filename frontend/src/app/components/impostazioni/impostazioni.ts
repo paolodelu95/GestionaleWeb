@@ -745,6 +745,13 @@ export class ImpostazioniComponent implements OnInit {
     FIC:   'https://api-v2.fattureincloud.it',
   };
 
+  /** True quando url+chiave sono compilati: la guida lascia il posto al form una volta fatto. */
+  get sdiConfigured(): boolean {
+    const url = (this.form.get('sdiApiUrl')?.value || '').trim();
+    const key = (this.form.get('sdiApiKey')?.value || '').trim();
+    return !!url && !!key;
+  }
+
   /** Al cambio provider, precompila l'URL noto se il campo è vuoto o standard. */
   onSdiProviderChange(provider: string) {
     const known = Object.values(this.SDI_ENDPOINT);
