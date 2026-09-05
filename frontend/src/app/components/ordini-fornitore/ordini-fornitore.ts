@@ -17,36 +17,39 @@ import { ConfirmService } from '../shared/confirm-dialog';
 import { EmptyStateComponent } from '../shared/empty-state';
 import { OrdineDialogComponent } from '../ordini/ordini';
 import { Ordine, Acquisto } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 // ── Dialog: collega fattura ricevuta (acquisto) ──────────────────────────────
 @Component({
   selector: 'app-collega-fattura-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatButtonModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatButtonModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Collega fattura ricevuta</h2>
+    <h2 mat-dialog-title>{{ 'ordiniFornitore.collegaFattura.title' | t }}</h2>
     <mat-dialog-content style="min-width:380px">
       @if (acquisti.length) {
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Fattura ricevuta (acquisto)</mat-label>
+          <mat-label>{{ 'ordiniFornitore.collegaFattura.label' | t }}</mat-label>
           <mat-select [(ngModel)]="acquistoId">
-            <mat-option [value]="null">— nessuna —</mat-option>
+            <mat-option [value]="null">{{ 'ordiniFornitore.collegaFattura.nessuna' | t }}</mat-option>
             @for (a of acquisti; track a.id) {
               <mat-option [value]="a.id">{{ a.numero }} — {{ a.dataEmissione | date:'dd/MM/yyyy' }} ({{ a.totale | currency:'EUR':'symbol':'1.2-2':'it' }})</mat-option>
             }
           </mat-select>
         </mat-form-field>
-        <p style="font-size:12px;color:var(--text-tertiary);margin:0">Mostro le fatture passive di {{ data.ordine.fornitoreNome || 'questo fornitore' }}. Le fatture ricevute via SDI arrivano qui da "Acquisti".</p>
+        <p style="font-size:12px;color:var(--text-tertiary);margin:0">{{ i18n.t('ordiniFornitore.collegaFattura.hint', { nome: data.ordine.fornitoreNome || i18n.t('ordiniFornitore.collegaFattura.fornitoreDefault') }) }}</p>
       } @else {
-        <p style="font-size:13px;color:var(--text-secondary);margin:0">Nessuna fattura di acquisto trovata per questo fornitore. Le fatture ricevute via SDI compaiono in "Acquisti".</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin:0">{{ 'ordiniFornitore.collegaFattura.nessunaTrovata' | t }}</p>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" [mat-dialog-close]="{ acquistoId }">Collega</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button color="primary" [mat-dialog-close]="{ acquistoId }">{{ 'ordiniFornitore.collegaFattura.collega' | t }}</button>
     </mat-dialog-actions>`,
 })
 export class CollegaFatturaDialogComponent {
+  i18n = inject(I18nService);
   acquistoId: number | null;
   acquisti: Acquisto[];
   constructor(
@@ -64,10 +67,11 @@ export class CollegaFatturaDialogComponent {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule, MatMenuModule,
             MatTooltipModule, MatSnackBarModule, MatDialogModule, EmptyStateComponent,
-            MatPaginatorModule],
+            MatPaginatorModule, TPipe],
   templateUrl: './ordini-fornitore.html',
 })
 export class OrdiniFornitoreComponent implements OnInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   ordini: Ordine[] = [];
   acquisti: Acquisto[] = [];
@@ -110,7 +114,7 @@ export class OrdiniFornitoreComponent implements OnInit {
       result.tipo = 'FORNITORE';
       result.stato = result.stato || 'BOZZA';
       this.ds.createOrdine(result).subscribe({
-        next: () => { this.load(); this.snack.open('Ordine creato', '', { duration: 2000, panelClass: 'snack-ok' }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('ordiniFornitore.msg.ordineCreato'), '', { duration: 2000, panelClass: 'snack-ok' }); },
         error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' }),
       });
     });
@@ -124,14 +128,14 @@ export class OrdiniFornitoreComponent implements OnInit {
       if (!result) return;
       result.tipo = 'FORNITORE';
       this.ds.updateOrdine({ ...o, ...result }).subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('ordini.msg.salvato'), '', { duration: 2000 }); },
         error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' }),
       });
     });
   }
 
   setStato(o: Ordine, stato: string) {
-    this.ds.setOrdineStato(o.id!, stato).subscribe(() => { o.stato = stato; this.snack.open('Stato aggiornato', '', { duration: 1800 }); });
+    this.ds.setOrdineStato(o.id!, stato).subscribe(() => { o.stato = stato; this.snack.open(this.i18n.t('ordiniFornitore.msg.statoAggiornato'), '', { duration: 1800 }); });
   }
 
   collegaFattura(o: Ordine) {
@@ -140,7 +144,7 @@ export class OrdiniFornitoreComponent implements OnInit {
         if (res === undefined) return;
         this.ds.collegaAcquistoOrdine(o.id!, res.acquistoId).subscribe(() => {
           this.load();
-          this.snack.open(res.acquistoId ? 'Fattura collegata' : 'Fattura scollegata', '', { duration: 1800 });
+          this.snack.open(this.i18n.t(res.acquistoId ? 'ordiniFornitore.msg.fatturaCollegata' : 'ordiniFornitore.msg.fatturaScollegata'), '', { duration: 1800 });
         });
       });
   }
@@ -148,7 +152,7 @@ export class OrdiniFornitoreComponent implements OnInit {
   stampa(o: Ordine) { this.printSvc.printOrdine(o.id!); }
 
   async elimina(o: Ordine) {
-    if (!await this.confirm.delete(`Eliminare l'ordine ${o.numero}?`)) return;
-    this.ds.deleteOrdine(o.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    if (!await this.confirm.delete(this.i18n.t('ordiniFornitore.msg.confermaElimina', { numero: o.numero }))) return;
+    this.ds.deleteOrdine(o.id!).subscribe(() => { this.load(); this.snack.open(this.i18n.t('ordiniFornitore.msg.eliminato'), '', { duration: 2000 }); });
   }
 }
