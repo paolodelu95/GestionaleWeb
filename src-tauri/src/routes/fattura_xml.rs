@@ -16,7 +16,7 @@ use serde_json::{json, Value};
 use crate::db::AppState;
 use crate::error::{ApiError, ApiResult};
 use crate::web::{num, oggi, tenant_conn};
-use crate::xml::build_fattura_pa;
+use crate::xml::{build_fattura_pa, country_code_opt};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -24,6 +24,7 @@ pub fn routes() -> Router<AppState> {
         .route("/:id/validate", get(validate))
         .route("/:id/invia-sdi", post(invia_sdi))
         .route("/nota-credito/:id", get(get_xml_nota))
+        .route("/nota-credito/:id/validate", get(validate_nota))
         .route("/nota-credito/:id/invia-sdi", post(invia_sdi_nota))
 }
 
@@ -127,14 +128,28 @@ async fn invia(state: AppState, id: i64, is_nota: bool) -> ApiResult<Json<Value>
 // ── validazione pre-invio ────────────────────────────────────────────────────
 
 async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
+    validate_doc(state, id, false).await
+}
+async fn validate_nota(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
+    validate_doc(state, id, true).await
+}
+
+async fn validate_doc(state: AppState, id: i64, is_nota: bool) -> ApiResult<Json<Value>> {
+    let table = if is_nota { "note_credito" } else { "fatture" };
+    let righe_table = if is_nota { "note_credito_righe" } else { "fatture_righe" };
+    let fk_col = if is_nota { "nota_credito_id" } else { "fattura_id" };
+    let doc = if is_nota { "Nota di credito" } else { "Fattura" };
+
     let conn = tenant_conn(&state)?;
     let conn = conn.lock().unwrap();
     let f = conn
         .query_row(
-            "SELECT f.numero, f.data_emissione, f.stato, f.stato_sdi, f.note, f.cliente_id, \
-                    c.ragione_sociale, c.p_iva, c.codice_fiscale, c.via, c.cap, c.citta, c.provincia, c.sdi, c.pec, c.tipo_soggetto, \
-                    f.bollo \
-             FROM fatture f LEFT JOIN clienti c ON c.id=f.cliente_id WHERE f.id=?1",
+            &format!(
+                "SELECT f.numero, f.data_emissione, f.stato, f.stato_sdi, f.note, f.cliente_id, \
+                        c.ragione_sociale, c.p_iva, c.codice_fiscale, c.via, c.cap, c.citta, c.provincia, c.sdi, c.pec, c.tipo_soggetto, \
+                        f.bollo, c.stato \
+                 FROM {table} f LEFT JOIN clienti c ON c.id=f.cliente_id WHERE f.id=?1"
+            ),
             [id],
             |r| {
                 let s = |i: usize| r.get::<_, Option<String>>(i).map(|o| o.unwrap_or_default());
@@ -144,11 +159,12 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
                     ragione_sociale: s(6)?, p_iva: s(7)?, codice_fiscale: s(8)?, via: s(9)?, cap: s(10)?,
                     citta: s(11)?, provincia: s(12)?, sdi: s(13)?, pec: s(14)?, tipo_soggetto: s(15)?,
                     bollo: r.get::<_, Option<i64>>(16)? == Some(1),
+                    c_stato: s(17)?,
                 })
             },
         )
         .optional()?;
-    let f = f.ok_or_else(|| ApiError::not_found("Fattura non trovata"))?;
+    let f = f.ok_or_else(|| ApiError::not_found(format!("{doc} non trovata")))?;
     // NB: azienda usa la colonna `indirizzo`, non `via`. Node legge `az.via`
     // (inesistente → undefined → sempre "indirizzo incompleto"): replico lasciando via="".
     let az = conn
@@ -167,6 +183,20 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
     let cf_clean = clean_cf(&f.codice_fiscale);
 
     // CLIENTE
+    // "Stato" e' un campo libero in anagrafica: qualsiasi valore diverso da
+    // vuoto/"Italia" segna il cliente come estero, a prescindere dal fatto che
+    // il nome sia tra quelli che sappiamo tradurre in codice ISO (country_code_opt,
+    // usato dalla generazione XML). Se non lo riconosciamo avvisiamo qui, perche'
+    // altrimenti l'XML ricadrebbe silenziosamente su IT.
+    let stato_trim = f.c_stato.trim();
+    let is_estero = !stato_trim.is_empty() && stato_trim.to_lowercase() != "italia";
+    if is_estero && country_code_opt(stato_trim).is_none() {
+        warnings.push(format!(
+            "Cliente: stato \"{}\" non riconosciuto — nell'XML verrà scritto come IT finché non usi un nome di stato riconosciuto (es. \"Germania\", \"Francia\", \"Stati Uniti\").",
+            f.c_stato
+        ));
+    }
+
     if f.cliente_id.is_none() {
         errors.push("Cliente mancante.".into());
     } else {
@@ -178,13 +208,13 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
         if piva_clean.is_empty() && cf_clean.is_empty() {
             errors.push("Cliente: serve P.IVA o Codice Fiscale per la fattura elettronica.".into());
         } else {
-            if !piva_clean.is_empty() && !is_11_digits(&piva_clean) {
+            if !piva_clean.is_empty() && !is_estero && !is_11_digits(&piva_clean) {
                 errors.push(format!("P.IVA cliente non valida: \"{}\" (11 cifre richieste).", f.p_iva));
             }
-            if !cf_clean.is_empty() && cf_clean.len() != 11 && cf_clean.len() != 16 {
+            if !cf_clean.is_empty() && !is_estero && cf_clean.len() != 11 && cf_clean.len() != 16 {
                 errors.push(format!("Codice Fiscale cliente non valido: \"{}\" (deve essere 11 o 16 caratteri).", f.codice_fiscale));
             }
-            if cf_clean.len() == 16 && !cf_clean.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()) {
+            if !is_estero && cf_clean.len() == 16 && !cf_clean.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()) {
                 errors.push(format!("Codice Fiscale \"{}\" contiene caratteri non validi (atteso A-Z, 0-9).", f.codice_fiscale));
             }
         }
@@ -193,19 +223,23 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
         }
         if f.cap.trim().is_empty() {
             errors.push("Cliente: CAP mancante.".into());
-        } else if !is_5_digits(f.cap.trim()) {
+        } else if !is_estero && !is_5_digits(f.cap.trim()) {
             errors.push(format!("Cliente: CAP \"{}\" non valido (5 cifre).", f.cap));
         }
         if f.citta.trim().is_empty() {
             errors.push("Cliente: citta mancante.".into());
         }
-        if !f.provincia.is_empty() && !is_2_alpha(&f.provincia.trim().to_uppercase()) {
+        if !is_estero && !f.provincia.is_empty() && !is_2_alpha(&f.provincia.trim().to_uppercase()) {
             warnings.push(format!("Cliente: provincia \"{}\" non standard (2 lettere maiuscole).", f.provincia));
         }
         let sdi = f.sdi.trim().to_uppercase();
         let pec = f.pec.trim().to_string();
         if sdi.is_empty() && pec.is_empty() {
-            warnings.push("Cliente senza codice SDI ne PEC: la fattura verra recapitata con destinatario default 0000000 (consultabile dal cassetto fiscale).".into());
+            if is_estero {
+                warnings.push("Cliente estero senza codice SDI ne PEC: la fattura verra recapitata con destinatario convenzionale XXXXXXX (consultabile dal cassetto fiscale).".into());
+            } else {
+                warnings.push("Cliente senza codice SDI ne PEC: la fattura verra recapitata con destinatario default 0000000 (consultabile dal cassetto fiscale).".into());
+            }
         } else {
             if !sdi.is_empty() {
                 if tipo_sogg == "PA" {
@@ -256,9 +290,9 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
 
     // INTESTAZIONE
     if f.numero.trim().is_empty() {
-        errors.push("Numero fattura mancante.".into());
+        errors.push("Numero documento mancante.".into());
     } else if f.numero.chars().count() > 20 {
-        errors.push(format!("Numero fattura > 20 caratteri ({}).", f.numero.chars().count()));
+        errors.push(format!("Numero documento > 20 caratteri ({}).", f.numero.chars().count()));
     }
     if f.data_emissione.is_empty() {
         errors.push("Data emissione mancante.".into());
@@ -272,7 +306,9 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
     }
 
     // RIGHE
-    let mut stmt = conn.prepare("SELECT descrizione, quantita, prezzo, iva, codice_iva, sconto FROM fatture_righe WHERE fattura_id=?1 ORDER BY id")?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT descrizione, quantita, prezzo, iva, codice_iva, sconto FROM {righe_table} WHERE {fk_col}=?1 ORDER BY id"
+    ))?;
     let righe = stmt
         .query_map([id], |r| {
             Ok((
@@ -286,7 +322,7 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
         })?
         .collect::<Result<Vec<_>, _>>()?;
     if righe.is_empty() {
-        errors.push("Nessuna riga in fattura.".into());
+        errors.push("Nessuna riga nel documento.".into());
     }
     let mut totale_calcolato = 0.0;
     let mut natura_mancante: Vec<usize> = Vec::new();
@@ -374,16 +410,16 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
 
     // STATO
     if f.stato == "ANNULLATA" {
-        errors.push("Fattura annullata: non puo essere inviata a SDI.".into());
+        errors.push(format!("{doc} annullata: non puo essere inviata a SDI."));
     }
     if f.stato_sdi == "INVIATA" {
-        warnings.push("Fattura gia inviata a SDI in precedenza.".into());
+        warnings.push(format!("{doc} gia inviata a SDI in precedenza."));
     }
 
     // XML
     let mut xml_valido: Value = Value::Null;
     let mut xml_size = 0i64;
-    match build_fattura_pa(&conn, id, false) {
+    match build_fattura_pa(&conn, id, is_nota) {
         Ok(xml) => {
             xml_size = xml.len() as i64;
             xml_valido = Value::Bool(true);
@@ -427,6 +463,7 @@ struct Fatt {
     pec: String,
     tipo_soggetto: String,
     bollo: bool,
+    c_stato: String,
 }
 
 #[derive(Default)]

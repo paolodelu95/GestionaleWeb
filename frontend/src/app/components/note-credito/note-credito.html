@@ -98,6 +98,13 @@
             <button mat-menu-item type="button" (click)="inviaEmail(n)">
               <mat-icon>mail</mat-icon> Invia per email
             </button>
+            <button mat-menu-item type="button" (click)="inviaSdi(n)">
+              <mat-icon [style.color]="n.statoSdi === 'INVIATA' ? '#16a34a' : undefined">send_time_extension</mat-icon>
+              Invia all'SDI{{ n.statoSdi === 'INVIATA' ? ' ✓' : '' }}
+            </button>
+            <button mat-menu-item type="button" (click)="downloadXml(n)">
+              <mat-icon>code</mat-icon> Scarica XML FatturaPA
+            </button>
             @if (n.stato !== 'ANNULLATA') {
               <button mat-menu-item type="button" (click)="setStato(n, 'ANNULLATA')">
                 <mat-icon>cancel</mat-icon> Annulla

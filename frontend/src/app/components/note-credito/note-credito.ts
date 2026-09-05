@@ -37,6 +37,7 @@ import { CopiaRigheDialogComponent, CopiaRigheDialogData } from '../shared/copia
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
 import { ViewStateService } from '../../services/view-state.service';
+import { environment } from '../../../environments/environment';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { forkJoin, of } from 'rxjs';
@@ -882,6 +883,50 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   }
 
   printDoc(n: NotaCredito) { this.printSvc.printNotaCredito(n.id!); }
+
+  downloadXml(n: NotaCredito) {
+    const a = document.createElement('a');
+    a.href = `${environment.apiUrl}/fattura-xml/nota-credito/${n.id}`;
+    a.download = `NotaCredito_${n.numero}.xml`;
+    a.click();
+  }
+
+  inviaSdi(n: NotaCredito) {
+    this.ds.validateNotaXml(n.id!).subscribe({
+      next: async v => {
+        if (!v.ok) {
+          await this.confirm.alert({
+            title: 'Nota di credito non inviabile',
+            message: 'Prima dell\'invio all\'SDI vanno sistemati questi punti:\n\n' +
+                     v.errors.map(e => '• ' + e).join('\n') +
+                     (v.warnings.length ? '\n\nAvvisi:\n' + v.warnings.map(w => '• ' + w).join('\n') : ''),
+          });
+          return;
+        }
+        const prefix = v.warnings.length
+          ? `Avvisi:\n${v.warnings.map(w => '• ' + w).join('\n')}\n\n`
+          : '';
+        if (!await this.confirm.ask(`${prefix}Inviare la nota di credito n. ${n.numero} all'SDI?`)) return;
+        this.ds.inviaNotaSdi(n.id!).subscribe({
+          next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000, panelClass: 'snack-ok' }); },
+          error: e => {
+            const msg = e.error?.error || e.message || '';
+            if (msg.includes('SDI non configurata')) {
+              const ref = this.snack.open(
+                'Nessun intermediario SDI configurato. Puoi scaricare l\'XML e caricarlo tu sul portale del tuo intermediario o su "Fatture e Corrispettivi", oppure configurarne uno in Impostazioni → SDI.',
+                'Scarica XML', { duration: 9000, panelClass: 'snack-error' }
+              );
+              ref.onAction().subscribe(() => this.downloadXml(n));
+            } else {
+              this.snack.open('Errore SDI: ' + msg, '', { duration: 5000, panelClass: 'snack-error' });
+            }
+          }
+        });
+      },
+      error: () => this.snack.open('Non è stato possibile controllare la nota di credito. Riprova.', 'OK',
+                                   { duration: 5000, panelClass: 'snack-error' })
+    });
+  }
 
   inviaEmail(n: NotaCredito) {
     forkJoin({ az: this.ds.getAzienda(), clienti: this.ds.getClienti() }).subscribe(({ az, clienti }) => {

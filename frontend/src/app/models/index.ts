@@ -666,6 +666,7 @@ export interface NotaCredito {
   fatturaId?: number | null;
   note?: string;
   stato: string;
+  statoSdi?: string;
   totale?: number;
   imponibile?: number;
   righe?: RigaDocumento[];

@@ -616,6 +616,10 @@ export class DataService {
 
   // SDI
   inviaFatturaSdi(id: number): Observable<any> { return this.api.post(`fattura-xml/${id}/invia-sdi`, {}); }
+  validateNotaXml(id: number): Observable<{ ok: boolean; errors: string[]; warnings: string[]; totaleCalcolato: number }> {
+    return this.api.get(`fattura-xml/nota-credito/${id}/validate`);
+  }
+  inviaNotaSdi(id: number): Observable<any> { return this.api.post(`fattura-xml/nota-credito/${id}/invia-sdi`, {}); }
 
   // Note Rapide
   // Lavagna post-it (un blob JSON per tenant)

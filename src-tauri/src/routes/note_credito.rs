@@ -322,6 +322,7 @@ fn to_dto(conn: &Connection, r: &Row) -> rusqlite::Result<Value> {
         "fatturaId": r.get::<_, Option<i64>>("fattura_id")?,
         "note": r.get::<_, Option<String>>("note")?,
         "stato": r.get::<_, Option<String>>("stato")?,
+        "statoSdi": r.get::<_, Option<String>>("stato_sdi")?,
         "imponibile": num(t.imponibile),
         "totale": num(t.totale),
         "ritenutaAliquota": num(fisc.ritenuta_aliquota),
