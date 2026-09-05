@@ -1,51 +1,51 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Note di Credito</h1>
+    <h1 class="page-title">{{ 'noteCredito.title' | t }}</h1>
     @if (selection.hasValue()) {
       <div class="bulk-bar">
-        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <span class="bulk-count">{{ selection.selected.length | tn:'noteCredito.selected' }}</span>
         <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('ANNULLATA')">
-          <mat-icon>cancel</mat-icon> Annulla
+          <mat-icon>cancel</mat-icon> {{ 'noteCredito.bulk.annulla' | t }}
         </button>
         <button mat-stroked-button type="button" color="warn" (click)="bulkElimina()">
-          <mat-icon>delete</mat-icon> Elimina
+          <mat-icon>delete</mat-icon> {{ 'noteCredito.bulk.elimina' | t }}
         </button>
-        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+        <button mat-button type="button" (click)="selection.clear()">{{ 'noteCredito.bulk.deseleziona' | t }}</button>
       </div>
     }
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuova nota di credito</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="note-credito" title="Note di credito"></app-export-menu></span>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> {{ 'noteCredito.nuovo' | t }}</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'noteCredito.stampa' | t }}</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="note-credito" [title]="'noteCredito.title' | t"></app-export-menu></span>
 
-    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuNc" title="Altre azioni">
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuNc" [title]="'noteCredito.altreAzioni' | t">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuNc="matMenu">
-      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'note-credito')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
-      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'note-credito')"><mat-icon>description</mat-icon> Esporta CSV</button>
-      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'note-credito', 'Note di credito')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'noteCredito.stampa' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'note-credito')"><mat-icon>grid_on</mat-icon> {{ 'noteCredito.esportaExcel' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'note-credito')"><mat-icon>description</mat-icon> {{ 'noteCredito.esportaCsv' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'note-credito', 'Note di credito')"><mat-icon>picture_as_pdf</mat-icon> {{ 'noteCredito.esportaPdf' | t }}</button>
     </mat-menu>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" placeholder="Anno" multiple>
+    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" [placeholder]="'noteCredito.filtri.anno' | t" multiple>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" placeholder="Mese" multiple>
+    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" [placeholder]="'noteCredito.filtri.mese' | t" multiple>
       @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" placeholder="Cliente" multiple>
+    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" [placeholder]="'noteCredito.filtri.cliente' | t" multiple>
       @for (c of clientiList; track c.id) { <mat-option [value]="c.id">{{ c.nome }}</mat-option> }
     </mat-select>
     @if (filtroAnni.length || filtroMesi.length || filtroClienti.length) {
-      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+      <button mat-icon-button type="button" [title]="'noteCredito.filtri.rimuovi' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>
 
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca note di credito...</mat-label>
+      <mat-label>{{ 'noteCredito.cerca' | t }}</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
@@ -62,62 +62,62 @@
       </ng-container>
 
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'noteCredito.col.numero' | t }}</th>
         <td mat-cell *matCellDef="let n"><b>{{ n.numero }}</b></td>
       </ng-container>
 
       <ng-container matColumnDef="dataEmissione">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Data</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'noteCredito.col.data' | t }}</th>
         <td mat-cell *matCellDef="let n">{{ n.dataEmissione | date:'dd/MM/yyyy' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="clienteNome">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'noteCredito.col.cliente' | t }}</th>
         <td mat-cell *matCellDef="let n">{{ n.clienteNome || '—' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="totale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'noteCredito.col.importo' | t }}</th>
         <td mat-cell *matCellDef="let n" class="euro">{{ (n.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="stato">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Stato</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'noteCredito.col.stato' | t }}</th>
         <td mat-cell *matCellDef="let n">
-          <span class="stato-chip" [class]="n.stato.toLowerCase()">{{ n.stato }}</span>
+          <span class="stato-chip" [class]="n.stato.toLowerCase()">{{ ('noteCredito.stato.' + n.stato.toLowerCase()) | t }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let n" class="table-actions">
-          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="menuNcAz"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" [title]="'noteCredito.altreAzioni' | t" [matMenuTriggerFor]="menuNcAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuNcAz="matMenu">
-            <button mat-menu-item type="button" (click)="info(n)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
-            <button mat-menu-item type="button" (click)="printDoc(n)"><mat-icon>print</mat-icon> Stampa</button>
+            <button mat-menu-item type="button" (click)="info(n)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> {{ 'noteCredito.azioni.scheda' | t }}</button>
+            <button mat-menu-item type="button" (click)="printDoc(n)"><mat-icon>print</mat-icon> {{ 'noteCredito.stampa' | t }}</button>
             <button mat-menu-item type="button" (click)="inviaEmail(n)">
-              <mat-icon>mail</mat-icon> Invia per email
+              <mat-icon>mail</mat-icon> {{ 'noteCredito.azioni.inviaEmail' | t }}
             </button>
             <button mat-menu-item type="button" (click)="inviaSdi(n)">
               <mat-icon [style.color]="n.statoSdi === 'INVIATA' ? '#16a34a' : undefined">send_time_extension</mat-icon>
-              Invia all'SDI{{ n.statoSdi === 'INVIATA' ? ' ✓' : '' }}
+              {{ 'noteCredito.azioni.inviaSdi' | t }}{{ n.statoSdi === 'INVIATA' ? ' ✓' : '' }}
             </button>
             <button mat-menu-item type="button" (click)="downloadXml(n)">
-              <mat-icon>code</mat-icon> Scarica XML FatturaPA
+              <mat-icon>code</mat-icon> {{ 'noteCredito.azioni.scaricaXml' | t }}
             </button>
             @if (n.stato !== 'ANNULLATA') {
               <button mat-menu-item type="button" (click)="setStato(n, 'ANNULLATA')">
-                <mat-icon>cancel</mat-icon> Annulla
+                <mat-icon>cancel</mat-icon> {{ 'noteCredito.azioni.annulla' | t }}
               </button>
             }
             <button mat-menu-item type="button" (click)="duplicate(n)">
-              <mat-icon>content_copy</mat-icon> Duplica
+              <mat-icon>content_copy</mat-icon> {{ 'noteCredito.azioni.duplica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="open(n)">
-              <mat-icon>edit</mat-icon> Modifica
+              <mat-icon>edit</mat-icon> {{ 'noteCredito.azioni.modifica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="delete(n)" style="color:#dc2626">
-              <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+              <mat-icon style="color:#dc2626">delete</mat-icon> {{ 'noteCredito.azioni.elimina' | t }}
             </button>
           </mat-menu>
         </td>
@@ -128,13 +128,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (dataSource.filter) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessuna nota di credito corrisponde alla ricerca." />
+            <app-empty-state compact icon="search_off" [title]="'noteCredito.empty.nessunRisultatoTitle' | t"
+              [message]="'noteCredito.empty.nessunRisultatoMsg' | t" />
           } @else {
-            <app-empty-state icon="note_alt" title="Ancora nessuna nota di credito"
-              message="Una nota di credito storna, in tutto o in parte, una fattura già emessa.">
+            <app-empty-state icon="note_alt" [title]="'noteCredito.empty.title' | t"
+              [message]="'noteCredito.empty.msg' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuova nota di credito
+                <mat-icon>add</mat-icon> {{ 'noteCredito.nuovo' | t }}
               </button>
             </app-empty-state>
           }
@@ -143,10 +143,10 @@
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
     <div class="list-totali">
-      <span class="lt-count">{{ dataSource.data.length }} document{{ dataSource.data.length === 1 ? 'o' : 'i' }}</span>
-      <span class="lt-tot">Totale: <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+      <span class="lt-count">{{ dataSource.data.length | tn:'noteCredito.listTotali.documenti' }}</span>
+      <span class="lt-tot">{{ 'noteCredito.listTotali.totale' | t }} <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       @if (selection.hasValue()) {
-        <span class="lt-sel">{{ selection.selected.length }} selezionat{{ selection.selected.length === 1 ? 'o' : 'i' }}: <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+        <span class="lt-sel">{{ selection.selected.length | tn:'noteCredito.listTotali.selezionati' }} <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       }
     </div>
   </div>

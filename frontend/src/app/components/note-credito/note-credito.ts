@@ -42,13 +42,16 @@ import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directiv
 import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 @Component({
   selector: 'app-nc-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule, TPipe, TnPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -57,19 +60,19 @@ import { catchError } from 'rxjs/operators';
         </div>
         <div class="dialog-hero-text">
           <span class="dialog-hero-title">
-            {{ data?.id ? ('Nota di credito n. ' + (data?.numero || '')) : 'Nuova nota di credito' }}
+            {{ data?.id ? i18n.t('noteCredito.dialog.titoloEsistente', { numero: data?.numero || '' }) : ('noteCredito.nuovo' | t) }}
             @if (data?.id && locked) {
-              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>{{ 'fatture.dialog.bloccato' | t }}</span>
             }
           </span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica intestatario, fattura collegata e righe' : 'Storno di fattura emessa' }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'noteCredito.dialog.subEsistente' : 'noteCredito.dialog.subNuovo') | t }}</span>
         </div>
         @if (data?.id) {
           <button mat-icon-button type="button"
                   class="dialog-lock-btn"
                   [class.is-locked]="locked"
                   [class.is-unlocked]="!locked"
-                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  [matTooltip]="(locked ? 'fatture.dialog.tooltipBloccato' : 'fatture.dialog.tooltipSbloccato') | t"
                   (click)="toggleLock()">
             <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
           </button>
@@ -81,12 +84,12 @@ import { catchError } from 'rxjs/operators';
       <div class="doc-form">
 
         <div class="form-section is-primary">
-          <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+          <div class="form-section-header"><mat-icon>person</mat-icon><span>{{ 'fatture.dialog.intestazione' | t }}</span></div>
           <div class="doc-field-grid has-2-extra" [formGroup]="form">
             <mat-form-field>
-              <mat-label>Cliente</mat-label>
+              <mat-label>{{ 'ordini.dialog.cliente' | t }}</mat-label>
               <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                     (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA...">
+                     (keyup.enter)="autoSelectCliente()" [placeholder]="'preventivi.dialog.cercaClientePh' | t">
               <mat-icon matSuffix>search</mat-icon>
               <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
                 @for (c of filteredClienti; track c.id) {
@@ -95,27 +98,27 @@ import { catchError } from 'rxjs/operators';
               </mat-autocomplete>
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Fattura da stornare</mat-label>
+              <mat-label>{{ 'noteCredito.dialog.fatturaDaStornare' | t }}</mat-label>
               <mat-select formControlName="fatturaId">
-                <mat-option [value]="null">— nessuna —</mat-option>
+                <mat-option [value]="null">{{ 'fatture.dialog.nessuna' | t }}</mat-option>
                 @for (f of fattureDisponibili; track f.id) {
                   <mat-option [value]="f.id">{{ f.numero }} — {{ f.dataEmissione | date:'dd/MM/yyyy' }}</mat-option>
                 }
               </mat-select>
               <mat-icon matSuffix>receipt</mat-icon>
               @if (!selectedClienteId) {
-                <mat-hint>Seleziona prima un cliente</mat-hint>
+                <mat-hint>{{ 'noteCredito.dialog.selezionaClientePrima' | t }}</mat-hint>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Numero *</mat-label>
+              <mat-label>{{ 'fatture.dialog.numero' | t }}</mat-label>
               <input matInput formControlName="numero">
               @if (form.get('numero')?.hasError('numeroDuplicato')) {
-                <mat-error>Numero già esistente</mat-error>
+                <mat-error>{{ 'fatture.dialog.numeroEsistente' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Data emissione *</mat-label>
+              <mat-label>{{ 'fatture.dialog.dataEmissione' | t }}</mat-label>
               <input matInput type="date" formControlName="dataEmissione">
             </mat-form-field>
           </div>
@@ -124,28 +127,28 @@ import { catchError } from 'rxjs/operators';
         <div class="form-section">
           <div class="righe-header">
             <div class="righe-header-title">
-              <span>Righe *</span>
+              <span>{{ 'fatture.dialog.righe' | t }}</span>
             </div>
             <div class="righe-actions">
               <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-                <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-                <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+                <mat-button-toggle [value]="false">{{ 'fatture.dialog.ivato' | t }}</mat-button-toggle>
+                <mat-button-toggle [value]="true">{{ 'fatture.dialog.netto' | t }}</mat-button-toggle>
               </mat-button-toggle-group>
               <button mat-flat-button color="primary" type="button" (click)="addRiga()">
-                <mat-icon>add</mat-icon> Aggiungi riga
+                <mat-icon>add</mat-icon> {{ 'fatture.dialog.aggiungiRiga' | t }}
               </button>
               <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-                <mat-icon>content_copy</mat-icon> Copia da…
+                <mat-icon>content_copy</mat-icon> {{ 'fatture.dialog.copiaDa' | t }}
               </button>
               <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-                <mat-icon>note_add</mat-icon> Aggiungi nota
+                <mat-icon>note_add</mat-icon> {{ 'preventivi.dialog.aggiungiNota' | t }}
               </button>
               <mat-menu #menuNota="matMenu">
                 <button mat-menu-item type="button" (click)="addNota('')">
-                  <mat-icon>edit_note</mat-icon> Nota libera
+                  <mat-icon>edit_note</mat-icon> {{ 'fatture.dialog.notaLibera' | t }}
                 </button>
                 @if (noteRapideList.length) {
-                  <div class="menu-section-label">Note rapide</div>
+                  <div class="menu-section-label">{{ 'fatture.dialog.noteRapide' | t }}</div>
                   @for (nr of noteRapideList; track nr.id) {
                     <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                   }
@@ -157,7 +160,7 @@ import { catchError } from 'rxjs/operators';
           @if (form.get('fatturaId')?.value) {
             <div class="doc-banner is-success grid-span-all">
               <mat-icon>auto_fix_high</mat-icon>
-              <span>Righe importate con importo negativo. Fattura e nota di credito saranno saldate automaticamente.</span>
+              <span>{{ 'noteCredito.dialog.bannerRigheImportate' | t }}</span>
             </div>
           }
 
@@ -166,15 +169,15 @@ import { catchError } from 'rxjs/operators';
             <thead>
               <tr>
                 <th class="td-drag"></th>
-                <th class="td-desc">Codice / Descrizione</th>
+                <th class="td-desc">{{ 'fatture.dialog.colCodiceDescrizione' | t }}</th>
                 <th class="td-search"></th>
                 <th class="td-history"></th>
-                <th class="td-qta">Qtà</th>
-                <th class="td-um">UM</th>
-                <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
-                <th class="td-sconto">Sconto%</th>
-                <th class="td-iva">IVA%</th>
-                <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                <th class="td-qta">{{ 'fatture.dialog.colQta' | t }}</th>
+                <th class="td-um">{{ 'fatture.dialog.colUm' | t }}</th>
+                <th class="td-prezzo">{{ (showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t }}</th>
+                <th class="td-sconto">{{ 'fatture.dialog.colSconto' | t }}</th>
+                <th class="td-iva">{{ 'preventivi.dialog.colIva' | t }}</th>
+                <th class="td-totale">{{ (showNetto ? 'fatture.dialog.colTotaleNetto' : 'fatture.dialog.colTotaleIvato') | t }}</th>
                 <th class="td-actions"></th>
               </tr>
             </thead>
@@ -184,7 +187,7 @@ import { catchError } from 'rxjs/operators';
                   <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                     <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                     <td class="td-nota" colspan="9">
-                      <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota…">
+                      <input class="riga-input" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.notaPlaceholder' | t">
                     </td>
                     <td class="td-actions">
                       <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -197,31 +200,31 @@ import { catchError } from 'rxjs/operators';
                   <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                   <td class="td-desc">
                     <div class="codice-desc-stack">
-                      <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                      <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                      <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" [placeholder]="'fatture.dialog.codicePh' | t" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                      <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.descrizionePh' | t">
                     </div>
                   </td>
                   <td class="td-search">
-                    <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                    <button mat-icon-button type="button" (click)="searchProdotto($index)" [title]="'fatture.dialog.cercaProdotto' | t">
                       <mat-icon>search</mat-icon>
                     </button>
                   </td>
                   <td class="td-history">
                     @if (prezziRecenti[$index]?.length) {
-                      <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" title="Prezzi recenti - questo cliente">
+                      <button mat-icon-button type="button" [matMenuTriggerFor]="menuPR" [matMenuTriggerData]="{idx: $index}" [title]="'fatture.dialog.prezziRecentiClienteTooltip' | t">
                         <mat-icon class="icon-primary">history</mat-icon>
                       </button>
                     }
                     @if (riga.prodottoId) {
-                      <button mat-icon-button type="button" [matMenuTriggerFor]="menuPRTutti" [matMenuTriggerData]="{idx: $index}" (click)="loadTuttiPrezzi($index, riga.prodottoId)" title="Prezzi tutti i clienti">
+                      <button mat-icon-button type="button" [matMenuTriggerFor]="menuPRTutti" [matMenuTriggerData]="{idx: $index}" (click)="loadTuttiPrezzi($index, riga.prodottoId)" [title]="'fatture.dialog.prezziTuttiClientiTooltip' | t">
                         <mat-icon class="icon-muted">groups</mat-icon>
                       </button>
                     }
                   </td>
-                  <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
+                  <td class="td-qta" [attr.data-label]="'fatture.dialog.colQta' | t"><input class="riga-input" type="number" min="0"
                     [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                     [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                  <td class="td-um" [attr.data-label]="'UM'">
+                  <td class="td-um" [attr.data-label]="'fatture.dialog.colUm' | t">
                     <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                       <option value="">—</option>
                       @for (u of unitaMisura; track u.id) {
@@ -229,12 +232,12 @@ import { catchError } from 'rxjs/operators';
                       }
                     </select>
                   </td>
-                  <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
+                  <td class="td-prezzo" [attr.data-label]="(showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t"><input class="riga-input" type="number" min="0" step="0.01"
                     [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                     (change)="setPrezzoFromInput(riga, $event)"></td>
-                  <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
-                  <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                  <td class="td-totale" [attr.data-label]="'Totale'">
+                  <td class="td-sconto" [attr.data-label]="'fatture.dialog.colSconto' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto"></td>
+                  <td class="td-iva" [attr.data-label]="'preventivi.dialog.colIva' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                  <td class="td-totale" [attr.data-label]="'fatture.dialog.totale' | t">
                     {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                   </td>
                   <td class="td-actions">
@@ -250,7 +253,7 @@ import { catchError } from 'rxjs/operators';
           </div>
           <mat-menu #menuPR="matMenu">
             <ng-template matMenuContent let-idx="idx">
-              <div class="menu-section-label">Prezzi recenti</div>
+              <div class="menu-section-label">{{ 'fatture.dialog.prezziRecenti' | t }}</div>
               @for (pr of prezziRecenti[idx]; track $index) {
                 <button mat-menu-item type="button" (click)="usaPrezzo(idx, pr.prezzo, pr.sconto)">
                   <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} · {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
@@ -262,12 +265,12 @@ import { catchError } from 'rxjs/operators';
           </mat-menu>
           <mat-menu #menuPRTutti="matMenu">
             <ng-template matMenuContent let-idx="idx">
-              <div class="menu-section-label">Tutti i clienti</div>
+              <div class="menu-section-label">{{ 'fatture.dialog.tuttiClienti' | t }}</div>
               @if (!tuttiCaricati[idx]) {
-                <div class="menu-empty">Clicca per caricare…</div>
+                <div class="menu-empty">{{ 'fatture.dialog.clicPerCaricare' | t }}</div>
               }
               @if (tuttiCaricati[idx] && !prezziRecentiTutti[idx]?.length) {
-                <div class="menu-empty">Nessun prezzo trovato</div>
+                <div class="menu-empty">{{ 'fatture.dialog.nessunPrezzoTrovato' | t }}</div>
               }
               @for (pr of prezziRecentiTutti[idx] ?? []; track $index) {
                 <button mat-menu-item type="button" (click)="usaPrezzo(idx, pr.prezzo, pr.sconto)">
@@ -283,16 +286,16 @@ import { catchError } from 'rxjs/operators';
         </div>
 
         <div class="doc-totals-strip">
-          <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-          <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.imponibile' | t }}</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.iva' | t }}</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
           <span class="totals-spacer"></span>
-          <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-grand"><span class="totals-label">{{ 'fatture.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
         </div>
 
         <div class="form-section is-flat" [formGroup]="form">
-          <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+          <div class="form-section-header"><mat-icon>notes</mat-icon><span>{{ 'fatture.dialog.noteInterne' | t }}</span></div>
           <mat-form-field>
-            <mat-label>Note ad uso interno</mat-label>
+            <mat-label>{{ 'preventivi.dialog.noteAdUsoInterno' | t }}</mat-label>
             <textarea matInput rows="2" formControlName="note"></textarea>
           </mat-form-field>
         </div>
@@ -300,17 +303,18 @@ import { catchError } from 'rxjs/operators';
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
-          <mat-icon>print</mat-icon> Esporta PDF </button>
+          <mat-icon>print</mat-icon> {{ 'fatture.dialog.esportaPdf' | t }}</button>
       }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid || locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : (form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : '')">Salva</button>
+              [matTooltip]="locked ? ('fatture.dialog.sbloccaTooltip' | t) : (form.get('numero')?.hasError('numeroDuplicato') ? ('fatture.dialog.numeroEsistente' | t) : '')">{{ 'fatture.dialog.salva' | t }}</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
 export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
   locked = false;
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -319,7 +323,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDest
     if (target.closest('.dialog-lock-btn')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+    this.snack.open(this.i18n.t('fatture.dialog.msgDocBloccato'), 'OK', { duration: 2600 });
   }
   form: FormGroup;
   numeriEsistenti = new Set<string>();
@@ -461,7 +465,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDest
       // Per note di credito mantengo il segno della quantita (rimangono in negativo se importate)
       riga.prezzo = r.prezzo;
       riga.sconto = r.sconto;
-      if (r.listinoNome) this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+      if (r.listinoNome) this.snack.open(this.i18n.t('fatture.dialog.msg.prezzoListinoApplicato', { nome: r.listinoNome }), '', { duration: 2200 });
     });
   }
 
@@ -647,7 +651,7 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDest
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il cliente)').then(ok => {
+      this.confirmDraft.ask(this.i18n.t('fatture.dialog.msg.riprendiBozza')).then(ok => {
       if (ok) {
         try {
           const f = { ...(bozza.form || {}) }; delete f.numero;
@@ -679,18 +683,19 @@ export class NotaCreditoDialogComponent implements OnInit, AfterViewInit, OnDest
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
             MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent,
-            TableKeyboardNavDirective, ExportMenuComponent],
+            TableKeyboardNavDirective, ExportMenuComponent, TPipe, TnPipe],
   templateUrl: './note-credito.html',
   styleUrl: './note-credito.scss'
 })
 export class NoteCreditoComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   private allNoteCredito: NotaCredito[] = [];
   dataSource = new MatTableDataSource<NotaCredito>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<NotaCredito>(true, []);
 
-  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  readonly mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: this.i18n.t('fatture.mese.' + v) }));
   // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi/clienti).
   filtroAnni: number[] = [];
   filtroMesi: number[] = [];
@@ -804,20 +809,21 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
   }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(n=>`<tr><td>${n.numero}</td><td>${d(n.dataEmissione)}</td><td>${n.clienteNome||'—'}</td><td class="r">${e(n.totale)}</td><td>${n.stato}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Note di Credito</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Note di Credito</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('noteCredito.title')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${t('noteCredito.title')}</h1><table><thead><tr><th>${t('noteCredito.col.numero')}</th><th>${t('noteCredito.col.data')}</th><th>${t('noteCredito.col.cliente')}</th><th class="r">${t('noteCredito.col.importo')}</th><th>${t('noteCredito.col.stato')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Numero',  field: 'numero',        width: 14 },
-    { header: 'Data',    field: 'dataEmissione', width: 14 },
-    { header: 'Cliente', field: 'clienteNome',   width: 30 },
-    { header: 'Importo', field: 'totale',        width: 14 },
-    { header: 'Stato',   field: 'stato',         width: 14 },
+    { header: this.i18n.t('noteCredito.col.numero'),  field: 'numero',        width: 14 },
+    { header: this.i18n.t('noteCredito.col.data'),    field: 'dataEmissione', width: 14 },
+    { header: this.i18n.t('noteCredito.col.cliente'), field: 'clienteNome',   width: 30 },
+    { header: this.i18n.t('noteCredito.col.importo'), field: 'totale',        width: 14 },
+    { header: this.i18n.t('noteCredito.col.stato'),   field: 'stato',         width: 14 },
   ];
   /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
   get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
@@ -837,7 +843,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     if (!ids.length) return;
     forkJoin(ids.map(id => this.ds.setNotaCreditoStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
-      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+      error: e => this.snack.open(e?.error?.error || e?.message || this.i18n.t('noteCredito.msg.erroreStato'), '', { duration: 3000 })
     });
   }
 
@@ -845,17 +851,18 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} not${n === 1 ? 'a' : 'e'} di credito selezionat${n === 1 ? 'a' : 'e'}?`)) return;
+    if (!await this.confirm.delete(this.i18n.tn('noteCredito.msg.confermaEliminaBulk', n))) return;
     forkJoin(sel.map(x => this.ds.getNotaCreditoById(x.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
       const backups = fulls.filter(Boolean);
       forkJoin(sel.map(x => this.ds.deleteNotaCredito(x.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
         const errori = results.filter((r: any) => r && r.__error).length;
         this.selection.clear();
         this.load();
-        const ref = this.snack.open(errori ? `${n - errori} eliminate, ${errori} non eliminabili` : `${n} note di credito eliminate`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const msg = errori ? this.i18n.t('noteCredito.msg.eliminatiParziali', { ok: n - errori, errori }) : this.i18n.tn('noteCredito.msg.eliminatiBulk', n);
+        const ref = this.snack.open(msg, this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createNotaCredito(p).pipe(catchError(() => of(null))); }))
-            .subscribe(() => { this.load(); this.snack.open('Note di credito ripristinate', '', { duration: 2000, panelClass: 'snack-ok' }); });
+            .subscribe(() => { this.load(); this.snack.open(this.i18n.t('noteCredito.msg.ripristinatiBulk'), '', { duration: 2000, panelClass: 'snack-ok' }); });
         });
       });
     });
@@ -875,7 +882,7 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
             this.ds.setFatturaStato(result.fatturaId, 'PAGATA').subscribe();
           }
           this.load();
-          this.snack.open('Salvato', '', { duration: 2000 });
+          this.snack.open(this.i18n.t('noteCredito.msg.salvato'), '', { duration: 2000 });
         },
         error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
       });
@@ -896,34 +903,34 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
       next: async v => {
         if (!v.ok) {
           await this.confirm.alert({
-            title: 'Nota di credito non inviabile',
-            message: 'Prima dell\'invio all\'SDI vanno sistemati questi punti:\n\n' +
+            title: this.i18n.t('noteCredito.msg.nonInviabileTitle'),
+            message: this.i18n.t('noteCredito.msg.sistemarePunti') +
                      v.errors.map(e => '• ' + e).join('\n') +
-                     (v.warnings.length ? '\n\nAvvisi:\n' + v.warnings.map(w => '• ' + w).join('\n') : ''),
+                     (v.warnings.length ? '\n\n' + this.i18n.t('noteCredito.msg.avvisiPrefix') + v.warnings.map(w => '• ' + w).join('\n') : ''),
           });
           return;
         }
         const prefix = v.warnings.length
-          ? `Avvisi:\n${v.warnings.map(w => '• ' + w).join('\n')}\n\n`
+          ? `${this.i18n.t('noteCredito.msg.avvisiPrefix')}${v.warnings.map(w => '• ' + w).join('\n')}\n\n`
           : '';
-        if (!await this.confirm.ask(`${prefix}Inviare la nota di credito n. ${n.numero} all'SDI?`)) return;
+        if (!await this.confirm.ask(`${prefix}${this.i18n.t('noteCredito.msg.confermaInvioSdi', { numero: n.numero })}`)) return;
         this.ds.inviaNotaSdi(n.id!).subscribe({
-          next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000, panelClass: 'snack-ok' }); },
+          next: r => { this.load(); this.snack.open(this.i18n.t('noteCredito.msg.inviataSdi', { id: r.idTrasmissione }), '', { duration: 4000, panelClass: 'snack-ok' }); },
           error: e => {
             const msg = e.error?.error || e.message || '';
             if (msg.includes('SDI non configurata')) {
               const ref = this.snack.open(
-                'Nessun intermediario SDI configurato. Puoi scaricare l\'XML e caricarlo tu sul portale del tuo intermediario o su "Fatture e Corrispettivi", oppure configurarne uno in Impostazioni → SDI.',
-                'Scarica XML', { duration: 9000, panelClass: 'snack-error' }
+                this.i18n.t('noteCredito.msg.sdiNonConfigurata'),
+                this.i18n.t('noteCredito.msg.scaricaXmlAction'), { duration: 9000, panelClass: 'snack-error' }
               );
               ref.onAction().subscribe(() => this.downloadXml(n));
             } else {
-              this.snack.open('Errore SDI: ' + msg, '', { duration: 5000, panelClass: 'snack-error' });
+              this.snack.open(this.i18n.t('noteCredito.msg.erroreSdi', { msg }), '', { duration: 5000, panelClass: 'snack-error' });
             }
           }
         });
       },
-      error: () => this.snack.open('Non è stato possibile controllare la nota di credito. Riprova.', 'OK',
+      error: () => this.snack.open(this.i18n.t('noteCredito.msg.erroreControllo'), 'OK',
                                    { duration: 5000, panelClass: 'snack-error' })
     });
   }
@@ -934,8 +941,8 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
-          title: `Invia nota di credito n. ${n.numero}`,
-          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          title: this.i18n.t('noteCredito.msg.inviaTitolo', { numero: n.numero }),
+          subtitle: cliente?.ragioneSociale ? this.i18n.t('preventivi.msg.aCliente', { nome: cliente.ragioneSociale }) : undefined,
           destinatario: cliente?.email || '',
           testo: az?.emailCorpoDocumento || '',
         },
@@ -943,8 +950,8 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
       ref.afterClosed().subscribe(result => {
         if (!result) return;
         this.ds.sendNotaCreditoEmail(n.id!, result.destinatario, result.testo || undefined).subscribe({
-          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+          next: () => this.snack.open(this.i18n.t('preventivi.msg.emailInviata'), '', { duration: 2000 }),
+          error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreEmail', { msg: e.error?.error || e.message }), '', { duration: 4000 })
         });
       });
     });
@@ -956,11 +963,11 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
       const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
       const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
       const extra: { label: string; value: string }[] = [];
-      if (doc.fatturaNumeroColl) extra.push({ label: 'Rif. Fattura', value: doc.fatturaNumeroColl });
+      if (doc.fatturaNumeroColl) extra.push({ label: this.i18n.t('noteCredito.info.rifFattura'), value: doc.fatturaNumeroColl });
       this.dialog.open(DocInfoDialogComponent, {
         data: {
           tipo: 'NOTA DI CREDITO', numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
-          controparteLabel: 'CLIENTE',
+          controparteLabel: this.i18n.t('preventivi.info.clienteLabel'),
           controparte: doc.cliente?.ragioneSociale || n.clienteNome || '—',
           controparteInfo: doc.cliente ? [
             [doc.cliente.via, [doc.cliente.cap, doc.cliente.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
@@ -990,25 +997,25 @@ export class NoteCreditoComponent implements OnInit, AfterViewInit {
         pre.stato = 'EMESSA';
         pre.fatturaId = null;
         this.ds.createNotaCredito(pre).subscribe({
-          next: () => { fine(); this.load(); this.snack.open(`Nota di credito duplicata (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
+          next: () => { fine(); this.load(); this.snack.open(this.i18n.t('noteCredito.msg.duplicato', { numero: pre.numero }), '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || this.i18n.t('preventivi.msg.erroreDuplicazione'), 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
+      error: e => { fine(); this.snack.open(this.i18n.t('preventivi.msg.erroreGenerico', { msg: e.message || '' }), 'OK', { duration: 4000 }); }
     });
   }
 
   async delete(n: NotaCredito) {
-    if (!await this.confirm.delete(`Eliminare Nota di Credito ${n.numero}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('noteCredito.msg.confermaElimina', { numero: n.numero }))) return;
     this.ds.getNotaCreditoById(n.id!).subscribe(full => {
       this.ds.deleteNotaCredito(n.id!).subscribe(() => {
         this.load();
-        const ref = this.snack.open(`Nota di Credito ${n.numero} eliminata`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const ref = this.snack.open(this.i18n.t('noteCredito.msg.eliminato', { numero: n.numero }), this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           const { id, ...payload } = full as any;
           this.ds.createNotaCredito(payload).subscribe({
-            next: () => { this.load(); this.snack.open('Nota di Credito ripristinata', '', { duration: 2000, panelClass: 'snack-ok' }); },
-            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+            next: () => { this.load(); this.snack.open(this.i18n.t('noteCredito.msg.ripristinato'), '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreRipristino', { msg: e.message || '' }), 'OK', { duration: 4000, panelClass: 'snack-error' })
           });
         });
       });
