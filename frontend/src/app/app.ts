@@ -513,15 +513,21 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   toggleSidebar() { this.collapsed = !this.collapsed; }
   closeOnMobile() { if (window.innerWidth < 768) this.collapsed = true; }
 
-  // ── Barra superiore: priority-nav ("⋯ Altro") ───────────────────────────────
+  // ── Barra superiore/dock: priority-nav ("⋯ Altro") ──────────────────────────
+  /** True per i layout a riga singola che misurano lo spazio e deferiscono le
+   *  voci in eccesso nel menu "Altro" (dock fluttuante e barra superiore). */
+  get usesPriorityNav(): boolean {
+    const l = this.layout.navLayout();
+    return l === 'floating' || l === 'top';
+  }
   /** Voci mostrate direttamente in barra. */
   get priorityNavItems(): NavItem[] {
-    if (this.layout.navLayout() !== 'floating') return this.visibleNavItems;
+    if (!this.usesPriorityNav) return this.visibleNavItems;
     return this.visibleNavItems.slice(0, this.navMaxVisible);
   }
   /** Voci che non entrano → finiscono nel menu "Altro". */
   get overflowNavItems(): NavItem[] {
-    if (this.layout.navLayout() !== 'floating') return [];
+    if (!this.usesPriorityNav) return [];
     return this.visibleNavItems.slice(this.navMaxVisible);
   }
   get hasNavOverflow(): boolean { return this.overflowNavItems.length > 0; }
@@ -562,7 +568,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   ngAfterViewChecked() {
     this.syncNavObserver();
-    if (this.layout.navLayout() !== 'floating') return;
+    if (!this.usesPriorityNav) return;
     // Ricalcola se cambia il numero di voci (login/moduli/ruolo) senza un resize.
     const total = this.visibleNavItems.length;
     if (total !== this.navLastTotal && !this.navRecomputePending) {
@@ -606,7 +612,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
 
   /** Collega il ResizeObserver alla barra solo quando la top-nav è montata. */
   private syncNavObserver() {
-    const el = this.layout.navLayout() === 'floating' ? this.topNavEl?.nativeElement : undefined;
+    const el = this.usesPriorityNav ? this.topNavEl?.nativeElement : undefined;
     if (el) {
       if (this.navObservedEl !== el) {
         this.navRO?.disconnect();
@@ -632,7 +638,7 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
    * alto al primo giro), poi riuso la cache anche quando alcune sono in overflow.
    */
   computeNavOverflow() {
-    if (this.layout.navLayout() !== 'floating') return;
+    if (!this.usesPriorityNav) return;
     const el = this.topNavEl?.nativeElement;
     if (!el) return;
     const items = Array.from(el.querySelectorAll<HTMLElement>('.top-nav-item'));
@@ -656,8 +662,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     }
     const widths = this.navItemWidths;
 
-    // Capienza (border-box) disponibile per il dock-inner:
-    // - lo spazio utile del contenitore padre (.dock), sempre affidabile;
+    // Capienza (border-box) disponibile per la barra (dock-inner o top-nav):
+    // - lo spazio utile del contenitore padre, sempre affidabile;
     // - eventuale max-width ASSOLUTO in px (NON percentuali: "100%" non è 100px!);
     // - se la barra è già in overflow, il suo clientWidth È il cap reale.
     let capBox = Infinity;

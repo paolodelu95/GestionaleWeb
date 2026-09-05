@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { lsGet, lsSet } from '../utils/safe-storage';
 import { environment } from '../../environments/environment';
 
-export type NavLayout = 'side' | 'floating';
+export type NavLayout = 'side' | 'floating' | 'top';
 
 /** Densità dell'interfaccia:
  *  - 'compatto' (default): look gestionale desktop, righe/menu/spaziature ridotte.
@@ -13,10 +13,11 @@ export type Density = 'comodo' | 'compatto';
 
 /**
  * Preferenza utente sul layout della navigazione:
- *  - 'floating' (default): dock fluttuante traslucido in basso, stile iOS.
- *  - 'side': barra laterale classica, collassabile.
+ *  - 'floating' (default sul web): dock fluttuante traslucido in basso, stile iOS.
+ *  - 'side' (default nell'edizione offline): barra laterale classica, collassabile.
+ *  - 'top': barra di navigazione orizzontale in alto, riga singola con overflow
+ *    "Altro" (stesso meccanismo priority-nav del dock fluttuante).
  * Persistita in localStorage e condivisa tra App (rendering) e Impostazioni.
- * I valori legacy ('top') vengono ricondotti a 'floating'.
  */
 @Injectable({ providedIn: 'root' })
 export class LayoutService {
@@ -31,14 +32,14 @@ export class LayoutService {
 
   private read(): NavLayout {
     const saved = lsGet(this.KEY);
-    if (saved === 'side' || saved === 'floating') return saved;
+    if (saved === 'side' || saved === 'floating' || saved === 'top') return saved;
     // Default: barra laterale classica nell'edizione desktop offline (il dock
     // fluttuante stile iOS è pensato per il web/touch); dock sul web.
     return environment.offline ? 'side' : 'floating';
   }
 
   setNavLayout(v: NavLayout) {
-    const norm: NavLayout = v === 'side' ? 'side' : 'floating';
+    const norm: NavLayout = v === 'side' || v === 'top' ? v : 'floating';
     lsSet(this.KEY, norm);
     this.navLayout.set(norm);
   }

@@ -8,7 +8,76 @@
 } @else if (!loggedIn) {
   <app-login (loggedIn)="onLogin()" />
 } @else {
-<div class="shell" [class.shell--floating]="layout.navLayout() === 'floating'">
+<div class="shell" [class.shell--floating]="layout.navLayout() === 'floating'" [class.shell--top]="layout.navLayout() === 'top'">
+
+@if (layout.navLayout() === 'top') {
+  <!-- ── Layout: barra di navigazione superiore (priority-nav + "Altro") ── -->
+  <aside class="sidenav sidenav--top">
+    <div class="sidenav-header">
+      <span class="sidenav-title">Ordeva</span>
+    </div>
+    <nav class="top-nav" #topNavEl>
+      @for (item of priorityNavItems; track item.label) {
+        @if (!item.children) {
+          <a class="top-nav-btn top-nav-item" [routerLink]="item.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+            <mat-icon>{{ item.icon }}</mat-icon>
+            <span class="top-nav-label">{{ item.label }}</span>
+          </a>
+        } @else {
+          <button class="top-nav-btn top-nav-item" type="button" [matMenuTriggerFor]="grpMenuTop"
+                  [class.active-link]="isGroupActive(item)">
+            <mat-icon>{{ item.icon }}</mat-icon>
+            <span class="top-nav-label">{{ item.label }}</span>
+            <mat-icon class="top-nav-caret">expand_more</mat-icon>
+          </button>
+          <mat-menu #grpMenuTop="matMenu">
+            @for (child of item.children; track child.label) {
+              <a mat-menu-item [routerLink]="child.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+                <mat-icon>{{ child.icon }}</mat-icon>
+                <span>{{ child.label }}</span>
+              </a>
+            }
+          </mat-menu>
+        }
+      }
+      @if (hasNavOverflow) {
+        <button class="top-nav-btn top-nav-more" type="button" [matMenuTriggerFor]="altroMenuTop"
+                [class.active-link]="overflowActive" aria-label="Altre sezioni">
+          <mat-icon>more_horiz</mat-icon>
+          <span class="top-nav-label">Altro</span>
+        </button>
+        <mat-menu #altroMenuTop="matMenu">
+          @for (o of overflowNavItems; track o.label) {
+            @if (!o.children) {
+              <a mat-menu-item [routerLink]="o.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+                <mat-icon>{{ o.icon }}</mat-icon>
+                <span>{{ o.label }}</span>
+              </a>
+            } @else {
+              <button mat-menu-item type="button" [matMenuTriggerFor]="subMenuTop">
+                <mat-icon>{{ o.icon }}</mat-icon>
+                <span>{{ o.label }}</span>
+              </button>
+              <mat-menu #subMenuTop="matMenu">
+                @for (c of o.children; track c.label) {
+                  <a mat-menu-item [routerLink]="c.route" routerLinkActive="active-link" (click)="closeOnMobile()">
+                    <mat-icon>{{ c.icon }}</mat-icon>
+                    <span>{{ c.label }}</span>
+                  </a>
+                }
+              </mat-menu>
+            }
+          }
+        </mat-menu>
+      }
+    </nav>
+    <div class="sidenav-footer">
+      <button class="sidenav-footer-btn" (click)="openBugReport()" title="Segnala un problema">
+        <mat-icon>bug_report</mat-icon>
+      </button>
+    </div>
+  </aside>
+}
 
 @if (layout.navLayout() === 'side') {
   <!-- ── Layout: barra laterale (collassabile) ── -->

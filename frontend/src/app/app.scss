@@ -277,11 +277,13 @@
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  min-height: 0; // EXPERIMENT top-nav: lascia scrollare .content-area sotto la barra
+  min-height: 0; // layout "barra superiore": lascia scrollare .content-area sotto la barra
   overflow: hidden;
 }
 
-// ── EXPERIMENT top-nav: barra di navigazione orizzontale ───────────────────────
+// ── Layout "barra superiore": nav orizzontale in alto, riga singola ─────────────
+// Stesso meccanismo priority-nav del dock fluttuante (vedi app.ts computeNavOverflow):
+// mai wrap su più righe, le voci che non entrano finiscono nel menu "Altro".
 .sidenav.sidenav--top {
   width: 100% !important;
   height: auto !important;
@@ -291,8 +293,6 @@
   gap: 6px;
   padding: 0 14px;
   overflow: visible;
-  // La barra superiore non scorre (le icone vanno a capo): lascio il touch libero
-  // così toccando la barra si può comunque scorrere la pagina in verticale.
   touch-action: auto;
   border-right: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -304,7 +304,7 @@
     position: static;
     flex-direction: row;
     align-items: center;
-    min-height: 56px;
+    min-height: 52px;
     padding: 0 14px 0 2px;
     background: none;
     border-bottom: none;
@@ -312,32 +312,24 @@
     backdrop-filter: none;
     flex-shrink: 0;
   }
-  .sidenav-title { font-size: 18px; }
-  // Marchio compatto "O": visibile solo su mobile (vedi media query), dove sostituisce
-  // la scritta "Ordeva" per liberare spazio orizzontale alle icone di navigazione.
-  .sidenav-brand-mark { display: none; }
+  .sidenav-title { font-size: 17px; }
 
-  // Desktop/tablet: icona+testo che vanno a capo su più righe se non entrano.
-  // Niente scroll, niente sole-icone: tutto sempre visibile e leggibile.
   .top-nav {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 2px 4px;
+    flex-wrap: nowrap;           // riga singola: quello che non entra va in "Altro"
+    align-items: stretch;
+    gap: 2px;
     flex: 1 1 auto;
     min-width: 0;
     padding: 6px 0;
+    overflow: hidden;            // niente scroll: il priority-nav limita le voci
   }
-
-  // Footer "Segnala": solo-icona (utility), tooltip col nome.
-  .sidenav-footer .top-nav-label { display: none; }
 
   .top-nav-btn {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 40px;
     padding: 0 12px;
     flex-shrink: 0;              // niente shrink: la misura per l'overflow resta corretta
     border: none;
@@ -361,23 +353,6 @@
       color: #fff;
       box-shadow: 0 4px 12px -3px rgba(17, 118, 155, 0.5);
     }
-    .nav-badge.warn {
-      background: #f59e0b; color: #1e293b;
-      font-size: 10px; font-weight: 800;
-      min-width: 16px; height: 16px; line-height: 16px;
-      border-radius: 99px; padding: 0 4px; text-align: center;
-    }
-  }
-
-  // Bottone "⋯ Altro" (priority-nav): apre il menu con le sezioni che non entrano.
-  .top-nav-more {
-    position: relative;
-    flex-shrink: 0;
-    .nav-badge-dot {
-      position: absolute; top: 5px; right: 5px;
-      width: 8px; min-width: 8px; height: 8px; padding: 0;
-      border-radius: 50%; font-size: 0; line-height: 0;
-    }
   }
 
   .sidenav-footer {
@@ -389,52 +364,9 @@
   }
   .sidenav-footer-btn {
     width: auto;
-    height: 40px;
+    height: 36px;
     flex-direction: row;
-    gap: 7px;
-    padding: 0 12px;
-    .top-nav-label { font-size: 13px; }
-  }
-}
-
-// Top-nav su mobile: niente drawer fisso; una sola riga di SOLE ICONE che
-// scorre orizzontalmente (swipe). Così ogni sezione resta raggiungibile
-// (es. Sistema → Impostazioni) anche con tante voci.
-@media (max-width: 767px) {
-  .sidenav.sidenav--top {
-    position: relative !important;
-    width: 100% !important;
-    height: auto !important;
-    transform: none !important;
-    overflow: visible;
-    box-shadow: none !important;
-    z-index: auto;
-    padding: 0 6px;
-
-    // UNA riga sola: niente scroll (inaffidabile col touch) e niente righe multiple.
-    // Le voci che non entrano finiscono nel menu "⋯ Altro" (vedi top-nav-more);
-    // quante ne entrano lo calcola il componente (priority-nav).
-    .sidenav-header { padding: 0 6px 0 4px; min-height: 48px; flex-shrink: 0; }
-    .sidenav-title { display: none; }
-    .sidenav-brand-mark {
-      display: block; width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;
-    }
-
-    .top-nav {
-      flex: 1 1 auto;
-      flex-wrap: nowrap;        // una sola riga
-      align-items: center;
-      gap: 4px;
-      overflow: hidden;         // nessuno scroll: il JS limita le voci a quelle che entrano
-      min-width: 0;
-      padding: 4px 0;
-    }
-    .top-nav .top-nav-label { display: none; }   // solo icone su mobile
-    .top-nav-caret { display: none; }
-    .top-nav-btn { padding: 0 8px; gap: 0; height: 38px; }
-
-    .sidenav-footer { flex-shrink: 0; padding: 0 2px 0 4px; align-self: center; }
-    .sidenav-footer-btn { padding: 0 8px; }
+    padding: 0 10px;
   }
 }
 

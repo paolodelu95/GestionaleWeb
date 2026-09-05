@@ -186,8 +186,9 @@
           <h3 class="section-title">Navigazione</h3>
           <p style="color:#64748b;font-size:13px;margin:0 0 14px">
             Scegli lo stile del menu. La <b>barra fluttuante</b> è un dock traslucido in
-            basso (stile iOS) con le voci in eccesso nel menu «Altro»; la
-            <b>barra laterale</b> è il menu classico collassabile a sinistra.
+            basso (stile iOS); la <b>barra laterale</b> è il menu classico collassabile a
+            sinistra; la <b>barra superiore</b> mette la navigazione in alto, riga
+            singola. Fluttuante e superiore mandano le voci in eccesso nel menu «Altro».
           </p>
           <mat-button-toggle-group [value]="navLayout" (change)="setNavLayout($event.value)"
                                    aria-label="Layout di navigazione" hideSingleSelectionIndicator>
@@ -196,6 +197,9 @@
             </mat-button-toggle>
             <mat-button-toggle value="side">
               <mat-icon>view_sidebar</mat-icon> Barra laterale
+            </mat-button-toggle>
+            <mat-button-toggle value="top">
+              <mat-icon>view_headline</mat-icon> Barra superiore
             </mat-button-toggle>
           </mat-button-toggle-group>
 
