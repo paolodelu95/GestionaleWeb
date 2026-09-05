@@ -10,6 +10,10 @@ node_modules/
 # macOS
 .DS_Store
 
+# Config locale di Claude Code (percorsi/permessi della macchina di sviluppo,
+# non va condiviso — settings.json resta invece tracciato/condiviso)
+.claude/settings.local.json
+
 # Output degli script di audit (screenshot/report generati)
 scripts/audit-output/
 

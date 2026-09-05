@@ -1,7 +1,7 @@
 {
-  "name": "gestionaleweb",
+  "name": "ordeva",
   "version": "1.0.0",
-  "description": "Gestionale magazzino web — Angular 21 + Node.js + SQLite.",
+  "description": "Ordeva — gestionale ERP (anagrafiche, magazzino, ciclo attivo/passivo, fatturazione elettronica).",
   "private": true,
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names \"backend,frontend\" -c \"cyan.bold,green.bold\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
@@ -14,5 +14,5 @@
     "type": "git",
     "url": "git+https://github.com/paolodelu95/Ordeva.git"
   },
-  "license": "ISC"
+  "license": "AGPL-3.0-or-later"
 }
