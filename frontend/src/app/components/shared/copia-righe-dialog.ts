@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -13,6 +13,9 @@ import { ConfirmService } from './confirm-dialog';
 import { RigaDocumento } from '../../models';
 import { docRigaTotale } from '../../utils/doc-calc';
 import { Observable } from 'rxjs';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 export interface CopiaRigheDialogData {
   clienteId?: number | null;
@@ -24,12 +27,12 @@ export interface CopiaRigheDialogData {
 }
 
 const TIPI_DOC = [
-  { tipo: 'fatture',      label: 'Fatture',     entity: 'clienteId'   as const },
-  { tipo: 'ddt',          label: 'Doc. di trasporto', entity: 'clienteId'   as const },
-  { tipo: 'preventivi',   label: 'Preventivi',   entity: 'clienteId'   as const },
-  { tipo: 'ordini',       label: 'Ordini',       entity: 'any'         as const },
-  { tipo: 'note-credito', label: 'Note credito', entity: 'clienteId'   as const },
-  { tipo: 'acquisti',     label: 'Acquisti',     entity: 'fornitoreId' as const },
+  { tipo: 'fatture',      labelKey: 'shared.copiaRighe.tipo.fatture',     entity: 'clienteId'   as const },
+  { tipo: 'ddt',          labelKey: 'shared.copiaRighe.tipo.ddt',         entity: 'clienteId'   as const },
+  { tipo: 'preventivi',   labelKey: 'shared.copiaRighe.tipo.preventivi',  entity: 'clienteId'   as const },
+  { tipo: 'ordini',       labelKey: 'shared.copiaRighe.tipo.ordini',      entity: 'any'         as const },
+  { tipo: 'note-credito', labelKey: 'shared.copiaRighe.tipo.noteCredito', entity: 'clienteId'   as const },
+  { tipo: 'acquisti',     labelKey: 'shared.copiaRighe.tipo.acquisti',    entity: 'fornitoreId' as const },
 ] as const;
 
 interface DocItem {
@@ -44,13 +47,13 @@ interface DocItem {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-    MatInputModule, MatFormFieldModule, MatCheckboxModule, MatProgressSpinnerModule,
+    MatInputModule, MatFormFieldModule, MatCheckboxModule, MatProgressSpinnerModule, TPipe, TnPipe,
   ],
   template: `
     @if (step === 1) {
       <h2 mat-dialog-title style="display:flex;align-items:center;gap:8px;margin:0;padding:20px 24px 0">
         <mat-icon style="color:#0ea5e9">content_copy</mat-icon>
-        Copia righe da un altro documento
+        {{ 'shared.copiaRighe.title' | t }}
       </h2>
       <mat-dialog-content style="width:640px;min-height:400px;padding:16px 24px 8px">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
@@ -58,19 +61,19 @@ interface DocItem {
             <button type="button" class="tipo-chip"
                     [class.tipo-chip--active]="selectedTipo === t.tipo"
                     (click)="changeTipo(t.tipo)">
-              {{ t.label }}
+              {{ t.labelKey | t }}
             </button>
           }
           <button type="button" class="tipo-chip"
                   [class.tipo-chip--active]="selectedTipo === 'kit'"
                   (click)="changeTipo('kit')">
-            <mat-icon style="font-size:15px;width:15px;height:15px;vertical-align:-3px">widgets</mat-icon> Kit
+            <mat-icon style="font-size:15px;width:15px;height:15px;vertical-align:-3px">widgets</mat-icon> {{ 'shared.copiaRighe.tipo.kit' | t }}
           </button>
         </div>
 
         @if (selectedTipo === 'kit' && (data.righeCorrenti?.length || 0) > 0) {
           <button mat-stroked-button type="button" (click)="salvaComeKit()" style="margin-bottom:12px">
-            <mat-icon>bookmark_add</mat-icon> Salva le righe correnti come kit
+            <mat-icon>bookmark_add</mat-icon> {{ 'shared.copiaRighe.salvaKit' | t }}
           </button>
         }
 
@@ -78,12 +81,12 @@ interface DocItem {
           @if (entityIdForTipo != null) {
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#374151;white-space:nowrap">
               <mat-checkbox [(ngModel)]="soloStessoSoggetto" (change)="filterDocs()"></mat-checkbox>
-              Solo {{ soggetto || 'stesso soggetto' }}
+              {{ i18n.t('shared.copiaRighe.soloStessoSoggetto', { soggetto: soggetto || i18n.t('shared.copiaRighe.stessoSoggettoDefault') }) }}
             </label>
           }
           <div style="flex:1;min-width:180px">
             <mat-form-field style="width:100%" appearance="outline">
-              <mat-label>Cerca documento</mat-label>
+              <mat-label>{{ 'shared.copiaRighe.cercaDocumento' | t }}</mat-label>
               <input matInput [(ngModel)]="cerca" (ngModelChange)="filterDocs()" autocomplete="off">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
@@ -96,7 +99,7 @@ interface DocItem {
           </div>
         } @else if (!filteredDocs.length) {
           <p style="text-align:center;color:#94a3b8;padding:40px 0;margin:0">
-            Nessun documento trovato
+            {{ 'shared.copiaRighe.nessunDocumento' | t }}
           </p>
         } @else {
           <div class="doc-list">
@@ -109,7 +112,7 @@ interface DocItem {
                   }
                 </div>
                 @if (selectedTipo === 'kit') {
-                  <button mat-icon-button type="button" (click)="eliminaKit($event, doc.id)" title="Elimina kit">
+                  <button mat-icon-button type="button" (click)="eliminaKit($event, doc.id)" [title]="'shared.copiaRighe.eliminaKit' | t">
                     <mat-icon style="color:#ef4444">delete</mat-icon>
                   </button>
                 }
@@ -120,7 +123,7 @@ interface DocItem {
         }
       </mat-dialog-content>
       <mat-dialog-actions align="end" style="padding:8px 24px 16px">
-        <button mat-button (click)="dialogRef.close()">Annulla</button>
+        <button mat-button (click)="dialogRef.close()">{{ 'shared.copiaRighe.annulla' | t }}</button>
       </mat-dialog-actions>
     }
 
@@ -142,7 +145,7 @@ interface DocItem {
             <mat-spinner diameter="36" style="margin:0 auto"></mat-spinner>
           </div>
         } @else if (!docRighe.length) {
-          <p style="text-align:center;color:#94a3b8;padding:40px 0;margin:0">Nessuna riga disponibile</p>
+          <p style="text-align:center;color:#94a3b8;padding:40px 0;margin:0">{{ 'shared.copiaRighe.nessunaRiga' | t }}</p>
         } @else {
           <table class="righe-table">
             <thead>
@@ -154,10 +157,10 @@ interface DocItem {
                     (change)="toggleTutti()">
                   </mat-checkbox>
                 </th>
-                <th>Codice / Descrizione</th>
-                <th style="text-align:right;white-space:nowrap">Qtà</th>
-                <th style="text-align:right">Prezzo</th>
-                <th style="text-align:right">Totale</th>
+                <th>{{ 'shared.copiaRighe.colCodiceDescrizione' | t }}</th>
+                <th style="text-align:right;white-space:nowrap">{{ 'shared.copiaRighe.colQta' | t }}</th>
+                <th style="text-align:right">{{ 'shared.copiaRighe.colPrezzo' | t }}</th>
+                <th style="text-align:right">{{ 'shared.copiaRighe.colTotale' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -195,14 +198,14 @@ interface DocItem {
       </mat-dialog-content>
       <mat-dialog-actions align="end" style="padding:8px 24px 16px">
         <span style="flex:1;font-size:13px;color:#64748b">
-          {{ countSelezionate }} {{ countSelezionate === 1 ? 'riga selezionata' : 'righe selezionate' }}
+          {{ countSelezionate | tn:'shared.copiaRighe.rigaSelezionata' }}
         </span>
-        <button mat-button (click)="dialogRef.close()">Annulla</button>
+        <button mat-button (click)="dialogRef.close()">{{ 'shared.copiaRighe.annulla' | t }}</button>
         <button mat-flat-button color="primary"
                 [disabled]="!qualcunoSelezionato"
                 (click)="conferma()">
           <mat-icon>content_copy</mat-icon>
-          Copia {{ countSelezionate }} {{ countSelezionate === 1 ? 'riga' : 'righe' }}
+          {{ countSelezionate | tn:'shared.copiaRighe.copiaRiga' }}
         </button>
       </mat-dialog-actions>
     }
@@ -248,6 +251,7 @@ interface DocItem {
   `]
 })
 export class CopiaRigheDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   step = 1;
   readonly tipiDoc = TIPI_DOC;
 
@@ -427,7 +431,7 @@ export class CopiaRigheDialogComponent implements OnInit {
       .filter(r => (r.descrizione?.trim() || (r as any).prodottoId))
       .map(r => ({ ...r, id: undefined }));
     if (!righe.length) return;
-    const nome = ((await this.confirm.prompt('Nome del kit:')) || '').trim();
+    const nome = ((await this.confirm.prompt(this.i18n.t('shared.copiaRighe.promptNomeKit'))) || '').trim();
     if (!nome) return;
     this.ds.creaKit(nome, righe).subscribe({
       next: () => { if (this.selectedTipo === 'kit') this.loadDocumenti(); },

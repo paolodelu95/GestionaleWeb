@@ -43,13 +43,16 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 @Component({
   selector: 'app-preventivo-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSlideToggleModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule, TPipe, TnPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -58,19 +61,19 @@ import { catchError } from 'rxjs/operators';
         </div>
         <div class="dialog-hero-text">
           <span class="dialog-hero-title">
-            {{ data?.id ? ('Preventivo n. ' + (data?.numero || '')) : 'Nuovo preventivo' }}
+            {{ data?.id ? i18n.t('preventivi.dialog.titoloEsistente', { numero: data?.numero || '' }) : ('preventivi.nuovo' | t) }}
             @if (data?.id && locked) {
-              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>{{ 'fatture.dialog.bloccato' | t }}</span>
             }
           </span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe e validità' : 'Offerta commerciale per il cliente' }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'preventivi.dialog.subEsistente' : 'preventivi.dialog.subNuovo') | t }}</span>
         </div>
         @if (data?.id) {
           <button mat-icon-button type="button"
                   class="dialog-lock-btn"
                   [class.is-locked]="locked"
                   [class.is-unlocked]="!locked"
-                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  [matTooltip]="(locked ? 'fatture.dialog.tooltipBloccato' : 'fatture.dialog.tooltipSbloccato') | t"
                   (click)="toggleLock()">
             <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
           </button>
@@ -82,12 +85,12 @@ import { catchError } from 'rxjs/operators';
       <div class="doc-form">
 
         <div class="form-section is-primary">
-          <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+          <div class="form-section-header"><mat-icon>person</mat-icon><span>{{ 'fatture.dialog.intestazione' | t }}</span></div>
           <div class="doc-field-grid has-2-extra" [formGroup]="form">
             <mat-form-field>
-              <mat-label>Cliente *</mat-label>
+              <mat-label>{{ 'fatture.dialog.cliente' | t }}</mat-label>
               <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                     (keyup.enter)="autoSelectCliente()" placeholder="Cerca cliente per ragione sociale o P.IVA..."
+                     (keyup.enter)="autoSelectCliente()" [placeholder]="'preventivi.dialog.cercaClientePh' | t"
                      [class.input-error]="submitted && !hasCliente">
               <mat-icon matSuffix>search</mat-icon>
               <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
@@ -96,22 +99,22 @@ import { catchError } from 'rxjs/operators';
                 }
               </mat-autocomplete>
               @if (submitted && !hasCliente) {
-                <mat-error>Seleziona un cliente</mat-error>
+                <mat-error>{{ 'fatture.dialog.selezionaCliente' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Numero *</mat-label>
+              <mat-label>{{ 'fatture.dialog.numero' | t }}</mat-label>
               <input matInput formControlName="numero">
               @if (form.get('numero')?.hasError('numeroDuplicato')) {
-                <mat-error>Numero già esistente</mat-error>
+                <mat-error>{{ 'fatture.dialog.numeroEsistente' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Data emissione *</mat-label>
+              <mat-label>{{ 'fatture.dialog.dataEmissione' | t }}</mat-label>
               <input matInput type="date" formControlName="dataEmissione">
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Validità (gg)</mat-label>
+              <mat-label>{{ 'preventivi.dialog.validita' | t }}</mat-label>
               <input matInput type="number" formControlName="validita">
               <mat-icon matSuffix>schedule</mat-icon>
             </mat-form-field>
@@ -121,31 +124,31 @@ import { catchError } from 'rxjs/operators';
         <div class="form-section">
           <div class="righe-header">
             <div class="righe-header-title">
-              <span>Righe *</span>
+              <span>{{ 'fatture.dialog.righe' | t }}</span>
               @if (submitted && !hasRighe) {
-                <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
+                <span class="righe-error"><mat-icon>error_outline</mat-icon> {{ 'fatture.dialog.aggiungiRigaAlmeno' | t }}</span>
               }
             </div>
             <div class="righe-actions">
               <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-                <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-                <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+                <mat-button-toggle [value]="false">{{ 'fatture.dialog.ivato' | t }}</mat-button-toggle>
+                <mat-button-toggle [value]="true">{{ 'fatture.dialog.netto' | t }}</mat-button-toggle>
               </mat-button-toggle-group>
               <button mat-flat-button color="primary" type="button" (click)="addRiga()">
-                <mat-icon>add</mat-icon> Aggiungi riga
+                <mat-icon>add</mat-icon> {{ 'fatture.dialog.aggiungiRiga' | t }}
               </button>
               <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-                <mat-icon>content_copy</mat-icon> Copia da...
+                <mat-icon>content_copy</mat-icon> {{ 'fatture.dialog.copiaDa' | t }}
               </button>
               <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-                <mat-icon>note_add</mat-icon> Aggiungi nota
+                <mat-icon>note_add</mat-icon> {{ 'preventivi.dialog.aggiungiNota' | t }}
               </button>
               <mat-menu #menuNota="matMenu">
                 <button mat-menu-item type="button" (click)="addNota('')">
-                  <mat-icon>edit_note</mat-icon> Nota libera
+                  <mat-icon>edit_note</mat-icon> {{ 'fatture.dialog.notaLibera' | t }}
                 </button>
                 @if (noteRapideList.length) {
-                  <div class="menu-section-label">Note rapide</div>
+                  <div class="menu-section-label">{{ 'fatture.dialog.noteRapide' | t }}</div>
                   @for (nr of noteRapideList; track nr.id) {
                     <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                   }
@@ -158,15 +161,15 @@ import { catchError } from 'rxjs/operators';
           <thead>
             <tr>
               <th class="td-drag"></th>
-              <th class="td-desc">Codice / Descrizione</th>
+              <th class="td-desc">{{ 'fatture.dialog.colCodiceDescrizione' | t }}</th>
               <th class="td-search"></th>
-              <th class="td-qta">Qtà</th>
-              <th class="td-um">UM</th>
-              <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+              <th class="td-qta">{{ 'fatture.dialog.colQta' | t }}</th>
+              <th class="td-um">{{ 'fatture.dialog.colUm' | t }}</th>
+              <th class="td-prezzo">{{ (showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t }}</th>
               <th class="td-history"></th>
-              <th class="td-sconto">Sconto%</th>
-              <th class="td-iva">IVA%</th>
-              <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+              <th class="td-sconto">{{ 'fatture.dialog.colSconto' | t }}</th>
+              <th class="td-iva">{{ 'preventivi.dialog.colIva' | t }}</th>
+              <th class="td-totale">{{ (showNetto ? 'fatture.dialog.colTotaleNetto' : 'fatture.dialog.colTotaleIvato') | t }}</th>
               <th class="td-actions"></th>
             </tr>
           </thead>
@@ -176,7 +179,7 @@ import { catchError } from 'rxjs/operators';
                 <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                   <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                   <td class="td-nota" colspan="9">
-                    <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                    <input class="riga-input" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.notaPlaceholder' | t">
                   </td>
                   <td class="td-actions">
                     <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -189,19 +192,19 @@ import { catchError } from 'rxjs/operators';
                 <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                 <td class="td-desc">
                   <div class="codice-desc-stack">
-                    <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                    <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                    <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" [placeholder]="'fatture.dialog.codicePh' | t" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                    <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.descrizionePh' | t">
                   </div>
                 </td>
                 <td class="td-search">
-                  <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                  <button mat-icon-button type="button" (click)="searchProdotto($index)" [title]="'fatture.dialog.cercaProdotto' | t">
                     <mat-icon>search</mat-icon>
                   </button>
                 </td>
-                <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
+                <td class="td-qta" [attr.data-label]="'fatture.dialog.colQta' | t"><input class="riga-input" type="number" min="0"
                   [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                   [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                <td class="td-um" [attr.data-label]="'UM'">
+                <td class="td-um" [attr.data-label]="'fatture.dialog.colUm' | t">
                   <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                     <option value="">—</option>
                     @for (u of unitaMisura; track u.id) {
@@ -209,16 +212,16 @@ import { catchError } from 'rxjs/operators';
                     }
                   </select>
                 </td>
-                <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
+                <td class="td-prezzo" [attr.data-label]="(showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t"><input class="riga-input" type="number" min="0" step="0.01"
                   [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                   (change)="setPrezzoFromInput(riga, $event)"></td>
                 <td class="td-history">
                   @if (prezziRecenti[$index]?.length) {
-                    <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
+                    <button mat-icon-button type="button" [title]="'fatture.dialog.prezziRecentiClienteTooltip' | t" [matMenuTriggerFor]="menuPrezzi">
                       <mat-icon class="icon-primary">history</mat-icon>
                     </button>
                     <mat-menu #menuPrezzi="matMenu">
-                      <div class="menu-section-label">Prezzi recenti</div>
+                      <div class="menu-section-label">{{ 'fatture.dialog.prezziRecenti' | t }}</div>
                       @for (pr of prezziRecenti[rowIdx]; track $index) {
                         <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                           <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
@@ -229,16 +232,16 @@ import { catchError } from 'rxjs/operators';
                     </mat-menu>
                   }
                   @if (riga.prodottoId) {
-                    <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
+                    <button mat-icon-button type="button" [title]="'fatture.dialog.prezziTuttiClientiTooltip' | t" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
                       <mat-icon class="icon-muted">groups</mat-icon>
                     </button>
                     <mat-menu #menuTutti="matMenu">
-                      <div class="menu-section-label">Tutti i clienti</div>
+                      <div class="menu-section-label">{{ 'fatture.dialog.tuttiClienti' | t }}</div>
                       @if (!tuttiCaricati[$index]) {
-                        <div class="menu-empty">Clicca per caricare...</div>
+                        <div class="menu-empty">{{ 'fatture.dialog.clicPerCaricare' | t }}</div>
                       }
                       @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                        <div class="menu-empty">Nessun prezzo trovato</div>
+                        <div class="menu-empty">{{ 'fatture.dialog.nessunPrezzoTrovato' | t }}</div>
                       }
                       @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
                         <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
@@ -252,9 +255,9 @@ import { catchError } from 'rxjs/operators';
                     </mat-menu>
                   }
                 </td>
-                <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                <td class="td-totale" [attr.data-label]="'Totale'">
+                <td class="td-sconto" [attr.data-label]="'fatture.dialog.colSconto' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
+                <td class="td-iva" [attr.data-label]="'preventivi.dialog.colIva' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                <td class="td-totale" [attr.data-label]="'fatture.dialog.totale' | t">
                   {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </td>
                 <td class="td-actions">
@@ -271,50 +274,50 @@ import { catchError } from 'rxjs/operators';
       </div>
 
       <div class="doc-totals-strip">
-        <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-        <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+        <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.imponibile' | t }}</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+        <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.iva' | t }}</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
         <span class="totals-spacer"></span>
-        <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+        <div class="totals-grand"><span class="totals-label">{{ 'fatture.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
       </div>
 
       <div class="margine-strip">
         <div class="margine-head">
           <mat-icon>visibility_off</mat-icon>
-          <span>Solo uso interno</span>
+          <span>{{ 'preventivi.dialog.soloUsoInterno' | t }}</span>
           @if (righeSenzaCosto > 0) {
-            <mat-icon class="margine-warn" [matTooltip]="righeSenzaCosto + ' righe senza prezzo d\\'acquisto: il margine è parziale'">info_outline</mat-icon>
+            <mat-icon class="margine-warn" [matTooltip]="i18n.t('preventivi.dialog.margineParziale', { n: righeSenzaCosto })">info_outline</mat-icon>
           }
         </div>
         <div class="margine-stats">
           <div class="margine-stat">
-            <span class="margine-stat-label">Costo</span>
+            <span class="margine-stat-label">{{ 'preventivi.dialog.costo' | t }}</span>
             <span class="margine-stat-value">{{ costoTotale | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
           </div>
           <div class="margine-stat">
-            <span class="margine-stat-label">Guadagno</span>
+            <span class="margine-stat-label">{{ 'preventivi.dialog.guadagno' | t }}</span>
             <span class="margine-stat-value" [style.color]="guadagnoColor">{{ guadagno | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
           </div>
           <div class="margine-stat">
-            <span class="margine-stat-label">Margine</span>
+            <span class="margine-stat-label">{{ 'preventivi.dialog.margine' | t }}</span>
             <span class="margine-stat-value" [style.color]="guadagnoColor">{{ marginePerc !== null ? (marginePerc | number:'1.0-1') + '%' : '—' }}</span>
           </div>
         </div>
       </div>
 
       <div class="form-section is-flat" [formGroup]="form">
-        <div class="form-section-header"><mat-icon>picture_as_pdf</mat-icon><span>Opzioni stampa</span></div>
+        <div class="form-section-header"><mat-icon>picture_as_pdf</mat-icon><span>{{ 'preventivi.dialog.opzioniStampa' | t }}</span></div>
         <mat-slide-toggle formControlName="stampaImmagini">
-          Mostra le immagini dei prodotti nella stampa PDF
+          {{ 'preventivi.dialog.mostraImmagini' | t }}
         </mat-slide-toggle>
         <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px">
-          Le miniature compaiono accanto al codice, solo per i prodotti che hanno un'immagine.
+          {{ 'preventivi.dialog.miniatureHint' | t }}
         </div>
       </div>
 
       <div class="form-section is-flat" [formGroup]="form">
-        <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+        <div class="form-section-header"><mat-icon>notes</mat-icon><span>{{ 'fatture.dialog.noteInterne' | t }}</span></div>
         <mat-form-field>
-          <mat-label>Note ad uso interno</mat-label>
+          <mat-label>{{ 'preventivi.dialog.noteAdUsoInterno' | t }}</mat-label>
           <textarea matInput rows="2" formControlName="note"></textarea>
         </mat-form-field>
       </div>
@@ -322,13 +325,13 @@ import { catchError } from 'rxjs/operators';
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
-          <mat-icon>print</mat-icon> Esporta PDF </button>
+          <mat-icon>print</mat-icon> {{ 'fatture.dialog.esportaPdf' | t }}</button>
       }
       <button mat-flat-button (click)="save()" [disabled]="locked || form.get('numero')?.hasError('numeroDuplicato')"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : (form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : '')">Salva</button>
+              [matTooltip]="locked ? ('fatture.dialog.sbloccaTooltip' | t) : (form.get('numero')?.hasError('numeroDuplicato') ? ('fatture.dialog.numeroEsistente' | t) : '')">{{ 'fatture.dialog.salva' | t }}</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES, `
     .margine-strip {
@@ -371,6 +374,7 @@ import { catchError } from 'rxjs/operators';
   `]
 })
 export class PreventivoDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
   locked = false;
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -379,7 +383,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit, OnDestr
     if (target.closest('.dialog-lock-btn')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+    this.snack.open(this.i18n.t('fatture.dialog.msgDocBloccato'), 'OK', { duration: 2600 });
   }
   form: FormGroup;
   numeriEsistenti = new Set<string>();
@@ -544,7 +548,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit, OnDestr
       if (r.sorgente === 'BASE') return;
       riga.prezzo = r.prezzo;
       riga.sconto = r.sconto;
-      if (r.listinoNome) this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+      if (r.listinoNome) this.snack.open(this.i18n.t('fatture.dialog.msg.prezzoListinoApplicato', { nome: r.listinoNome }), '', { duration: 2200 });
     });
   }
 
@@ -720,7 +724,7 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit, OnDestr
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il cliente)').then(ok => {
+      this.confirmDraft.ask(this.i18n.t('fatture.dialog.msg.riprendiBozza')).then(ok => {
         if (ok) {
           try {
             const f = { ...(bozza.form || {}) }; delete f.numero;
@@ -751,11 +755,12 @@ export class PreventivoDialogComponent implements OnInit, AfterViewInit, OnDestr
   standalone: true,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent, TableKeyboardNavDirective, ExportMenuComponent],
+            MatSelectModule, MatPaginatorModule, MatMenuModule, EmptyStateComponent, TableKeyboardNavDirective, ExportMenuComponent, TPipe, TnPipe],
   templateUrl: './preventivi.html',
   styleUrl: './preventivi.scss'
 })
 export class PreventiviComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   private viewState = inject(ViewStateService);
   private allPreventivi: Preventivo[] = [];
@@ -763,7 +768,7 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Preventivo>(true, []);
 
-  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  readonly mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: this.i18n.t('fatture.mese.' + v) }));
   // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi/clienti).
   filtroAnni: number[] = [];
   filtroMesi: number[] = [];
@@ -869,20 +874,21 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(p=>`<tr><td>${p.numero}</td><td>${d(p.dataEmissione)}</td><td>${p.clienteNome||'—'}</td><td class="r">${e(p.totale)}</td><td>${p.stato}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Preventivi</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Preventivi</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('preventivi.title')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${t('preventivi.title')}</h1><table><thead><tr><th>${t('preventivi.col.numero')}</th><th>${t('preventivi.col.data')}</th><th>${t('preventivi.col.cliente')}</th><th class="r">${t('preventivi.col.importo')}</th><th>${t('preventivi.col.stato')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Numero',  field: 'numero',        width: 14 },
-    { header: 'Data',    field: 'dataEmissione', width: 14 },
-    { header: 'Cliente', field: 'clienteNome',   width: 30 },
-    { header: 'Importo', field: 'totale',        width: 14 },
-    { header: 'Stato',   field: 'stato',         width: 14 },
+    { header: this.i18n.t('preventivi.col.numero'),  field: 'numero',        width: 14 },
+    { header: this.i18n.t('preventivi.col.data'),    field: 'dataEmissione', width: 14 },
+    { header: this.i18n.t('preventivi.col.cliente'), field: 'clienteNome',   width: 30 },
+    { header: this.i18n.t('preventivi.col.importo'), field: 'totale',        width: 14 },
+    { header: this.i18n.t('preventivi.col.stato'),   field: 'stato',         width: 14 },
   ];
   /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
   get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
@@ -900,7 +906,7 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     if (!ids.length) return;
     forkJoin(ids.map(id => this.ds.setPreventivoStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
-      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+      error: e => this.snack.open(e?.error?.error || e?.message || this.i18n.t('preventivi.msg.erroreStato'), '', { duration: 3000 })
     });
   }
 
@@ -908,17 +914,18 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} preventiv${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}?`)) return;
+    if (!await this.confirm.delete(this.i18n.tn('preventivi.msg.confermaEliminaBulk', n))) return;
     forkJoin(sel.map(p => this.ds.getPreventivoById(p.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
       const backups = fulls.filter(Boolean);
       forkJoin(sel.map(p => this.ds.deletePreventivo(p.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
         const errori = results.filter((r: any) => r && r.__error).length;
         this.selection.clear();
         this.load();
-        const ref = this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} preventivi eliminati`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const msg = errori ? this.i18n.t('preventivi.msg.eliminatiParziali', { ok: n - errori, errori }) : this.i18n.tn('preventivi.msg.eliminatiBulk', n);
+        const ref = this.snack.open(msg, this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createPreventivo(p).pipe(catchError(() => of(null))); }))
-            .subscribe(() => { this.load(); this.snack.open('Preventivi ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+            .subscribe(() => { this.load(); this.snack.open(this.i18n.t('preventivi.msg.ripristinatiBulk'), '', { duration: 2000, panelClass: 'snack-ok' }); });
         });
       });
     });
@@ -933,7 +940,7 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
       if (!result) return;
       const op = result.id ? this.ds.updatePreventivo(result) : this.ds.createPreventivo(result);
       op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('preventivi.msg.salvato'), '', { duration: 2000 }); },
         error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
       });
     });
@@ -947,8 +954,8 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
-          title: `Invia preventivo n. ${p.numero}`,
-          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          title: this.i18n.t('preventivi.msg.inviaTitolo', { numero: p.numero }),
+          subtitle: cliente?.ragioneSociale ? this.i18n.t('preventivi.msg.aCliente', { nome: cliente.ragioneSociale }) : undefined,
           destinatario: cliente?.email || '',
           testo: az?.emailCorpoDocumento || '',
         },
@@ -956,25 +963,25 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
       ref.afterClosed().subscribe(result => {
         if (!result) return;
         this.ds.sendPreventivoEmail(p.id!, result.destinatario, result.testo || undefined).subscribe({
-          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+          next: () => this.snack.open(this.i18n.t('preventivi.msg.emailInviata'), '', { duration: 2000 }),
+          error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreEmail', { msg: e.error?.error || e.message }), '', { duration: 4000 })
         });
       });
     });
   }
 
   async convertiInDdt(p: Preventivo) {
-    if (!await this.confirm.ask(`Convertire il preventivo ${p.numero} in documento di trasporto? Il preventivo verrà marcato come CONFERMATO.`)) return;
+    if (!await this.confirm.ask(this.i18n.t('preventivi.msg.confermaConvertiDdt', { numero: p.numero }))) return;
     this.ds.preventivoToDdt(p.id!).subscribe({
-      next: r => { this.load(); this.snack.open(`Documento di trasporto n. ${r.numero} creato`, '', { duration: 3000 }); },
+      next: r => { this.load(); this.snack.open(this.i18n.t('preventivi.msg.ddtCreato', { numero: r.numero }), '', { duration: 3000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
     });
   }
 
   async convertiInOrdine(p: Preventivo) {
-    if (!await this.confirm.ask(`Convertire il preventivo ${p.numero} in ordine cliente? Il preventivo verrà marcato come CONFERMATO.`)) return;
+    if (!await this.confirm.ask(this.i18n.t('preventivi.msg.confermaConvertiOrdine', { numero: p.numero }))) return;
     this.ds.preventivoToOrdine(p.id!).subscribe({
-      next: r => { this.load(); this.snack.open(`Ordine n. ${r.numero} creato`, '', { duration: 3000 }); },
+      next: r => { this.load(); this.snack.open(this.i18n.t('preventivi.msg.ordineCreato', { numero: r.numero }), '', { duration: 3000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
     });
   }
@@ -983,23 +990,24 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
   async bulkConvertiInOrdine() {
     const sel = this.selection.selected.slice();
     if (!sel.length) return;
-    if (!await this.confirm.ask(`Convertire ${sel.length} preventivi in ordini cliente? Verranno marcati come CONFERMATI.`)) return;
+    if (!await this.confirm.ask(this.i18n.t('preventivi.msg.confermaBulkOrdine', { n: sel.length }))) return;
     forkJoin(sel.map(p => this.ds.preventivoToOrdine(p.id!).pipe(catchError(() => of(null)))))
-      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'ordine', 'ordini'));
+      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'preventivi.msg.creatiOrdine'));
   }
   async bulkConvertiInDdt() {
     const sel = this.selection.selected.slice();
     if (!sel.length) return;
-    if (!await this.confirm.ask(`Convertire ${sel.length} preventivi in documenti di trasporto? Verranno marcati come CONFERMATI.`)) return;
+    if (!await this.confirm.ask(this.i18n.t('preventivi.msg.confermaBulkDdt', { n: sel.length }))) return;
     forkJoin(sel.map(p => this.ds.preventivoToDdt(p.id!).pipe(catchError(() => of(null)))))
-      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'documento di trasporto', 'documenti di trasporto'));
+      .subscribe((res: any[]) => this.fineBulk(res, sel.length, 'preventivi.msg.creatiDdt'));
   }
-  private fineBulk(res: any[], tot: number, sing: string, plur: string) {
+  private fineBulk(res: any[], tot: number, keyBase: string) {
     const ok = res.filter(Boolean).length;
     this.selection.clear();
     this.load();
     const falliti = tot - ok;
-    this.snack.open(`${ok} ${ok === 1 ? sing : plur} creat${ok === 1 ? 'o' : 'i'}${falliti ? ` · ${falliti} non convertiti` : ''}`, '', { duration: 4000 });
+    const msg = this.i18n.tn(keyBase, ok) + (falliti ? this.i18n.t('preventivi.msg.nonConvertiti', { n: falliti }) : '');
+    this.snack.open(msg, '', { duration: 4000 });
   }
 
   info(p: Preventivo) {
@@ -1008,12 +1016,12 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
       const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
       const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
       const extra: { label: string; value: string }[] = [
-        { label: 'Validità', value: `${doc.validita ?? 30} giorni` },
+        { label: this.i18n.t('preventivi.info.validitaLabel'), value: this.i18n.tn('preventivi.info.giorni', doc.validita ?? 30) },
       ];
       this.dialog.open(DocInfoDialogComponent, {
         data: {
           tipo: 'PREVENTIVO', numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
-          controparteLabel: 'CLIENTE',
+          controparteLabel: this.i18n.t('preventivi.info.clienteLabel'),
           controparte: doc.cliente?.ragioneSociale || p.clienteNome || '—',
           controparteInfo: doc.cliente ? [
             [doc.cliente.via, [doc.cliente.cap, doc.cliente.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
@@ -1042,25 +1050,25 @@ export class PreventiviComponent implements OnInit, AfterViewInit {
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'INVIATO';
         this.ds.createPreventivo(pre).subscribe({
-          next: () => { fine(); this.load(); this.snack.open(`Preventivo duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
+          next: () => { fine(); this.load(); this.snack.open(this.i18n.t('preventivi.msg.duplicato', { numero: pre.numero }), '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || this.i18n.t('preventivi.msg.erroreDuplicazione'), 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
+      error: e => { fine(); this.snack.open(this.i18n.t('preventivi.msg.erroreGenerico', { msg: e.message || '' }), 'OK', { duration: 4000 }); }
     });
   }
 
   async delete(p: Preventivo) {
-    if (!await this.confirm.delete(`Eliminare Preventivo ${p.numero}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('preventivi.msg.confermaElimina', { numero: p.numero }))) return;
     this.ds.getPreventivoById(p.id!).subscribe(full => {
       this.ds.deletePreventivo(p.id!).subscribe(() => {
         this.load();
-        const ref = this.snack.open(`Preventivo ${p.numero} eliminato`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const ref = this.snack.open(this.i18n.t('preventivi.msg.eliminato', { numero: p.numero }), this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           const { id, ...payload } = full as any;
           this.ds.createPreventivo(payload).subscribe({
-            next: () => { this.load(); this.snack.open('Preventivo ripristinato', '', { duration: 2000, panelClass: 'snack-ok' }); },
-            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+            next: () => { this.load(); this.snack.open(this.i18n.t('preventivi.msg.ripristinato'), '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open(this.i18n.t('preventivi.msg.erroreRipristino', { msg: e.message || '' }), 'OK', { duration: 4000, panelClass: 'snack-error' })
           });
         });
       });

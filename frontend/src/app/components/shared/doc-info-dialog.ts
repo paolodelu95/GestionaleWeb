@@ -1,8 +1,11 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, inject } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 export interface DocInfoData {
   tipo: string;
@@ -37,7 +40,7 @@ interface IvaBreakdownRow {
 @Component({
   selector: 'app-doc-info-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, CurrencyPipe, DatePipe, TPipe, TnPipe],
   template: `
     <!-- ── Header band ──────────────────────────────────────────────────────── -->
     <div class="dih-header">
@@ -66,7 +69,7 @@ interface IvaBreakdownRow {
         <div class="dih-cards">
           @if (data.controparte) {
             <div class="dih-card dih-card-parte">
-              <div class="dih-card-lbl">{{ data.controparteLabel ?? 'CONTROPARTE' }}</div>
+              <div class="dih-card-lbl">{{ data.controparteLabel ?? ('shared.docInfo.controparte' | t) }}</div>
               <div class="dih-card-nome">{{ data.controparte }}</div>
               @for (l of data.controparteInfo ?? []; track $index) {
                 <div class="dih-card-detail">{{ l }}</div>
@@ -75,17 +78,17 @@ interface IvaBreakdownRow {
           }
           @if (imponibileCalc != null || data.totale != null) {
             <div class="dih-card dih-card-totale">
-              <div class="dih-card-lbl">RIEPILOGO IMPORTI</div>
+              <div class="dih-card-lbl">{{ 'shared.docInfo.riepilogoImporti' | t }}</div>
               <div class="dih-amount-row">
-                <span class="dih-amount-lbl">Imponibile</span>
+                <span class="dih-amount-lbl">{{ 'shared.docInfo.imponibile' | t }}</span>
                 <span class="dih-amount-val">{{ imponibileCalc | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
               </div>
               <div class="dih-amount-row">
-                <span class="dih-amount-lbl">IVA</span>
+                <span class="dih-amount-lbl">{{ 'shared.docInfo.iva' | t }}</span>
                 <span class="dih-amount-val">{{ ivaCalc | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
               </div>
               <div class="dih-amount-row dih-amount-grand">
-                <span class="dih-amount-lbl">Totale</span>
+                <span class="dih-amount-lbl">{{ 'shared.docInfo.totale' | t }}</span>
                 <span class="dih-amount-val">{{ totaleCalc | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
               </div>
             </div>
@@ -110,19 +113,19 @@ interface IvaBreakdownRow {
         <div class="dih-section">
           <div class="dih-section-title">
             <mat-icon>list</mat-icon>
-            Righe —
-            {{ prodottoCount }} {{ prodottoCount === 1 ? 'articolo' : 'articoli' }}
+            {{ 'shared.docInfo.righeTitle' | t }}
+            {{ prodottoCount | tn:'shared.docInfo.articolo' }}
           </div>
           <div class="dih-table-wrap">
           <table class="dih-table">
             <thead>
               <tr>
-                <th>Descrizione</th>
-                <th class="r">Q.tà</th>
-                <th class="r">Prezzo netto</th>
-                <th class="c">IVA</th>
-                <th class="r">Imponibile</th>
-                <th class="r">Ivato</th>
+                <th>{{ 'shared.docInfo.colDescrizione' | t }}</th>
+                <th class="r">{{ 'shared.docInfo.colQta' | t }}</th>
+                <th class="r">{{ 'shared.docInfo.colPrezzoNetto' | t }}</th>
+                <th class="c">{{ 'shared.docInfo.colIva' | t }}</th>
+                <th class="r">{{ 'shared.docInfo.colImponibile' | t }}</th>
+                <th class="r">{{ 'shared.docInfo.colIvato' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -158,18 +161,18 @@ interface IvaBreakdownRow {
         <div class="dih-section">
           <div class="dih-section-title">
             <mat-icon>percent</mat-icon>
-            Riepilogo IVA per aliquota
+            {{ 'shared.docInfo.riepilogoIvaAliquota' | t }}
           </div>
           <div class="dih-iva-grid">
             @for (b of ivaBreakdown; track b.aliquota) {
               <div class="dih-iva-card">
                 <div class="dih-iva-aliquota">{{ b.aliquota }}%</div>
                 <div class="dih-iva-detail">
-                  <span class="dih-iva-lbl">Imponibile</span>
+                  <span class="dih-iva-lbl">{{ 'shared.docInfo.colImponibile' | t }}</span>
                   <span class="dih-iva-val">{{ b.imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
                 </div>
                 <div class="dih-iva-detail">
-                  <span class="dih-iva-lbl">IVA</span>
+                  <span class="dih-iva-lbl">{{ 'shared.docInfo.iva' | t }}</span>
                   <span class="dih-iva-val">{{ b.iva | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
                 </div>
               </div>
@@ -188,7 +191,7 @@ interface IvaBreakdownRow {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Chiudi</button>
+      <button mat-button mat-dialog-close>{{ 'shared.docInfo.chiudi' | t }}</button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -484,6 +487,7 @@ interface IvaBreakdownRow {
   `]
 })
 export class DocInfoDialogComponent {
+  i18n = inject(I18nService);
   constructor(@Inject(MAT_DIALOG_DATA) public data: DocInfoData) {}
 
   get prodottoCount(): number {

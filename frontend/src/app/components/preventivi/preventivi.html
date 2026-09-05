@@ -1,63 +1,63 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Preventivi</h1>
+    <h1 class="page-title">{{ 'preventivi.title' | t }}</h1>
     @if (selection.hasValue()) {
       <div class="bulk-bar">
-        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <span class="bulk-count">{{ selection.selected.length | tn:'preventivi.selected' }}</span>
         <button mat-stroked-button type="button" (click)="bulkSetStato('INVIATO')">
-          <mat-icon>send</mat-icon> Invia
+          <mat-icon>send</mat-icon> {{ 'preventivi.bulk.invia' | t }}
         </button>
         <button mat-stroked-button type="button" (click)="bulkSetStato('ACCETTATO')">
-          <mat-icon>thumb_up</mat-icon> Accetta
+          <mat-icon>thumb_up</mat-icon> {{ 'preventivi.bulk.accetta' | t }}
         </button>
         <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('RIFIUTATO')">
-          <mat-icon>thumb_down</mat-icon> Rifiuta
+          <mat-icon>thumb_down</mat-icon> {{ 'preventivi.bulk.rifiuta' | t }}
         </button>
         <button mat-stroked-button type="button" (click)="bulkConvertiInOrdine()">
-          <mat-icon>shopping_cart</mat-icon> In ordine
+          <mat-icon>shopping_cart</mat-icon> {{ 'preventivi.bulk.inOrdine' | t }}
         </button>
         <button mat-stroked-button type="button" (click)="bulkConvertiInDdt()">
-          <mat-icon>local_shipping</mat-icon> In documento di trasporto
+          <mat-icon>local_shipping</mat-icon> {{ 'preventivi.bulk.inDdt' | t }}
         </button>
         <button mat-stroked-button type="button" color="warn" (click)="bulkElimina()">
-          <mat-icon>delete</mat-icon> Elimina
+          <mat-icon>delete</mat-icon> {{ 'preventivi.bulk.elimina' | t }}
         </button>
-        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+        <button mat-button type="button" (click)="selection.clear()">{{ 'preventivi.bulk.deseleziona' | t }}</button>
       </div>
     }
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo preventivo</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="preventivi" title="Preventivi"></app-export-menu></span>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> {{ 'preventivi.nuovo' | t }}</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'preventivi.stampa' | t }}</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="preventivi" [title]="'preventivi.title' | t"></app-export-menu></span>
 
-    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuPrev" title="Altre azioni">
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuPrev" [title]="'preventivi.altreAzioni' | t">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuPrev="matMenu">
-      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'preventivi')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
-      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'preventivi')"><mat-icon>description</mat-icon> Esporta CSV</button>
-      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'preventivi', 'Preventivi')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'preventivi.stampa' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'preventivi')"><mat-icon>grid_on</mat-icon> {{ 'preventivi.esportaExcel' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'preventivi')"><mat-icon>description</mat-icon> {{ 'preventivi.esportaCsv' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'preventivi', 'Preventivi')"><mat-icon>picture_as_pdf</mat-icon> {{ 'preventivi.esportaPdf' | t }}</button>
     </mat-menu>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" placeholder="Anno" multiple>
+    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" [placeholder]="'preventivi.filtri.anno' | t" multiple>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" placeholder="Mese" multiple>
+    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" [placeholder]="'preventivi.filtri.mese' | t" multiple>
       @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" placeholder="Cliente" multiple>
+    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" [placeholder]="'preventivi.filtri.cliente' | t" multiple>
       @for (c of clientiList; track c.id) { <mat-option [value]="c.id">{{ c.nome }}</mat-option> }
     </mat-select>
     @if (filtroAnni.length || filtroMesi.length || filtroClienti.length) {
-      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+      <button mat-icon-button type="button" [title]="'preventivi.filtri.rimuovi' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>
 
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca preventivi...</mat-label>
+      <mat-label>{{ 'preventivi.cerca' | t }}</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
@@ -74,66 +74,66 @@
       </ng-container>
 
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'preventivi.col.numero' | t }}</th>
         <td mat-cell *matCellDef="let p"><b>{{ p.numero }}</b></td>
       </ng-container>
 
       <ng-container matColumnDef="dataEmissione">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Data</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'preventivi.col.data' | t }}</th>
         <td mat-cell *matCellDef="let p">{{ p.dataEmissione | date:'dd/MM/yyyy' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="clienteNome">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'preventivi.col.cliente' | t }}</th>
         <td mat-cell *matCellDef="let p">{{ p.clienteNome || '—' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="totale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'preventivi.col.importo' | t }}</th>
         <td mat-cell *matCellDef="let p" class="euro">{{ (p.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="stato">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Stato</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'preventivi.col.stato' | t }}</th>
         <td mat-cell *matCellDef="let p">
-          <span class="stato-chip" [class]="p.stato.toLowerCase()">{{ p.stato }}</span>
+          <span class="stato-chip" [class]="p.stato.toLowerCase()">{{ ('preventivi.stato.' + p.stato.toLowerCase()) | t }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let p" class="table-actions">
-          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="menuPrevAz"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" [title]="'preventivi.altreAzioni' | t" [matMenuTriggerFor]="menuPrevAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuPrevAz="matMenu">
-            <button mat-menu-item type="button" (click)="info(p)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
-            <button mat-menu-item type="button" (click)="printDoc(p)"><mat-icon>print</mat-icon> Stampa</button>
+            <button mat-menu-item type="button" (click)="info(p)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> {{ 'preventivi.azioni.scheda' | t }}</button>
+            <button mat-menu-item type="button" (click)="printDoc(p)"><mat-icon>print</mat-icon> {{ 'preventivi.stampa' | t }}</button>
             <button mat-menu-item type="button" (click)="inviaEmail(p)">
-              <mat-icon>mail</mat-icon> Invia per email
+              <mat-icon>mail</mat-icon> {{ 'preventivi.azioni.inviaEmail' | t }}
             </button>
             @if (p.stato === 'INVIATO') {
               <button mat-menu-item type="button" (click)="setStato(p, 'ACCETTATO')">
-                <mat-icon>thumb_up</mat-icon> Accetta
+                <mat-icon>thumb_up</mat-icon> {{ 'preventivi.bulk.accetta' | t }}
               </button>
               <button mat-menu-item type="button" (click)="setStato(p, 'RIFIUTATO')">
-                <mat-icon>thumb_down</mat-icon> Rifiuta
+                <mat-icon>thumb_down</mat-icon> {{ 'preventivi.bulk.rifiuta' | t }}
               </button>
             }
             @if (p.stato === 'ACCETTATO') {
               <button mat-menu-item type="button" (click)="convertiInDdt(p)">
-                <mat-icon>local_shipping</mat-icon> Converti in documento di trasporto
+                <mat-icon>local_shipping</mat-icon> {{ 'preventivi.azioni.convertiInDdt' | t }}
               </button>
               <button mat-menu-item type="button" (click)="convertiInOrdine(p)">
-                <mat-icon>assignment</mat-icon> Converti in Ordine
+                <mat-icon>assignment</mat-icon> {{ 'preventivi.azioni.convertiInOrdine' | t }}
               </button>
             }
             <button mat-menu-item type="button" (click)="duplicate(p)">
-              <mat-icon>content_copy</mat-icon> Duplica
+              <mat-icon>content_copy</mat-icon> {{ 'preventivi.azioni.duplica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="open(p)">
-              <mat-icon>edit</mat-icon> Modifica
+              <mat-icon>edit</mat-icon> {{ 'preventivi.azioni.modifica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="delete(p)" style="color:#dc2626">
-              <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+              <mat-icon style="color:#dc2626">delete</mat-icon> {{ 'preventivi.azioni.elimina' | t }}
             </button>
           </mat-menu>
         </td>
@@ -144,13 +144,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (dataSource.filter) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessun preventivo corrisponde alla ricerca." />
+            <app-empty-state compact icon="search_off" [title]="'preventivi.empty.nessunRisultatoTitle' | t"
+              [message]="'preventivi.empty.nessunRisultatoMsg' | t" />
           } @else {
-            <app-empty-state icon="request_quote" title="Ancora nessun preventivo"
-              message="Crea il primo preventivo da inviare al cliente; se accettato lo converti in ordine o fattura.">
+            <app-empty-state icon="request_quote" [title]="'preventivi.empty.title' | t"
+              [message]="'preventivi.empty.msg' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuovo preventivo
+                <mat-icon>add</mat-icon> {{ 'preventivi.nuovo' | t }}
               </button>
             </app-empty-state>
           }
@@ -159,10 +159,10 @@
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
     <div class="list-totali">
-      <span class="lt-count">{{ dataSource.data.length }} document{{ dataSource.data.length === 1 ? 'o' : 'i' }}</span>
-      <span class="lt-tot">Totale: <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+      <span class="lt-count">{{ dataSource.data.length | tn:'preventivi.listTotali.documenti' }}</span>
+      <span class="lt-tot">{{ 'preventivi.listTotali.totale' | t }} <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       @if (selection.hasValue()) {
-        <span class="lt-sel">{{ selection.selected.length }} selezionat{{ selection.selected.length === 1 ? 'o' : 'i' }}: <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+        <span class="lt-sel">{{ selection.selected.length | tn:'preventivi.listTotali.selezionati' }} <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       }
     </div>
   </div>

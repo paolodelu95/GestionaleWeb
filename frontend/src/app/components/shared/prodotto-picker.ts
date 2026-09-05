@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -9,6 +9,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { DataService } from '../../services/data.service';
 import { Prodotto, ProdottoVariante } from '../../models';
 import { creaProdottoDaRiga } from '../../utils/crea-prodotto-da-riga';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 export interface ProdottoPick {
   prodotto: Prodotto;
@@ -19,24 +21,24 @@ export interface ProdottoPick {
   selector: 'app-prodotto-picker',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatInputModule, MatFormFieldModule],
+            MatInputModule, MatFormFieldModule, TPipe],
   template: `
     <h2 mat-dialog-title style="display:flex;align-items:center;gap:8px">
       @if (selectedProdotto) {
         <button mat-icon-button type="button" (click)="backToList()" style="margin-right:4px">
           <mat-icon>arrow_back</mat-icon>
         </button>
-        Varianti — {{ selectedProdotto.nome }}
+        {{ i18n.t('shared.prodottoPicker.titleVarianti', { nome: selectedProdotto.nome }) }}
       } @else {
-        Seleziona prodotto
+        {{ 'shared.prodottoPicker.titleSeleziona' | t }}
       }
     </h2>
     <mat-dialog-content style="width:580px; min-height:420px">
       @if (!selectedProdotto) {
         <mat-form-field style="width:100%; margin-bottom:8px">
-          <mat-label>Cerca per codice, nome o barcode</mat-label>
+          <mat-label>{{ 'shared.prodottoPicker.cercaLabel' | t }}</mat-label>
           <input matInput [(ngModel)]="query" (ngModelChange)="filter()" autofocus
-                 placeholder="es. PROD001, maglia, o scansiona barcode">
+                 [placeholder]="'shared.prodottoPicker.cercaPh' | t">
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
         <div class="picker-list">
@@ -46,7 +48,7 @@ export interface ProdottoPick {
               <span class="picker-nome">
                 {{ p.nome }}
                 @if (p.haVarianti) {
-                  <span style="font-size:10px;background:#cffafe;color:#6d28d9;padding:1px 5px;border-radius:99px;margin-left:4px;font-weight:700">VARIANTI</span>
+                  <span style="font-size:10px;background:#cffafe;color:#6d28d9;padding:1px 5px;border-radius:99px;margin-left:4px;font-weight:700">{{ 'shared.prodottoPicker.varianti' | t }}</span>
                 }
               </span>
               <span class="picker-cat">{{ p.categoria }}</span>
@@ -57,22 +59,22 @@ export interface ProdottoPick {
           }
           @if (!filtered.length) {
             <div style="padding:24px 0; text-align:center">
-              <p style="color:#94a3b8; margin:0 0 12px">Nessun prodotto trovato</p>
+              <p style="color:#94a3b8; margin:0 0 12px">{{ 'shared.prodottoPicker.nessunProdotto' | t }}</p>
               <button mat-flat-button color="primary" type="button" (click)="creaNuovo()">
-                <mat-icon>add</mat-icon> Crea {{ query ? '"' + query + '"' : 'nuovo prodotto' }}
+                <mat-icon>add</mat-icon> {{ query ? i18n.t('shared.prodottoPicker.creaConQuery', { query }) : ('shared.prodottoPicker.creaNuovoProdotto' | t) }}
               </button>
             </div>
           }
         </div>
       } @else {
         <div style="margin-bottom:12px;color:#64748b;font-size:13px">
-          Seleziona la variante desiderata. Clicca il prodotto senza variante per aggiungerlo direttamente.
+          {{ 'shared.prodottoPicker.selezionaVariante' | t }}
         </div>
         <div class="picker-list">
           <!-- Option: take the product without a specific variant -->
           <div class="picker-row picker-row-no-variant" (click)="selectWithoutVariant()">
             <mat-icon style="color:#94a3b8;font-size:18px">inventory_2</mat-icon>
-            <span style="flex:1;font-style:italic;color:#64748b">Nessuna variante specifica</span>
+            <span style="flex:1;font-style:italic;color:#64748b">{{ 'shared.prodottoPicker.nessunaVarianteSpecifica' | t }}</span>
           </div>
           @for (v of variantiList; track v.id) {
             <div class="picker-row" (click)="selectVariante(v)"
@@ -89,13 +91,13 @@ export interface ProdottoPick {
                 }
               </div>
               <span style="font-size:13px;color:#1e293b;font-weight:600">
-                Qtà: {{ v.quantita }}
-                @if (v.quantita === 0) { <span style="color:#ef4444;font-size:11px"> (esaurito)</span> }
+                {{ i18n.t('shared.prodottoPicker.qta', { n: v.quantita }) }}
+                @if (v.quantita === 0) { <span style="color:#ef4444;font-size:11px"> ({{ 'shared.prodottoPicker.esaurito' | t }})</span> }
               </span>
             </div>
           }
           @if (!variantiList.length) {
-            <p style="color:#94a3b8;padding:24px;text-align:center">Nessuna variante configurata</p>
+            <p style="color:#94a3b8;padding:24px;text-align:center">{{ 'shared.prodottoPicker.nessunaVarianteConfigurata' | t }}</p>
           }
         </div>
       }
@@ -103,10 +105,10 @@ export interface ProdottoPick {
     <mat-dialog-actions align="end">
       @if (!selectedProdotto) {
         <button mat-stroked-button color="primary" type="button" (click)="creaNuovo()" style="margin-right:auto">
-          <mat-icon>add</mat-icon> Crea nuovo prodotto
+          <mat-icon>add</mat-icon> {{ 'shared.prodottoPicker.creaNuovoProdotto' | t }}
         </button>
       }
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'shared.prodottoPicker.annulla' | t }}</button>
     </mat-dialog-actions>`,
   styles: [`
     .picker-list { max-height: 380px; overflow-y: auto; }
@@ -125,6 +127,7 @@ export interface ProdottoPick {
   `]
 })
 export class ProdottoPickerComponent implements OnInit {
+  i18n = inject(I18nService);
   query = '';
   prodotti: Prodotto[] = [];
   filtered: Prodotto[] = [];
