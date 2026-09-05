@@ -132,7 +132,8 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
     let f = conn
         .query_row(
             "SELECT f.numero, f.data_emissione, f.stato, f.stato_sdi, f.note, f.cliente_id, \
-                    c.ragione_sociale, c.p_iva, c.codice_fiscale, c.via, c.cap, c.citta, c.provincia, c.sdi, c.pec, c.tipo_soggetto \
+                    c.ragione_sociale, c.p_iva, c.codice_fiscale, c.via, c.cap, c.citta, c.provincia, c.sdi, c.pec, c.tipo_soggetto, \
+                    f.bollo \
              FROM fatture f LEFT JOIN clienti c ON c.id=f.cliente_id WHERE f.id=?1",
             [id],
             |r| {
@@ -142,6 +143,7 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
                     cliente_id: r.get::<_, Option<i64>>(5)?,
                     ragione_sociale: s(6)?, p_iva: s(7)?, codice_fiscale: s(8)?, via: s(9)?, cap: s(10)?,
                     citta: s(11)?, provincia: s(12)?, sdi: s(13)?, pec: s(14)?, tipo_soggetto: s(15)?,
+                    bollo: r.get::<_, Option<i64>>(16)? == Some(1),
                 })
             },
         )
@@ -289,6 +291,13 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
     let mut totale_calcolato = 0.0;
     let mut natura_mancante: Vec<usize> = Vec::new();
     let mut natura_set: HashSet<usize> = HashSet::new();
+    // Bollo virtuale: dovuto (di norma) quando il totale delle operazioni escluse/non
+    // soggette/esenti (N1, N2.x, N4 — non N3 "non imponibili" tipo esportazioni, ne
+    // N5/N6/N7 che hanno un trattamento diverso) supera 77,47€ e non e' gia' segnato
+    // in fattura. E' un avviso, non un blocco: il caso reale ha eccezioni che qui non
+    // proviamo a coprire tutte.
+    const NATURE_BOLLO: [&str; 5] = ["N1", "N2", "N2.1", "N2.2", "N4"];
+    let mut imponibile_bollo = 0.0;
     for (i, (descr, qta, prezzo, iva, codice_iva, sconto)) in righe.iter().enumerate() {
         let n = i + 1;
         let descr = descr.clone().unwrap_or_default();
@@ -307,17 +316,42 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
         if iva.is_none() || ivav < 0.0 || ivav > 100.0 {
             errors.push(format!("Riga {n}: IVA fuori range ({}).", js_opt_num(iva)));
         }
+        let sc = sconto.unwrap_or(0.0);
         if iva.unwrap_or(-1.0) == 0.0 {
-            let nat = codice_iva.clone().unwrap_or_default().trim().to_uppercase();
-            if nat.is_empty() {
+            // Il codice riga (es. "E10", "X15", "RF") e' un mnemonico che punta ad
+            // aliquote_iva: la Natura SDI vera e' in aliquote_iva.natura, NON è il
+            // codice stesso (prima si confrontava il mnemonico con N1..N7: non
+            // coincidono quasi mai, quindi righe con aliquote di serie valide
+            // finivano rifiutate qui pur generando un XML corretto).
+            let codice = codice_iva.clone().unwrap_or_default();
+            let codice_trim = codice.trim();
+            if codice_trim.is_empty() {
                 if natura_set.insert(n) {
                     natura_mancante.push(n);
                 }
-            } else if !NATURE.contains(&nat.as_str()) && !is_natura_regex(&nat) {
-                errors.push(format!("Riga {n}: codice Natura \"{}\" non riconosciuto (atteso N1..N7).", codice_iva.clone().unwrap_or_default()));
+            } else {
+                let natura_db: Option<String> = conn
+                    .query_row("SELECT natura FROM aliquote_iva WHERE codice=?1", [codice_trim], |r| r.get::<_, Option<String>>(0))
+                    .optional()?
+                    .flatten();
+                match natura_db {
+                    None => errors.push(format!("Riga {n}: codice IVA \"{}\" non trovato in Anagrafiche → Aliquote IVA.", codice_trim)),
+                    Some(nat) if nat.trim().is_empty() => {
+                        if natura_set.insert(n) {
+                            natura_mancante.push(n);
+                        }
+                    }
+                    Some(nat) => {
+                        let nat_up = nat.trim().to_uppercase();
+                        if !NATURE.contains(&nat_up.as_str()) && !is_natura_regex(&nat_up) {
+                            errors.push(format!("Riga {n}: Natura \"{}\" (da aliquota \"{}\") non riconosciuta (atteso N1..N7).", nat, codice_trim));
+                        } else if NATURE_BOLLO.contains(&nat_up.as_str()) {
+                            imponibile_bollo += qta.unwrap_or(0.0) * prezzo.unwrap_or(0.0) * (1.0 - sc / 100.0);
+                        }
+                    }
+                }
             }
         }
-        let sc = sconto.unwrap_or(0.0);
         if sc < 0.0 || sc > 100.0 {
             errors.push(format!("Riga {n}: sconto fuori range ({}%).", js_num(sc)));
         }
@@ -326,7 +360,13 @@ async fn validate(State(state): State<AppState>, Path(id): Path<i64>) -> ApiResu
     drop(stmt);
     if !natura_mancante.is_empty() {
         let list = natura_mancante.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ");
-        errors.push(format!("Righe {list}: con IVA 0% serve indicare un codice Natura (N1=escluse, N2=non soggette, N3=non imponibili, N4=esenti, N6=reverse charge, N7=IVA estera)."));
+        errors.push(format!("Righe {list}: con IVA 0% serve un'aliquota con Natura impostata (N1=escluse, N2=non soggette, N3=non imponibili, N4=esenti, N6=reverse charge, N7=IVA estera)."));
+    }
+    if imponibile_bollo > 77.47 && !f.bollo {
+        warnings.push(format!(
+            "Operazioni escluse/non soggette/esenti per {:.2}€ (> 77,47€): valuta se serve il bollo virtuale (non risulta segnato su questo documento).",
+            imponibile_bollo
+        ));
     }
     if totale_calcolato == 0.0 {
         warnings.push("Totale fattura zero.".into());
@@ -386,6 +426,7 @@ struct Fatt {
     sdi: String,
     pec: String,
     tipo_soggetto: String,
+    bollo: bool,
 }
 
 #[derive(Default)]
