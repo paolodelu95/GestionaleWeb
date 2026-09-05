@@ -170,8 +170,12 @@ button, input, select, textarea, [role="button"] { font-family: inherit; }
 
   // Fill/bordo degli input GREZZI della tabella righe (non Material): tokenizzati
   // così rispettano la dark mode (gli input grezzi non ereditano --field-fill).
+  // Bordo su --mat-sys-outline (non --border, troppo chiaro: ~1.15:1 su bianco,
+  // sotto la soglia 3:1 per i confini UI) così le celle si leggono come caselle
+  // cliccabili, con lo stesso contrasto degli outline Material sopra di loro
+  // (Cliente/Numero/Data) — già corretto in entrambi i temi via light-dark().
   --row-input-bg: #ffffff;
-  --row-input-border: var(--border);
+  --row-input-border: var(--mat-sys-outline);
 
   // Transitions
   --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -212,9 +216,9 @@ button, input, select, textarea, [role="button"] { font-family: inherit; }
   // (badge/chip su sfondo --primary). #ffffff su #15a4a2 ha contrasto insufficiente.
   --primary-on: #06242c;
 
-  // Input grezzi righe in dark: superficie scura + bordo visibile
+  // Input grezzi righe in dark: superficie scura (il bordo resta su
+  // --mat-sys-outline, già corretto per il dark via light-dark())
   --row-input-bg: #1c2336;
-  --row-input-border: var(--border-strong);
 
   --success-soft: rgba(16, 185, 129, 0.16);
   --success-on: #34d399;
