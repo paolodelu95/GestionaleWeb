@@ -532,6 +532,10 @@ export class ImpostazioniComponent implements OnInit {
   /** Densità dell'interfaccia (compatta desktop / comoda). */
   get density(): Density { return this.layout.density(); }
   setDensity(v: Density) { this.layout.setDensity(v); }
+
+  /** Tema chiaro/scuro (spostato qui dall'icona in topbar). */
+  get darkMode(): boolean { return this.layout.darkMode(); }
+  setDarkMode(v: boolean) { this.layout.setDarkMode(v); }
   form: FormGroup;
   filteredCities: CityResult[] = [];
   private cityMap = new Map<string, CityResult>();

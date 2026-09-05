@@ -71,11 +71,8 @@
         </mat-menu>
       }
     </nav>
-    <div class="sidenav-footer">
-      <button class="sidenav-footer-btn" (click)="openBugReport()" title="Segnala un problema">
-        <mat-icon>bug_report</mat-icon>
-      </button>
-    </div>
+    <!-- "Segnala un problema" non serve qui: c'è già nella topbar (vicino a
+         data/notifiche), condivisa da tutti i layout — qui era un doppione. -->
   </aside>
 }
 
@@ -258,9 +255,6 @@
         }
       </div>
 
-      <button mat-icon-button type="button" [title]="darkMode ? 'Modalità chiara' : 'Modalità scura'" (click)="toggleDark()">
-        <mat-icon>{{ darkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
-      </button>
       <button mat-icon-button type="button" title="Segnala un problema" (click)="openBugReport()">
         <mat-icon>report_problem</mat-icon>
       </button>

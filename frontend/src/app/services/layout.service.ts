@@ -23,11 +23,14 @@ export type Density = 'comodo' | 'compatto';
 export class LayoutService {
   private readonly KEY = 'nav-layout';
   private readonly DENSITY_KEY = 'ui-density';
+  private readonly DARK_KEY = 'dark-mode';
   readonly navLayout = signal<NavLayout>(this.read());
   readonly density = signal<Density>(this.readDensity());
+  readonly darkMode = signal<boolean>(this.readDarkMode());
 
   constructor() {
     this.applyDensityClass(this.density());
+    this.applyDarkClass(this.darkMode());
   }
 
   private read(): NavLayout {
@@ -59,5 +62,24 @@ export class LayoutService {
   private applyDensityClass(v: Density) {
     if (typeof document === 'undefined') return;
     document.documentElement.classList.toggle('density-compact', v === 'compatto');
+  }
+
+  private readDarkMode(): boolean {
+    return lsGet(this.DARK_KEY) === '1';
+  }
+
+  setDarkMode(v: boolean) {
+    lsSet(this.DARK_KEY, v ? '1' : '0');
+    this.darkMode.set(v);
+    this.applyDarkClass(v);
+  }
+
+  toggleDarkMode() {
+    this.setDarkMode(!this.darkMode());
+  }
+
+  private applyDarkClass(v: boolean) {
+    if (typeof document === 'undefined') return;
+    document.body.classList.toggle('dark-mode', v);
   }
 }

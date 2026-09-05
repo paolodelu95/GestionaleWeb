@@ -128,7 +128,6 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   publicRoute = false;
   private readonly PUBLIC_PATHS = ['/faq', '/guida', '/termini', '/privacy', '/cookie', '/reset-password', '/verify-email', '/trial-expired'];
   badges: NotificationBadges = { scadenzeScadute: 0, prodottiSottoSoglia: 0, solleciti: 0 };
-  darkMode = false;
   searchQuery = '';
   searchResults: { label: string; tipo: string; route: string; id: number }[] = [];
   /** Comandi di navigazione/azione filtrati (palette ⌘K). */
@@ -210,8 +209,8 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   ngOnInit() {
     this.nativeMenu.start();   // ponte menu nativo → azioni SPA (no-op su web)
     this.setupNativeFeel();    // comportamenti "da app" (solo desktop offline)
-    this.darkMode = lsGet('dark-mode') === '1';
-    document.body.classList.toggle('dark-mode', this.darkMode);
+    // Tema chiaro/scuro: applicato dal costruttore di LayoutService (stesso
+    // meccanismo di navLayout/density, spostato in Impostazioni → Aspetto).
 
     // (La vecchia password-programma in-app è stata sostituita dalla password
     // per-archivio, richiesta all'avvio dal selettore archivi: nessun controllo qui.)
@@ -839,12 +838,6 @@ export class App implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
       this.showNotif = false;
       this.showReminders = false;
     }
-  }
-
-  toggleDark() {
-    this.darkMode = !this.darkMode;
-    document.body.classList.toggle('dark-mode', this.darkMode);
-    lsSet('dark-mode', this.darkMode ? '1' : '0');
   }
 
   installApp() {
