@@ -393,8 +393,8 @@ const PICKER_HTML: &str = r#"<!doctype html><html lang="it"><head><meta charset=
  #lista::-webkit-scrollbar-thumb{background:#dbe5ea;border-radius:8px}
  .entry{margin-bottom:9px}
  .arc{display:flex;align-items:center;gap:13px;padding:11px 13px;border:1px solid var(--line);
-   border-radius:14px;background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s}
- .arc:hover{border-color:var(--brand);box-shadow:0 10px 22px -12px rgba(17,118,155,.55);transform:translateY(-1px)}
+   border-radius:14px;background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+ .arc:hover{border-color:var(--brand);box-shadow:0 10px 22px -12px rgba(17,118,155,.55)}
  .avatar{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;
    color:#fff;font-weight:700;font-size:16px}
  .meta{flex:1;min-width:0}
