@@ -28,6 +28,7 @@ restano recuperabili dalla storia git (vedi [`electron/README.md`](electron/READ
 ## Indice
 - [Cos'è l'edizione offline](#cosè-ledizione-offline)
 - [Download](#-download)
+- [Avviso "app non riconosciuta/dannosa" all'apertura](#avviso-app-non-riconosciutadannosa-allapertura)
 - [Funzionalità](#funzionalità)
 - [Novità recenti](#novità-recenti)
 - [Avvio rapido (sviluppo)](#avvio-rapido-sviluppo)
@@ -63,6 +64,44 @@ Versioni pronte all'uso dalla pagina
 | Windows | `Ordeva-Setup-x.y.z.exe` | `Ordeva-x.y.z.exe` (doppio clic, niente setup) |
 | macOS | `Ordeva-x.y.z.dmg` | `Ordeva-x.y.z-mac.zip` |
 | Linux | `ordeva_x.y.z_amd64.deb` | `Ordeva-x.y.z.AppImage` |
+
+---
+
+## Avviso "app non riconosciuta/dannosa" all'apertura
+
+I file non sono **firmati digitalmente** (la firma di codice su Windows e macOS
+è un servizio a pagamento — certificato Authenticode / Apple Developer Program —
+che questo progetto personale/open source al momento non ha). È il motivo per
+cui Windows e macOS mostrano un avviso alla prima apertura: **non è un
+antivirus che ha trovato qualcosa**, è semplicemente che l'eseguibile non ha un
+editore verificato. Il codice sorgente è tutto qui nel repo, verificabile da
+chiunque.
+
+**Windows** — SmartScreen mostra *"Windows ha protetto il tuo PC"*:
+1. Clicca **Ulteriori informazioni**.
+2. Clicca **Esegui comunque**.
+
+**macOS** — Gatekeeper mostra *"non è possibile aprire perché proviene da uno
+sviluppatore non identificato"* (o *"l'app è danneggiata"*, stesso motivo):
+1. **Tasto destro** (o Ctrl+clic) sull'app → **Apri** → conferma **Apri** nel
+   dialogo (NON il doppio clic normale, che si ferma prima del dialogo).
+2. Se non basta: **Impostazioni di Sistema → Privacy e sicurezza**, scorri fino
+   in fondo e clicca **Apri comunque** accanto al messaggio su Ordeva.
+3. In alternativa da terminale, rimuovi l'attributo di quarantena:
+   ```bash
+   xattr -cr /Applications/Ordeva.app
+   ```
+
+**Linux (AppImage)** — va reso eseguibile prima del primo avvio:
+```bash
+chmod +x Ordeva-x.y.z.AppImage
+./Ordeva-x.y.z.AppImage
+```
+
+> Su Windows e Linux gli **aggiornamenti automatici** funzionano comunque (vedi
+> [Aggiornamenti](#aggiornamenti)): il passaggio manuale sopra serve solo alla
+> primissima installazione. Su macOS, finché l'app non è firmata Apple, resta
+> il download manuale a ogni versione.
 
 ---
 
