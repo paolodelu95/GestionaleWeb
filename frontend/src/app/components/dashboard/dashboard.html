@@ -1,50 +1,50 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Dashboard</h1>
+    <h1 class="page-title">{{ 'nav.dashboard' | t }}</h1>
 
     @if (offline) {
       <button mat-stroked-button type="button" (click)="verificaAggiornamenti()"
-              [disabled]="verificaInCorso" matTooltip="Controlla se è disponibile una nuova versione"
+              [disabled]="verificaInCorso" [matTooltip]="'dashboard.tooltipCheckUpdate' | t"
               class="dash-action">
         <mat-icon>{{ verificaInCorso ? 'sync' : 'system_update' }}</mat-icon>
-        <span>{{ verificaInCorso ? 'Controllo…' : 'Aggiornamenti' }}</span>
+        <span>{{ (verificaInCorso ? 'dashboard.checking' : 'dashboard.updates') | t }}</span>
       </button>
     }
 
     <button mat-stroked-button type="button" [matMenuTriggerFor]="widgetMenu"
-            matTooltip="Mostra/nascondi widget" class="dash-action">
+            [matTooltip]="'dashboard.tooltipToggleWidgets' | t" class="dash-action">
       <mat-icon>view_module</mat-icon>
-      <span>Widget</span>
+      <span>{{ 'dashboard.widgetsButton' | t }}</span>
       <span class="action-count">{{ visibleCount }}/{{ widgets.length }}</span>
     </button>
     <mat-menu #widgetMenu="matMenu" class="widget-menu">
       <div class="widget-menu-header" (click)="$event.stopPropagation()">
-        <span>Mostra widget</span>
+        <span>{{ 'dashboard.showWidgets' | t }}</span>
       </div>
       @for (w of widgets; track w.id) {
         <button mat-menu-item type="button" (click)="$event.stopPropagation(); toggleVisible(w)">
           <mat-checkbox [checked]="w.visible" (click)="$event.stopPropagation(); toggleVisible(w)"
                         class="widget-menu-check"></mat-checkbox>
           <mat-icon class="widget-menu-icon">{{ w.icon }}</mat-icon>
-          {{ w.label }}
+          {{ w.label | t }}
         </button>
       }
       <button mat-menu-item type="button" (click)="resetWidgets()" class="widget-menu-reset">
-        <mat-icon>restart_alt</mat-icon> Ripristina default
+        <mat-icon>restart_alt</mat-icon> {{ 'dashboard.resetDefault' | t }}
       </button>
     </mat-menu>
 
     @if (!editMode) {
       <button mat-flat-button type="button" (click)="toggleEdit()"
-              matTooltip="Trascina i widget per riordinarli" class="dash-action">
+              [matTooltip]="'dashboard.tooltipDragReorder' | t" class="dash-action">
         <mat-icon>edit</mat-icon>
-        <span>Modifica</span>
+        <span>{{ 'dashboard.edit' | t }}</span>
       </button>
     } @else {
       <button mat-flat-button type="button" (click)="toggleEdit()"
-              matTooltip="Termina modifica" class="dash-action dash-action-done">
+              [matTooltip]="'dashboard.tooltipEndEdit' | t" class="dash-action dash-action-done">
         <mat-icon>done</mat-icon>
-        <span>Fatto</span>
+        <span>{{ 'dashboard.done' | t }}</span>
       </button>
     }
   </div>
@@ -52,7 +52,7 @@
   @if (editMode) {
     <div class="edit-banner">
       <mat-icon>drag_indicator</mat-icon>
-      <span>Modalità modifica attiva — trascina i widget per riordinarli, usa il menu in alto per mostrare/nascondere.</span>
+      <span>{{ 'dashboard.editBanner' | t }}</span>
     </div>
   }
 
@@ -72,10 +72,10 @@
                 <mat-icon>drag_indicator</mat-icon>
                 <span class="widget-edit-label">
                   <mat-icon class="widget-edit-icon">{{ w.icon }}</mat-icon>
-                  {{ w.label }}
+                  {{ w.label | t }}
                 </span>
               </div>
-              <button mat-icon-button (click)="toggleVisible(w)" [matTooltip]="w.visible ? 'Nascondi' : 'Mostra'">
+              <button mat-icon-button (click)="toggleVisible(w)" [matTooltip]="(w.visible ? 'dashboard.hide' : 'dashboard.show') | t">
                 <mat-icon>{{ w.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
               </button>
             </div>
@@ -88,48 +88,48 @@
                 @if (nScadute > 0) {
                   <a class="alert-chip alert-red" [routerLink]="['/fatture']">
                     <mat-icon>warning</mat-icon>
-                    {{ nScadute }} {{ nScadute === 1 ? 'fattura scaduta' : 'fatture scadute' }}
+                    {{ nScadute | tn:'dashboard.alert.fatturaScaduta' }}
                   </a>
                 }
                 @if (nDaIncassare > 0) {
                   <a class="alert-chip alert-green" [routerLink]="['/scadenzario']">
                     <mat-icon>request_quote</mat-icon>
-                    {{ nDaIncassare }} {{ nDaIncassare === 1 ? 'fattura da incassare' : 'fatture da incassare' }}
+                    {{ nDaIncassare | tn:'dashboard.alert.fatturaDaIncassare' }}
                   </a>
                 }
                 @if (nDaPagare > 0) {
                   <a class="alert-chip alert-orange" [routerLink]="['/scadenzario']">
                     <mat-icon>payments</mat-icon>
-                    {{ nDaPagare }} {{ nDaPagare === 1 ? 'fattura da pagare' : 'fatture da pagare' }}
+                    {{ nDaPagare | tn:'dashboard.alert.fatturaDaPagare' }}
                   </a>
                 }
                 @if (nDaInviareSdi > 0) {
                   <a class="alert-chip alert-violet" [routerLink]="['/fatture']">
                     <mat-icon>unpublished</mat-icon>
-                    {{ nDaInviareSdi }} {{ nDaInviareSdi === 1 ? 'fattura da inviare allo SDI' : 'fatture da inviare allo SDI' }}
+                    {{ nDaInviareSdi | tn:'dashboard.alert.fatturaDaInviareSdi' }}
                   </a>
                 }
                 @if (nSdiNonLette > 0) {
                   <a class="alert-chip alert-blue" [routerLink]="['/sdi-passive']">
                     <mat-icon>mark_email_unread</mat-icon>
-                    {{ nSdiNonLette }} {{ nSdiNonLette === 1 ? 'fattura passiva non letta' : 'fatture passive non lette' }}
+                    {{ nSdiNonLette | tn:'dashboard.alert.fatturaPassivaNonLetta' }}
                   </a>
                 }
                 @if (ddtDaFatturare.length > 0) {
                   <a class="alert-chip alert-blue" [routerLink]="['/ddt']">
                     <mat-icon>receipt_long</mat-icon>
-                    {{ ddtDaFatturare.length }} {{ ddtDaFatturare.length === 1 ? 'documento di trasporto da fatturare' : 'documenti di trasporto da fatturare' }}
+                    {{ ddtDaFatturare.length | tn:'dashboard.alert.documentoDaFatturare' }}
                   </a>
                 }
                 @if (prodottiSottoSoglia.length > 0) {
                   <a class="alert-chip alert-orange" [routerLink]="['/magazzino']" [queryParams]="{ tab: 'riordino' }">
                     <mat-icon>shopping_cart_checkout</mat-icon>
-                    {{ prodottiSottoSoglia.length }} da riordinare
+                    {{ 'dashboard.alert.daRiordinare' | t:{ n: prodottiSottoSoglia.length } }}
                   </a>
                 }
               </div>
             } @else if (editMode) {
-              <div class="empty-widget">Nessun avviso al momento</div>
+              <div class="empty-widget">{{ 'dashboard.noAlerts' | t }}</div>
             }
           }
 
@@ -138,22 +138,22 @@
             <div class="kpi-grid">
               <div class="kpi-card kpi-tint-blue">
                 <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
-                <div class="kpi-label">Prodotti a magazzino</div>
+                <div class="kpi-label">{{ 'dashboard.kpi.prodottiMagazzino' | t }}</div>
                 <div class="kpi-value">{{ prodottiCount }}</div>
               </div>
               <div class="kpi-card kpi-tint-green">
                 <div class="kpi-icon"><mat-icon>account_balance_wallet</mat-icon></div>
-                <div class="kpi-label">Valore magazzino</div>
+                <div class="kpi-label">{{ 'dashboard.kpi.valoreMagazzino' | t }}</div>
                 <div class="kpi-value">{{ valoremagazzino | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
               </div>
               <div class="kpi-card kpi-tint-amber">
                 <div class="kpi-icon"><mat-icon>shopping_cart</mat-icon></div>
-                <div class="kpi-label">Ordini aperti</div>
+                <div class="kpi-label">{{ 'dashboard.kpi.ordiniAperti' | t }}</div>
                 <div class="kpi-value">{{ ordiniAperti }}</div>
               </div>
               <div class="kpi-card kpi-tint-purple">
                 <div class="kpi-icon"><mat-icon>people</mat-icon></div>
-                <div class="kpi-label">Clienti</div>
+                <div class="kpi-label">{{ 'nav.clienti' | t }}</div>
                 <div class="kpi-value">{{ clientiCount }}</div>
               </div>
             </div>
@@ -164,17 +164,17 @@
             <div class="kpi-grid">
               <div class="kpi-card kpi-tint-indigo">
                 <div class="kpi-icon"><mat-icon>trending_up</mat-icon></div>
-                <div class="kpi-label">Fatturato anno</div>
+                <div class="kpi-label">{{ 'dashboard.kpi.fatturatoAnno' | t }}</div>
                 <div class="kpi-value">{{ kpi.fatturato | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
               </div>
               <div class="kpi-card kpi-tint-red">
                 <div class="kpi-icon"><mat-icon>trending_down</mat-icon></div>
-                <div class="kpi-label">Costi anno</div>
+                <div class="kpi-label">{{ 'dashboard.kpi.costiAnno' | t }}</div>
                 <div class="kpi-value">{{ kpi.costi | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
               </div>
               <div class="kpi-card" [class.kpi-tint-green]="kpi.margine >= 0" [class.kpi-tint-red]="kpi.margine < 0">
                 <div class="kpi-icon"><mat-icon>{{ kpi.margine >= 0 ? 'savings' : 'warning' }}</mat-icon></div>
-                <div class="kpi-label">Margine anno</div>
+                <div class="kpi-label">{{ 'dashboard.kpi.margineAnno' | t }}</div>
                 <div class="kpi-value" [class]="kpi.margine >= 0 ? 'kpi-margine-pos' : 'kpi-margine-neg'">
                   {{ kpi.margine | currency:'EUR':'symbol':'1.2-2':'it' }}
                 </div>
@@ -183,14 +183,14 @@
                 <div class="cashflow-row">
                   <div class="cashflow-accent" style="background:#16a34a"></div>
                   <div>
-                    <div class="kpi-label">Da incassare</div>
+                    <div class="kpi-label">{{ 'dashboard.kpi.daIncassare' | t }}</div>
                     <div class="cashflow-val-pos">{{ cashflow.daIncassare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
                   </div>
                 </div>
                 <div class="cashflow-row">
                   <div class="cashflow-accent" style="background:#dc2626"></div>
                   <div>
-                    <div class="kpi-label">Da pagare</div>
+                    <div class="kpi-label">{{ 'dashboard.kpi.daPagare' | t }}</div>
                     <div class="cashflow-val-neg">{{ cashflow.daPagare | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
                   </div>
                 </div>
@@ -203,10 +203,10 @@
             <div class="card">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
                 <div>
-                  <h3 class="section-title" style="margin:0">Previsione cashflow · prossimi 60gg</h3>
+                  <h3 class="section-title" style="margin:0">{{ 'dashboard.forecast.title' | t }}</h3>
                   <div style="font-size:12px;color:#94a3b8;margin-top:4px">
-                    Entrate previste: <b style="color:#16a34a">{{ forecast.totEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
-                    · Uscite: <b style="color:#dc2626">{{ forecast.totUscite | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                    {{ 'dashboard.forecast.entratePreviste' | t }} <b style="color:#16a34a">{{ forecast.totEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                    · {{ 'dashboard.forecast.uscite' | t }} <b style="color:#dc2626">{{ forecast.totUscite | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
                   </div>
                 </div>
                 <div [style.color]="forecast.saldoFinale >= 0 ? '#16a34a' : '#dc2626'"
@@ -218,7 +218,7 @@
                 @if (forecast.items.length) {
                   <canvas #forecastCanvas></canvas>
                 } @else {
-                  <app-empty-state compact icon="event_available" title="Nessuna scadenza" message="Niente in arrivo nei prossimi 60 giorni." />
+                  <app-empty-state compact icon="event_available" [title]="'dashboard.forecast.emptyTitle' | t" [message]="'dashboard.forecast.emptyMessage' | t" />
                 }
               </div>
             </div>
@@ -231,15 +231,15 @@
               <div class="card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                   <h3 class="section-title" style="margin:0;display:flex;align-items:center;gap:6px">
-                    <mat-icon style="color:#11769b">event_note</mat-icon> Prossimi 7 giorni
+                    <mat-icon style="color:#11769b">event_note</mat-icon> {{ 'dashboard.agenda.title7d' | t }}
                   </h3>
                   <a routerLink="/agenda" mat-stroked-button>
-                    <mat-icon>open_in_new</mat-icon> Agenda
+                    <mat-icon>open_in_new</mat-icon> {{ 'nav.agenda' | t }}
                   </a>
                 </div>
                 @if (agendaImminenti.eventi.length === 0) {
                   <p style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">
-                    Nessun evento nei prossimi 7 giorni.
+                    {{ 'dashboard.agenda.empty' | t }}
                   </p>
                 } @else {
                   <div style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto">
@@ -268,18 +268,18 @@
               <div class="card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                   <h3 class="section-title" style="margin:0;display:flex;align-items:center;gap:6px">
-                    <mat-icon style="color:#16a34a">checklist</mat-icon> Da fare
+                    <mat-icon style="color:#16a34a">checklist</mat-icon> {{ 'dashboard.todo.title' | t }}
                     @if (todoList.length > 0) {
                       <span style="font-size:11px;font-weight:500;color:#94a3b8">{{ topTodoDaFare.length }}</span>
                     }
                   </h3>
                   <a routerLink="/agenda" mat-stroked-button>
-                    <mat-icon>open_in_new</mat-icon> Tutte
+                    <mat-icon>open_in_new</mat-icon> {{ 'dashboard.todo.all' | t }}
                   </a>
                 </div>
                 @if (topTodoDaFare.length === 0) {
                   <p style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">
-                    Tutto sotto controllo: nessuna todo aperta. 🎉
+                    {{ 'dashboard.todo.empty' | t }}
                   </p>
                 } @else {
                   <div style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto">
@@ -316,13 +316,13 @@
           <!-- ── Widget: Previsione cassa 30/60/90 giorni ──────────────── -->
           @if (w.id === 'cashflow-3060-90') {
             <div class="card">
-              <h3 class="section-title" style="margin:0 0 8px">Previsione cassa · 30 / 60 / 90 giorni</h3>
+              <h3 class="section-title" style="margin:0 0 8px">{{ 'dashboard.cf3060.title' | t }}</h3>
               <div style="font-size:12px;color:#94a3b8;margin-bottom:12px">
-                Saldo attuale (prima nota): <b>{{ cashflow306090.saldoOggi | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+                {{ 'dashboard.cf3060.saldoAttuale' | t }} <b>{{ cashflow306090.saldoOggi | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
               </div>
               <div class="kpi-grid kpi-3col">
                 <div class="kpi-card">
-                  <div class="kpi-label">A 30 giorni</div>
+                  <div class="kpi-label">{{ 'dashboard.cf3060.d30' | t }}</div>
                   <div class="kpi-value" [style.color]="cashflow306090.bucket30.saldo >= 0 ? '#16a34a' : '#dc2626'">
                     {{ cashflow306090.bucket30.saldo | currency:'EUR':'symbol':'1.2-2':'it' }}
                   </div>
@@ -332,7 +332,7 @@
                   </div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">A 60 giorni</div>
+                  <div class="kpi-label">{{ 'dashboard.cf3060.d60' | t }}</div>
                   <div class="kpi-value" [style.color]="cashflow306090.bucket60.saldo >= 0 ? '#16a34a' : '#dc2626'">
                     {{ cashflow306090.bucket60.saldo | currency:'EUR':'symbol':'1.2-2':'it' }}
                   </div>
@@ -342,7 +342,7 @@
                   </div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">A 90 giorni</div>
+                  <div class="kpi-label">{{ 'dashboard.cf3060.d90' | t }}</div>
                   <div class="kpi-value" [style.color]="cashflow306090.bucket90.saldo >= 0 ? '#16a34a' : '#dc2626'">
                     {{ cashflow306090.bucket90.saldo | currency:'EUR':'symbol':'1.2-2':'it' }}
                   </div>
@@ -358,7 +358,7 @@
           <!-- ── Widget: Chart vendite ──────────────────────────────────── -->
           @if (w.id === 'chart-vendite') {
             <div class="card">
-              <h3 class="section-title">Vendite mensili (ultimi 12 mesi)</h3>
+              <h3 class="section-title">{{ 'dashboard.chart.venditeTitle' | t }}</h3>
               <div class="chart-container">
                 <canvas #chartVendite></canvas>
               </div>
@@ -368,7 +368,7 @@
           <!-- ── Widget: Chart top prodotti ─────────────────────────────── -->
           @if (w.id === 'chart-top') {
             <div class="card">
-              <h3 class="section-title">Top 5 prodotti per fatturato</h3>
+              <h3 class="section-title">{{ 'dashboard.chart.topTitle' | t }}</h3>
               <div class="chart-container-centered">
                 <canvas #chartTop></canvas>
               </div>
@@ -379,25 +379,25 @@
           @if (w.id === 'table-sotto') {
             <div class="card">
               <div class="section-header">
-                <h3 class="section-title danger">Prodotti sotto soglia</h3>
-                <a [routerLink]="['/prodotti']" class="section-link">Vai ai prodotti →</a>
+                <h3 class="section-title danger">{{ 'dashboard.table.sottoSogliaTitle' | t }}</h3>
+                <a [routerLink]="['/prodotti']" class="section-link">{{ 'dashboard.table.vaiProdotti' | t }}</a>
               </div>
               <!-- Tabella su tablet/desktop -->
               <table mat-table [dataSource]="prodottiSottoSoglia" class="mat-mdc-table hide-mobile">
                 <ng-container matColumnDef="nome">
-                  <th mat-header-cell *matHeaderCellDef>Prodotto</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colProdotto' | t }}</th>
                   <td mat-cell *matCellDef="let p">{{ p.nome }}</td>
                 </ng-container>
                 <ng-container matColumnDef="categoria">
-                  <th mat-header-cell *matHeaderCellDef>Categoria</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colCategoria' | t }}</th>
                   <td mat-cell *matCellDef="let p">{{ p.categoria }}</td>
                 </ng-container>
                 <ng-container matColumnDef="quantita">
-                  <th mat-header-cell *matHeaderCellDef>Qtà</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colQta' | t }}</th>
                   <td mat-cell *matCellDef="let p"><b class="text-danger">{{ p.quantita }}</b></td>
                 </ng-container>
                 <ng-container matColumnDef="sogliaMinima">
-                  <th mat-header-cell *matHeaderCellDef>Soglia</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colSoglia' | t }}</th>
                   <td mat-cell *matCellDef="let p">{{ p.sogliaMinima }}</td>
                 </ng-container>
                 <tr mat-header-row *matHeaderRowDef="prodottiCols"></tr>
@@ -415,13 +415,13 @@
                     </div>
                     <div class="m-card-side">
                       <div class="m-card-num text-danger">{{ p.quantita }}</div>
-                      <div class="m-card-num-sub">min: {{ p.sogliaMinima }}</div>
+                      <div class="m-card-num-sub">{{ 'dashboard.table.minPrefix' | t:{ n: p.sogliaMinima ?? 0 } }}</div>
                     </div>
                   </a>
                 }
               </div>
               @if (!prodottiSottoSoglia.length) {
-                <app-empty-state compact icon="inventory_2" title="Scorte a posto" message="Nessun prodotto sotto la soglia minima." />
+                <app-empty-state compact icon="inventory_2" [title]="'dashboard.table.sottoEmptyTitle' | t" [message]="'dashboard.table.sottoEmptyMessage' | t" />
               }
             </div>
           }
@@ -430,32 +430,32 @@
           @if (w.id === 'table-ddt') {
             <div class="card">
               <div class="section-header">
-                <h3 class="section-title info">Documenti di trasporto da fatturare</h3>
-                <a [routerLink]="['/ddt']" class="section-link">Vai ai documenti di trasporto →</a>
+                <h3 class="section-title info">{{ 'dashboard.table.ddtTitle' | t }}</h3>
+                <a [routerLink]="['/ddt']" class="section-link">{{ 'dashboard.table.vaiDdt' | t }}</a>
               </div>
               <table mat-table [dataSource]="ddtDaFatturare" class="mat-mdc-table hide-mobile">
                 <ng-container matColumnDef="numero">
-                  <th mat-header-cell *matHeaderCellDef>Numero</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colNumero' | t }}</th>
                   <td mat-cell *matCellDef="let d">{{ d.numero }}</td>
                 </ng-container>
                 <ng-container matColumnDef="dataEmissione">
-                  <th mat-header-cell *matHeaderCellDef>Data</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colData' | t }}</th>
                   <td mat-cell *matCellDef="let d">{{ d.dataEmissione | date:'dd/MM/yyyy' }}</td>
                 </ng-container>
                 <ng-container matColumnDef="clienteNome">
-                  <th mat-header-cell *matHeaderCellDef>Cliente</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colCliente' | t }}</th>
                   <td mat-cell *matCellDef="let d">{{ d.clienteNome || '-' }}</td>
                 </ng-container>
                 <ng-container matColumnDef="totale">
-                  <th mat-header-cell *matHeaderCellDef>Importo</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colImporto' | t }}</th>
                   <td mat-cell *matCellDef="let d" class="euro">{{ (d.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
                 </ng-container>
                 <ng-container matColumnDef="azione">
-                  <th mat-header-cell *matHeaderCellDef>Azione</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colAzione' | t }}</th>
                   <td mat-cell *matCellDef="let d">
                     <button mat-button type="button" color="primary" class="btn-fattura"
-                            title="Crea fattura da questo documento di trasporto" (click)="convertiDdtInFattura(d)">
-                      Fattura
+                            [title]="'dashboard.table.creaFatturaTooltip' | t" (click)="convertiDdtInFattura(d)">
+                      {{ 'dashboard.table.fatturaBtn' | t }}
                     </button>
                   </td>
                 </ng-container>
@@ -472,12 +472,12 @@
                     <div class="m-card-side">
                       <div class="m-card-num">{{ (d.totale ?? 0) | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
                       <button mat-flat-button type="button" color="primary" class="btn-fattura"
-                              (click)="convertiDdtInFattura(d)">Fattura</button>
+                              (click)="convertiDdtInFattura(d)">{{ 'dashboard.table.fatturaBtn' | t }}</button>
                     </div>
                   </div>
                 }
               </div>
-              @if (!ddtDaFatturare.length) { <app-empty-state compact icon="receipt_long" title="Nessun documento di trasporto da fatturare" /> }
+              @if (!ddtDaFatturare.length) { <app-empty-state compact icon="receipt_long" [title]="'dashboard.table.ddtEmpty' | t" /> }
             </div>
           }
 
@@ -485,21 +485,21 @@
           @if (w.id === 'table-incassare') {
             <div class="card">
               <div class="section-header">
-                <h3 class="section-title success">Fatture da incassare</h3>
-                <a [routerLink]="['/fatture']" class="section-link">Vai alle fatture →</a>
+                <h3 class="section-title success">{{ 'dashboard.table.incassareTitle' | t }}</h3>
+                <a [routerLink]="['/fatture']" class="section-link">{{ 'dashboard.table.vaiFatture' | t }}</a>
               </div>
               <table mat-table [dataSource]="fattureDaIncassare" class="mat-mdc-table hide-mobile">
                 <ng-container matColumnDef="numero">
-                  <th mat-header-cell *matHeaderCellDef>Numero</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colNumero' | t }}</th>
                   <td mat-cell *matCellDef="let f">{{ f.numero }}</td>
                 </ng-container>
                 <ng-container matColumnDef="dataEmissione">
-                  <th mat-header-cell *matHeaderCellDef>Scadenza</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colScadenza' | t }}</th>
                   <td mat-cell *matCellDef="let f" [class.text-danger]="isScaduta(f)" [class.fw-bold]="isScaduta(f)">
                     @if (getScadenza(f)) {
                       {{ getScadenza(f) | date:'dd/MM/yy' }}
                       @if (isScaduta(f)) {
-                        <span class="days-badge">+{{ giorniRitardo(f) }}gg</span>
+                        <span class="days-badge">{{ 'dashboard.table.giorniRitardo' | t:{ n: giorniRitardo(f) } }}</span>
                       }
                     } @else {
                       {{ f.dataEmissione | date:'dd/MM/yy' }}
@@ -507,11 +507,11 @@
                   </td>
                 </ng-container>
                 <ng-container matColumnDef="clienteNome">
-                  <th mat-header-cell *matHeaderCellDef>Cliente</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colCliente' | t }}</th>
                   <td mat-cell *matCellDef="let f">{{ f.clienteNome || '-' }}</td>
                 </ng-container>
                 <ng-container matColumnDef="totale">
-                  <th mat-header-cell *matHeaderCellDef>Importo</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colImporto' | t }}</th>
                   <td mat-cell *matCellDef="let f" class="euro">{{ (f.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
                 </ng-container>
                 <tr mat-header-row *matHeaderRowDef="fattureCols"></tr>
@@ -524,8 +524,8 @@
                       <div class="m-card-title">{{ f.numero }}</div>
                       <div class="m-card-sub">{{ f.clienteNome || '—' }}</div>
                       <div class="m-card-sub" [class.text-danger]="isScaduta(f)">
-                        Scadenza: {{ (getScadenza(f) || f.dataEmissione) | date:'dd/MM/yy' }}
-                        @if (isScaduta(f)) { <b>· +{{ giorniRitardo(f) }}gg</b> }
+                        {{ 'dashboard.table.colScadenza' | t }}: {{ (getScadenza(f) || f.dataEmissione) | date:'dd/MM/yy' }}
+                        @if (isScaduta(f)) { <b>· {{ 'dashboard.table.giorniRitardo' | t:{ n: giorniRitardo(f) } }}</b> }
                       </div>
                     </div>
                     <div class="m-card-side">
@@ -534,7 +534,7 @@
                   </a>
                 }
               </div>
-              @if (!fattureDaIncassare.length) { <app-empty-state compact icon="task_alt" title="Tutto incassato" /> }
+              @if (!fattureDaIncassare.length) { <app-empty-state compact icon="task_alt" [title]="'dashboard.table.incassareEmpty' | t" /> }
             </div>
           }
 
@@ -542,24 +542,24 @@
           @if (w.id === 'table-pagare') {
             <div class="card">
               <div class="section-header">
-                <h3 class="section-title danger">Fatture da pagare</h3>
-                <a [routerLink]="['/acquisti']" class="section-link">Vai agli acquisti →</a>
+                <h3 class="section-title danger">{{ 'dashboard.table.pagareTitle' | t }}</h3>
+                <a [routerLink]="['/acquisti']" class="section-link">{{ 'dashboard.table.vaiAcquisti' | t }}</a>
               </div>
               <table mat-table [dataSource]="fattureDaPagare" class="mat-mdc-table hide-mobile">
                 <ng-container matColumnDef="numero">
-                  <th mat-header-cell *matHeaderCellDef>Numero</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colNumero' | t }}</th>
                   <td mat-cell *matCellDef="let a">{{ a.numero }}</td>
                 </ng-container>
                 <ng-container matColumnDef="dataEmissione">
-                  <th mat-header-cell *matHeaderCellDef>Data</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colData' | t }}</th>
                   <td mat-cell *matCellDef="let a">{{ a.dataEmissione | date:'dd/MM/yyyy' }}</td>
                 </ng-container>
                 <ng-container matColumnDef="fornitoreNome">
-                  <th mat-header-cell *matHeaderCellDef>Fornitore</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colFornitore' | t }}</th>
                   <td mat-cell *matCellDef="let a">{{ a.fornitoreNome || '-' }}</td>
                 </ng-container>
                 <ng-container matColumnDef="totale">
-                  <th mat-header-cell *matHeaderCellDef>Importo</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'dashboard.table.colImporto' | t }}</th>
                   <td mat-cell *matCellDef="let a" class="euro-neg">{{ (a.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
                 </ng-container>
                 <tr mat-header-row *matHeaderRowDef="acquistiCols"></tr>
@@ -578,7 +578,7 @@
                   </a>
                 }
               </div>
-              @if (!fattureDaPagare.length) { <app-empty-state compact icon="task_alt" title="Tutto pagato" /> }
+              @if (!fattureDaPagare.length) { <app-empty-state compact icon="task_alt" [title]="'dashboard.table.pagareEmpty' | t" /> }
             </div>
           }
 

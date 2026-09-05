@@ -23,6 +23,9 @@ import { environment } from '../../../environments/environment';
 import { Prodotto, Ddt, Fattura, Acquisto, TipoPagamento,
          StatsVenditeMensili, StatsTopProdotto, StatsCashflow, StatsKpiAnno } from '../../models';
 import { getSdiSeenIds } from '../../utils/sdi-letture';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 Chart.register(...registerables);
 
@@ -34,18 +37,18 @@ export interface DashboardWidget {
 }
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
-  { id: 'alerts',          label: 'Avvisi e pillole',        icon: 'warning',       visible: true },
-  { id: 'agenda-todo-row', label: 'Agenda + Todo',            icon: 'event_note',    visible: true },
-  { id: 'kpi-magazzino',   label: 'KPI magazzino e clienti', icon: 'analytics',     visible: true },
-  { id: 'kpi-anno',        label: 'KPI anno + cashflow',     icon: 'monitoring',    visible: true },
-  { id: 'cashflow-forecast', label: 'Previsione cashflow 60gg', icon: 'show_chart', visible: true },
-  { id: 'cashflow-3060-90',  label: 'Previsione cassa 30/60/90', icon: 'savings',    visible: true },
-  { id: 'chart-vendite',   label: 'Grafico vendite mensili', icon: 'bar_chart',     visible: true },
-  { id: 'chart-top',       label: 'Top 5 prodotti',          icon: 'pie_chart',     visible: true },
-  { id: 'table-sotto',     label: 'Prodotti sotto soglia',   icon: 'inventory',     visible: true },
-  { id: 'table-ddt',       label: 'Documenti di trasporto da fatturare', icon: 'receipt_long',  visible: true },
-  { id: 'table-incassare', label: 'Fatture da incassare',    icon: 'request_quote', visible: true },
-  { id: 'table-pagare',    label: 'Fatture da pagare',       icon: 'payments',      visible: true },
+  { id: 'alerts',          label: 'dashboard.widget.alerts',        icon: 'warning',       visible: true },
+  { id: 'agenda-todo-row', label: 'dashboard.widget.agendaTodo',            icon: 'event_note',    visible: true },
+  { id: 'kpi-magazzino',   label: 'dashboard.widget.kpiMagazzino', icon: 'analytics',     visible: true },
+  { id: 'kpi-anno',        label: 'dashboard.widget.kpiAnno',     icon: 'monitoring',    visible: true },
+  { id: 'cashflow-forecast', label: 'dashboard.widget.cashflowForecast', icon: 'show_chart', visible: true },
+  { id: 'cashflow-3060-90',  label: 'dashboard.widget.cashflow3060', icon: 'savings',    visible: true },
+  { id: 'chart-vendite',   label: 'dashboard.widget.chartVendite', icon: 'bar_chart',     visible: true },
+  { id: 'chart-top',       label: 'dashboard.widget.chartTop',          icon: 'pie_chart',     visible: true },
+  { id: 'table-sotto',     label: 'dashboard.widget.tableSotto',   icon: 'inventory',     visible: true },
+  { id: 'table-ddt',       label: 'dashboard.widget.tableDdt', icon: 'receipt_long',  visible: true },
+  { id: 'table-incassare', label: 'dashboard.widget.tableIncassare',    icon: 'request_quote', visible: true },
+  { id: 'table-pagare',    label: 'dashboard.widget.tablePagare',       icon: 'payments',      visible: true },
 ];
 
 const LS_KEY = 'dashboard-widgets-v3'; // bumped: pillole avvisi (incassare/pagare/SDI) sopra agenda+todo
@@ -57,13 +60,14 @@ const LS_KEY = 'dashboard-widgets-v3'; // bumped: pillole avvisi (incassare/paga
     CommonModule, RouterLink, FormsModule,
     MatCardModule, MatTableModule, MatIconModule, MatButtonModule, MatMenuModule,
     MatTooltipModule, MatCheckboxModule, MatSnackBarModule, DragDropModule,
-    EmptyStateComponent, LoadingSkeletonComponent,
+    EmptyStateComponent, LoadingSkeletonComponent, TPipe, TnPipe,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private confirm = inject(ConfirmService);
+  i18n = inject(I18nService);
   @ViewChild('chartVendite') chartVenditeRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('chartTop')     chartTopRef!: ElementRef<HTMLCanvasElement>;
 
@@ -153,12 +157,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     try {
       const esito = await this.update.check();
       if (esito === 'disponibile') {
-        this.snack.open(`Aggiornamento disponibile: versione ${this.update.disponibile()?.version}. Usa "Aggiorna ora" nel banner in alto.`, 'OK', { duration: 6000 });
+        this.snack.open(this.i18n.t('dashboard.updateAvailable', { version: this.update.disponibile()?.version || '' }), 'OK', { duration: 6000 });
       } else if (esito === 'aggiornato') {
-        this.snack.open('Ordeva è già all\'ultima versione disponibile.', '', { duration: 3500 });
+        this.snack.open(this.i18n.t('dashboard.updateUpToDate'), '', { duration: 3500 });
       } else {
         const dett = this.update.ultimoErrore();
-        this.snack.open(`Impossibile verificare gli aggiornamenti ora${dett ? ` (${dett})` : ' (controlla la connessione)'}.`, '', { duration: 6000 });
+        this.snack.open(dett ? this.i18n.t('dashboard.updateCheckFailedWithDetail', { detail: dett }) : this.i18n.t('dashboard.updateCheckFailedNoDetail'), '', { duration: 6000 });
       }
     } finally {
       this.verificaInCorso = false;
@@ -222,7 +226,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: e => {
         this.dataReady = true;
-        this.snack.open('Errore caricamento dashboard: ' + (e.message || 'rete'), 'OK', { duration: 5000, panelClass: 'snack-error' });
+        this.snack.open(this.i18n.t('dashboard.loadError', { msg: e.message || this.i18n.t('dashboard.loadErrorNetworkFallback') }), 'OK', { duration: 5000, panelClass: 'snack-error' });
       }
     });
   }
@@ -286,7 +290,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async resetWidgets() {
-    if (!await this.confirm.ask('Ripristinare la dashboard di default?')) return;
+    if (!await this.confirm.ask(this.i18n.t('dashboard.confirmReset'))) return;
     this.widgets = [...DEFAULT_WIDGETS];
     this.saveWidgets();
     this.tryRenderCharts();
@@ -313,7 +317,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       data: {
         labels,
         datasets: [{
-          label: 'Saldo cumulativo (€)',
+          label: this.i18n.t('dashboard.chart.saldoCumulativo'),
           data,
           borderColor: '#11769b',
           backgroundColor: 'rgba(21, 164, 162,0.1)',
@@ -346,7 +350,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       data: {
         labels,
         datasets: [{
-          label: 'Imponibile (€)',
+          label: this.i18n.t('dashboard.chart.imponibile'),
           data,
           backgroundColor: 'rgba(21, 164, 162,0.7)',
           borderColor: '#11769b',
@@ -431,9 +435,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.ds.ddtToFattura(d.id!).subscribe({
       next: r => {
         this.ddtDaFatturare = this.ddtDaFatturare.filter(x => x.id !== d.id);
-        this.snack.open(`Fattura ${r.numero} creata`, '', { duration: 3000 });
+        this.snack.open(this.i18n.t('dashboard.fatturaCreated', { numero: r.numero }), '', { duration: 3000 });
       },
-      error: () => this.snack.open('Errore nella creazione fattura', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('dashboard.fatturaCreateError'), '', { duration: 3000 }),
     });
   }
 }

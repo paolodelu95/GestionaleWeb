@@ -60,4 +60,13 @@ export class I18nService {
     }
     return str;
   }
+
+  /**
+   * Variante pluralizzata di `t()`: sceglie `${key}.one` per n===1, altrimenti
+   * `${key}.other`, e passa `n` come parametro `{{n}}` oltre a `params`.
+   */
+  tn(key: string, n: number, params?: Record<string, string | number>): string {
+    const suffix = n === 1 ? 'one' : 'other';
+    return this.t(`${key}.${suffix}`, { n, ...params });
+  }
 }
