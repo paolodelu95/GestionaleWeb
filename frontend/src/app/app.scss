@@ -330,7 +330,10 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 0 12px;
+    // Padding verticale (prima 0): senza, il pallino attivo restava alto solo
+    // quanto icona+testo e nella barra (più alta) sembrava un chip sottile che
+    // galleggia, non un'indicazione solida della sezione corrente.
+    padding: 9px 14px;
     flex-shrink: 0;              // niente shrink: la misura per l'overflow resta corretta
     border: none;
     background: transparent;
@@ -349,9 +352,12 @@
 
     &:hover { background: rgba(255, 255, 255, 0.06); color: #e2e8f0; }
     &.active-link {
-      background: linear-gradient(135deg, #11769b 0%, #15a4a2 100%);
+      // Tinta piena invece del gradiente diagonale + glow: più sobria/professionale,
+      // e con il padding qui sopra il riempimento pieno si vede subito, niente
+      // più "pillola sottile".
+      background: #11769b;
       color: #fff;
-      box-shadow: 0 4px 12px -3px rgba(17, 118, 155, 0.5);
+      box-shadow: 0 2px 6px -2px rgba(17, 118, 155, 0.45);
     }
   }
 
