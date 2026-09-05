@@ -1955,7 +1955,21 @@ export class FattureComponent implements OnInit, AfterViewInit {
         if (!await this.confirm.ask(`${prefix}Inviare la fattura n. ${f.numero} all'SDI?`)) return;
         this.ds.inviaFatturaSdi(f.id!).subscribe({
           next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000, panelClass: 'snack-ok' }); },
-          error: e => this.snack.open('Errore SDI: ' + (e.error?.error || e.message), '', { duration: 5000, panelClass: 'snack-error' })
+          error: e => {
+            const msg = e.error?.error || e.message || '';
+            if (msg.includes('SDI non configurata')) {
+              // Nessun intermediario configurato (Impostazioni → SDI): non è un
+              // errore da far scomparire in un toast, è il fallback previsto —
+              // scaricare l'XML e caricarlo a mano resta sempre possibile.
+              const ref = this.snack.open(
+                'Nessun intermediario SDI configurato. Puoi scaricare l\'XML e caricarlo tu sul portale del tuo intermediario o su "Fatture e Corrispettivi", oppure configurarne uno in Impostazioni → SDI.',
+                'Scarica XML', { duration: 9000, panelClass: 'snack-error' }
+              );
+              ref.onAction().subscribe(() => this.downloadXml(f));
+            } else {
+              this.snack.open('Errore SDI: ' + msg, '', { duration: 5000, panelClass: 'snack-error' });
+            }
+          }
         });
       },
       error: () => this.snack.open('Non è stato possibile controllare la fattura. Riprova.', 'OK',
