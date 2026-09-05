@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, ViewChild, AfterViewInit, Inject, NgZone } from '@angular/core';
+import { Component, ElementRef, OnDestroy, ViewChild, AfterViewInit, Inject, NgZone, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -11,6 +11,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DataService } from '../../services/data.service';
 import { Prodotto, ProdottoVariante } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 declare const BarcodeDetector: any;
 
@@ -35,12 +37,12 @@ interface ConteggioRiga {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatTooltipModule, MatSnackBarModule,
+    MatFormFieldModule, MatInputModule, MatTooltipModule, MatSnackBarModule, TPipe,
   ],
   template: `
     <div class="inv-head">
-      <h2>Inventario a scansione</h2>
-      <button mat-icon-button (click)="chiudi()" aria-label="Chiudi"><mat-icon>close</mat-icon></button>
+      <h2>{{ 'magazzino.inventarioScansione' | t }}</h2>
+      <button mat-icon-button (click)="chiudi()" [attr.aria-label]="'magazzino.inventarioScan.chiudiAria' | t"><mat-icon>close</mat-icon></button>
     </div>
 
     <div class="inv-body">
@@ -50,16 +52,16 @@ interface ConteggioRiga {
           <div class="inv-cam-err">
             <mat-icon>photo_camera</mat-icon>
             <p>{{ errorMsg }}</p>
-            <small>Puoi comunque contare a mano col campo qui sotto.</small>
+            <small>{{ 'magazzino.inventarioScan.puoiContareAMano' | t }}</small>
           </div>
         } @else {
           <video #video class="inv-video" playsinline muted autoplay></video>
           <div class="inv-overlay">
             <div class="inv-frame" [class.paused]="paused"></div>
-            <p class="inv-hint">{{ paused ? 'Scansione in pausa' : 'Inquadra il barcode' }}</p>
+            <p class="inv-hint">{{ (paused ? 'magazzino.inventarioScan.scansionePausa' : 'magazzino.inventarioScan.inquadraBarcode') | t }}</p>
           </div>
           <button mat-mini-fab class="inv-pause" (click)="paused = !paused"
-                  [matTooltip]="paused ? 'Riprendi' : 'Pausa'">
+                  [matTooltip]="(paused ? 'magazzino.inventarioScan.riprendi' : 'magazzino.inventarioScan.pausa') | t">
             <mat-icon>{{ paused ? 'play_arrow' : 'pause' }}</mat-icon>
           </button>
         }
@@ -67,9 +69,9 @@ interface ConteggioRiga {
 
       <!-- Inserimento manuale (articoli senza barcode o etichetta rovinata) -->
       <mat-form-field appearance="outline" class="inv-manual">
-        <mat-label>Codice o barcode (manuale)</mat-label>
+        <mat-label>{{ 'magazzino.inventarioScan.codiceManuale' | t }}</mat-label>
         <input matInput [(ngModel)]="codiceManuale" (keyup.enter)="aggiungiManuale()"
-               placeholder="Digita e premi Invio">
+               [placeholder]="'magazzino.inventarioScan.digitaPremiInvio' | t">
         <button matSuffix mat-icon-button (click)="aggiungiManuale()" [disabled]="!codiceManuale.trim()">
           <mat-icon>add</mat-icon>
         </button>
@@ -83,7 +85,7 @@ interface ConteggioRiga {
               <div class="inv-row-main">
                 <span class="inv-nome">{{ r.nome }}</span>
                 @if (r.variante) { <span class="inv-var">{{ r.variante }}</span> }
-                <span class="inv-giac">era {{ r.giacenza }}{{ r.um ? ' ' + r.um : '' }}</span>
+                <span class="inv-giac">{{ 'magazzino.inventarioScan.era' | t }} {{ r.giacenza }}{{ r.um ? ' ' + r.um : '' }}</span>
               </div>
               <div class="inv-row-qty">
                 <button mat-icon-button (click)="dec(r)" [disabled]="r.contato <= 0"><mat-icon>remove</mat-icon></button>
@@ -93,28 +95,28 @@ interface ConteggioRiga {
               <span class="inv-delta" [class.up]="delta(r) > 0" [class.down]="delta(r) < 0">
                 {{ delta(r) > 0 ? '+' : '' }}{{ delta(r) }}
               </span>
-              <button mat-icon-button class="inv-del" (click)="rimuovi(r)" matTooltip="Rimuovi"><mat-icon>delete_outline</mat-icon></button>
+              <button mat-icon-button class="inv-del" (click)="rimuovi(r)" [matTooltip]="'magazzino.inventarioScan.rimuovi' | t"><mat-icon>delete_outline</mat-icon></button>
             </div>
           }
         </div>
       } @else {
         <div class="inv-empty">
           <mat-icon>qr_code_scanner</mat-icon>
-          <p>Scansiona il primo articolo per iniziare il conteggio.</p>
+          <p>{{ 'magazzino.inventarioScan.scansionaPrimo' | t }}</p>
         </div>
       }
     </div>
 
     <div class="inv-foot">
       <div class="inv-summary">
-        <span><b>{{ righe.length }}</b> articoli</span>
-        <span><b>{{ totalePezzi }}</b> pezzi contati</span>
+        <span><b>{{ righe.length }}</b> {{ 'magazzino.inventarioScan.articoli' | t }}</span>
+        <span><b>{{ totalePezzi }}</b> {{ 'magazzino.inventarioScan.pezziContati' | t }}</span>
       </div>
       <div class="inv-foot-actions">
-        <button mat-button (click)="chiudi()">Annulla</button>
+        <button mat-button (click)="chiudi()">{{ 'fatture.dialog.annulla' | t }}</button>
         <button mat-flat-button color="primary" (click)="applica()" [disabled]="!righe.length || salvando">
           <mat-icon>inventory</mat-icon>
-          {{ salvando ? 'Salvataggio…' : 'Applica inventario' }}
+          {{ (salvando ? 'magazzino.inventarioScan.salvataggioInCorso' : 'magazzino.inventarioScan.applicaInventario') | t }}
         </button>
       </div>
     </div>
@@ -158,6 +160,7 @@ interface ConteggioRiga {
   `]
 })
 export class InventarioScanComponent implements AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
   @ViewChild('video') videoRef?: ElementRef<HTMLVideoElement>;
   errorMsg = '';
   paused = false;
@@ -187,13 +190,13 @@ export class InventarioScanComponent implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit() {
     if (typeof BarcodeDetector === 'undefined') {
-      this.errorMsg = 'Il browser non supporta lo scanner. Usa Chrome/Edge/Safari recenti su Android/iOS.';
+      this.errorMsg = this.i18n.t('magazzino.inventarioScan.browserNonSupportato');
       return;
     }
     try {
       this.detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e'] });
     } catch {
-      this.errorMsg = 'Formato barcode non supportato dal browser.';
+      this.errorMsg = this.i18n.t('magazzino.inventarioScan.msgFormatoNonSupportato');
       return;
     }
     try {
@@ -202,7 +205,7 @@ export class InventarioScanComponent implements AfterViewInit, OnDestroy {
         audio: false,
       });
     } catch (e: any) {
-      this.errorMsg = `Permesso fotocamera negato (${e?.name || 'errore'})`;
+      this.errorMsg = this.i18n.t('magazzino.inventarioScan.msgPermessoNegato', { err: e?.name || 'errore' });
       return;
     }
     if (this.videoRef && !this.stopped) {
@@ -235,7 +238,7 @@ export class InventarioScanComponent implements AfterViewInit, OnDestroy {
   private onScan(code: string) {
     this.ds.searchByBarcode(code).subscribe({
       next: res => this.aggiungi(res.prodotto, res.variante, true),
-      error: () => this.snack.open(`Barcode ${code} non associato a nessun prodotto`, 'OK', { duration: 2500 }),
+      error: () => this.snack.open(this.i18n.t('magazzino.inventarioScan.msgBarcodeNonAssociato', { code }), 'OK', { duration: 2500 }),
     });
   }
 
@@ -250,7 +253,7 @@ export class InventarioScanComponent implements AfterViewInit, OnDestroy {
         const m = findProdottoByCodice(this.data.prodotti || [], q);
         const p = m.exact || (m.matches.length === 1 ? m.matches[0] : null);
         if (p) { this.aggiungi(p, null, false); this.codiceManuale = ''; }
-        else this.snack.open('Nessun prodotto trovato per "' + q + '"', 'OK', { duration: 2500 });
+        else this.snack.open(this.i18n.t('magazzino.inventarioScan.msgNessunProdottoTrovato', { q }), 'OK', { duration: 2500 });
       },
     });
   }
@@ -286,12 +289,12 @@ export class InventarioScanComponent implements AfterViewInit, OnDestroy {
     const items = this.righe
       .filter(r => r.contato != null && (r.contato as any) !== '' && Number.isFinite(+r.contato))
       .map(r => ({ prodottoId: r.prodottoId, varianteId: r.varianteId, quantita: +r.contato }));
-    if (!items.length) { this.snack.open('Nessun conteggio valido da applicare', '', { duration: 2500 }); return; }
+    if (!items.length) { this.snack.open(this.i18n.t('magazzino.inventarioScan.msgNessunConteggioValido'), '', { duration: 2500 }); return; }
     this.salvando = true;
     const note = 'Inventario ' + new Date().toLocaleDateString('it-IT');
     this.ds.rettificaBulk(items, note).subscribe({
       next: r => { this.salvando = false; this.dialogRef.close({ applied: r.applied, movimenti: r.movimenti }); },
-      error: e => { this.salvando = false; this.snack.open(e.error?.error || 'Errore salvataggio inventario', 'OK', { duration: 3500 }); },
+      error: e => { this.salvando = false; this.snack.open(e.error?.error || this.i18n.t('magazzino.inventarioScan.msgErroreSalvataggio'), 'OK', { duration: 3500 }); },
     });
   }
 

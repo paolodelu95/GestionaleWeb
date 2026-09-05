@@ -1,12 +1,12 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Magazzino</h1>
+    <h1 class="page-title">{{ 'magazzino.title' | t }}</h1>
     <div class="header-actions">
       <button mat-stroked-button type="button" (click)="openInventario()">
-        <mat-icon>qr_code_scanner</mat-icon> Inventario a scansione
+        <mat-icon>qr_code_scanner</mat-icon> {{ 'magazzino.inventarioScansione' | t }}
       </button>
       <button mat-flat-button color="primary" type="button" (click)="openRettifica()">
-        <mat-icon>tune</mat-icon> Rettifica giacenza
+        <mat-icon>tune</mat-icon> {{ 'magazzino.rettificaGiacenza' | t }}
       </button>
     </div>
   </div>
@@ -14,84 +14,82 @@
   <mat-tab-group animationDuration="0" [(selectedIndex)]="selectedTab">
 
     <!-- ── Tab Movimenti ─────────────────────────────────────────────────── -->
-    <mat-tab label="Movimenti">
+    <mat-tab [label]="'magazzino.tab.movimenti' | t">
       <div class="card" style="margin-top:16px">
 
         <div class="filter-bar">
-          <mat-select [(ngModel)]="filtroProdotto" (selectionChange)="loadMovimenti()" placeholder="Prodotto">
-            <mat-option [value]="null">Tutti i prodotti</mat-option>
+          <mat-select [(ngModel)]="filtroProdotto" (selectionChange)="loadMovimenti()" [placeholder]="'magazzino.filtri.prodotto' | t">
+            <mat-option [value]="null">{{ 'magazzino.filtri.tuttiProdotti' | t }}</mat-option>
             @for (p of prodottiList; track p.id) {
               <mat-option [value]="p.id">{{ p.nome }}</mat-option>
             }
           </mat-select>
 
-          <mat-select [(ngModel)]="filtroCliente" (selectionChange)="loadMovimenti()" placeholder="Cliente">
-            <mat-option [value]="null">Tutti i clienti</mat-option>
+          <mat-select [(ngModel)]="filtroCliente" (selectionChange)="loadMovimenti()" [placeholder]="'magazzino.filtri.cliente' | t">
+            <mat-option [value]="null">{{ 'magazzino.filtri.tuttiClienti' | t }}</mat-option>
             @for (c of clientiList; track c.id) {
               <mat-option [value]="c.id">{{ c.ragioneSociale }}</mat-option>
             }
           </mat-select>
 
-          <mat-select [(ngModel)]="filtroTipo" (selectionChange)="loadMovimenti()" placeholder="Tipo">
-            <mat-option value="">Tutti</mat-option>
-            <mat-option value="CARICO">Carico</mat-option>
-            <mat-option value="SCARICO">Scarico</mat-option>
+          <mat-select [(ngModel)]="filtroTipo" (selectionChange)="loadMovimenti()" [placeholder]="'magazzino.filtri.tipo' | t">
+            <mat-option value="">{{ 'magazzino.filtri.tutti' | t }}</mat-option>
+            <mat-option value="CARICO">{{ 'magazzino.tipo.carico' | t }}</mat-option>
+            <mat-option value="SCARICO">{{ 'magazzino.tipo.scarico' | t }}</mat-option>
           </mat-select>
 
-          <mat-select [(ngModel)]="filtroCausale" (selectionChange)="loadMovimenti()" placeholder="Causale">
-            <mat-option value="">Tutte</mat-option>
-            @for (c of causali; track c.v) {
-              <mat-option [value]="c.v">{{ c.l }}</mat-option>
-            }
+          <mat-select [(ngModel)]="filtroCausale" (selectionChange)="loadMovimenti()" [placeholder]="'magazzino.filtri.causale' | t">
+            <mat-option value="">{{ 'magazzino.filtri.tutteCausali' | t }}</mat-option>
+            @for (c of causali; track c.v) { <mat-option [value]="c.v">{{ c.l | t }}</mat-option> }
           </mat-select>
 
-          <mat-select [(ngModel)]="filtroAnno" (selectionChange)="loadMovimenti()" placeholder="Anno">
-            <mat-option [value]="null">Tutti gli anni</mat-option>
+          <mat-select [(ngModel)]="filtroAnno" (selectionChange)="loadMovimenti()" [placeholder]="'magazzino.filtri.anno' | t">
+            <mat-option [value]="null">{{ 'magazzino.filtri.tuttiAnni' | t }}</mat-option>
             @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
           </mat-select>
 
-          <mat-select [(ngModel)]="filtroMese" (selectionChange)="loadMovimenti()" placeholder="Mese">
-            <mat-option [value]="null">Tutti i mesi</mat-option>
-            @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
+          <mat-select [(ngModel)]="filtroMese" (selectionChange)="loadMovimenti()" [placeholder]="'magazzino.filtri.mese' | t">
+            <mat-option [value]="null">{{ 'magazzino.filtri.tuttiMesi' | t }}</mat-option>
+            @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l | t }}</mat-option> }
           </mat-select>
 
           <div class="filter-group">
-            <span class="filter-label">Dal</span>
+            <span class="filter-label">{{ 'magazzino.filtri.dal' | t }}</span>
             <input type="date" [(ngModel)]="filtroDataFrom" (change)="loadMovimenti()">
           </div>
           <div class="filter-group">
-            <span class="filter-label">Al</span>
+            <span class="filter-label">{{ 'magazzino.filtri.al' | t }}</span>
             <input type="date" [(ngModel)]="filtroDataTo" (change)="loadMovimenti()">
           </div>
 
           @if (hasFiltri) {
-            <button mat-icon-button title="Rimuovi filtri" (click)="resetFiltri()">
+            <button mat-icon-button [title]="'magazzino.filtri.rimuovi' | t" (click)="resetFiltri()">
               <mat-icon>clear</mat-icon>
             </button>
           }
         </div>
 
         <div class="summary-bar">
-          <span class="summary-item">Movimenti: <b>{{ movimenti.length }}</b></span>
-          <span class="summary-item">Carichi: <b style="color:#15803d">+{{ totaleCarichi | number:'1.0-4':'it' }}</b></span>
-          <span class="summary-item">Scarichi: <b style="color:#dc2626">−{{ totaleScarichi | number:'1.0-4':'it' }}</b></span>
+          <span class="summary-item">{{ 'magazzino.summary.movimenti' | t }} <b>{{ movimenti.length }}</b></span>
+          <span class="summary-item">{{ 'magazzino.summary.carichi' | t }} <b style="color:#15803d">+{{ totaleCarichi | number:'1.0-4':'it' }}</b></span>
+          <span class="summary-item">{{ 'magazzino.summary.scarichi' | t }} <b style="color:#dc2626">−{{ totaleScarichi | number:'1.0-4':'it' }}</b></span>
         </div>
 
         <table mat-table [dataSource]="dsMovimenti" matSort #sortMov="matSort"
                matSortActive="data" matSortDirection="desc" matSortDisableClear class="mat-mdc-table">
 
           <ng-container matColumnDef="data">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Data</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'magazzino.col.data' | t }}</th>
             <td mat-cell *matCellDef="let m">{{ fd(m.data) }}</td>
           </ng-container>
 
           <ng-container matColumnDef="prodotto">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Prodotto</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'magazzino.col.prodotto' | t }}</th>
             <td mat-cell *matCellDef="let m"><b>{{ m.prodottoNome }}</b></td>
           </ng-container>
 
           <ng-container matColumnDef="variante">
-            <th mat-header-cell *matHeaderCellDef class="hide-tablet">Variante</th>
+            <th mat-header-cell *matHeaderCellDef class="hide-tablet">{{ 'magazzino.col.variante' | t }}</th>
             <td mat-cell *matCellDef="let m" class="hide-tablet">
               @if (m.varianteTaglia || m.varianteColore) {
                 <span style="font-size:12px;color:#6d28d9;font-weight:600">
@@ -102,19 +100,19 @@
           </ng-container>
 
           <ng-container matColumnDef="tipo">
-            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'magazzino.col.tipo' | t }}</th>
             <td mat-cell *matCellDef="let m">
               <span class="chip" [class.carico]="m.tipo==='CARICO'" [class.scarico]="m.tipo==='SCARICO'">
                 <mat-icon style="font-size:12px;width:12px;height:12px;line-height:12px">
                   {{ m.tipo === 'CARICO' ? 'arrow_downward' : 'arrow_upward' }}
                 </mat-icon>
-                {{ m.tipo === 'CARICO' ? 'Carico' : 'Scarico' }}
+                {{ (m.tipo === 'CARICO' ? 'magazzino.tipo.carico' : 'magazzino.tipo.scarico') | t }}
               </span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="quantita">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align:right">Quantità</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align:right">{{ 'magazzino.col.quantita' | t }}</th>
             <td mat-cell *matCellDef="let m" style="text-align:right">
               <b [style.color]="m.tipo==='CARICO' ? '#15803d' : '#dc2626'">
                 {{ m.tipo === 'CARICO' ? '+' : '−' }}{{ m.quantita | number:'1.0-4':'it' }}
@@ -123,14 +121,14 @@
           </ng-container>
 
           <ng-container matColumnDef="causale">
-            <th mat-header-cell *matHeaderCellDef class="hide-tablet">Causale</th>
+            <th mat-header-cell *matHeaderCellDef class="hide-tablet">{{ 'magazzino.col.causale' | t }}</th>
             <td mat-cell *matCellDef="let m" class="hide-tablet">
-              <span class="causale-label">{{ labelCausale(m.causale) }}</span>
+              <span class="causale-label">{{ labelCausale(m.causale) | t }}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="documento">
-            <th mat-header-cell *matHeaderCellDef class="hide-tablet">Documento</th>
+            <th mat-header-cell *matHeaderCellDef class="hide-tablet">{{ 'magazzino.col.documento' | t }}</th>
             <td mat-cell *matCellDef="let m" class="hide-tablet">
               @if (m.documentoNumero) {
                 <span class="doc-link">{{ m.documentoTipo }} N. {{ m.documentoNumero }}</span>
@@ -139,7 +137,7 @@
           </ng-container>
 
           <ng-container matColumnDef="controparte">
-            <th mat-header-cell *matHeaderCellDef class="hide-mobile">Cliente / Fornitore</th>
+            <th mat-header-cell *matHeaderCellDef class="hide-mobile">{{ 'magazzino.col.clienteFornitore' | t }}</th>
             <td mat-cell *matCellDef="let m" class="hide-mobile">
               {{ m.clienteNome || m.fornitoreNome || '—' }}
             </td>
@@ -149,8 +147,8 @@
           <tr mat-row *matRowDef="let row; columns: colMovimenti;"></tr>
           <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell" [colSpan]="colMovimenti.length">
-              <app-empty-state compact icon="warehouse" title="Nessun movimento registrato"
-                message="Carichi e scarichi di magazzino compariranno qui." />
+              <app-empty-state compact icon="warehouse" [title]="'magazzino.empty.movimentiTitle' | t"
+                [message]="'magazzino.empty.movimentiMsg' | t" />
             </td>
           </tr>
         </table>
@@ -159,25 +157,25 @@
     </mat-tab>
 
     <!-- ── Tab Giacenza a data ───────────────────────────────────────────── -->
-    <mat-tab label="Giacenza a data">
+    <mat-tab [label]="'magazzino.tab.giacenzaAData' | t">
       <div class="card" style="margin-top:16px">
 
         <div class="storico-bar">
-          <span class="filter-label">Visualizza giacenze al:</span>
+          <span class="filter-label">{{ 'magazzino.storico.visualizzaAl' | t }}</span>
           <input type="date" [(ngModel)]="dataStorico">
           <button mat-flat-button (click)="loadStorico()" [disabled]="!dataStorico || loadingStorico">
             <mat-icon>history</mat-icon>
-            {{ loadingStorico ? 'Caricamento...' : 'Calcola' }}
+            {{ (loadingStorico ? 'magazzino.storico.caricamento' : 'magazzino.storico.calcola') | t }}
           </button>
           <span style="font-size:12px;color:#94a3b8;margin-left:8px">
-            Il calcolo è basato sui movimenti registrati dal sistema.
+            {{ 'magazzino.storico.hint' | t }}
           </span>
         </div>
 
         @if (giacenze.length) {
           <div style="padding:12px 16px;border-bottom:1px solid #f1f5f9">
             <mat-form-field appearance="outline" style="width:280px">
-              <mat-label>Cerca prodotto...</mat-label>
+              <mat-label>{{ 'magazzino.storico.cercaProdotto' | t }}</mat-label>
               <input matInput (input)="filterStorico($event)">
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
@@ -187,17 +185,17 @@
                  matSortActive="nome" matSortDirection="asc" matSortDisableClear class="mat-mdc-table">
 
             <ng-container matColumnDef="nome">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Prodotto</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'magazzino.col.prodotto' | t }}</th>
               <td mat-cell *matCellDef="let g"><b>{{ g.nome }}</b></td>
             </ng-container>
 
             <ng-container matColumnDef="categoria">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Categoria</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'magazzino.col.categoria' | t }}</th>
               <td mat-cell *matCellDef="let g">{{ g.categoria || '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="quantita">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align:right">Quantità</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align:right">{{ 'magazzino.col.quantita' | t }}</th>
               <td mat-cell *matCellDef="let g" style="text-align:right">
                 <span [class.qty-low]="g.sogliaMinima && g.quantita <= g.sogliaMinima"
                       [class.qty-ok]="!g.sogliaMinima || g.quantita > g.sogliaMinima">
@@ -207,12 +205,12 @@
             </ng-container>
 
             <ng-container matColumnDef="unitaMisura">
-              <th mat-header-cell *matHeaderCellDef>UM</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'magazzino.col.unitaMisura' | t }}</th>
               <td mat-cell *matCellDef="let g">{{ g.unitaMisura || '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="sogliaMinima">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align:right">Soglia min.</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align:right">{{ 'magazzino.col.sogliaMinima' | t }}</th>
               <td mat-cell *matCellDef="let g" style="text-align:right;color:#94a3b8">
                 {{ g.sogliaMinima || '—' }}
               </td>
@@ -222,38 +220,38 @@
             <tr mat-row *matRowDef="let row; columns: colStorico;"></tr>
           </table>
         } @else if (!loadingStorico) {
-          <p class="empty-msg">Seleziona una data e premi "Calcola" per vedere le giacenze storiche.</p>
+          <p class="empty-msg">{{ 'magazzino.storico.selezionaData' | t }}</p>
         }
       </div>
     </mat-tab>
 
     <!-- ── Tab Da riordinare ─────────────────────────────────────────────── -->
-    <mat-tab label="Da riordinare">
+    <mat-tab [label]="'magazzino.tab.daRiordinare' | t">
       <div class="card" style="margin-top:16px">
         <div class="storico-bar" style="justify-content:space-between">
           <span class="filter-label">
-            {{ proposte.length }} prodott{{ proposte.length === 1 ? 'o' : 'i' }} da riordinare
-            @if (proposteSelezionate.length) { · {{ proposteSelezionate.length }} selezionat{{ proposteSelezionate.length === 1 ? 'o' : 'i' }} }
+            {{ proposte.length | tn:'magazzino.riordino.count' }}
+            @if (proposteSelezionate.length) { · {{ proposteSelezionate.length | tn:'magazzino.riordino.selezionati' }} }
           </span>
           <button mat-flat-button color="primary" type="button"
                   [disabled]="generando || !proposteSelezionate.length" (click)="generaOrdini()">
-            <mat-icon>shopping_cart_checkout</mat-icon> Genera ordini fornitore
+            <mat-icon>shopping_cart_checkout</mat-icon> {{ 'magazzino.riordino.generaOrdini' | t }}
           </button>
         </div>
 
         @if (!proposte.length) {
-          <app-empty-state compact icon="inventory_2" title="Niente da riordinare"
-            message="Tutti i prodotti sono sopra la soglia minima." />
+          <app-empty-state compact icon="inventory_2" [title]="'magazzino.riordino.emptyTitle' | t"
+            [message]="'magazzino.riordino.emptyMsg' | t" />
         } @else {
           <table class="riordino-table">
             <thead>
               <tr>
                 <th style="width:36px"></th>
-                <th>Prodotto</th>
-                <th>Giacenza</th>
-                <th>Soglia</th>
-                <th>Fornitore</th>
-                <th style="width:120px">Q.tà da ordinare</th>
+                <th>{{ 'magazzino.riordino.colProdotto' | t }}</th>
+                <th>{{ 'magazzino.riordino.colGiacenza' | t }}</th>
+                <th>{{ 'magazzino.riordino.colSoglia' | t }}</th>
+                <th>{{ 'magazzino.riordino.colFornitore' | t }}</th>
+                <th style="width:120px">{{ 'magazzino.riordino.colQtaDaOrdinare' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -270,7 +268,7 @@
                   <td>{{ p.sogliaMinima }}</td>
                   <td>
                     @if (p.fornitoreNome) { {{ p.fornitoreNome }} }
-                    @else { <span style="color:var(--warning-on);font-size:12px">Nessun fornitore preferito</span> }
+                    @else { <span style="color:var(--warning-on);font-size:12px">{{ 'magazzino.riordino.nessunFornitorePreferito' | t }}</span> }
                   </td>
                   <td>
                     <input class="riordino-qty" type="number" min="1" step="1"
@@ -281,33 +279,33 @@
             </tbody>
           </table>
           <p style="font-size:12px;color:var(--text-tertiary);padding:10px 16px;margin:0">
-            I prodotti senza fornitore preferito non sono ordinabili in automatico: impostalo nella scheda prodotto.
-            Gli ordini vengono creati raggruppati per fornitore (uno per fornitore).
+            {{ 'magazzino.riordino.hint1' | t }}
+            {{ 'magazzino.riordino.hint2' | t }}
           </p>
         }
       </div>
     </mat-tab>
 
     <!-- ── Tab Depositi & giacenze ───────────────────────────────────────── -->
-    <mat-tab label="Depositi">
+    <mat-tab [label]="'magazzino.tab.depositi' | t">
       <div class="card" style="margin-top:16px">
         <div class="storico-bar" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
           <div style="display:flex;align-items:center;gap:10px">
             <mat-form-field appearance="outline" style="min-width:220px">
-              <mat-label>Deposito</mat-label>
+              <mat-label>{{ 'magazzino.deposito.label' | t }}</mat-label>
               <mat-select [(ngModel)]="depositoSel" (ngModelChange)="loadGiacenze()">
                 @for (m of magazzini; track m.id) {
-                  <mat-option [value]="m.id">{{ m.nome }}@if (m.predefinito) { · predefinito }</mat-option>
+                  <mat-option [value]="m.id">{{ m.nome }}@if (m.predefinito) { · {{ 'magazzino.deposito.predefinito' | t }} }</mat-option>
                 }
               </mat-select>
             </mat-form-field>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <button mat-stroked-button type="button" (click)="openTrasferimento()">
-              <mat-icon>swap_horiz</mat-icon> Trasferisci
+              <mat-icon>swap_horiz</mat-icon> {{ 'magazzino.deposito.trasferisci' | t }}
             </button>
             <button mat-stroked-button type="button" (click)="openDepositi()">
-              <mat-icon>warehouse</mat-icon> Gestisci depositi
+              <mat-icon>warehouse</mat-icon> {{ 'magazzino.deposito.gestisciDepositi' | t }}
             </button>
           </div>
         </div>
@@ -316,41 +314,41 @@
           <div class="pwa-banner" style="background:var(--warning-soft,#fef3c7);color:var(--warning-on,#92400e);margin:0 0 12px">
             <mat-icon>event_busy</mat-icon>
             <span>
-              {{ scadenze.length }} lott{{ scadenze.length === 1 ? 'o' : 'i' }} in scadenza entro 30 giorni:
+              {{ scadenze.length | tn:'magazzino.deposito.lottiInScadenza' }}
               @for (s of scadenze.slice(0, 3); track $index) {
                 {{ s.prodottoNome }} ({{ fd(s.scadenza) }}, {{ s.quantita }} {{ s.unitaMisura }}){{ $index < (scadenze.length > 3 ? 2 : scadenze.length - 1) ? ', ' : '' }}
               }
-              @if (scadenze.length > 3) { e altri… }
+              @if (scadenze.length > 3) { {{ 'magazzino.deposito.eAltri' | t }} }
             </span>
           </div>
         }
 
         @if (!giacenzeDeposito.length) {
-          <app-empty-state compact icon="inventory_2" title="Deposito vuoto"
-            message="Nessuna giacenza in questo deposito." />
+          <app-empty-state compact icon="inventory_2" [title]="'magazzino.deposito.vuotoTitle' | t"
+            [message]="'magazzino.deposito.vuotoMsg' | t" />
         } @else {
           <table mat-table [dataSource]="dsGiacenze" class="mat-elevation-z0" style="width:100%">
             <ng-container matColumnDef="prodotto">
-              <th mat-header-cell *matHeaderCellDef>Prodotto</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'magazzino.col.prodotto' | t }}</th>
               <td mat-cell *matCellDef="let g">
                 <div style="font-weight:600">{{ g.prodottoNome }}</div>
                 @if (g.prodottoCodice) { <div style="font-size:11px;color:var(--text-tertiary)">{{ g.prodottoCodice }}</div> }
               </td>
             </ng-container>
             <ng-container matColumnDef="variante">
-              <th mat-header-cell *matHeaderCellDef>Variante</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'magazzino.col.variante' | t }}</th>
               <td mat-cell *matCellDef="let g">{{ g.varianteTaglia || g.varianteColore ? (g.varianteTaglia + ' ' + g.varianteColore) : '—' }}</td>
             </ng-container>
             <ng-container matColumnDef="lotto">
-              <th mat-header-cell *matHeaderCellDef>Lotto</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'magazzino.col.lotto' | t }}</th>
               <td mat-cell *matCellDef="let g">{{ g.lotto || '—' }}</td>
             </ng-container>
             <ng-container matColumnDef="scadenza">
-              <th mat-header-cell *matHeaderCellDef>Scadenza</th>
+              <th mat-header-cell *matHeaderCellDef>{{ 'magazzino.col.scadenza' | t }}</th>
               <td mat-cell *matCellDef="let g">{{ g.scadenza ? fd(g.scadenza) : '—' }}</td>
             </ng-container>
             <ng-container matColumnDef="quantita">
-              <th mat-header-cell *matHeaderCellDef style="text-align:right">Giacenza</th>
+              <th mat-header-cell *matHeaderCellDef style="text-align:right">{{ 'magazzino.col.giacenza' | t }}</th>
               <td mat-cell *matCellDef="let g" style="text-align:right;font-weight:700">{{ g.quantita }} {{ g.unitaMisura }}</td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="colGiacenze"></tr>

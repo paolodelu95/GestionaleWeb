@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, Inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, Inject, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -18,17 +18,20 @@ import { EmptyStateComponent } from '../shared/empty-state';
 import { InventarioScanComponent } from './inventario-scan';
 import { DataService } from '../../services/data.service';
 import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente, PropostaRiordino, Magazzino, Giacenza, ScadenzaLotto } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 // ── Rettifica giacenza con scelta prodotto (dal Magazzino) ───────────────────
 @Component({
   selector: 'app-magazzino-rettifica-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Rettifica giacenza</h2>
+    <h2 mat-dialog-title>{{ 'magazzino.rettificaGiacenza' | t }}</h2>
     <mat-dialog-content style="min-width:380px">
       <mat-form-field appearance="outline" style="width:100%">
-        <mat-label>Prodotto *</mat-label>
+        <mat-label>{{ 'magazzino.rettificaDialog.prodotto' | t }}</mat-label>
         <mat-select [(ngModel)]="prodottoId" (ngModelChange)="onProdotto()">
           @for (p of data.prodotti; track p.id) {
             <mat-option [value]="p.id">{{ p.nome }}</mat-option>
@@ -37,27 +40,27 @@ import { MovimentoMagazzino, GiacenzaStorica, Prodotto, Cliente, PropostaRiordin
       </mat-form-field>
       @if (sel) {
         <p style="margin:0 0 12px;font-size:13px;color:var(--text-tertiary,#94a3b8)">
-          Giacenza attuale: <b>{{ sel.quantita }}</b> {{ sel.unitaMisura || '' }}
+          {{ 'magazzino.rettificaDialog.giacenzaAttuale' | t }} <b>{{ sel.quantita }}</b> {{ sel.unitaMisura || '' }}
         </p>
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Nuova giacenza reale *</mat-label>
+          <mat-label>{{ 'magazzino.rettificaDialog.nuovaGiacenza' | t }}</mat-label>
           <input matInput type="number" step="0.001" [(ngModel)]="nuova" (keyup.enter)="save()">
         </mat-form-field>
         @if (nuova !== null && delta !== 0) {
           <p style="margin:-6px 0 12px;font-size:13px" [style.color]="delta > 0 ? '#16a34a' : '#dc2626'">
             <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">{{ delta > 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
-            {{ delta > 0 ? '+' : '' }}{{ delta }} — verrà registrato un movimento di rettifica.
+            {{ delta > 0 ? '+' : '' }}{{ delta }}{{ 'magazzino.rettificaDialog.verraRegistrato' | t }}
           </p>
         }
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Motivo (facoltativo)</mat-label>
-          <input matInput [(ngModel)]="note" placeholder="es. inventario, rottura, ammanco…">
+          <mat-label>{{ 'magazzino.rettificaDialog.motivo' | t }}</mat-label>
+          <input matInput [(ngModel)]="note" [placeholder]="'magazzino.rettificaDialog.motivoPh' | t">
         </mat-form-field>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" (click)="save()" [disabled]="!sel || nuova === null">Salva rettifica</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="!sel || nuova === null">{{ 'magazzino.rettificaDialog.salva' | t }}</button>
     </mat-dialog-actions>`
 })
 export class MagazzinoRettificaDialogComponent {
@@ -88,7 +91,7 @@ export class MagazzinoRettificaDialogComponent {
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatTabsModule, MatTooltipModule, MatSnackBarModule, MatDialogModule, EmptyStateComponent,
-    MatPaginatorModule,
+    MatPaginatorModule, TPipe, TnPipe,
   ],
   templateUrl: './magazzino.html',
   styles: [`
@@ -122,6 +125,7 @@ export class MagazzinoRettificaDialogComponent {
   `]
 })
 export class MagazzinoComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
 
   // ── Movimenti ──────────────────────────────────────────────────────────────
   movimenti: MovimentoMagazzino[] = [];
@@ -140,17 +144,12 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
   clientiList: Cliente[] = [];
 
   anni: number[] = [];
-  mesi = [
-    { v: 1, l: 'Gennaio' }, { v: 2, l: 'Febbraio' }, { v: 3, l: 'Marzo' },
-    { v: 4, l: 'Aprile' },  { v: 5, l: 'Maggio' },   { v: 6, l: 'Giugno' },
-    { v: 7, l: 'Luglio' },  { v: 8, l: 'Agosto' },   { v: 9, l: 'Settembre' },
-    { v: 10, l: 'Ottobre' },{ v: 11, l: 'Novembre' },{ v: 12, l: 'Dicembre' },
-  ];
+  mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: 'common.meseFull.' + v }));
   causali = [
-    { v: 'DDT', l: 'Doc. di trasporto' }, { v: 'FATTURA', l: 'Fattura' },
-    { v: 'RETTIFICA', l: 'Rettifica' },
-    { v: 'STORNO', l: 'Storno' }, { v: 'ELIMINAZIONE', l: 'Eliminazione' },
-    { v: 'ANNULLAMENTO', l: 'Annullamento' }, { v: 'RIATTIVAZIONE', l: 'Riattivazione' },
+    { v: 'DDT', l: 'magazzino.causale.ddt' }, { v: 'FATTURA', l: 'magazzino.causale.fattura' },
+    { v: 'RETTIFICA', l: 'magazzino.causale.rettifica' },
+    { v: 'STORNO', l: 'magazzino.causale.storno' }, { v: 'ELIMINAZIONE', l: 'magazzino.causale.eliminazione' },
+    { v: 'ANNULLAMENTO', l: 'magazzino.causale.annullamento' }, { v: 'RIATTIVAZIONE', l: 'magazzino.causale.riattivazione' },
   ];
   filtroCausale: string = '';
 
@@ -224,16 +223,15 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
     const items = this.proposteSelezionate.map(p => ({
       prodottoId: p.prodottoId, quantita: p.quantitaSuggerita, fornitoreId: p.fornitoreId!,
     }));
-    if (!items.length) { this.snack.open('Seleziona almeno un prodotto con fornitore preferito', '', { duration: 2800 }); return; }
+    if (!items.length) { this.snack.open(this.i18n.t('magazzino.msg.selezionaProdottoFornitore'), '', { duration: 2800 }); return; }
     this.generando = true;
     this.ds.generaRiordino(items).subscribe({
       next: r => {
         this.generando = false;
-        const n = r.created.length;
-        this.snack.open(`${n} ordine${n === 1 ? '' : 'i'} fornitore creat${n === 1 ? 'o' : 'i'}`, '', { duration: 3000, panelClass: 'snack-ok' });
+        this.snack.open(this.i18n.tn('magazzino.msg.ordiniCreati', r.created.length), '', { duration: 3000, panelClass: 'snack-ok' });
         this.loadProposte();
       },
-      error: e => { this.generando = false; this.snack.open(e.error?.error || 'Errore generazione ordini', '', { duration: 3000 }); },
+      error: e => { this.generando = false; this.snack.open(e.error?.error || this.i18n.t('magazzino.msg.erroreGenerazioneOrdini'), '', { duration: 3000 }); },
     });
   }
 
@@ -245,11 +243,11 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
         if (!res) return;
         this.ds.rettificaGiacenza(res.prodottoId, res.quantita, res.note).subscribe({
           next: () => {
-            this.snack.open('Giacenza aggiornata', '', { duration: 2000 });
+            this.snack.open(this.i18n.t('magazzino.msg.giacenzaAggiornata'), '', { duration: 2000 });
             this.ds.getProdotti().subscribe(p => this.prodottiList = p);
             this.loadMovimenti();
           },
-          error: e => this.snack.open(e.error?.error || 'Errore rettifica', '', { duration: 3000 })
+          error: e => this.snack.open(e.error?.error || this.i18n.t('magazzino.msg.erroreRettifica'), '', { duration: 3000 })
         });
       });
   }
@@ -264,8 +262,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
       if (!res) return;
       const n = res.movimenti;
       this.snack.open(
-        n ? `Inventario applicato: ${n} giacenz${n === 1 ? 'a aggiornata' : 'e aggiornate'}`
-          : 'Inventario applicato: nessuna differenza rilevata',
+        n ? this.i18n.tn('magazzino.msg.inventarioApplicato', n) : this.i18n.t('magazzino.msg.inventarioNessunaDifferenza'),
         '', { duration: 3000, panelClass: 'snack-ok' });
       this.ds.getProdotti().subscribe(p => this.prodottiList = p);
       this.loadMovimenti();
@@ -315,7 +312,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
     if (this.filtroDataTo)   f['dataTo']      = this.filtroDataTo;
     this.ds.getMovimentiMagazzino(f).subscribe({
       next: data => { this.movimenti = data; this.dsMovimenti.data = data; },
-      error: () => this.snack.open('Errore caricamento movimenti', '', { duration: 2000 })
+      error: () => this.snack.open(this.i18n.t('magazzino.msg.erroreMovimenti'), '', { duration: 2000 })
     });
   }
 
@@ -331,7 +328,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
     this.loadingStorico = true;
     this.ds.getMagazzinoStorico(this.dataStorico).subscribe({
       next: data => { this.giacenze = data; this.dsStorico.data = data; this.loadingStorico = false; },
-      error: () => { this.snack.open('Errore caricamento storico', '', { duration: 2000 }); this.loadingStorico = false; }
+      error: () => { this.snack.open(this.i18n.t('magazzino.msg.erroreStorico'), '', { duration: 2000 }); this.loadingStorico = false; }
     });
   }
 
@@ -343,8 +340,8 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
 
   labelCausale(causale: string): string {
     const map: Record<string, string> = {
-      DDT: 'Doc. di trasporto', FATTURA: 'Fattura', RETTIFICA: 'Rettifica', STORNO: 'Storno',
-      ELIMINAZIONE: 'Eliminazione', ANNULLAMENTO: 'Annullamento', RIATTIVAZIONE: 'Riattivazione',
+      DDT: 'magazzino.causale.ddt', FATTURA: 'magazzino.causale.fattura', RETTIFICA: 'magazzino.causale.rettifica', STORNO: 'magazzino.causale.storno',
+      ELIMINAZIONE: 'magazzino.causale.eliminazione', ANNULLAMENTO: 'magazzino.causale.annullamento', RIATTIVAZIONE: 'magazzino.causale.riattivazione',
     };
     return map[causale] || causale;
   }
@@ -360,34 +357,34 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
 @Component({
   selector: 'app-depositi-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Depositi</h2>
+    <h2 mat-dialog-title>{{ 'magazzino.tab.depositi' | t }}</h2>
     <mat-dialog-content style="min-width:480px">
       @for (m of lista; track m.id) {
         <div class="dep-row">
-          <input class="dep-in dep-nome" [(ngModel)]="m.nome" placeholder="Nome deposito" (blur)="salva(m)">
-          <input class="dep-in dep-cod" [(ngModel)]="m.codice" placeholder="Cod." (blur)="salva(m)">
+          <input class="dep-in dep-nome" [(ngModel)]="m.nome" [placeholder]="'magazzino.depositiDialog.nomeDeposito' | t" (blur)="salva(m)">
+          <input class="dep-in dep-cod" [(ngModel)]="m.codice" [placeholder]="'magazzino.depositiDialog.cod' | t" (blur)="salva(m)">
           @if (m.predefinito) {
-            <span class="dep-badge">predefinito</span>
+            <span class="dep-badge">{{ 'magazzino.deposito.predefinito' | t }}</span>
           } @else {
-            <button mat-button type="button" (click)="rendiPredefinito(m)" matTooltip="Imposta come predefinito">Predef.</button>
+            <button mat-button type="button" (click)="rendiPredefinito(m)" [matTooltip]="'magazzino.depositiDialog.impostaPredefinito' | t">{{ 'magazzino.depositiDialog.predef' | t }}</button>
           }
-          <button mat-icon-button type="button" color="warn" (click)="elimina(m)" [disabled]="m.predefinito" matTooltip="Elimina">
+          <button mat-icon-button type="button" color="warn" (click)="elimina(m)" [disabled]="m.predefinito" [matTooltip]="'magazzino.depositiDialog.elimina' | t">
             <mat-icon>delete</mat-icon>
           </button>
         </div>
       }
       <div class="dep-row dep-new">
-        <input class="dep-in dep-nome" [(ngModel)]="nuovo.nome" placeholder="Nuovo deposito…" (keyup.enter)="aggiungi()">
-        <input class="dep-in dep-cod" [(ngModel)]="nuovo.codice" placeholder="Cod.">
+        <input class="dep-in dep-nome" [(ngModel)]="nuovo.nome" [placeholder]="'magazzino.depositiDialog.nuovoDepositoPh' | t" (keyup.enter)="aggiungi()">
+        <input class="dep-in dep-cod" [(ngModel)]="nuovo.codice" [placeholder]="'magazzino.depositiDialog.cod' | t">
         <button mat-flat-button color="primary" type="button" (click)="aggiungi()" [disabled]="!nuovo.nome.trim()">
-          <mat-icon>add</mat-icon> Aggiungi
+          <mat-icon>add</mat-icon> {{ 'magazzino.depositiDialog.aggiungi' | t }}
         </button>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-flat-button [mat-dialog-close]="changed">Chiudi</button>
+      <button mat-flat-button [mat-dialog-close]="changed">{{ 'magazzino.depositiDialog.chiudi' | t }}</button>
     </mat-dialog-actions>`,
   styles: [`
     .dep-row { display:flex; align-items:center; gap:8px; padding:6px 0; }
@@ -398,6 +395,7 @@ export class MagazzinoComponent implements OnInit, AfterViewInit {
   `]
 })
 export class DepositiDialogComponent {
+  i18n = inject(I18nService);
   lista: Magazzino[] = [];
   nuovo: Magazzino = { nome: '', codice: '', indirizzo: '' };
   changed = false;
@@ -414,7 +412,7 @@ export class DepositiDialogComponent {
   elimina(m: Magazzino) {
     this.ds.deleteMagazzino(m.id!).subscribe({
       next: () => { this.changed = true; this.reload(); },
-      error: e => this.snack.open(e.error?.error || 'Impossibile eliminare', 'OK', { duration: 3500, panelClass: 'snack-error' }),
+      error: e => this.snack.open(e.error?.error || this.i18n.t('magazzino.depositiDialog.msgImpossibileEliminare'), 'OK', { duration: 3500, panelClass: 'snack-error' }),
     });
   }
 }
@@ -423,29 +421,29 @@ export class DepositiDialogComponent {
 @Component({
   selector: 'app-trasferimento-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Trasferisci tra depositi</h2>
+    <h2 mat-dialog-title>{{ 'magazzino.trasferimentoDialog.title' | t }}</h2>
     <mat-dialog-content style="min-width:440px">
       <mat-form-field appearance="outline" style="width:100%">
-        <mat-label>Prodotto *</mat-label>
+        <mat-label>{{ 'magazzino.trasferimentoDialog.prodotto' | t }}</mat-label>
         <mat-select [(ngModel)]="prodottoId" (ngModelChange)="onProdotto()">
           @for (p of data.prodotti; track p.id) { <mat-option [value]="p.id">{{ p.nome }}</mat-option> }
         </mat-select>
       </mat-form-field>
       @if (prodottoId) {
         @if (!giac.length) {
-          <p style="font-size:13px;color:var(--text-tertiary,#94a3b8)">Nessuna giacenza per questo prodotto.</p>
+          <p style="font-size:13px;color:var(--text-tertiary,#94a3b8)">{{ 'magazzino.trasferimentoDialog.nessunaGiacenza' | t }}</p>
         } @else {
           <div style="display:flex;gap:10px">
             <mat-form-field appearance="outline" style="flex:1">
-              <mat-label>Da deposito *</mat-label>
+              <mat-label>{{ 'magazzino.trasferimentoDialog.daDeposito' | t }}</mat-label>
               <mat-select [(ngModel)]="daMag" (ngModelChange)="onDa()">
                 @for (g of depositiOrigine; track g.key) { <mat-option [value]="g.magazzinoId">{{ g.magazzinoNome }} ({{ g.quantita }})</mat-option> }
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline" style="flex:1">
-              <mat-label>A deposito *</mat-label>
+              <mat-label>{{ 'magazzino.trasferimentoDialog.aDeposito' | t }}</mat-label>
               <mat-select [(ngModel)]="aMag">
                 @for (m of data.magazzini; track m.id) {
                   @if (m.id !== daMag) { <mat-option [value]="m.id">{{ m.nome }}</mat-option> }
@@ -454,18 +452,19 @@ export class DepositiDialogComponent {
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline" style="width:100%">
-            <mat-label>Quantità * (max {{ maxQty }})</mat-label>
+            <mat-label>{{ i18n.t('magazzino.trasferimentoDialog.quantita', { max: maxQty }) }}</mat-label>
             <input matInput type="number" min="0" [max]="maxQty" step="0.001" [(ngModel)]="qty" (keyup.enter)="salva()">
           </mat-form-field>
         }
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" (click)="salva()" [disabled]="!canSave">Trasferisci</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button color="primary" (click)="salva()" [disabled]="!canSave">{{ 'magazzino.deposito.trasferisci' | t }}</button>
     </mat-dialog-actions>`
 })
 export class TrasferimentoDialogComponent {
+  i18n = inject(I18nService);
   prodottoId: number | null = null;
   giac: Giacenza[] = [];
   daMag: number | null = null;
@@ -501,8 +500,8 @@ export class TrasferimentoDialogComponent {
       prodottoId: this.prodottoId, daMagazzinoId: this.daMag, aMagazzinoId: this.aMag,
       quantita: this.qty, lotto: this.lotto, scadenza: this.scadenza,
     }).subscribe({
-      next: () => { this.snack.open('Trasferimento eseguito', '', { duration: 2000, panelClass: 'snack-ok' }); this.dialogRef.close(true); },
-      error: e => this.snack.open(e.error?.error || 'Errore trasferimento', 'OK', { duration: 3500, panelClass: 'snack-error' }),
+      next: () => { this.snack.open(this.i18n.t('magazzino.trasferimentoDialog.msgEseguito'), '', { duration: 2000, panelClass: 'snack-ok' }); this.dialogRef.close(true); },
+      error: e => this.snack.open(e.error?.error || this.i18n.t('magazzino.trasferimentoDialog.msgErrore'), 'OK', { duration: 3500, panelClass: 'snack-error' }),
     });
   }
 }
