@@ -1,59 +1,59 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Acquisti</h1>
+    <h1 class="page-title">{{ 'nav.acquisti' | t }}</h1>
     @if (selection.hasValue()) {
       <div class="bulk-bar">
-        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <span class="bulk-count">{{ selection.selected.length | tn:'acquisti.selected' }}</span>
         <button mat-stroked-button type="button" (click)="bulkSetStato('PAGATA')">
-          <mat-icon>payments</mat-icon> Segna Pagata
+          <mat-icon>payments</mat-icon> {{ 'acquisti.segnaPagata' | t }}
         </button>
         <button mat-stroked-button type="button" color="warn" (click)="bulkSetStato('ANNULLATA')">
-          <mat-icon>cancel</mat-icon> Annulla
+          <mat-icon>cancel</mat-icon> {{ 'acquisti.annullaStato' | t }}
         </button>
         <button mat-stroked-button type="button" color="warn" (click)="bulkElimina()">
-          <mat-icon>delete</mat-icon> Elimina
+          <mat-icon>delete</mat-icon> {{ 'acquisti.elimina' | t }}
         </button>
-        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+        <button mat-button type="button" (click)="selection.clear()">{{ 'acquisti.deseleziona' | t }}</button>
       </div>
     }
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuovo acquisto</button>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> {{ 'acquisti.new' | t }}</button>
     <button class="header-overflow-item" mat-stroked-button type="button" (click)="xmlInput.click()">
-      <mat-icon>upload_file</mat-icon> Importa XML
+      <mat-icon>upload_file</mat-icon> {{ 'acquisti.importaXml' | t }}
     </button>
     <input #xmlInput type="file" accept=".xml,text/xml,application/xml" class="hidden-input" (change)="importaXml($event)">
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="acquisti" title="Acquisti"></app-export-menu></span>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'acquisti.stampa' | t }}</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="acquisti" [title]="'nav.acquisti' | t"></app-export-menu></span>
 
-    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuAcq" title="Altre azioni">
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuAcq" [title]="'acquisti.moreActions' | t">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuAcq="matMenu">
-      <button mat-menu-item type="button" (click)="xmlInput.click()"><mat-icon>upload_file</mat-icon> Importa XML</button>
-      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
-      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'acquisti')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
-      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'acquisti')"><mat-icon>description</mat-icon> Esporta CSV</button>
-      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'acquisti', 'Acquisti')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
+      <button mat-menu-item type="button" (click)="xmlInput.click()"><mat-icon>upload_file</mat-icon> {{ 'acquisti.importaXml' | t }}</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'acquisti.stampa' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'acquisti')"><mat-icon>grid_on</mat-icon> {{ 'acquisti.exportExcel' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'acquisti')"><mat-icon>description</mat-icon> {{ 'acquisti.exportCsv' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'acquisti', i18n.t('nav.acquisti'))"><mat-icon>picture_as_pdf</mat-icon> {{ 'acquisti.exportPdf' | t }}</button>
     </mat-menu>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" placeholder="Anno" multiple>
+    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" [placeholder]="'acquisti.filter.anno' | t" multiple>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" placeholder="Mese" multiple>
-      @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
+    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" [placeholder]="'acquisti.filter.mese' | t" multiple>
+      @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ 'fatture.mese.' + m.v | t }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroFornitori" (selectionChange)="applyFilters()" placeholder="Fornitore" multiple>
+    <mat-select [(ngModel)]="filtroFornitori" (selectionChange)="applyFilters()" [placeholder]="'acquisti.filter.fornitore' | t" multiple>
       @for (f of fornitoriList; track f.id) { <mat-option [value]="f.id">{{ f.nome }}</mat-option> }
     </mat-select>
     @if (filtroAnni.length || filtroMesi.length || filtroFornitori.length) {
-      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+      <button mat-icon-button type="button" [title]="'acquisti.filter.rimuoviFiltri' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>
 
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca acquisti...</mat-label>
+      <mat-label>{{ 'acquisti.search.placeholder' | t }}</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
@@ -70,71 +70,71 @@
       </ng-container>
 
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'acquisti.col.numero' | t }}</th>
         <td mat-cell *matCellDef="let a"><b>{{ a.numero }}</b></td>
       </ng-container>
 
       <ng-container matColumnDef="dataEmissione">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Data</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'acquisti.col.data' | t }}</th>
         <td mat-cell *matCellDef="let a">{{ a.dataEmissione | date:'dd/MM/yyyy' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="fornitoreNome">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Fornitore</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'acquisti.col.fornitore' | t }}</th>
         <td mat-cell *matCellDef="let a">{{ a.fornitoreNome || '—' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="tipoPagamentoNome">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Pagamento</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'acquisti.col.pagamento' | t }}</th>
         <td mat-cell *matCellDef="let a">{{ a.tipoPagamentoNome || '—' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="totale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'acquisti.col.importo' | t }}</th>
         <td mat-cell *matCellDef="let a" class="euro-neg">{{ (a.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="stato">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Stato</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'acquisti.col.stato' | t }}</th>
         <td mat-cell *matCellDef="let a">
-          <span class="stato-chip" [class]="a.stato.toLowerCase()">{{ a.stato }}</span>
+          <span class="stato-chip" [class]="a.stato.toLowerCase()">{{ ('acquisti.stato.' + a.stato.toLowerCase()) | t }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let a" class="table-actions">
-          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="menuAcqAz"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" [title]="'acquisti.moreActions' | t" [matMenuTriggerFor]="menuAcqAz"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuAcqAz="matMenu">
-            <button mat-menu-item type="button" (click)="info(a)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
-            <button mat-menu-item type="button" (click)="printDoc(a)"><mat-icon>print</mat-icon> Stampa</button>
+            <button mat-menu-item type="button" (click)="info(a)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> {{ 'acquisti.menu.scheda' | t }}</button>
+            <button mat-menu-item type="button" (click)="printDoc(a)"><mat-icon>print</mat-icon> {{ 'acquisti.menu.stampa' | t }}</button>
             @if (a.stato === 'RICEVUTA') {
               <button mat-menu-item type="button" (click)="setStato(a, 'PAGATA')">
-                <mat-icon>payments</mat-icon> Segna come Pagata
+                <mat-icon>payments</mat-icon> {{ 'acquisti.menu.segnaComePagata' | t }}
               </button>
             }
             @if (a.stato !== 'ANNULLATA') {
               <button mat-menu-item type="button" (click)="setStato(a, 'ANNULLATA')">
-                <mat-icon>cancel</mat-icon> Annulla
+                <mat-icon>cancel</mat-icon> {{ 'acquisti.menu.annulla' | t }}
               </button>
             }
             <button mat-menu-item type="button" (click)="inviaEmail(a)">
-              <mat-icon>email</mat-icon> Invia per email al fornitore
+              <mat-icon>email</mat-icon> {{ 'acquisti.menu.inviaEmail' | t }}
             </button>
             <button mat-menu-item type="button" (click)="open(a)">
-              <mat-icon>edit</mat-icon> Modifica
+              <mat-icon>edit</mat-icon> {{ 'acquisti.menu.modifica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="duplicate(a)">
-              <mat-icon>content_copy</mat-icon> Duplica
+              <mat-icon>content_copy</mat-icon> {{ 'acquisti.menu.duplica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="registra(a)">
-              <mat-icon style="color:#11769b">task_alt</mat-icon> Registra (pagamento + magazzino)…
+              <mat-icon style="color:#11769b">task_alt</mat-icon> {{ 'acquisti.menu.registra' | t }}
             </button>
             <button mat-menu-item type="button" (click)="generaArrivoMerce(a)">
-              <mat-icon style="color:#0d9488">move_to_inbox</mat-icon> Carica a magazzino…
+              <mat-icon style="color:#0d9488">move_to_inbox</mat-icon> {{ 'acquisti.menu.caricaMagazzino' | t }}
             </button>
             <button mat-menu-item type="button" (click)="delete(a)" style="color:#dc2626">
-              <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+              <mat-icon style="color:#dc2626">delete</mat-icon> {{ 'acquisti.menu.elimina' | t }}
             </button>
           </mat-menu>
         </td>
@@ -145,13 +145,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (dataSource.filter) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessun acquisto corrisponde alla ricerca." />
+            <app-empty-state compact icon="search_off" [title]="'acquisti.empty.searchTitle' | t"
+              [message]="'acquisti.empty.searchMessage' | t" />
           } @else {
-            <app-empty-state icon="shopping_bag" title="Ancora nessun acquisto"
-              message="Registra la prima fattura di acquisto ricevuta da un fornitore.">
+            <app-empty-state icon="shopping_bag" [title]="'acquisti.empty.title' | t"
+              [message]="'acquisti.empty.message' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuovo acquisto
+                <mat-icon>add</mat-icon> {{ 'acquisti.new' | t }}
               </button>
             </app-empty-state>
           }
@@ -160,10 +160,10 @@
     </table>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
     <div class="list-totali">
-      <span class="lt-count">{{ dataSource.data.length }} document{{ dataSource.data.length === 1 ? 'o' : 'i' }}</span>
-      <span class="lt-tot">Totale: <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+      <span class="lt-count">{{ dataSource.data.length | tn:'acquisti.listTotali.documenti' }}</span>
+      <span class="lt-tot">{{ 'acquisti.listTotali.totale' | t }} <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       @if (selection.hasValue()) {
-        <span class="lt-sel">{{ selection.selected.length }} selezionat{{ selection.selected.length === 1 ? 'o' : 'i' }}: <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+        <span class="lt-sel">{{ selection.selected.length | tn:'acquisti.listTotali.selezionati' }} <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       }
     </div>
   </div>

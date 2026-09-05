@@ -11,6 +11,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface AnalisiRiga {
   rigaId: number;
@@ -48,34 +50,31 @@ interface Analisi {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatIconModule, MatButtonModule,
-    MatCheckboxModule, MatTooltipModule, MatFormFieldModule, MatInputModule, MatSelectModule,
+    MatCheckboxModule, MatTooltipModule, MatFormFieldModule, MatInputModule, MatSelectModule, TPipe,
   ],
   template: `
     <h2 mat-dialog-title style="display:flex;align-items:center;gap:10px">
       <mat-icon style="color:#11769b">task_alt</mat-icon>
-      Registra fattura di acquisto
+      {{ 'acquisti.registra.title' | t }}
     </h2>
 
     <mat-dialog-content style="min-width:min(620px,92vw);max-width:820px">
       @if (loading) {
-        <p>Analisi in corso…</p>
+        <p>{{ 'acquisti.registra.analisiInCorso' | t }}</p>
       } @else if (analisi) {
-        <p class="lead">
-          Acquisto <b>{{ analisi.numero }}</b>{{ fornitoreNome ? ' — ' + fornitoreNome : '' }}.
-          Registra il pagamento e/o carica i prodotti a magazzino.
-        </p>
+        <p class="lead">{{ 'acquisti.registra.lead' | t:{ numero: analisi.numero, fornitore: (fornitoreNome ? ' — ' + fornitoreNome : '') } }}</p>
 
         <!-- ── Carico magazzino ─────────────────────────────────────── -->
         <div class="section">
           <mat-checkbox [(ngModel)]="caricaMagazzino" class="section-head">
-            <span class="section-title"><mat-icon>move_to_inbox</mat-icon> Carica a magazzino</span>
+            <span class="section-title"><mat-icon>move_to_inbox</mat-icon> {{ 'acquisti.registra.caricaAMagazzino' | t }}</span>
           </mat-checkbox>
 
           @if (caricaMagazzino) {
             <div class="summary">
-              @if (analisi.matched > 0) { <span class="chip chip-ok"><mat-icon>check_circle</mat-icon> {{ analisi.matched }} a catalogo</span> }
-              @if (analisi.unmatched > 0) { <span class="chip chip-warn"><mat-icon>add_circle_outline</mat-icon> {{ analisi.unmatched }} nuovi</span> }
-              @if (analisi.noCode > 0) { <span class="chip chip-muted"><mat-icon>help_outline</mat-icon> {{ analisi.noCode }} senza codice</span> }
+              @if (analisi.matched > 0) { <span class="chip chip-ok"><mat-icon>check_circle</mat-icon> {{ 'acquisti.registra.aCatalogo' | t:{ n: analisi.matched } }}</span> }
+              @if (analisi.unmatched > 0) { <span class="chip chip-warn"><mat-icon>add_circle_outline</mat-icon> {{ 'acquisti.registra.nuovi' | t:{ n: analisi.unmatched } }}</span> }
+              @if (analisi.noCode > 0) { <span class="chip chip-muted"><mat-icon>help_outline</mat-icon> {{ 'acquisti.registra.senzaCodice' | t:{ n: analisi.noCode } }}</span> }
             </div>
             <div class="righe-list">
               @for (r of analisi.righe; track r.rigaId) {
@@ -88,12 +87,12 @@ interface Analisi {
                     </div>
                     <div class="riga-meta">
                       @if (r.stato === 'matched') {
-                        <span class="badge badge-ok"><mat-icon>check</mat-icon> Esistente: <b>{{ r.prodottoNome }}</b></span>
+                        <span class="badge badge-ok"><mat-icon>check</mat-icon> {{ 'acquisti.registra.esistente' | t }} <b>{{ r.prodottoNome }}</b></span>
                       } @else if (r.stato === 'unmatched') {
-                        <span class="badge badge-warn"><mat-icon>add</mat-icon> Nuovo: <b>{{ r.nuovoProdotto?.nome }}</b></span>
-                        <mat-checkbox [(ngModel)]="r.creaNuovo" class="tiny">crea a catalogo</mat-checkbox>
+                        <span class="badge badge-warn"><mat-icon>add</mat-icon> {{ 'acquisti.registra.nuovo' | t }} <b>{{ r.nuovoProdotto?.nome }}</b></span>
+                        <mat-checkbox [(ngModel)]="r.creaNuovo" class="tiny">{{ 'acquisti.registra.creaACatalogo' | t }}</mat-checkbox>
                       } @else {
-                        <span class="badge badge-muted"><mat-icon>warning_amber</mat-icon> Senza codice — sarà saltata</span>
+                        <span class="badge badge-muted"><mat-icon>warning_amber</mat-icon> {{ 'acquisti.registra.senzaCodiceSaraSaltata' | t }}</span>
                       }
                     </div>
                   </div>
@@ -106,58 +105,57 @@ interface Analisi {
         <!-- ── Pagamento ────────────────────────────────────────────── -->
         <div class="section">
           <mat-checkbox [(ngModel)]="registraPagamento" class="section-head">
-            <span class="section-title"><mat-icon>payments</mat-icon> Registra pagamento</span>
+            <span class="section-title"><mat-icon>payments</mat-icon> {{ 'acquisti.registra.registraPagamento' | t }}</span>
           </mat-checkbox>
 
           @if (registraPagamento) {
             <div class="pay-grid">
               <mat-form-field appearance="outline">
-                <mat-label>Data pagamento</mat-label>
+                <mat-label>{{ 'acquisti.registra.dataPagamento' | t }}</mat-label>
                 <input matInput type="date" [(ngModel)]="dataPagamento">
               </mat-form-field>
               <mat-form-field appearance="outline">
-                <mat-label>Importo</mat-label>
+                <mat-label>{{ 'acquisti.registra.importo' | t }}</mat-label>
                 <input matInput type="number" step="0.01" min="0" [(ngModel)]="importo">
                 <span matTextPrefix>€&nbsp;</span>
               </mat-form-field>
               <mat-form-field appearance="outline">
-                <mat-label>Metodo</mat-label>
+                <mat-label>{{ 'acquisti.registra.metodo' | t }}</mat-label>
                 <mat-select [(ngModel)]="metodo">
-                  <mat-option value="Bonifico">Bonifico</mat-option>
-                  <mat-option value="Contanti">Contanti</mat-option>
-                  <mat-option value="Carta">Carta</mat-option>
-                  <mat-option value="RID/SDD">RID/SDD</mat-option>
-                  <mat-option value="Assegno">Assegno</mat-option>
-                  <mat-option value="Altro">Altro</mat-option>
+                  <mat-option value="Bonifico">{{ 'acquisti.registra.metodoOpt.bonifico' | t }}</mat-option>
+                  <mat-option value="Contanti">{{ 'acquisti.registra.metodoOpt.contanti' | t }}</mat-option>
+                  <mat-option value="Carta">{{ 'acquisti.registra.metodoOpt.carta' | t }}</mat-option>
+                  <mat-option value="RID/SDD">{{ 'acquisti.registra.metodoOpt.ridSdd' | t }}</mat-option>
+                  <mat-option value="Assegno">{{ 'acquisti.registra.metodoOpt.assegno' | t }}</mat-option>
+                  <mat-option value="Altro">{{ 'acquisti.registra.metodoOpt.altro' | t }}</mat-option>
                 </mat-select>
               </mat-form-field>
               <mat-form-field appearance="outline">
-                <mat-label>Conto</mat-label>
+                <mat-label>{{ 'acquisti.registra.conto' | t }}</mat-label>
                 <mat-select [(ngModel)]="conto">
-                  <mat-option value="BANCA">Banca</mat-option>
-                  <mat-option value="CASSA">Cassa</mat-option>
+                  <mat-option value="BANCA">{{ 'acquisti.registra.contoOpt.banca' | t }}</mat-option>
+                  <mat-option value="CASSA">{{ 'acquisti.registra.contoOpt.cassa' | t }}</mat-option>
                 </mat-select>
               </mat-form-field>
             </div>
-            <p class="hint">Totale documento: <b>€ {{ totale | number:'1.2-2' }}</b></p>
+            <p class="hint">{{ 'acquisti.registra.totaleDocumento' | t }} <b>€ {{ totale | number:'1.2-2' }}</b></p>
           }
         </div>
 
         <p class="note">
           <mat-icon>info_outline</mat-icon>
-          Il carico magazzino genera un Arrivo Merce con i movimenti di carico. Il pagamento
-          aggiorna lo stato dell'acquisto (Pagata quando saldato).
+          {{ 'acquisti.registra.notaFinale' | t }}
         </p>
       } @else {
-        <p style="color:#b91c1c">Errore: {{ errorMsg || 'impossibile leggere l\\'acquisto.' }}</p>
+        <p style="color:#b91c1c">{{ 'acquisti.registra.errore' | t:{ msg: (errorMsg || ('acquisti.magazzino.impossibileLeggere' | t)) } }}</p>
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button (click)="dialogRef.close()">Annulla</button>
+      <button mat-button (click)="dialogRef.close()">{{ 'acquisti.registra.annulla' | t }}</button>
       <button mat-flat-button color="primary" (click)="registra()"
               [disabled]="!analisi || saving || (!caricaMagazzino && !registraPagamento)">
-        @if (saving) { Registrazione… } @else { Registra }
+        @if (saving) { {{ 'acquisti.registra.registrazioneInCorso' | t }} } @else { {{ 'acquisti.registra.registraBtn' | t }} }
       </button>
     </mat-dialog-actions>
   `,
@@ -209,6 +207,7 @@ export class AcquistoRegistraDialogComponent implements OnInit {
   metodo = 'Bonifico';
   conto: 'BANCA' | 'CASSA' = 'BANCA';
   private snack = inject(MatSnackBar);
+  private i18n = inject(I18nService);
 
   constructor(
     public dialogRef: MatDialogRef<AcquistoRegistraDialogComponent>,
@@ -263,7 +262,7 @@ export class AcquistoRegistraDialogComponent implements OnInit {
       const imp = Number(this.importo);
       if (!Number.isFinite(imp) || imp <= 0) {
         this.saving = false;
-        this.snack.open('Inserisci un importo maggiore di zero.', 'OK',
+        this.snack.open(this.i18n.t('acquisti.registra.msg.importoMaggioreZero'), 'OK',
                         { duration: 5000, panelClass: 'snack-error' });
         return;
       }
@@ -278,7 +277,7 @@ export class AcquistoRegistraDialogComponent implements OnInit {
         next: () => { result.pagamento = { importo: imp }; this.finish(result); },
         error: e => {
           this.saving = false;
-          this.snack.open(e.error?.error || 'Non è stato possibile registrare il pagamento.', 'OK',
+          this.snack.open(e.error?.error || this.i18n.t('acquisti.registra.msg.errorePagamento'), 'OK',
                           { duration: 6000, panelClass: 'snack-error' });
         },
       });
@@ -292,7 +291,7 @@ export class AcquistoRegistraDialogComponent implements OnInit {
         next: (r: any) => { result.arrivo = r; doPagamento(); },
         error: e => {
           this.saving = false;
-          this.snack.open(e.error?.error || 'Non è stato possibile caricare la merce in magazzino.', 'OK',
+          this.snack.open(e.error?.error || this.i18n.t('acquisti.registra.msg.erroreArrivoMerce'), 'OK',
                           { duration: 6000, panelClass: 'snack-error' });
         },
       });

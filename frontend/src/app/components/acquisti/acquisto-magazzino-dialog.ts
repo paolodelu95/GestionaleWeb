@@ -8,6 +8,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface AnalisiRiga {
   rigaId: number;
@@ -39,37 +41,34 @@ interface Analisi {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatIconModule,
-    MatButtonModule, MatCheckboxModule, MatTooltipModule,
+    MatButtonModule, MatCheckboxModule, MatTooltipModule, TPipe,
   ],
   template: `
     <h2 mat-dialog-title style="display:flex;align-items:center;gap:10px">
       <mat-icon style="color:#11769b">move_to_inbox</mat-icon>
-      Caricare i prodotti a magazzino?
+      {{ 'acquisti.magazzino.title' | t }}
     </h2>
 
     <mat-dialog-content style="min-width:560px;max-width:800px">
       @if (loading) {
-        <p>Analisi righe in corso…</p>
+        <p>{{ 'acquisti.magazzino.analisiInCorso' | t }}</p>
       } @else if (analisi) {
-        <p class="lead">
-          L'acquisto <b>{{ analisi.numero }}</b> ha <b>{{ analisi.totale }}</b> righe.
-          Vuoi generare automaticamente un Arrivo Merce e caricare le quantità a magazzino?
-        </p>
+        <p class="lead">{{ 'acquisti.magazzino.lead' | t:{ numero: analisi.numero, n: analisi.totale } }}</p>
 
         <div class="summary">
           @if (analisi.matched > 0) {
             <span class="chip chip-ok">
-              <mat-icon>check_circle</mat-icon> {{ analisi.matched }} già a catalogo
+              <mat-icon>check_circle</mat-icon> {{ 'acquisti.magazzino.giaACatalogo' | t:{ n: analisi.matched } }}
             </span>
           }
           @if (analisi.unmatched > 0) {
             <span class="chip chip-warn">
-              <mat-icon>add_circle_outline</mat-icon> {{ analisi.unmatched }} nuovi prodotti
+              <mat-icon>add_circle_outline</mat-icon> {{ 'acquisti.magazzino.nuoviProdotti' | t:{ n: analisi.unmatched } }}
             </span>
           }
           @if (analisi.noCode > 0) {
             <span class="chip chip-muted">
-              <mat-icon>help_outline</mat-icon> {{ analisi.noCode }} senza codice
+              <mat-icon>help_outline</mat-icon> {{ 'acquisti.magazzino.senzaCodice' | t:{ n: analisi.noCode } }}
             </span>
           }
         </div>
@@ -86,21 +85,21 @@ interface Analisi {
                 <div class="riga-meta">
                   @if (r.stato === 'matched') {
                     <span class="badge badge-ok">
-                      <mat-icon>check</mat-icon> Esistente:
+                      <mat-icon>check</mat-icon> {{ 'acquisti.magazzino.esistente' | t }}
                       <b>{{ r.prodottoNome }}</b>
-                      @if (r.codiceFornitore) { <span class="cod">cod. {{ r.codiceFornitore }}</span> }
+                      @if (r.codiceFornitore) { <span class="cod">{{ 'acquisti.magazzino.cod' | t:{ codice: r.codiceFornitore } }}</span> }
                     </span>
                   } @else if (r.stato === 'unmatched') {
                     <span class="badge badge-warn">
-                      <mat-icon>add</mat-icon> Nuovo prodotto:
+                      <mat-icon>add</mat-icon> {{ 'acquisti.magazzino.nuovoProdotto' | t }}
                       <b>{{ r.nuovoProdotto?.nome }}</b>
-                      <span class="cod">cod. {{ r.codiceFornitore }}</span>
+                      <span class="cod">{{ 'acquisti.magazzino.cod' | t:{ codice: r.codiceFornitore } }}</span>
                     </span>
-                    <mat-checkbox [(ngModel)]="r.creaNuovo" class="tiny">crea a catalogo</mat-checkbox>
+                    <mat-checkbox [(ngModel)]="r.creaNuovo" class="tiny">{{ 'acquisti.magazzino.creaACatalogo' | t }}</mat-checkbox>
                   } @else {
                     <span class="badge badge-muted">
-                      <mat-icon>warning_amber</mat-icon> Nessun codice prodotto
-                      <span matTooltip="Sarà ignorata nell'arrivo merce">— sarà saltata</span>
+                      <mat-icon>warning_amber</mat-icon> {{ 'acquisti.magazzino.nessunCodiceProdotto' | t }}
+                      <span [matTooltip]="'acquisti.magazzino.saraIgnorataTooltip' | t">{{ 'acquisti.magazzino.saraSaltata' | t }}</span>
                     </span>
                   }
                 </div>
@@ -111,20 +110,19 @@ interface Analisi {
 
         <p class="note">
           <mat-icon>info_outline</mat-icon>
-          Le righe selezionate genereranno un Arrivo Merce con scarico/carico magazzino e movimento registrato.
-          Puoi anche ignorare per ora e generare l'arrivo merce manualmente più tardi.
+          {{ 'acquisti.magazzino.notaFinale' | t }}
         </p>
       } @else {
-        <p style="color:#b91c1c">Errore nell'analisi: {{ errorMsg || 'impossibile leggere l\\'acquisto.' }}</p>
+        <p style="color:#b91c1c">{{ 'acquisti.magazzino.erroreAnalisi' | t:{ msg: (errorMsg || ('acquisti.magazzino.impossibileLeggere' | t)) } }}</p>
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button (click)="dialogRef.close()">Salta per ora</button>
+      <button mat-button (click)="dialogRef.close()">{{ 'acquisti.magazzino.saltaPerOra' | t }}</button>
       <button mat-flat-button color="primary" (click)="genera()"
               [disabled]="!analisi || generating">
-        @if (generating) { Generazione in corso… }
-        @else { Genera arrivo merce ({{ countSelected }} righe) }
+        @if (generating) { {{ 'acquisti.magazzino.generazioneInCorso' | t }} }
+        @else { {{ 'acquisti.magazzino.generaArrivoMerce' | t:{ n: countSelected } }} }
       </button>
     </mat-dialog-actions>
   `,
@@ -188,6 +186,7 @@ export class AcquistoMagazzinoDialogComponent implements OnInit {
   analisi: Analisi | null = null;
   errorMsg = '';
   private snack = inject(MatSnackBar);
+  private i18n = inject(I18nService);
 
   constructor(
     public dialogRef: MatDialogRef<AcquistoMagazzinoDialogComponent>,
@@ -244,7 +243,7 @@ export class AcquistoMagazzinoDialogComponent implements OnInit {
       },
       error: e => {
         this.generating = false;
-        this.snack.open(e.error?.error || 'Non è stato possibile generare l\'arrivo merce.', 'OK',
+        this.snack.open(e.error?.error || this.i18n.t('acquisti.magazzino.msg.erroreGenerico'), 'OK',
                         { duration: 6000, panelClass: 'snack-error' });
       },
     });

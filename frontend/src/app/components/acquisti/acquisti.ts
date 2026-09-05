@@ -45,13 +45,16 @@ import { DocLockService } from '../../services/doc-lock.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
 import { ViewStateService } from '../../services/view-state.service';
 import { DocumentDirtyService } from '../../services/document-dirty.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 @Component({
   selector: 'app-acquisto-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule],
+            MatAutocompleteModule, MatIconModule, MatButtonToggleModule, MatMenuModule, MatTooltipModule, DragDropModule, TPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -60,19 +63,19 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
         </div>
         <div class="dialog-hero-text">
           <span class="dialog-hero-title">
-            {{ data?.id ? ('Acquisto n. ' + (data?.numero || '')) : 'Nuovo acquisto' }}
+            {{ data?.id ? ('acquisti.dialog.acquistoN' | t:{ numero: (data?.numero || '') }) : ('acquisti.dialog.nuovoAcquisto' | t) }}
             @if (data?.id && locked) {
-              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>{{ 'acquisti.dialog.bloccato' | t }}</span>
             }
           </span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe e dati fornitore' : 'Fattura passiva da fornitore' }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'acquisti.dialog.editaRigheEcc' : 'acquisti.dialog.fatturaPassivaDaFornitore') | t }}</span>
         </div>
         @if (data?.id) {
           <button mat-icon-button type="button"
                   class="dialog-lock-btn"
                   [class.is-locked]="locked"
                   [class.is-unlocked]="!locked"
-                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  [matTooltip]="(locked ? 'acquisti.dialog.tooltipBloccato' : 'acquisti.dialog.tooltipSbloccato') | t"
                   (click)="toggleLock()">
             <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
           </button>
@@ -84,12 +87,12 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
       <div class="doc-form">
 
         <div class="form-section is-primary">
-          <div class="form-section-header"><mat-icon>business</mat-icon><span>Intestazione</span></div>
+          <div class="form-section-header"><mat-icon>business</mat-icon><span>{{ 'acquisti.dialog.intestazione' | t }}</span></div>
           <div class="doc-field-grid has-2-extra" [formGroup]="form">
             <mat-form-field>
-              <mat-label>Fornitore</mat-label>
+              <mat-label>{{ 'acquisti.dialog.fornitore' | t }}</mat-label>
               <input matInput [matAutocomplete]="autoFornitore" [formControl]="fornitoreCtrl"
-                     (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore per ragione sociale o P.IVA...">
+                     (keyup.enter)="autoSelectFornitore()" [placeholder]="'acquisti.dialog.fornitorePh' | t">
               <mat-icon matSuffix>search</mat-icon>
               <mat-autocomplete #autoFornitore="matAutocomplete" [displayWith]="displayFornitore">
                 @for (f of filteredFornitori; track f.id) {
@@ -98,9 +101,9 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
               </mat-autocomplete>
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Tipo pagamento</mat-label>
+              <mat-label>{{ 'acquisti.dialog.tipoPagamento' | t }}</mat-label>
               <mat-select formControlName="tipoPagamentoId">
-                <mat-option [value]="null">— nessuno —</mat-option>
+                <mat-option [value]="null">{{ 'acquisti.dialog.nessuno' | t }}</mat-option>
                 @for (t of tipiPagamento; track t.id) {
                   <mat-option [value]="t.id">{{ t.nome }}</mat-option>
                 }
@@ -108,14 +111,14 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
               <mat-icon matSuffix>payments</mat-icon>
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Numero *</mat-label>
+              <mat-label>{{ 'acquisti.dialog.numero' | t }}</mat-label>
               <input matInput formControlName="numero">
               @if (form.get('numero')?.hasError('numeroDuplicato')) {
-                <mat-error>Numero già esistente</mat-error>
+                <mat-error>{{ 'acquisti.dialog.numeroEsistente' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Data ricezione *</mat-label>
+              <mat-label>{{ 'acquisti.dialog.dataRicezione' | t }}</mat-label>
               <input matInput type="date" formControlName="dataEmissione">
             </mat-form-field>
           </div>
@@ -124,28 +127,28 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
         <div class="form-section">
           <div class="righe-header">
             <div class="righe-header-title">
-              <span>Righe</span>
+              <span>{{ 'acquisti.dialog.righe' | t }}</span>
             </div>
             <div class="righe-actions">
               <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-                <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-                <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+                <mat-button-toggle [value]="false">{{ 'fatture.dialog.ivato' | t }}</mat-button-toggle>
+                <mat-button-toggle [value]="true">{{ 'fatture.dialog.netto' | t }}</mat-button-toggle>
               </mat-button-toggle-group>
               <button mat-flat-button color="primary" type="button" (click)="addRiga()">
-                <mat-icon>add</mat-icon> Aggiungi riga
+                <mat-icon>add</mat-icon> {{ 'acquisti.dialog.aggiungiRiga' | t }}
               </button>
               <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-                <mat-icon>content_copy</mat-icon> Copia da...
+                <mat-icon>content_copy</mat-icon> {{ 'acquisti.dialog.copiaDa' | t }}
               </button>
               <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-                <mat-icon>note_add</mat-icon> Aggiungi nota
+                <mat-icon>note_add</mat-icon> {{ 'acquisti.dialog.aggiungiNota' | t }}
               </button>
               <mat-menu #menuNota="matMenu">
                 <button mat-menu-item type="button" (click)="addNota('')">
-                  <mat-icon>edit_note</mat-icon> Nota libera
+                  <mat-icon>edit_note</mat-icon> {{ 'acquisti.dialog.notaLibera' | t }}
                 </button>
                 @if (noteRapideList.length) {
-                  <div class="menu-section-label">Note rapide</div>
+                  <div class="menu-section-label">{{ 'acquisti.dialog.noteRapide' | t }}</div>
                   @for (nr of noteRapideList; track nr.id) {
                     <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                   }
@@ -158,14 +161,14 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
             <thead>
               <tr>
                 <th class="td-drag"></th>
-                <th class="td-desc">Codice / Descrizione</th>
+                <th class="td-desc">{{ 'acquisti.dialog.colCodiceDescrizione' | t }}</th>
                 <th class="td-search"></th>
-                <th class="td-qta">Qtà</th>
-                <th class="td-um">UM</th>
-                <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
-                <th class="td-sconto">Sconto%</th>
-                <th class="td-iva">IVA%</th>
-                <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
+                <th class="td-qta">{{ 'acquisti.dialog.colQta' | t }}</th>
+                <th class="td-um">{{ 'acquisti.dialog.colUm' | t }}</th>
+                <th class="td-prezzo">{{ (showNetto ? 'acquisti.dialog.colPrezzoNetto' : 'acquisti.dialog.colPrezzoIvato') | t }}</th>
+                <th class="td-sconto">{{ 'acquisti.dialog.colSconto' | t }}</th>
+                <th class="td-iva">{{ 'acquisti.dialog.colIva' | t }}</th>
+                <th class="td-totale">{{ (showNetto ? 'acquisti.dialog.colTotaleNetto' : 'acquisti.dialog.colTotaleIvato') | t }}</th>
                 <th class="td-actions"></th>
               </tr>
             </thead>
@@ -175,7 +178,7 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
                   <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                     <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                     <td class="td-nota" colspan="8">
-                      <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota...">
+                      <input class="riga-input" [(ngModel)]="riga.descrizione" [placeholder]="'acquisti.dialog.notaPlaceholder' | t">
                     </td>
                     <td class="td-actions">
                       <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -188,19 +191,19 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
                   <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                   <td class="td-desc">
                     <div class="codice-desc-stack">
-                      <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
-                      <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                      <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" [placeholder]="'acquisti.dialog.codicePh' | t" (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)" (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
+                      <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" [placeholder]="'acquisti.dialog.descrizionePh' | t">
                     </div>
                   </td>
                   <td class="td-search">
-                    <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                    <button mat-icon-button type="button" (click)="searchProdotto($index)" [title]="'acquisti.dialog.cercaProdotto' | t">
                       <mat-icon>search</mat-icon>
                     </button>
                   </td>
-                  <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
+                  <td class="td-qta" [attr.data-label]="'acquisti.dialog.colQta' | t"><input class="riga-input" type="number" min="0"
                     [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                     [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                  <td class="td-um" [attr.data-label]="'UM'">
+                  <td class="td-um" [attr.data-label]="'acquisti.dialog.colUm' | t">
                     <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                       <option value="">—</option>
                       @for (u of unitaMisura; track u.id) {
@@ -208,12 +211,12 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
                       }
                     </select>
                   </td>
-                  <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
+                  <td class="td-prezzo" [attr.data-label]="(showNetto ? 'acquisti.dialog.colPrezzoNetto' : 'acquisti.dialog.colPrezzoIvato') | t"><input class="riga-input" type="number" min="0" step="0.01"
                     [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                     (change)="setPrezzoFromInput(riga, $event)"></td>
-                  <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)"></td>
-                  <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                  <td class="td-totale" [attr.data-label]="'Totale'">
+                  <td class="td-sconto" [attr.data-label]="'acquisti.dialog.colSconto' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)"></td>
+                  <td class="td-iva" [attr.data-label]="'acquisti.dialog.colIva' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                  <td class="td-totale" [attr.data-label]="'fatture.dialog.totale' | t">
                     {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                   </td>
                   <td class="td-actions">
@@ -230,16 +233,16 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
         </div>
 
         <div class="doc-totals-strip">
-          <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-          <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.imponibile' | t }}</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.iva' | t }}</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
           <span class="totals-spacer"></span>
-          <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-grand"><span class="totals-label">{{ 'fatture.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
         </div>
 
         <div class="form-section is-flat" [formGroup]="form">
-          <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+          <div class="form-section-header"><mat-icon>notes</mat-icon><span>{{ 'acquisti.dialog.noteInterne' | t }}</span></div>
           <mat-form-field>
-            <mat-label>Note ad uso interno</mat-label>
+            <mat-label>{{ 'acquisti.dialog.noteAdUsoInterno' | t }}</mat-label>
             <textarea matInput rows="2" formControlName="note"></textarea>
           </mat-form-field>
         </div>
@@ -247,17 +250,18 @@ import { DocumentDirtyService } from '../../services/document-dirty.service';
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'acquisti.dialog.annulla' | t }}</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
-          <mat-icon>print</mat-icon> Esporta PDF </button>
+          <mat-icon>print</mat-icon> {{ 'acquisti.dialog.esportaPdf' | t }} </button>
       }
       <button mat-flat-button (click)="save()" [disabled]="form.invalid || locked"
-              [matTooltip]="locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : (form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : '')">Salva</button>
+              [matTooltip]="locked ? ('acquisti.dialog.sbloccaTooltip' | t) : (form.get('numero')?.hasError('numeroDuplicato') ? ('acquisti.dialog.numeroEsistente' | t) : '')">{{ 'acquisti.dialog.salva' | t }}</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES]
 })
 export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
   locked = false;
   toggleLock() { this.locked = !this.locked; }
   onLockedClick(ev: MouseEvent) {
@@ -266,7 +270,7 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
     if (target.closest('.dialog-lock-btn')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+    this.snack.open(this.i18n.t('acquisti.dialog.msgDocBloccato'), 'OK', { duration: 2600 });
   }
   form: FormGroup;
   /** Numeri già usati negli acquisti, con il rispettivo fornitore: per le fatture di acquisto
@@ -516,7 +520,7 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il fornitore)').then(ok => {
+      this.confirmDraft.ask(this.i18n.t('acquisti.dialog.msg.riprendiBozza')).then(ok => {
         if (ok) {
           try {
             const f = { ...(bozza.form || {}) }; delete f.numero;
@@ -545,19 +549,20 @@ export class AcquistoDialogComponent implements OnInit, AfterViewInit, OnDestroy
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatMenuModule,
             MatSortModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatPaginatorModule, EmptyStateComponent,
-            TableKeyboardNavDirective, ExportMenuComponent],
+            TableKeyboardNavDirective, ExportMenuComponent, TPipe, TnPipe],
   templateUrl: './acquisti.html',
   styleUrl: './acquisti.scss'
 })
 export class AcquistiComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
+  i18n = inject(I18nService);
   private allAcquisti: Acquisto[] = [];
   private fornitori: Fornitore[] = [];
   dataSource = new MatTableDataSource<Acquisto>([]);
   displayedColumns = ['select', 'numero', 'dataEmissione', 'fornitoreNome', 'tipoPagamentoNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Acquisto>(true, []);
 
-  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  readonly mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: this.i18n.t('fatture.mese.' + v) }));
   // Filtri multipli: array vuoto = "tutti" (si possono scegliere più anni/mesi/fornitori).
   filtroAnni: number[] = [];
   filtroMesi: number[] = [];
@@ -684,21 +689,22 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
   }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(a=>`<tr><td>${a.numero}</td><td>${d(a.dataEmissione)}</td><td>${a.fornitoreNome||'—'}</td><td>${a.tipoPagamentoNome||'—'}</td><td class="r">${e(a.totale)}</td><td>${a.stato}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Acquisti</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Acquisti</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Fornitore</th><th>Pagamento</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('nav.acquisti')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${t('nav.acquisti')}</h1><table><thead><tr><th>${t('acquisti.col.numero')}</th><th>${t('acquisti.col.data')}</th><th>${t('acquisti.col.fornitore')}</th><th>${t('acquisti.col.pagamento')}</th><th class="r">${t('acquisti.col.importo')}</th><th>${t('acquisti.col.stato')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Numero', field: 'numero', width: 14 },
-    { header: 'Data', field: 'dataEmissione', width: 14 },
-    { header: 'Fornitore', field: 'fornitoreNome', width: 30 },
-    { header: 'Pagamento', field: 'tipoPagamentoNome', width: 20 },
-    { header: 'Importo', field: 'totale', width: 14 },
-    { header: 'Stato', field: 'stato', width: 14 },
+    { header: this.i18n.t('acquisti.col.numero'), field: 'numero', width: 14 },
+    { header: this.i18n.t('acquisti.col.data'), field: 'dataEmissione', width: 14 },
+    { header: this.i18n.t('acquisti.col.fornitore'), field: 'fornitoreNome', width: 30 },
+    { header: this.i18n.t('acquisti.col.pagamento'), field: 'tipoPagamentoNome', width: 20 },
+    { header: this.i18n.t('acquisti.col.importo'), field: 'totale', width: 14 },
+    { header: this.i18n.t('acquisti.col.stato'), field: 'stato', width: 14 },
   ];
   /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
   get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
@@ -716,7 +722,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     if (!ids.length) return;
     forkJoin(ids.map(id => this.ds.setAcquistoStato(id, stato))).subscribe({
       next: () => { this.selection.clear(); this.load(); },
-      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore aggiornamento stato', '', { duration: 3000 })
+      error: e => this.snack.open(e?.error?.error || e?.message || this.i18n.t('acquisti.msg.erroreAggiornamentoStato'), '', { duration: 3000 })
     });
   }
 
@@ -724,17 +730,20 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} acquist${n === 1 ? 'o' : 'i'} selezionat${n === 1 ? 'o' : 'i'}?`)) return;
+    if (!await this.confirm.delete(this.i18n.tn('acquisti.msg.confirmBulkDelete', n))) return;
     forkJoin(sel.map(a => this.ds.getAcquistoById(a.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
       const backups = fulls.filter(Boolean);
       forkJoin(sel.map(a => this.ds.deleteAcquisto(a.id!).pipe(catchError(err => of({ __error: err }))))).subscribe(results => {
         const errori = results.filter((r: any) => r && r.__error).length;
         this.selection.clear();
         this.load();
-        const ref = this.snack.open(errori ? `${n - errori} eliminati, ${errori} non eliminabili` : `${n} acquisti eliminati`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const msg = errori
+          ? `${this.i18n.tn('acquisti.msg.eliminati', n - errori)}, ${this.i18n.tn('acquisti.msg.nonEliminabili', errori)}`
+          : this.i18n.tn('acquisti.msg.eliminati', n);
+        const ref = this.snack.open(msg, this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createAcquisto(p).pipe(catchError(() => of(null))); }))
-            .subscribe(() => { this.load(); this.snack.open('Acquisti ripristinati', '', { duration: 2000, panelClass: 'snack-ok' }); });
+            .subscribe(() => { this.load(); this.snack.open(this.i18n.t('acquisti.msg.acquistiRipristinati'), '', { duration: 2000, panelClass: 'snack-ok' }); });
         });
       });
     });
@@ -754,7 +763,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
       op.subscribe({
         next: (r: any) => {
           this.load();
-          this.snack.open('Salvato', '', { duration: 2000 });
+          this.snack.open(this.i18n.t('acquisti.msg.salvato'), '', { duration: 2000 });
           // Solo per NUOVO acquisto: proponi di generare l'arrivo merce
           if (isCreate && r?.id) {
             this.generaArrivoMerce({ ...result, id: r.id });
@@ -781,8 +790,8 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
       const numNuovi = result.prodottiCreati?.length || 0;
       const numRighe = result.righeTotali || 0;
       const msg = numNuovi > 0
-        ? `Arrivo merce ${result.numero} creato (${numRighe} righe, ${numNuovi} prodotti nuovi)`
-        : `Arrivo merce ${result.numero} creato (${numRighe} righe)`;
+        ? this.i18n.t('acquisti.msg.arrivoGeneratoConNuovi', { numero: result.numero, righe: numRighe, nuovi: numNuovi })
+        : this.i18n.t('acquisti.msg.arrivoGenerato', { numero: result.numero, righe: numRighe });
       this.snack.open(msg, 'OK', { duration: 4500, panelClass: 'snack-ok' });
       this.load();
     });
@@ -799,9 +808,9 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
     ref.afterClosed().subscribe(result => {
       if (!result?.registered) return;
       const parts: string[] = [];
-      if (result.arrivo) parts.push(`arrivo merce ${result.arrivo.numero}`);
-      if (result.pagamento) parts.push(`pagamento € ${result.pagamento.importo.toFixed(2)}`);
-      this.snack.open(`Registrato: ${parts.join(' + ') || 'nessuna operazione'}`, 'OK', { duration: 4500, panelClass: 'snack-ok' });
+      if (result.arrivo) parts.push(this.i18n.t('acquisti.msg.arrivoMercePart', { numero: result.arrivo.numero }));
+      if (result.pagamento) parts.push(this.i18n.t('acquisti.msg.pagamentoPart', { importo: result.pagamento.importo.toFixed(2) }));
+      this.snack.open(this.i18n.t('acquisti.msg.registrato', { parts: parts.join(' + ') || this.i18n.t('acquisti.msg.nessunaOperazione') }), 'OK', { duration: 4500, panelClass: 'snack-ok' });
       this.load();
     });
   }
@@ -827,7 +836,7 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
           righe: parsed.righe,
         });
       } catch (_) {
-        this.snack.open('File XML non valido o non riconosciuto', '', { duration: 3500 });
+        this.snack.open(this.i18n.t('acquisti.msg.xmlNonValido'), '', { duration: 3500 });
       }
     };
     reader.readAsText(file, 'UTF-8');
@@ -873,8 +882,8 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
-          title: `Invia acquisto n. ${a.numero}`,
-          subtitle: fornitore?.ragioneSociale ? `A: ${fornitore.ragioneSociale}` : undefined,
+          title: this.i18n.t('acquisti.msg.inviaEmailTitle', { numero: a.numero! }),
+          subtitle: fornitore?.ragioneSociale ? this.i18n.t('acquisti.msg.inviaEmailA', { nome: fornitore.ragioneSociale }) : undefined,
           destinatario: fornitore?.email || '',
           testo: az?.emailCorpoDocumento || '',
         },
@@ -882,8 +891,8 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
       ref.afterClosed().subscribe(result => {
         if (!result) return;
         this.ds.sendAcquistoEmail(a.id!, result.destinatario, result.testo || undefined).subscribe({
-          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+          next: () => this.snack.open(this.i18n.t('acquisti.msg.emailInviata'), '', { duration: 2000 }),
+          error: e => this.snack.open(this.i18n.t('acquisti.msg.erroreEmail', { msg: e.error?.error || e.message }), '', { duration: 4000 })
         });
       });
     });
@@ -895,11 +904,11 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
       const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
       const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
       const extra: { label: string; value: string }[] = [];
-      if (doc.tipoPagamentoNome) extra.push({ label: 'Pagamento', value: doc.tipoPagamentoNome });
+      if (doc.tipoPagamentoNome) extra.push({ label: this.i18n.t('acquisti.info.pagamento'), value: doc.tipoPagamentoNome });
       this.dialog.open(DocInfoDialogComponent, {
         data: {
           tipo: 'ACQUISTO', numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
-          controparteLabel: 'FORNITORE',
+          controparteLabel: this.i18n.t('acquisti.info.fornitore'),
           controparte: doc.fornitore?.ragioneSociale || a.fornitoreNome || '—',
           controparteInfo: doc.fornitore ? [
             [doc.fornitore.via, [doc.fornitore.cap, doc.fornitore.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
@@ -928,16 +937,16 @@ export class AcquistiComponent implements OnInit, AfterViewInit {
         pre.dataEmissione = new Date().toISOString().substring(0, 10);
         pre.stato = 'RICEVUTA';
         this.ds.createAcquisto(pre).subscribe({
-          next: () => { fine(); this.load(); this.snack.open(`Acquisto duplicato (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
+          next: () => { fine(); this.load(); this.snack.open(this.i18n.t('acquisti.msg.acquistoDuplicato', { numero: pre.numero! }), '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || this.i18n.t('acquisti.msg.erroreDuplicazione'), 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
+      error: e => { fine(); this.snack.open(this.i18n.t('acquisti.msg.errore', { msg: e.message || '' }), 'OK', { duration: 4000 }); }
     });
   }
 
   async delete(a: Acquisto) {
-    if (!await this.confirm.delete(`Eliminare acquisto ${a.numero}?`)) return;
-    this.ds.deleteAcquisto(a.id!).subscribe(() => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); });
+    if (!await this.confirm.delete(this.i18n.t('acquisti.msg.confirmDelete', { numero: a.numero! }))) return;
+    this.ds.deleteAcquisto(a.id!).subscribe(() => { this.load(); this.snack.open(this.i18n.t('acquisti.msg.eliminato'), '', { duration: 2000 }); });
   }
 }
