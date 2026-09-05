@@ -1,49 +1,49 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Fatture</h1>
+    <h1 class="page-title">{{ 'nav.fatture' | t }}</h1>
     @if (selection.hasValue()) {
       <div class="bulk-bar">
-        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <span class="bulk-count">{{ selection.selected.length | tn:'fatture.selected' }}</span>
         <button mat-stroked-button type="button" (click)="bulkSetStato('PAGATA')" [disabled]="busy">
-          <mat-icon>payments</mat-icon> Segna Pagata
+          <mat-icon>payments</mat-icon> {{ 'fatture.segnaPagata' | t }}
         </button>
         <button mat-stroked-button type="button" color="warn" (click)="bulkElimina()" [disabled]="busy">
-          <mat-icon>delete</mat-icon> Elimina
+          <mat-icon>delete</mat-icon> {{ 'fatture.elimina' | t }}
         </button>
-        <button mat-button type="button" (click)="selection.clear()">Deseleziona</button>
+        <button mat-button type="button" (click)="selection.clear()">{{ 'fatture.deseleziona' | t }}</button>
       </div>
     }
-    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> Nuova fattura</button>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> Genera da documenti di trasporto</button>
-    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="fatture" title="Fatture"></app-export-menu></span>
-    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+    <button mat-flat-button type="button" (click)="open()"><mat-icon>add</mat-icon> {{ 'fatture.new' | t }}</button>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> {{ 'fatture.generaDaDdtBtn' | t }}</button>
+    <span class="header-overflow-item"><app-export-menu [data]="exportRows" [columns]="exportCols" filename="fatture" [title]="'nav.fatture' | t"></app-export-menu></span>
+    <button class="header-overflow-item" mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'fatture.stampa' | t }}</button>
 
-    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFatt" title="Altre azioni">
+    <button class="header-overflow-toggle" mat-icon-button type="button" [matMenuTriggerFor]="overflowMenuFatt" [title]="'fatture.moreActions' | t">
       <mat-icon>more_vert</mat-icon>
     </button>
     <mat-menu #overflowMenuFatt="matMenu">
-      <button mat-menu-item type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> Genera da documenti di trasporto</button>
-      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'fatture')"><mat-icon>grid_on</mat-icon> Esporta Excel</button>
-      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'fatture')"><mat-icon>description</mat-icon> Esporta CSV</button>
-      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'fatture', 'Fatture')"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
-      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+      <button mat-menu-item type="button" (click)="openGeneraDaDdt()"><mat-icon>receipt_long</mat-icon> {{ 'fatture.generaDaDdtBtn' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.export(exportRows, exportCols, 'fatture')"><mat-icon>grid_on</mat-icon> {{ 'fatture.exportExcel' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportCsv(exportRows, exportCols, 'fatture')"><mat-icon>description</mat-icon> {{ 'fatture.exportCsv' | t }}</button>
+      <button mat-menu-item type="button" (click)="excel.exportPdf(exportRows, exportCols, 'fatture', i18n.t('nav.fatture'))"><mat-icon>picture_as_pdf</mat-icon> {{ 'fatture.exportPdf' | t }}</button>
+      <button mat-menu-item type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'fatture.stampa' | t }}</button>
     </mat-menu>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" placeholder="Anno" multiple>
+    <mat-select [(ngModel)]="filtroAnni" (selectionChange)="applyFilters()" [placeholder]="'fatture.filter.anno' | t" multiple>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" placeholder="Mese" multiple>
-      @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
+    <mat-select [(ngModel)]="filtroMesi" (selectionChange)="applyFilters()" [placeholder]="'fatture.filter.mese' | t" multiple>
+      @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ 'fatture.mese.' + m.v | t }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" placeholder="Cliente" multiple>
+    <mat-select [(ngModel)]="filtroClienti" (selectionChange)="applyFilters()" [placeholder]="'fatture.filter.cliente' | t" multiple>
       @for (c of clientiList; track c.id) { <mat-option [value]="c.id">{{ c.nome }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroStati" (selectionChange)="applyFilters()" placeholder="Stato" multiple>
-      <mat-option value="EMESSA">Emessa</mat-option>
-      <mat-option value="PAGATA">Pagata</mat-option>
-      <mat-option value="ANNULLATA">Annullata</mat-option>
+    <mat-select [(ngModel)]="filtroStati" (selectionChange)="applyFilters()" [placeholder]="'fatture.filter.stato' | t" multiple>
+      <mat-option value="EMESSA">{{ 'fatture.stato.emessa' | t }}</mat-option>
+      <mat-option value="PAGATA">{{ 'fatture.stato.pagata' | t }}</mat-option>
+      <mat-option value="ANNULLATA">{{ 'fatture.stato.annullata' | t }}</mat-option>
     </mat-select>
     <button mat-stroked-button type="button"
             [style.color]="filtroDaPagare ? '#dc2626' : ''"
@@ -51,19 +51,19 @@
             [style.background]="filtroDaPagare ? '#fff1f2' : ''"
             (click)="filtroDaPagare=!filtroDaPagare; applyFilters()">
       <mat-icon [style.color]="filtroDaPagare ? '#dc2626' : '#f59e0b'">hourglass_empty</mat-icon>
-      Da pagare
+      {{ 'fatture.filter.daPagare' | t }}
       @if (daPagareCount > 0) {
         <span style="background:#dc2626;color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px">{{ daPagareCount }}</span>
       }
     </button>
     @if (filtroAnni.length || filtroMesi.length || filtroClienti.length || filtroStati.length || filtroDaPagare) {
-      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+      <button mat-icon-button type="button" [title]="'fatture.filter.rimuoviFiltri' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>
 
   <div class="card">
     <mat-form-field class="search-field" appearance="outline">
-      <mat-label>Cerca fatture...</mat-label>
+      <mat-label>{{ 'fatture.search.placeholder' | t }}</mat-label>
       <input matInput (input)="applyFilter($event)">
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
@@ -83,75 +83,75 @@
       </ng-container>
 
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'fatture.col.numero' | t }}</th>
         <td mat-cell *matCellDef="let f"><b>{{ f.numero }}</b></td>
       </ng-container>
 
       <ng-container matColumnDef="dataEmissione">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Data</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">{{ 'fatture.col.data' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-mobile">{{ f.dataEmissione | date:'dd/MM/yyyy' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="clienteNome">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'fatture.col.cliente' | t }}</th>
         <td mat-cell *matCellDef="let f">{{ f.clienteNome || '—' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="totale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'fatture.col.importo' | t }}</th>
         <td mat-cell *matCellDef="let f" class="euro">{{ (f.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="stato">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Stato</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">{{ 'fatture.col.stato' | t }}</th>
         <td mat-cell *matCellDef="let f" class="hide-mobile">
-          <span class="stato-chip" [class]="f.stato.toLowerCase()">{{ f.stato }}</span>
+          <span class="stato-chip" [class]="f.stato.toLowerCase()">{{ ('fatture.stato.' + f.stato.toLowerCase()) | t }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let f" class="table-actions">
-          <button mat-icon-button type="button" title="Azioni" [matMenuTriggerFor]="menuAzioni"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" [title]="'fatture.moreActions' | t" [matMenuTriggerFor]="menuAzioni"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #menuAzioni="matMenu">
-            <button mat-menu-item type="button" (click)="info(f)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> Scheda</button>
-            <button mat-menu-item type="button" (click)="printDoc(f)"><mat-icon>print</mat-icon> Stampa</button>
+            <button mat-menu-item type="button" (click)="info(f)"><mat-icon style="color:#3b82f6">info_outline</mat-icon> {{ 'fatture.menu.scheda' | t }}</button>
+            <button mat-menu-item type="button" (click)="printDoc(f)"><mat-icon>print</mat-icon> {{ 'fatture.menu.stampa' | t }}</button>
             <mat-divider></mat-divider>
             @if (f.stato === 'EMESSA') {
               <button mat-menu-item type="button" (click)="setStato(f, 'PAGATA')">
-                <mat-icon style="color:#16a34a">payments</mat-icon> Segna come pagata
+                <mat-icon style="color:#16a34a">payments</mat-icon> {{ 'fatture.menu.segnaComePagata' | t }}
               </button>
             }
             @if (f.stato === 'PAGATA') {
               <button mat-menu-item type="button" (click)="setStato(f, 'EMESSA')">
-                <mat-icon style="color:#f59e0b">undo</mat-icon> Riporta a Emessa
+                <mat-icon style="color:#f59e0b">undo</mat-icon> {{ 'fatture.menu.riportaEmessa' | t }}
               </button>
             }
             <button mat-menu-item type="button" (click)="inviaEmail(f)">
-              <mat-icon>email</mat-icon> Invia per email
+              <mat-icon>email</mat-icon> {{ 'fatture.menu.inviaEmail' | t }}
             </button>
             @if (!offline) {
               <button mat-menu-item type="button" (click)="generaPayLink(f)"
                       [disabled]="f.stato === 'PAGATA' || f.stato === 'ANNULLATA'">
-                <mat-icon style="color:#635bff">credit_card</mat-icon> Link pagamento Stripe
+                <mat-icon style="color:#635bff">credit_card</mat-icon> {{ 'fatture.menu.linkPagamentoStripe' | t }}
               </button>
             }
             <button mat-menu-item type="button" (click)="inviaSdi(f)">
               <mat-icon [style.color]="f.statoSdi === 'INVIATA' ? '#16a34a' : undefined">send_time_extension</mat-icon>
-              Invia all'SDI{{ f.statoSdi === 'INVIATA' ? ' ✓' : '' }}
+              {{ 'fatture.menu.inviaSdi' | t }}{{ f.statoSdi === 'INVIATA' ? ' ✓' : '' }}
             </button>
             <button mat-menu-item type="button" (click)="downloadXml(f)">
-              <mat-icon>code</mat-icon> Scarica XML FatturaPA
+              <mat-icon>code</mat-icon> {{ 'fatture.menu.scaricaXml' | t }}
             </button>
             <mat-divider></mat-divider>
             <button mat-menu-item type="button" (click)="duplicate(f)">
-              <mat-icon>content_copy</mat-icon> Duplica
+              <mat-icon>content_copy</mat-icon> {{ 'fatture.menu.duplica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="open(f)">
-              <mat-icon>edit</mat-icon> Modifica
+              <mat-icon>edit</mat-icon> {{ 'fatture.menu.modifica' | t }}
             </button>
             <button mat-menu-item type="button" (click)="delete(f)" style="color:#dc2626">
-              <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+              <mat-icon style="color:#dc2626">delete</mat-icon> {{ 'fatture.menu.elimina' | t }}
             </button>
           </mat-menu>
         </td>
@@ -162,13 +162,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (hasActiveFilters()) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessuna fattura corrisponde ai filtri attuali." />
+            <app-empty-state compact icon="search_off" [title]="'fatture.empty.searchTitle' | t"
+              [message]="'fatture.empty.searchMessage' | t" />
           } @else {
-            <app-empty-state icon="receipt" title="Ancora nessuna fattura"
-              message="Crea la tua prima fattura: numerazione, data e calcolo IVA sono automatici.">
+            <app-empty-state icon="receipt" [title]="'fatture.empty.title' | t"
+              [message]="'fatture.empty.message' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuova fattura
+                <mat-icon>add</mat-icon> {{ 'fatture.new' | t }}
               </button>
             </app-empty-state>
           }
@@ -178,10 +178,10 @@
     }
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
     <div class="list-totali">
-      <span class="lt-count">{{ dataSource.data.length }} document{{ dataSource.data.length === 1 ? 'o' : 'i' }}</span>
-      <span class="lt-tot">Totale: <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+      <span class="lt-count">{{ dataSource.data.length | tn:'fatture.listTotali.documenti' }}</span>
+      <span class="lt-tot">{{ 'fatture.listTotali.totale' | t }} <b>{{ totaleLista | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       @if (selection.hasValue()) {
-        <span class="lt-sel">{{ selection.selected.length }} selezionat{{ selection.selected.length === 1 ? 'o' : 'i' }}: <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+        <span class="lt-sel">{{ selection.selected.length | tn:'fatture.listTotali.selezionati' }} <b>{{ totaleSelezione | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
       }
     </div>
   </div>

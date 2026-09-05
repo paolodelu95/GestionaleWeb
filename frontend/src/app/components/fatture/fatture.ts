@@ -50,6 +50,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocLockService } from '../../services/doc-lock.service';
 import { DocumentDirtyService } from '../../services/document-dirty.service';
 import { TableKeyboardNavDirective } from '../shared/table-keyboard-nav.directive';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 interface DdtItem { ddt: any; checked: boolean; }
 interface ClienteGroup { clienteId: number | null; clienteNome: string; items: DdtItem[]; tipoPagamentoId: number | null; }
@@ -58,7 +61,7 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
   selector: 'app-genera-fatture-da-ddt-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatCheckboxModule, MatProgressSpinnerModule, MatSnackBarModule, MatSelectModule],
+            MatCheckboxModule, MatProgressSpinnerModule, MatSnackBarModule, MatSelectModule, TPipe, TnPipe],
   template: `
     <mat-dialog-content style="min-width:560px;max-width:700px">
       <div class="dialog-hero">
@@ -66,8 +69,8 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
           <mat-icon>receipt_long</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">Genera fatture da documenti di trasporto non fatturati</span>
-          <span class="dialog-hero-sub">Seleziona i documenti di trasporto da includere. Verrà creata una fattura per ogni cliente.</span>
+          <span class="dialog-hero-title">{{ 'fatture.generaDdt.title' | t }}</span>
+          <span class="dialog-hero-sub">{{ 'fatture.generaDdt.subtitle' | t }}</span>
         </div>
       </div>
 
@@ -78,7 +81,7 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
       } @else if (!groups.length) {
         <div style="text-align:center;padding:40px;color:#94a3b8">
           <mat-icon style="font-size:48px;width:48px;height:48px;display:block;margin:0 auto 12px">check_circle_outline</mat-icon>
-          <p style="margin:0;font-size:14px">Nessun documento di trasporto da fatturare</p>
+          <p style="margin:0;font-size:14px">{{ 'fatture.generaDdt.nessunDdt' | t }}</p>
         </div>
       } @else {
         <div class="gd-groups">
@@ -93,8 +96,8 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
                 <mat-icon style="color:#11769b;font-size:18px;width:18px;height:18px">person</mat-icon>
                 <span class="gd-cliente">{{ g.clienteNome }}</span>
                 <mat-select [(ngModel)]="g.tipoPagamentoId" class="gd-pagamento-select"
-                            placeholder="Tipo pagamento">
-                  <mat-option [value]="null">— non specificato —</mat-option>
+                            [placeholder]="'fatture.generaDdt.tipoPagamentoPh' | t">
+                  <mat-option [value]="null">{{ 'fatture.generaDdt.nonSpecificato' | t }}</mat-option>
                   @for (t of tipiPagamento; track t.id) {
                     <mat-option [value]="t.id">{{ t.nome }}</mat-option>
                   }
@@ -105,7 +108,7 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
                 <div class="gd-ddt-row" [class.gd-unchecked]="!item.checked">
                   <mat-checkbox [(ngModel)]="item.checked"></mat-checkbox>
                   <mat-icon style="font-size:15px;width:15px;height:15px;color:#64748b">local_shipping</mat-icon>
-                  <span class="gd-ddt-num">Doc. di trasporto n.&nbsp;{{ item.ddt.numero }}</span>
+                  <span class="gd-ddt-num">{{ 'fatture.generaDdt.docTrasportoN' | t }}&nbsp;{{ item.ddt.numero }}</span>
                   <span class="gd-ddt-data">{{ item.ddt.dataEmissione | date:'dd/MM/yyyy' }}</span>
                   <span class="gd-ddt-tot">{{ item.ddt.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
                 </div>
@@ -116,21 +119,21 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
         <div class="gd-summary">
           <mat-icon>info_outline</mat-icon>
           @if (selectedGroups.length) {
-            Verranno generate <b>{{ selectedGroups.length }}&nbsp;fatture</b> per&nbsp;<b>{{ selectedCount }}&nbsp;documenti di trasporto</b> selezionati
+            {{ 'fatture.generaDdt.summary' | t:{ fatture: (selectedGroups.length | tn:'fatture.generaDdt.fattureCount'), ddt: (selectedCount | tn:'fatture.generaDdt.ddtCount') } }}
           } @else {
-            Nessun documento di trasporto selezionato
+            {{ 'fatture.generaDdt.nessunSelezionato' | t }}
           }
         </div>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close [disabled]="generating">Annulla</button>
+      <button mat-button mat-dialog-close [disabled]="generating">{{ 'fatture.generaDdt.annulla' | t }}</button>
       <button mat-flat-button (click)="generate()"
               [disabled]="!selectedCount || generating || loading">
         @if (generating) {
           <mat-spinner diameter="16" style="display:inline-block;vertical-align:middle;margin-right:6px"></mat-spinner>
         }
-        Genera {{ selectedGroups.length ? selectedGroups.length + (selectedGroups.length === 1 ? ' fattura' : ' fatture') : '' }}
+        {{ selectedGroups.length ? (selectedGroups.length | tn:'fatture.generaDdt.generaN') : ('fatture.generaDdt.genera' | t) }}
       </button>
     </mat-dialog-actions>`,
   styles: [`
@@ -151,6 +154,7 @@ interface ClienteGroup { clienteId: number | null; clienteNome: string; items: D
   `]
 })
 export class GeneraFattureDaDdtDialogComponent implements OnInit {
+  private i18n = inject(I18nService);
   groups: ClienteGroup[] = [];
   tipiPagamento: TipoPagamento[] = [];
   loading = true;
@@ -220,7 +224,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
     this.generating = true;
     this.ds.generaFattureDaDdt(items).subscribe({
       next: result => { this.generating = false; this.dialogRef.close(result.fatture); },
-      error: e => { this.generating = false; this.snack.open(e.error?.error || 'Errore generazione fatture', '', { duration: 3500 }); }
+      error: e => { this.generating = false; this.snack.open(e.error?.error || this.i18n.t('fatture.generaDdt.msg.erroreGenerazione'), '', { duration: 3500 }); }
     });
   }
 }
@@ -232,7 +236,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
             MatAutocompleteModule, MatTableModule, MatIconModule, MatTabsModule,
             MatButtonToggleModule, MatSnackBarModule, MatMenuModule, MatTooltipModule,
-            MatCheckboxModule, AllegatiComponent, DragDropModule],
+            MatCheckboxModule, AllegatiComponent, DragDropModule, TPipe, TnPipe],
   template: `
     <mat-dialog-content>
       <div class="dialog-hero">
@@ -241,19 +245,19 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
         </div>
         <div class="dialog-hero-text">
           <span class="dialog-hero-title">
-            {{ data?.id ? ('Fattura n. ' + (data?.numero || '')) : 'Nuova fattura' }}
+            {{ data?.id ? ('fatture.dialog.fatturaN' | t:{ numero: (data?.numero || '') }) : ('fatture.dialog.nuovaFattura' | t) }}
             @if (data?.id && locked) {
-              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>Bloccato</span>
+              <span class="dialog-lock-chip"><mat-icon>lock</mat-icon>{{ 'fatture.dialog.bloccato' | t }}</span>
             }
           </span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Modifica righe, pagamento e allegati' : 'Seleziona il cliente e compila le righe' }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'fatture.dialog.editaRigheEcc' : 'fatture.dialog.selezionaClienteEcc') | t }}</span>
         </div>
         @if (data?.id) {
           <button mat-icon-button type="button"
                   class="dialog-lock-btn"
                   [class.is-locked]="locked"
                   [class.is-unlocked]="!locked"
-                  [matTooltip]="locked ? 'Documento bloccato — clicca per sbloccare' : 'Documento sbloccato — clicca per bloccare'"
+                  [matTooltip]="(locked ? 'fatture.dialog.tooltipBloccato' : 'fatture.dialog.tooltipSbloccato') | t"
                   (click)="toggleLock()">
             <mat-icon>{{ locked ? 'lock' : 'lock_open' }}</mat-icon>
           </button>
@@ -263,16 +267,16 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
       <div [class.doc-locked-content]="locked" (click)="onLockedClick($event)">
 
       <mat-tab-group>
-        <mat-tab label="Documento">
+        <mat-tab [label]="'fatture.dialog.tabDocumento' | t">
           <div class="doc-form">
 
             <div class="form-section is-primary">
-              <div class="form-section-header"><mat-icon>person</mat-icon><span>Intestazione</span></div>
+              <div class="form-section-header"><mat-icon>person</mat-icon><span>{{ 'fatture.dialog.intestazione' | t }}</span></div>
               <div class="doc-field-grid" [formGroup]="form">
                 <mat-form-field>
-                  <mat-label>Cliente *</mat-label>
+                  <mat-label>{{ 'fatture.dialog.cliente' | t }}</mat-label>
                   <input matInput [matAutocomplete]="autoCliente" [formControl]="clienteCtrl"
-                         (keyup.enter)="autoSelectCliente()" placeholder="Cerca per ragione sociale o P.IVA..."
+                         (keyup.enter)="autoSelectCliente()" [placeholder]="'fatture.dialog.clientePh' | t"
                          [class.input-error]="submitted && !hasCliente">
                   <mat-icon matSuffix>search</mat-icon>
                   <mat-autocomplete #autoCliente="matAutocomplete" [displayWith]="displayCliente">
@@ -281,18 +285,18 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                     }
                   </mat-autocomplete>
                   @if (submitted && !hasCliente) {
-                    <mat-error>Seleziona un cliente</mat-error>
+                    <mat-error>{{ 'fatture.dialog.selezionaCliente' | t }}</mat-error>
                   }
                 </mat-form-field>
                 <mat-form-field>
-                  <mat-label>Numero *</mat-label>
+                  <mat-label>{{ 'fatture.dialog.numero' | t }}</mat-label>
                   <input matInput formControlName="numero">
                   @if (form.get('numero')?.hasError('numeroDuplicato')) {
-                    <mat-error>Numero già esistente</mat-error>
+                    <mat-error>{{ 'fatture.dialog.numeroEsistente' | t }}</mat-error>
                   }
                 </mat-form-field>
                 <mat-form-field>
-                  <mat-label>Data emissione *</mat-label>
+                  <mat-label>{{ 'fatture.dialog.dataEmissione' | t }}</mat-label>
                   <input matInput type="date" formControlName="dataEmissione">
                 </mat-form-field>
               </div>
@@ -302,11 +306,11 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
             @if (hasCliente) {
             <div class="form-section">
               <div class="form-section-header">
-                <mat-icon>local_shipping</mat-icon><span>Documenti di trasporto collegati</span>
+                <mat-icon>local_shipping</mat-icon><span>{{ 'fatture.dialog.ddtCollegati' | t }}</span>
                 <select class="riga-input" [(ngModel)]="ddtSelezione" (change)="addDdt()">
-                  <option [ngValue]="null">— Collega documento di trasporto… —</option>
+                  <option [ngValue]="null">{{ 'fatture.dialog.collegaDdtPh' | t }}</option>
                   @for (d of ddtDisponibili; track d.id) {
-                    <option [ngValue]="d.id">Doc. di trasporto {{ d.numero }} — {{ d.dataEmissione | date:'dd/MM/yy' }}</option>
+                    <option [ngValue]="d.id">{{ 'fatture.dialog.docTrasportoN' | t:{ n: d.numero, data: (d.dataEmissione | date:'dd/MM/yy') ?? '' } }}</option>
                   }
                 </select>
               </div>
@@ -315,13 +319,13 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                   @for (d of linkedDdts; track d.id) {
                     <span class="doc-chip is-info">
                       <mat-icon>local_shipping</mat-icon>
-                      Doc. di trasporto n. {{ d.numero }} del {{ d.dataEmissione | date:'dd/MM/yyyy' }}
-                      <button type="button" class="chip-remove" (click)="removeDdt(d.id!)" title="Scollega documento di trasporto">×</button>
+                      {{ 'fatture.dialog.docTrasportoDelN' | t:{ n: d.numero, data: (d.dataEmissione | date:'dd/MM/yyyy') ?? '' } }}
+                      <button type="button" class="chip-remove" (click)="removeDdt(d.id!)" [title]="'fatture.dialog.scollegaDdt' | t">×</button>
                     </span>
                   }
                 </div>
               } @else {
-                <p class="section-empty">Nessun documento di trasporto collegato. Selezionane uno per importare le righe automaticamente.</p>
+                <p class="section-empty">{{ 'fatture.dialog.nessunDdtCollegato' | t }}</p>
               }
             </div>
             }
@@ -330,7 +334,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
               @if (suggerimenti.length) {
                 <div class="suggeriti-bar">
                   <mat-icon class="icon-primary">auto_awesome</mat-icon>
-                  <span class="suggeriti-label">Suggeriti per questo cliente</span>
+                  <span class="suggeriti-label">{{ 'fatture.dialog.suggeritiPerCliente' | t }}</span>
                   @for (s of suggerimenti; track s.id) {
                     <button type="button" class="sugg-chip" (click)="addRigaDaSuggerimento(s)">
                       <mat-icon>add</mat-icon>{{ s.nome }}<span class="sugg-count">·{{ s.occorrenze }}</span>
@@ -340,31 +344,31 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
               }
               <div class="righe-header">
                 <div class="righe-header-title">
-                  <span>Righe *</span>
+                  <span>{{ 'fatture.dialog.righe' | t }}</span>
                   @if (submitted && !hasRighe) {
-                    <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
+                    <span class="righe-error"><mat-icon>error_outline</mat-icon> {{ 'fatture.dialog.aggiungiRigaAlmeno' | t }}</span>
                   }
                 </div>
                 <div class="righe-actions">
                   <mat-button-toggle-group [(ngModel)]="showNetto" [hideSingleSelectionIndicator]="true">
-                    <mat-button-toggle [value]="false">Ivato</mat-button-toggle>
-                    <mat-button-toggle [value]="true">Netto</mat-button-toggle>
+                    <mat-button-toggle [value]="false">{{ 'fatture.dialog.ivato' | t }}</mat-button-toggle>
+                    <mat-button-toggle [value]="true">{{ 'fatture.dialog.netto' | t }}</mat-button-toggle>
                   </mat-button-toggle-group>
                   <button mat-flat-button color="primary" type="button" (click)="addRiga()">
-                    <mat-icon>add</mat-icon> Aggiungi riga
+                    <mat-icon>add</mat-icon> {{ 'fatture.dialog.aggiungiRiga' | t }}
                   </button>
                   <button mat-stroked-button type="button" (click)="apriCopiaRighe()">
-                    <mat-icon>content_copy</mat-icon> Copia da…
+                    <mat-icon>content_copy</mat-icon> {{ 'fatture.dialog.copiaDa' | t }}
                   </button>
                   <button mat-stroked-button type="button" [matMenuTriggerFor]="menuNota">
-                    <mat-icon>sticky_note_2</mat-icon> Nota
+                    <mat-icon>sticky_note_2</mat-icon> {{ 'fatture.dialog.nota' | t }}
                   </button>
                   <mat-menu #menuNota="matMenu">
                     <button mat-menu-item type="button" (click)="addNota('')">
-                      <mat-icon>edit_note</mat-icon> Nota libera
+                      <mat-icon>edit_note</mat-icon> {{ 'fatture.dialog.notaLibera' | t }}
                     </button>
                     @if (noteRapideList.length) {
-                      <div class="menu-section-label">Note rapide</div>
+                      <div class="menu-section-label">{{ 'fatture.dialog.noteRapide' | t }}</div>
                       @for (nr of noteRapideList; track nr.id) {
                         <button mat-menu-item type="button" (click)="addNota(nr.testo)">{{ nr.testo }}</button>
                       }
@@ -377,16 +381,16 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                 <thead>
                   <tr>
                     <th class="td-drag"></th>
-                    <th class="td-desc">Codice / Descrizione</th>
+                    <th class="td-desc">{{ 'fatture.dialog.colCodiceDescrizione' | t }}</th>
                     <th class="td-search"></th>
-                    <th class="td-qta">Qtà</th>
-                    <th class="td-um">UM</th>
-                    <th class="td-prezzo">{{ showNetto ? 'Prezzo netto' : 'Prezzo ivato' }}</th>
+                    <th class="td-qta">{{ 'fatture.dialog.colQta' | t }}</th>
+                    <th class="td-um">{{ 'fatture.dialog.colUm' | t }}</th>
+                    <th class="td-prezzo">{{ (showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t }}</th>
                     <th class="td-history"></th>
-                    <th class="td-sconto">Sconto%</th>
-                    <th class="td-iva">IVA</th>
-                    <th class="td-totale">{{ showNetto ? 'Totale netto' : 'Totale ivato' }}</th>
-                    <th class="td-scarico" title="Spunta le righe da scaricare dal magazzino">Scarico</th>
+                    <th class="td-sconto">{{ 'fatture.dialog.colSconto' | t }}</th>
+                    <th class="td-iva">{{ 'fatture.dialog.colIva' | t }}</th>
+                    <th class="td-totale">{{ (showNetto ? 'fatture.dialog.colTotaleNetto' : 'fatture.dialog.colTotaleIvato') | t }}</th>
+                    <th class="td-scarico" [title]="'fatture.dialog.scaricoTooltip' | t">{{ 'fatture.dialog.colScarico' | t }}</th>
                     <th class="td-actions"></th>
                   </tr>
                 </thead>
@@ -396,7 +400,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                       <tr class="riga-nota" cdkDrag cdkDragPreviewContainer="parent">
                         <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                         <td class="td-nota" colspan="10">
-                          <input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Testo nota…">
+                          <input class="riga-input" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.notaPlaceholder' | t">
                         </td>
                         <td class="td-actions">
                           <button mat-icon-button color="warn" type="button" (click)="removeRiga($index)">
@@ -409,21 +413,21 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                       <td class="td-drag" cdkDragHandle><mat-icon>drag_indicator</mat-icon></td>
                       <td class="td-desc">
                         <div class="codice-desc-stack">
-                          <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" placeholder="Codice"
+                          <input class="riga-input riga-codice" #rigaCodice [(ngModel)]="riga.codiceProdotto" [placeholder]="'fatture.dialog.codicePh' | t"
                             (keydown.enter)="risolviCodiceRiga(rowIdx, $event)" (keydown.f2)="searchProdotto(rowIdx)"
                             (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace(rowIdx, $event)">
-                          <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" placeholder="Descrizione">
+                          <input class="riga-input riga-input--desc" [(ngModel)]="riga.descrizione" [placeholder]="'fatture.dialog.descrizionePh' | t">
                         </div>
                       </td>
                       <td class="td-search">
-                        <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                        <button mat-icon-button type="button" (click)="searchProdotto($index)" [title]="'fatture.dialog.cercaProdotto' | t">
                           <mat-icon>search</mat-icon>
                         </button>
                       </td>
-                      <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0"
+                      <td class="td-qta" [attr.data-label]="'fatture.dialog.colQta' | t"><input class="riga-input" type="number" min="0"
                         [step]="riga.unitaMisura === 'pz' ? 1 : 0.01"
                         [(ngModel)]="riga.quantita" (change)="roundIfPz(riga)"></td>
-                      <td class="td-um" [attr.data-label]="'UM'">
+                      <td class="td-um" [attr.data-label]="'fatture.dialog.colUm' | t">
                         <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                           <option value="">—</option>
                           @for (u of unitaMisura; track u.id) {
@@ -431,16 +435,16 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                           }
                         </select>
                       </td>
-                      <td class="td-prezzo" [attr.data-label]="showNetto ? 'Prezzo netto' : 'Prezzo ivato'"><input class="riga-input" type="number" min="0" step="0.01"
+                      <td class="td-prezzo" [attr.data-label]="(showNetto ? 'fatture.dialog.colPrezzoNetto' : 'fatture.dialog.colPrezzoIvato') | t"><input class="riga-input" type="number" min="0" step="0.01"
                         [value]="showNetto ? riga.prezzo : +(riga.prezzo * (1 + riga.iva/100)).toFixed(2)"
                         (change)="setPrezzoFromInput(riga, $event)"></td>
                       <td class="td-history">
                         @if (prezziRecenti[$index]?.length) {
-                          <button mat-icon-button type="button" title="Prezzi recenti - questo cliente" [matMenuTriggerFor]="menuPrezzi">
+                          <button mat-icon-button type="button" [title]="'fatture.dialog.prezziRecentiClienteTooltip' | t" [matMenuTriggerFor]="menuPrezzi">
                             <mat-icon class="icon-primary">history</mat-icon>
                           </button>
                           <mat-menu #menuPrezzi="matMenu">
-                            <div class="menu-section-label">Prezzi recenti</div>
+                            <div class="menu-section-label">{{ 'fatture.dialog.prezziRecenti' | t }}</div>
                             @for (pr of prezziRecenti[rowIdx]; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
                                 <span class="pr-meta">{{ pr.tipo }} {{ pr.numero }} — {{ pr.dataEmissione | date:'dd/MM/yy' }}</span>
@@ -451,16 +455,16 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                           </mat-menu>
                         }
                         @if (riga.prodottoId) {
-                          <button mat-icon-button type="button" title="Prezzi tutti i clienti" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
+                          <button mat-icon-button type="button" [title]="'fatture.dialog.prezziTuttiClientiTooltip' | t" [matMenuTriggerFor]="menuTutti" (click)="loadTuttiPrezzi($index, riga.prodottoId)">
                             <mat-icon class="icon-muted">groups</mat-icon>
                           </button>
                           <mat-menu #menuTutti="matMenu">
-                            <div class="menu-section-label">Tutti i clienti</div>
+                            <div class="menu-section-label">{{ 'fatture.dialog.tuttiClienti' | t }}</div>
                             @if (!tuttiCaricati[$index]) {
-                              <div class="menu-empty">Clicca per caricare…</div>
+                              <div class="menu-empty">{{ 'fatture.dialog.clicPerCaricare' | t }}</div>
                             }
                             @if (tuttiCaricati[$index] && !prezziRecentiTutti[$index]?.length) {
-                              <div class="menu-empty">Nessun prezzo trovato</div>
+                              <div class="menu-empty">{{ 'fatture.dialog.nessunPrezzoTrovato' | t }}</div>
                             }
                             @for (pr of prezziRecentiTutti[rowIdx] ?? []; track $index) {
                               <button mat-menu-item type="button" (click)="usaPrezzo(rowIdx, pr.prezzo, pr.sconto)">
@@ -474,8 +478,8 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                           </mat-menu>
                         }
                       </td>
-                      <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
-                      <td class="td-iva" [attr.data-label]="'IVA'">
+                      <td class="td-sconto" [attr.data-label]="'fatture.dialog.colSconto' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" (change)="clampSconto(riga)" placeholder="0"></td>
+                      <td class="td-iva" [attr.data-label]="'fatture.dialog.colIva' | t">
                         @if (aliquoteIva.length) {
                           <select class="riga-input"
                                   [ngModel]="riga.codiceIva || resolveAliquotaCodice(riga.iva)"
@@ -488,17 +492,17 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                           <input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva">
                         }
                       </td>
-                      <td class="td-totale" [attr.data-label]="'Totale'">
+                      <td class="td-totale" [attr.data-label]="'fatture.dialog.totale' | t">
                         {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                       </td>
-                      <td class="td-scarico" [attr.data-label]="'Scarica magazzino'">
+                      <td class="td-scarico" [attr.data-label]="'fatture.dialog.colScarico' | t">
                         @if (riga.prodottoId) {
                           <input type="checkbox" class="riga-check" [(ngModel)]="riga.scaricaMagazzino"
-                                 title="Scarica questa riga dal magazzino">
+                                 [title]="'fatture.dialog.scaricoTooltip' | t">
                         } @else {
                           <input type="checkbox" class="riga-check riga-check--crea" [checked]="false"
                                  (click)="creaProdottoPerRiga($index, $event)"
-                                 matTooltip="Prodotto non a catalogo: clicca per crearlo e abilitare lo scarico dal magazzino">
+                                 [matTooltip]="'fatture.dialog.creaProdottoTooltip' | t">
                         }
                       </td>
                       <td class="td-actions">
@@ -517,9 +521,9 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
             <div class="form-section is-flat">
               <div class="form-section-header" style="cursor:pointer" (click)="showFiscale = !showFiscale">
                 <mat-icon>receipt_long</mat-icon>
-                <span>Ritenuta, cassa e bollo</span>
+                <span>{{ 'fatture.dialog.ritenutaCassaBollo' | t }}</span>
                 @if (hasFiscaleAttivo) {
-                  <span style="margin-left:8px;font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:999px">attivo</span>
+                  <span style="margin-left:8px;font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:999px">{{ 'fatture.dialog.attivo' | t }}</span>
                 }
                 <span style="flex:1"></span>
                 <mat-icon>{{ showFiscale ? 'expand_less' : 'expand_more' }}</mat-icon>
@@ -527,80 +531,80 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
               @if (showFiscale) {
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 14px;align-items:center;padding-top:6px">
                   <mat-form-field>
-                    <mat-label>Cassa previdenziale</mat-label>
+                    <mat-label>{{ 'fatture.dialog.cassaPrevidenziale' | t }}</mat-label>
                     <mat-select [(ngModel)]="fisc.cassaTipo" [ngModelOptions]="{standalone:true}">
-                      <mat-option [value]="''">Nessuna</mat-option>
+                      <mat-option [value]="''">{{ 'fatture.dialog.nessuna' | t }}</mat-option>
                       @for (t of CASSA_TIPI; track t.v) { <mat-option [value]="t.v">{{ t.l }}</mat-option> }
                     </mat-select>
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>% Cassa</mat-label>
+                    <mat-label>{{ 'fatture.dialog.percCassa' | t }}</mat-label>
                     <input matInput type="number" min="0" step="0.01" [(ngModel)]="fisc.cassaAliquota" [ngModelOptions]="{standalone:true}" (ngModelChange)="onCassaAttiva()">
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>IVA su cassa %</mat-label>
+                    <mat-label>{{ 'fatture.dialog.ivaSuCassa' | t }}</mat-label>
                     <input matInput type="number" min="0" step="0.01" [(ngModel)]="fisc.cassaIva" [ngModelOptions]="{standalone:true}">
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>% Ritenuta d'acconto</mat-label>
+                    <mat-label>{{ 'fatture.dialog.percRitenuta' | t }}</mat-label>
                     <input matInput type="number" min="0" step="0.01" [(ngModel)]="fisc.ritenutaAliquota" [ngModelOptions]="{standalone:true}">
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>Tipo ritenuta</mat-label>
+                    <mat-label>{{ 'fatture.dialog.tipoRitenuta' | t }}</mat-label>
                     <mat-select [(ngModel)]="fisc.ritenutaTipo" [ngModelOptions]="{standalone:true}">
                       @for (t of RITENUTA_TIPI; track t.v) { <mat-option [value]="t.v">{{ t.l }}</mat-option> }
                     </mat-select>
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>Causale ritenuta</mat-label>
+                    <mat-label>{{ 'fatture.dialog.causaleRitenuta' | t }}</mat-label>
                     <mat-select [(ngModel)]="fisc.ritenutaCausale" [ngModelOptions]="{standalone:true}">
                       <mat-option [value]="''">—</mat-option>
                       @for (c of RITENUTA_CAUSALI; track c.v) { <mat-option [value]="c.v">{{ c.l }}</mat-option> }
                     </mat-select>
                   </mat-form-field>
-                  <mat-checkbox [(ngModel)]="fisc.bollo" [ngModelOptions]="{standalone:true}">Bollo 2,00 €</mat-checkbox>
+                  <mat-checkbox [(ngModel)]="fisc.bollo" [ngModelOptions]="{standalone:true}">{{ 'fatture.dialog.bollo' | t }}</mat-checkbox>
                 </div>
               }
             </div>
 
             <div class="doc-totals-strip">
-              <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.imponibile' | t }}</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
               @if (cassaImporto > 0) {
-                <div class="totals-item"><span class="totals-label">Cassa</span><span class="totals-value">{{ cassaImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.cassa' | t }}</span><span class="totals-value">{{ cassaImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
               }
-              <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+              <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.iva' | t }}</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
               @if (bolloImporto > 0) {
-                <div class="totals-item"><span class="totals-label">Bollo</span><span class="totals-value">{{ bolloImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.bolloLabel' | t }}</span><span class="totals-value">{{ bolloImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
               }
               <span class="totals-spacer"></span>
               @if (ritenutaImporto > 0) {
-                <div class="totals-item"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-                <div class="totals-item"><span class="totals-label">Ritenuta</span><span class="totals-value">−{{ ritenutaImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-                <div class="totals-grand"><span class="totals-label">Netto a pagare</span><span class="totals-value">{{ nettoAPagare | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-item"><span class="totals-label">{{ 'fatture.dialog.ritenuta' | t }}</span><span class="totals-value">−{{ ritenutaImporto | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-grand"><span class="totals-label">{{ 'fatture.dialog.nettoAPagare' | t }}</span><span class="totals-value">{{ nettoAPagare | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
               } @else {
-                <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+                <div class="totals-grand"><span class="totals-label">{{ 'fatture.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
               }
             </div>
 
             <div class="form-section is-flat" [formGroup]="form">
-              <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note interne</span></div>
+              <div class="form-section-header"><mat-icon>notes</mat-icon><span>{{ 'fatture.dialog.noteInterne' | t }}</span></div>
               <mat-form-field>
-                <mat-label>Annotazioni ad uso interno (non stampate)</mat-label>
+                <mat-label>{{ 'fatture.dialog.annotazioniInterne' | t }}</mat-label>
                 <textarea matInput rows="2" formControlName="note"></textarea>
               </mat-form-field>
               @if (agenti.length) {
                 <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
                   <mat-form-field style="flex:1;min-width:200px">
-                    <mat-label>Agente</mat-label>
+                    <mat-label>{{ 'fatture.dialog.agente' | t }}</mat-label>
                     <mat-select formControlName="agenteId">
-                      <mat-option [value]="null">— nessuno —</mat-option>
+                      <mat-option [value]="null">{{ 'fatture.dialog.nessunoAgente' | t }}</mat-option>
                       @for (ag of agenti; track ag.id) { <mat-option [value]="ag.id">{{ ag.nome }}</mat-option> }
                     </mat-select>
                   </mat-form-field>
                   @if (form.get('agenteId')?.value) {
                     <mat-form-field style="width:160px">
-                      <mat-label>Provvigione</mat-label>
-                      <input matInput type="number" min="0" max="100" step="0.5" formControlName="provvigione" placeholder="% default agente">
+                      <mat-label>{{ 'fatture.dialog.provvigione' | t }}</mat-label>
+                      <input matInput type="number" min="0" max="100" step="0.5" formControlName="provvigione" [placeholder]="'fatture.dialog.provvigionePh' | t">
                       <span matSuffix>%</span>
                     </mat-form-field>
                   }
@@ -613,7 +617,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
         <mat-tab>
           <ng-template mat-tab-label>
             <mat-icon class="tab-lead-icon">payment</mat-icon>
-            Pagamento
+            {{ 'fatture.dialog.tabPagamento' | t }}
             @if (!selectedTipoPagamentoId) {
               <mat-icon class="tab-status-icon icon-warning">warning_amber</mat-icon>
             } @else {
@@ -623,11 +627,11 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
           <div class="doc-form">
             <div class="pagamento-grid">
               <div class="form-section is-primary">
-                <div class="form-section-header"><mat-icon>payment</mat-icon><span>Modalità di pagamento</span></div>
+                <div class="form-section-header"><mat-icon>payment</mat-icon><span>{{ 'fatture.dialog.modalitaPagamento' | t }}</span></div>
                 <mat-form-field>
-                  <mat-label>Tipo di pagamento</mat-label>
+                  <mat-label>{{ 'fatture.dialog.tipoPagamento' | t }}</mat-label>
                   <mat-select [(ngModel)]="selectedTipoPagamentoId" (ngModelChange)="onTipoPagamentoChange()">
-                    <mat-option [value]="null">— non specificato —</mat-option>
+                    <mat-option [value]="null">{{ 'fatture.dialog.nonSpecificato' | t }}</mat-option>
                     @for (t of tipiPagamento; track t.id) {
                       <mat-option [value]="t.id">{{ t.nome }}</mat-option>
                     }
@@ -637,17 +641,17 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                   <div class="pagamento-info">
                     <div class="info-row">
                       <mat-icon>{{ tipoPagamentoSelezionato.conto === 'CASSA' ? 'account_balance_wallet' : 'account_balance' }}</mat-icon>
-                      <span>Conto: <b>{{ tipoPagamentoSelezionato.conto }}</b></span>
+                      <span>{{ 'fatture.dialog.conto' | t }} <b>{{ tipoPagamentoSelezionato.conto }}</b></span>
                     </div>
                     <div class="info-row">
                       <mat-icon>{{ tipoPagamentoSelezionato.immediato ? 'flash_on' : 'schedule' }}</mat-icon>
                       <span>
                         @if (tipoPagamentoSelezionato.immediato) {
-                          <b>Pagamento immediato</b> — registrato automaticamente all'emissione
+                          <b>{{ 'fatture.dialog.pagamentoImmediato' | t }}</b> {{ 'fatture.dialog.registratoAutomatic' | t }}
                         } @else if (tipoPagamentoSelezionato.giorniScadenza === 0) {
-                          <b>Vista fattura</b> — inserito in scadenzario
+                          <b>{{ 'fatture.dialog.vistaFattura' | t }}</b> {{ 'fatture.dialog.inseritoScadenzario' | t }}
                         } @else {
-                          Scadenza: <b>{{ tipoPagamentoSelezionato.giorniScadenza }} giorni{{ tipoPagamentoSelezionato.fineMese ? ' fine mese' : '' }}</b>
+                          {{ 'fatture.dialog.scadenza' | t }} <b>{{ tipoPagamentoSelezionato.giorniScadenza }} {{ 'fatture.dialog.giorni' | t }}{{ tipoPagamentoSelezionato.fineMese ? ' ' + ('fatture.dialog.fineMese' | t) : '' }}</b>
                         }
                       </span>
                     </div>
@@ -655,13 +659,13 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                 }
               </div>
               <div class="form-section">
-                <div class="form-section-header"><mat-icon>savings</mat-icon><span>Acconti versati</span></div>
+                <div class="form-section-header"><mat-icon>savings</mat-icon><span>{{ 'fatture.dialog.accontiVersati' | t }}</span></div>
                 @if (!data?.id) {
-                  <p class="section-empty">Salva prima il documento per registrare gli acconti.</p>
+                  <p class="section-empty">{{ 'fatture.dialog.salvaPrimaAcconti' | t }}</p>
                 } @else {
                   @if (pagamenti.length > 0) {
                     <table class="acconto-table">
-                      <thead><tr><th>Data</th><th>Metodo</th><th>Importo</th><th>Tipo</th><th></th></tr></thead>
+                      <thead><tr><th>{{ 'fatture.dialog.colData' | t }}</th><th>{{ 'fatture.dialog.colMetodo' | t }}</th><th>{{ 'fatture.dialog.colImporto' | t }}</th><th>{{ 'fatture.dialog.colTipo' | t }}</th><th></th></tr></thead>
                       <tbody>
                         @for (p of pagamenti; track p.id) {
                           <tr>
@@ -679,26 +683,26 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                       </tbody>
                     </table>
                   } @else {
-                    <p class="section-empty" style="margin-bottom:12px">Nessun acconto registrato.</p>
+                    <p class="section-empty" style="margin-bottom:12px">{{ 'fatture.dialog.nessunAcconto' | t }}</p>
                   }
                   <div class="acconto-summary">
-                    <span>Totale fattura: <b>{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
-                    <span>Acconti: <b>{{ totalePagato | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
-                    <span [style.color]="rimanente > 0.005 ? 'var(--danger)' : 'var(--success)'">Rimanente: <b>{{ rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+                    <span>{{ 'fatture.dialog.totaleFattura' | t }} <b>{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+                    <span>{{ 'fatture.dialog.accontiLabel' | t }} <b>{{ totalePagato | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
+                    <span [style.color]="rimanente > 0.005 ? 'var(--danger)' : 'var(--success)'">{{ 'fatture.dialog.rimanente' | t }} <b>{{ rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}</b></span>
                   </div>
                   <div class="acconto-form">
                     <input class="riga-input" type="date" [(ngModel)]="nuovoAcconto.dataPagamento">
-                    <input class="riga-input num" type="number" step="0.01" min="0" [(ngModel)]="nuovoAcconto.importo" placeholder="Importo">
+                    <input class="riga-input num" type="number" step="0.01" min="0" [(ngModel)]="nuovoAcconto.importo" [placeholder]="'fatture.dialog.importoPh' | t">
                     <select class="riga-input" style="width:auto" [(ngModel)]="nuovoAcconto.metodo">
-                      <option value="Contanti">Contanti</option>
-                      <option value="Bonifico">Bonifico</option>
-                      <option value="Carta">Carta</option>
-                      <option value="Assegno">Assegno</option>
-                      <option value="RID">RID</option>
-                      <option value="Altro">Altro</option>
+                      <option value="Contanti">{{ 'fatture.dialog.metodo.contanti' | t }}</option>
+                      <option value="Bonifico">{{ 'fatture.dialog.metodo.bonifico' | t }}</option>
+                      <option value="Carta">{{ 'fatture.dialog.metodo.carta' | t }}</option>
+                      <option value="Assegno">{{ 'fatture.dialog.metodo.assegno' | t }}</option>
+                      <option value="RID">{{ 'fatture.dialog.metodo.rid' | t }}</option>
+                      <option value="Altro">{{ 'fatture.dialog.metodo.altro' | t }}</option>
                     </select>
                     <button mat-stroked-button type="button" (click)="addAcconto()">
-                      <mat-icon>add</mat-icon> Aggiungi
+                      <mat-icon>add</mat-icon> {{ 'fatture.dialog.aggiungi' | t }}
                     </button>
                   </div>
                 }
@@ -710,7 +714,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
         <mat-tab>
           <ng-template mat-tab-label>
             <mat-icon class="tab-lead-icon">account_balance</mat-icon>
-            Riferimenti
+            {{ 'fatture.dialog.tabRiferimenti' | t }}
             @if (riferimenti.length) {
               <span class="tab-badge">{{ riferimenti.length }}</span>
             }
@@ -718,32 +722,32 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
           <div class="doc-form">
             <div class="rif-intro">
               <div>
-                <div class="rif-intro-title">Documento emesso in seguito a</div>
-                <p class="section-empty">Per fattura PA: ordini d'acquisto, contratti, convenzioni. Ogni riga genera un blocco nel file XML SDI.</p>
+                <div class="rif-intro-title">{{ 'fatture.dialog.docEmessoInSeguito' | t }}</div>
+                <p class="section-empty">{{ 'fatture.dialog.perFatturaPaHint' | t }}</p>
               </div>
               <button mat-flat-button color="primary" type="button" (click)="addRiferimento()">
-                <mat-icon>add</mat-icon> Aggiungi riferimento
+                <mat-icon>add</mat-icon> {{ 'fatture.dialog.aggiungiRiferimento' | t }}
               </button>
             </div>
 
             @if (!riferimenti.length) {
               <div class="rif-empty">
                 <mat-icon>link</mat-icon>
-                Nessun riferimento. Aggiungine uno per collegare un ordine, contratto o convenzione.
+                {{ 'fatture.dialog.nessunRiferimento' | t }}
               </div>
             }
 
             @for (rif of riferimenti; track $index) {
               <div class="form-section">
                 <div class="form-section-header">
-                  <mat-icon>link</mat-icon><span>Riferimento {{ $index + 1 }}</span>
+                  <mat-icon>link</mat-icon><span>{{ 'fatture.dialog.riferimentoN' | t:{ n: $index + 1 } }}</span>
                   <button mat-icon-button color="warn" type="button" class="header-action" (click)="removeRiferimento($index)">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
                 <div class="rif-grid">
                   <div class="rif-field">
-                    <label class="rif-label">Tipo documento</label>
+                    <label class="rif-label">{{ 'fatture.dialog.tipoDocumento' | t }}</label>
                     <select class="riga-input" [(ngModel)]="rif.tipo">
                       @for (t of TIPI_RIF; track t.value) {
                         <option [value]="t.value">{{ t.label }}</option>
@@ -751,24 +755,24 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
                     </select>
                   </div>
                   <div class="rif-field">
-                    <label class="rif-label">Numero *</label>
-                    <input class="riga-input" [(ngModel)]="rif.numero" placeholder="es. ODA-2024-001">
+                    <label class="rif-label">{{ 'fatture.dialog.numeroReq' | t }}</label>
+                    <input class="riga-input" [(ngModel)]="rif.numero" [placeholder]="'fatture.dialog.numeroPh' | t">
                   </div>
                   <div class="rif-field">
-                    <label class="rif-label">Data</label>
+                    <label class="rif-label">{{ 'fatture.dialog.data' | t }}</label>
                     <input class="riga-input" type="date" [(ngModel)]="rif.data">
                   </div>
                   <div class="rif-field">
-                    <label class="rif-label">CIG</label>
-                    <input class="riga-input input-upper" [(ngModel)]="rif.cig" placeholder="es. Z123456789" (input)="rif.cig = rif.cig?.toUpperCase() ?? ''">
+                    <label class="rif-label">{{ 'fatture.dialog.cig' | t }}</label>
+                    <input class="riga-input input-upper" [(ngModel)]="rif.cig" [placeholder]="'fatture.dialog.cigPh' | t" (input)="rif.cig = rif.cig?.toUpperCase() ?? ''">
                   </div>
                   <div class="rif-field">
-                    <label class="rif-label">CUP</label>
-                    <input class="riga-input input-upper" [(ngModel)]="rif.cup" placeholder="es. C57I18000050006" (input)="rif.cup = rif.cup?.toUpperCase() ?? ''">
+                    <label class="rif-label">{{ 'fatture.dialog.cup' | t }}</label>
+                    <input class="riga-input input-upper" [(ngModel)]="rif.cup" [placeholder]="'fatture.dialog.cupPh' | t" (input)="rif.cup = rif.cup?.toUpperCase() ?? ''">
                   </div>
                   <div class="rif-field">
-                    <label class="rif-label">Commessa / Convenzione</label>
-                    <input class="riga-input" [(ngModel)]="rif.commessa" placeholder="Codice commessa o convenzione">
+                    <label class="rif-label">{{ 'fatture.dialog.commessa' | t }}</label>
+                    <input class="riga-input" [(ngModel)]="rif.commessa" [placeholder]="'fatture.dialog.commessaPh' | t">
                   </div>
                 </div>
               </div>
@@ -779,7 +783,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
           <mat-tab>
             <ng-template mat-tab-label>
               <mat-icon class="tab-lead-icon">attach_file</mat-icon>
-              Allegati
+              {{ 'fatture.dialog.tabAllegati' | t }}
             </ng-template>
             <div class="doc-form">
               <app-allegati [documentoTipo]="'fattura'" [documentoId]="data?.id ?? null"></app-allegati>
@@ -799,14 +803,14 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       @if (data?.id) {
         <button mat-stroked-button type="button" (click)="printFromDialog()">
-          <mat-icon>print</mat-icon> Esporta PDF </button>
+          <mat-icon>print</mat-icon> {{ 'fatture.dialog.esportaPdf' | t }} </button>
       }
       <button mat-flat-button (click)="save()"
               [disabled]="locked || form.get('numero')?.hasError('numeroDuplicato')"
-              [matTooltip]="form.get('numero')?.hasError('numeroDuplicato') ? 'Numero già esistente' : (locked ? 'Sblocca il documento (icona lucchetto in alto) per modificarlo' : '')">Salva</button>
+              [matTooltip]="form.get('numero')?.hasError('numeroDuplicato') ? ('fatture.dialog.numeroEsistente' | t) : (locked ? ('fatture.dialog.sbloccaTooltip' | t) : '')">{{ 'fatture.dialog.salva' | t }}</button>
     </mat-dialog-actions>`,
   styles: [RIGHE_STYLES + `
     .pagamento-info { background:var(--bg-subtle); border-radius:var(--radius-md); padding:var(--sp-4); margin-top:var(--sp-2); display:flex; flex-direction:column; gap:var(--sp-3); }
@@ -827,6 +831,7 @@ export class GeneraFattureDaDdtDialogComponent implements OnInit {
   `]
 })
 export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
   form: FormGroup;
   locked = false;
   numeriEsistenti = new Set<string>();
@@ -847,7 +852,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
     if (target.closest('.dialog-lock-btn')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    this.snack.open('Documento bloccato — clicca il lucchetto in alto per sbloccare', 'OK', { duration: 2600 });
+    this.snack.open(this.i18n.t('fatture.dialog.msgDocBloccato'), 'OK', { duration: 2600 });
   }
   suggerimenti: { id: number; nome: string; codice?: string; prezzo: number; iva: number; unitaMisura?: string; occorrenze: number }[] = [];
 
@@ -885,12 +890,12 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   riferimenti: FatturaRiferimento[] = [];
 
   readonly TIPI_RIF = [
-    { value: 'ORDINE_ACQUISTO', label: "Ordine d'acquisto" },
-    { value: 'CONTRATTO',       label: 'Contratto' },
-    { value: 'CONVENZIONE',     label: 'Convenzione' },
-    { value: 'RICEZIONE',       label: 'Ricezione' },
-    { value: 'FATTURA_COLLEGATA', label: 'Fattura collegata' },
-    { value: 'DDT',             label: 'Documento di trasporto' },
+    { value: 'ORDINE_ACQUISTO', label: this.i18n.t('fatture.dialog.tipoRif.ordineAcquisto') },
+    { value: 'CONTRATTO',       label: this.i18n.t('fatture.dialog.tipoRif.contratto') },
+    { value: 'CONVENZIONE',     label: this.i18n.t('fatture.dialog.tipoRif.convenzione') },
+    { value: 'RICEZIONE',       label: this.i18n.t('fatture.dialog.tipoRif.ricezione') },
+    { value: 'FATTURA_COLLEGATA', label: this.i18n.t('fatture.dialog.tipoRif.fatturaCollegata') },
+    { value: 'DDT',             label: this.i18n.t('fatture.dialog.tipoRif.ddt') },
   ];
   selectedTipoPagamentoId: number | null = null;
   pagamenti: Pagamento[] = [];
@@ -916,7 +921,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
     const cli = this.clienteSelezionato;
     if (cli && (cli.fattureInsolute ?? 0) > 0) {
       const n = cli.fattureInsolute!;
-      out.push(`${cli.ragioneSociale} ha ${n} fattura${n === 1 ? '' : 'e'} non ancora pagat${n === 1 ? 'a' : 'e'}.`);
+      out.push(this.i18n.tn('fatture.dialog.avviso.insoluti', n, { nome: cli.ragioneSociale }));
     }
     const sottoCosto: string[] = [];
     for (const r of this.righe) {
@@ -927,7 +932,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
       if (netto < costo) sottoCosto.push(r.descrizione || 'riga');
     }
     if (sottoCosto.length) {
-      out.push(`Prezzo sotto il costo d'acquisto: ${sottoCosto.join(', ')}.`);
+      out.push(this.i18n.t('fatture.dialog.avviso.sottoCosto', { elenco: sottoCosto.join(', ') }));
     }
     return out;
   }
@@ -965,22 +970,22 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   };
   showFiscale = false;
   readonly RITENUTA_TIPI = [
-    { v: 'RT02', l: 'Persona fisica (RT02)' },
-    { v: 'RT01', l: 'Persona giuridica (RT01)' },
+    { v: 'RT02', l: this.i18n.t('fatture.dialog.ritenutaTipoOpt.rt02') },
+    { v: 'RT01', l: this.i18n.t('fatture.dialog.ritenutaTipoOpt.rt01') },
   ];
   readonly RITENUTA_CAUSALI = [
-    { v: 'A', l: 'A — prestazioni di lavoro autonomo' },
-    { v: 'B', l: 'B — utilizzazione opere dell\'ingegno' },
-    { v: 'V', l: 'V — provvigioni' },
-    { v: 'W', l: 'W — prestazioni autonome non abituali' },
+    { v: 'A', l: this.i18n.t('fatture.dialog.ritenutaCausaleOpt.a') },
+    { v: 'B', l: this.i18n.t('fatture.dialog.ritenutaCausaleOpt.b') },
+    { v: 'V', l: this.i18n.t('fatture.dialog.ritenutaCausaleOpt.v') },
+    { v: 'W', l: this.i18n.t('fatture.dialog.ritenutaCausaleOpt.w') },
   ];
   readonly CASSA_TIPI = [
-    { v: 'TC22', l: 'INPS Gestione Separata (TC22)' },
-    { v: 'TC01', l: 'Cassa Forense (TC01)' },
-    { v: 'TC02', l: 'Cassa Dottori Commercialisti (TC02)' },
-    { v: 'TC04', l: 'ENPACL — Consulenti lavoro (TC04)' },
-    { v: 'TC07', l: 'ENASARCO (TC07)' },
-    { v: 'TC18', l: 'INPGI — Giornalisti (TC18)' },
+    { v: 'TC22', l: this.i18n.t('fatture.dialog.cassaTipoOpt.tc22') },
+    { v: 'TC01', l: this.i18n.t('fatture.dialog.cassaTipoOpt.tc01') },
+    { v: 'TC02', l: this.i18n.t('fatture.dialog.cassaTipoOpt.tc02') },
+    { v: 'TC04', l: this.i18n.t('fatture.dialog.cassaTipoOpt.tc04') },
+    { v: 'TC07', l: this.i18n.t('fatture.dialog.cassaTipoOpt.tc07') },
+    { v: 'TC18', l: this.i18n.t('fatture.dialog.cassaTipoOpt.tc18') },
   ];
 
   private r2(n: number) { return Math.round((n || 0) * 100) / 100; }
@@ -1080,14 +1085,14 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
     };
     this.ds.createPagamento(p).subscribe({
       next: () => { this.nuovoAcconto.importo = 0; this.loadPagamenti(); },
-      error: e => this.snack.open(e.message || 'Errore', '', { duration: 3000 })
+      error: e => this.snack.open(e.message || this.i18n.t('fatture.dialog.msg.errore'), '', { duration: 3000 })
     });
   }
 
   deleteAcconto(id: number) {
     this.ds.deletePagamento(id).subscribe({
       next: () => this.loadPagamenti(),
-      error: e => this.snack.open(e.message || 'Errore', '', { duration: 3000 })
+      error: e => this.snack.open(e.message || this.i18n.t('fatture.dialog.msg.errore'), '', { duration: 3000 })
     });
   }
 
@@ -1357,9 +1362,9 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
         this.prodotti = [...this.prodotti, nuovo];
         this.applyProdottoToRiga(index, nuovo);
         this.righe[index].scaricaMagazzino = true;
-        this.snack.open(`Prodotto "${nuovo.nome}" creato e collegato alla riga`, '', { duration: 2500 });
+        this.snack.open(this.i18n.t('fatture.dialog.msg.prodottoCreatoCollegato', { nome: nuovo.nome }), '', { duration: 2500 });
       },
-      error: e => this.snack.open(e?.error?.error || e?.message || 'Errore creazione prodotto', '', { duration: 3500 }),
+      error: e => this.snack.open(e?.error?.error || e?.message || this.i18n.t('fatture.dialog.msg.erroreCreazioneProdotto'), '', { duration: 3500 }),
     });
   }
 
@@ -1434,7 +1439,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
       riga.prezzo = r.prezzo;
       riga.sconto = r.sconto;
       if (r.listinoNome) {
-        this.snack.open(`Prezzo da listino "${r.listinoNome}" applicato`, '', { duration: 2200 });
+        this.snack.open(this.i18n.t('fatture.dialog.msg.prezzoListinoApplicato', { nome: r.listinoNome }), '', { duration: 2200 });
       }
     });
   }
@@ -1533,7 +1538,7 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
     const haContenuto = bozza && Array.isArray(bozza.righe) &&
       bozza.righe.some((r: any) => r?.descrizione?.trim() || r?.prodottoId);
     if (haContenuto) {
-      this.confirmDraft.ask('Hai una bozza non salvata. Vuoi riprenderla?\n(le righe vengono ripristinate; ricontrolla il cliente)').then(ok => {
+      this.confirmDraft.ask(this.i18n.t('fatture.dialog.msg.riprendiBozza')).then(ok => {
         if (ok) {
           try {
             const f = { ...(bozza.form || {}) }; delete f.numero;
@@ -1590,13 +1595,14 @@ export class FatturaDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatCheckboxModule, MatFormFieldModule, MatInputModule,
             MatSelectModule, MatPaginatorModule, MatMenuModule, MatDividerModule, EmptyStateComponent,
-            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent],
+            LoadingSkeletonComponent, TableKeyboardNavDirective, ExportMenuComponent, TPipe, TnPipe],
   templateUrl: './fatture.html',
   styleUrl: './fatture.scss'
 })
 export class FattureComponent implements OnInit, AfterViewInit {
   private confirm = inject(ConfirmService);
   private viewState = inject(ViewStateService);
+  i18n = inject(I18nService);
   /** Edizione offline desktop: nasconde i pezzi SaaS (es. link pagamento Stripe). */
   readonly offline = environment.offline;
   private allFatture: Fattura[] = [];
@@ -1605,7 +1611,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
   displayedColumns = ['select', 'numero', 'dataEmissione', 'clienteNome', 'totale', 'stato', 'azioni'];
   selection = new SelectionModel<Fattura>(true, []);
 
-  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  readonly mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: this.i18n.t('fatture.mese.' + v) }));
   // Filtri multipli: ogni select tiene una lista di valori (array vuoto = "tutti").
   // Così si possono vedere insieme più clienti, più anni, più stati, ecc.
   filtroAnni: number[] = [];
@@ -1738,21 +1744,22 @@ export class FattureComponent implements OnInit, AfterViewInit {
   }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const rows = this.selection.hasValue() ? this.selection.selected : this.dataSource.data;
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     const body = rows.map(f=>`<tr><td>${f.numero}</td><td>${d(f.dataEmissione)}</td><td>${f.clienteNome||'—'}</td><td class="r">${e(f.totale)}</td><td>${f.stato}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Fatture</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Fatture</h1><table><thead><tr><th>Numero</th><th>Data</th><th>Cliente</th><th class="r">Importo</th><th>Stato</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>${t('nav.fatture')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${t('nav.fatture')}</h1><table><thead><tr><th>${t('fatture.col.numero')}</th><th>${t('fatture.col.data')}</th><th>${t('fatture.col.cliente')}</th><th class="r">${t('fatture.col.importo')}</th><th>${t('fatture.col.stato')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
 
   readonly exportCols: ExcelColumn<any>[] = [
-    { header: 'Numero',     field: 'numero',        width: 16 },
-    { header: 'Data',       field: 'dataEmissione', width: 14 },
-    { header: 'Cliente',    field: 'clienteNome',   width: 30 },
-    { header: 'Imponibile', field: 'imponibile',    width: 14 },
-    { header: 'Totale',     field: 'totale',        width: 14 },
-    { header: 'Stato',      field: 'stato',         width: 14 },
+    { header: this.i18n.t('fatture.col.numero'),     field: 'numero',        width: 16 },
+    { header: this.i18n.t('fatture.col.data'),       field: 'dataEmissione', width: 14 },
+    { header: this.i18n.t('fatture.col.cliente'),    field: 'clienteNome',   width: 30 },
+    { header: this.i18n.t('fatture.col.imponibile'), field: 'imponibile',    width: 14 },
+    { header: this.i18n.t('fatture.col.importo'),    field: 'totale',        width: 14 },
+    { header: this.i18n.t('fatture.col.stato'),      field: 'stato',         width: 14 },
   ];
   /** Righe da esportare: le selezionate se ce ne sono, altrimenti tutta la lista. */
   get exportRows(): any[] { return this.selection.hasValue() ? this.selection.selected : this.dataSource.data; }
@@ -1772,7 +1779,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
     this.busy = true;
     this.ds.setFatturaStato(f.id!, stato).subscribe({
       next: () => { this.busy = false; this.load(); },
-      error: e => { this.busy = false; this.snack.open(e.message || 'Errore aggiornamento stato', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
+      error: e => { this.busy = false; this.snack.open(e.message || this.i18n.t('fatture.msg.erroreAggiornamentoStato'), 'OK', { duration: 4000, panelClass: 'snack-error' }); }
     });
   }
   bulkSetStato(stato: string) {
@@ -1785,9 +1792,9 @@ export class FattureComponent implements OnInit, AfterViewInit {
       this.busy = false;
       const errori = results.filter((r: any) => r && r.__error);
       if (errori.length) {
-        this.snack.open(`${errori.length} fatture non aggiornate`, 'OK', { duration: 5000, panelClass: 'snack-error' });
+        this.snack.open(this.i18n.tn('fatture.msg.nonAggiornate', errori.length), 'OK', { duration: 5000, panelClass: 'snack-error' });
       } else {
-        this.snack.open(`${selezionate.length} fatture aggiornate`, '', { duration: 2500, panelClass: 'snack-ok' });
+        this.snack.open(this.i18n.tn('fatture.msg.aggiornate', selezionate.length), '', { duration: 2500, panelClass: 'snack-ok' });
       }
       this.selection.clear();
       this.load();
@@ -1798,7 +1805,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
     const sel = this.selection.selected;
     if (!sel.length || this.busy) return;
     const n = sel.length;
-    if (!await this.confirm.delete(`Eliminare ${n} fattur${n === 1 ? 'a' : 'e'} selezionat${n === 1 ? 'a' : 'e'}?`)) return;
+    if (!await this.confirm.delete(this.i18n.tn('fatture.msg.confirmBulkDelete', n))) return;
     this.busy = true;
     // Cattura i documenti completi PRIMA di eliminarli, così "ANNULLA" può ricrearli.
     forkJoin(sel.map(f => this.ds.getFatturaById(f.id!).pipe(catchError(() => of(null))))).subscribe(fulls => {
@@ -1808,10 +1815,13 @@ export class FattureComponent implements OnInit, AfterViewInit {
         const errori = results.filter((r: any) => r && r.__error).length;
         this.selection.clear();
         this.load();
-        const ref = this.snack.open(errori ? `${n - errori} eliminate, ${errori} non eliminabili` : `${n} fatture eliminate`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const msg = errori
+          ? `${this.i18n.tn('fatture.msg.eliminate', n - errori)}, ${this.i18n.tn('fatture.msg.nonEliminabili', errori)}`
+          : this.i18n.tn('fatture.msg.eliminate', n);
+        const ref = this.snack.open(msg, this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           forkJoin(backups.map((full: any) => { const { id, ...p } = full; return this.ds.createFattura(p).pipe(catchError(() => of(null))); }))
-            .subscribe(() => { this.load(); this.snack.open('Fatture ripristinate', '', { duration: 2000, panelClass: 'snack-ok' }); });
+            .subscribe(() => { this.load(); this.snack.open(this.i18n.t('fatture.msg.fattureRipristinate'), '', { duration: 2000, panelClass: 'snack-ok' }); });
         });
       });
     });
@@ -1824,7 +1834,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
     ref.afterClosed().subscribe((result: any[]) => {
       if (!result?.length) return;
       this.load();
-      this.snack.open(`${result.length} ${result.length === 1 ? 'fattura generata' : 'fatture generate'}`, '', { duration: 3000 });
+      this.snack.open(this.i18n.tn('fatture.msg.fattureGenerate', result.length), '', { duration: 3000 });
     });
   }
 
@@ -1838,7 +1848,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
       const salva = () => {
         const op = result.id ? this.ds.updateFattura(result) : this.ds.createFattura(result);
         op.subscribe({
-          next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+          next: () => { this.load(); this.snack.open(this.i18n.t('fatture.msg.salvato'), '', { duration: 2000 }); },
           error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
         });
       };
@@ -1870,9 +1880,9 @@ export class FattureComponent implements OnInit, AfterViewInit {
           f.dataEmissione === result.dataEmissione && Math.abs((f.totale ?? 0) - tot) < 0.01);
         if (dup) {
           this.confirm.ask({
-            title: 'Possibile duplicato',
-            message: `Esiste già la fattura n. ${dup.numero} per lo stesso cliente, stessa data e stesso importo (${tot.toFixed(2)} €). Vuoi crearla comunque?`,
-            confirmText: 'Crea comunque', danger: true,
+            title: this.i18n.t('fatture.msg.possibileDuplicatoTitle'),
+            message: this.i18n.t('fatture.msg.possibileDuplicatoMessage', { numero: dup.numero!, importo: tot.toFixed(2) }),
+            confirmText: this.i18n.t('fatture.msg.creaComunque'), danger: true,
           }).then(ok => { if (ok) conInsoluti(); });
           return;
         }
@@ -1896,8 +1906,8 @@ export class FattureComponent implements OnInit, AfterViewInit {
       const ref = this.dialog.open(EmailDialogComponent, {
         width: '560px', maxWidth: '95vw',
         data: {
-          title: `Invia fattura n. ${f.numero}`,
-          subtitle: cliente?.ragioneSociale ? `A: ${cliente.ragioneSociale}` : undefined,
+          title: this.i18n.t('fatture.msg.inviaEmailTitle', { numero: f.numero! }),
+          subtitle: cliente?.ragioneSociale ? this.i18n.t('fatture.msg.inviaEmailA', { nome: cliente.ragioneSociale }) : undefined,
           destinatario: cliente?.email || '',
           testo: az?.emailCorpoDocumento || '',
         },
@@ -1905,8 +1915,8 @@ export class FattureComponent implements OnInit, AfterViewInit {
       ref.afterClosed().subscribe(result => {
         if (!result) return;
         this.ds.sendFatturaEmail(f.id!, result.destinatario, result.testo || undefined).subscribe({
-          next: () => this.snack.open('Email inviata', '', { duration: 2000 }),
-          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+          next: () => this.snack.open(this.i18n.t('fatture.msg.emailInviata'), '', { duration: 2000 }),
+          error: e => this.snack.open(this.i18n.t('fatture.msg.erroreEmail', { msg: e.error?.error || e.message }), '', { duration: 4000 })
         });
       });
     });
@@ -1919,7 +1929,7 @@ export class FattureComponent implements OnInit, AfterViewInit {
         window.open(r.url, '_blank', 'noopener');
         try { navigator.clipboard?.writeText(r.url); } catch (_) {}
         this.snack.open(
-          `Link Stripe generato (€ ${r.importo.toFixed(2)}) — aperto in nuova scheda e copiato negli appunti`,
+          this.i18n.t('fatture.msg.linkStripeGenerato', { importo: r.importo.toFixed(2) }),
           'OK', { duration: 5000 }
         );
       },
@@ -1927,11 +1937,11 @@ export class FattureComponent implements OnInit, AfterViewInit {
         const msg = e.error?.error || e.message || '';
         if (msg.includes('STRIPE_SECRET_KEY')) {
           this.snack.open(
-            'Stripe non configurato. Imposta STRIPE_SECRET_KEY tra i secret server (env).',
+            this.i18n.t('fatture.msg.stripeNonConfigurato'),
             'OK', { duration: 6000 }
           );
         } else {
-          this.snack.open('Errore: ' + msg, 'OK', { duration: 4000 });
+          this.snack.open(this.i18n.t('fatture.msg.errore', { msg }), 'OK', { duration: 4000 });
         }
       },
     });
@@ -1942,19 +1952,19 @@ export class FattureComponent implements OnInit, AfterViewInit {
       next: async v => {
         if (!v.ok) {
           await this.confirm.alert({
-            title: 'Fattura non inviabile',
-            message: 'Prima dell\'invio all\'SDI vanno sistemati questi punti:\n\n' +
+            title: this.i18n.t('fatture.msg.fatturaNonInviabileTitle'),
+            message: this.i18n.t('fatture.msg.fatturaNonInviabileMsg') + '\n\n' +
                      v.errors.map(e => '• ' + e).join('\n') +
-                     (v.warnings.length ? '\n\nAvvisi:\n' + v.warnings.map(w => '• ' + w).join('\n') : ''),
+                     (v.warnings.length ? '\n\n' + this.i18n.t('fatture.msg.avvisiLabel') + '\n' + v.warnings.map(w => '• ' + w).join('\n') : ''),
           });
           return;
         }
         const prefix = v.warnings.length
-          ? `Avvisi:\n${v.warnings.map(w => '• ' + w).join('\n')}\n\n`
+          ? `${this.i18n.t('fatture.msg.avvisiLabel')}\n${v.warnings.map(w => '• ' + w).join('\n')}\n\n`
           : '';
-        if (!await this.confirm.ask(`${prefix}Inviare la fattura n. ${f.numero} all'SDI?`)) return;
+        if (!await this.confirm.ask(`${prefix}${this.i18n.t('fatture.msg.confermaInvioSdi', { numero: f.numero! })}`)) return;
         this.ds.inviaFatturaSdi(f.id!).subscribe({
-          next: r => { this.load(); this.snack.open(`Inviata all'SDI (ID: ${r.idTrasmissione})`, '', { duration: 4000, panelClass: 'snack-ok' }); },
+          next: r => { this.load(); this.snack.open(this.i18n.t('fatture.msg.inviataSdi', { id: r.idTrasmissione }), '', { duration: 4000, panelClass: 'snack-ok' }); },
           error: e => {
             const msg = e.error?.error || e.message || '';
             if (msg.includes('SDI non configurata')) {
@@ -1962,17 +1972,17 @@ export class FattureComponent implements OnInit, AfterViewInit {
               // errore da far scomparire in un toast, è il fallback previsto —
               // scaricare l'XML e caricarlo a mano resta sempre possibile.
               const ref = this.snack.open(
-                'Nessun intermediario SDI configurato. Puoi scaricare l\'XML e caricarlo tu sul portale del tuo intermediario o su "Fatture e Corrispettivi", oppure configurarne uno in Impostazioni → SDI.',
-                'Scarica XML', { duration: 9000, panelClass: 'snack-error' }
+                this.i18n.t('fatture.msg.sdiNonConfigurato'),
+                this.i18n.t('fatture.msg.scaricaXmlBtn'), { duration: 9000, panelClass: 'snack-error' }
               );
               ref.onAction().subscribe(() => this.downloadXml(f));
             } else {
-              this.snack.open('Errore SDI: ' + msg, '', { duration: 5000, panelClass: 'snack-error' });
+              this.snack.open(this.i18n.t('fatture.msg.erroreSdi', { msg }), '', { duration: 5000, panelClass: 'snack-error' });
             }
           }
         });
       },
-      error: () => this.snack.open('Non è stato possibile controllare la fattura. Riprova.', 'OK',
+      error: () => this.snack.open(this.i18n.t('fatture.msg.erroreControlloFattura'), 'OK',
                                    { duration: 5000, panelClass: 'snack-error' })
     });
   }
@@ -1983,12 +1993,12 @@ export class FattureComponent implements OnInit, AfterViewInit {
       const imponibile = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100), 0);
       const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
       const extra: { label: string; value: string }[] = [];
-      if (doc.tipoPagamentoNome) extra.push({ label: 'Pagamento', value: doc.tipoPagamentoNome });
-      if (doc.statoSdi) extra.push({ label: 'SDI', value: doc.statoSdi });
+      if (doc.tipoPagamentoNome) extra.push({ label: this.i18n.t('fatture.info.pagamento'), value: doc.tipoPagamentoNome });
+      if (doc.statoSdi) extra.push({ label: this.i18n.t('fatture.info.sdi'), value: doc.statoSdi });
       this.dialog.open(DocInfoDialogComponent, {
         data: {
           tipo: 'FATTURA', numero: doc.numero, data: doc.dataEmissione, stato: doc.stato,
-          controparteLabel: 'CLIENTE',
+          controparteLabel: this.i18n.t('fatture.info.cliente'),
           controparte: doc.cliente?.ragioneSociale || f.clienteNome || '—',
           controparteInfo: [
             [doc.cliente?.via, [doc.cliente?.cap, doc.cliente?.citta].filter(Boolean).join(' ')].filter(Boolean).join(', '),
@@ -2023,25 +2033,25 @@ export class FattureComponent implements OnInit, AfterViewInit {
         pre.stato = 'EMESSA';
         pre.ddtIds = [];
         this.ds.createFattura(pre).subscribe({
-          next: () => { fine(); this.load(); this.snack.open(`Fattura duplicata (n. ${pre.numero})`, '', { duration: 2500, panelClass: 'snack-ok' }); },
-          error: e => { fine(); this.snack.open(e.message || 'Errore duplicazione', 'OK', { duration: 4000, panelClass: 'snack-error' }); }
+          next: () => { fine(); this.load(); this.snack.open(this.i18n.t('fatture.msg.fatturaDuplicata', { numero: pre.numero! }), '', { duration: 2500, panelClass: 'snack-ok' }); },
+          error: e => { fine(); this.snack.open(e.message || this.i18n.t('fatture.msg.erroreDuplicazione'), 'OK', { duration: 4000, panelClass: 'snack-error' }); }
         });
       },
-      error: e => { fine(); this.snack.open('Errore: ' + (e.message || ''), 'OK', { duration: 4000 }); }
+      error: e => { fine(); this.snack.open(this.i18n.t('fatture.msg.errore', { msg: e.message || '' }), 'OK', { duration: 4000 }); }
     });
   }
 
   async delete(f: Fattura) {
-    if (!await this.confirm.delete(`Eliminare Fattura ${f.numero}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('fatture.msg.confirmDelete', { numero: f.numero! }))) return;
     this.ds.getFatturaById(f.id!).subscribe(full => {
       this.ds.deleteFattura(f.id!).subscribe(() => {
         this.load();
-        const ref = this.snack.open(`Fattura ${f.numero} eliminata`, 'ANNULLA', { duration: 6000, panelClass: 'snack-ok' });
+        const ref = this.snack.open(this.i18n.t('fatture.msg.fatturaEliminata', { numero: f.numero! }), this.i18n.t('prodotti.msg.annullaAzione'), { duration: 6000, panelClass: 'snack-ok' });
         ref.onAction().subscribe(() => {
           const { id, ...payload } = full as any;
           this.ds.createFattura(payload).subscribe({
-            next: () => { this.load(); this.snack.open('Fattura ripristinata', '', { duration: 2000, panelClass: 'snack-ok' }); },
-            error: e => this.snack.open('Ripristino fallito: ' + (e.message || ''), 'OK', { duration: 4000, panelClass: 'snack-error' })
+            next: () => { this.load(); this.snack.open(this.i18n.t('fatture.msg.fatturaRipristinata'), '', { duration: 2000, panelClass: 'snack-ok' }); },
+            error: e => this.snack.open(this.i18n.t('fatture.msg.ripristinoFallito', { msg: e.message || '' }), 'OK', { duration: 4000, panelClass: 'snack-error' })
           });
         });
       });
