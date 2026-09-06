@@ -20,29 +20,31 @@ import { DataService } from '../../services/data.service';
 import { ArrivoMerce, Acquisto, Fornitore, Prodotto, RigaArrivoMerce, UnitaMisura, Magazzino } from '../../models';
 import { findProdottoByCodice } from '../../utils/prodotto-match';
 import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 // ── Dialog selezione fattura acquisto ────────────────────────────────────────
 @Component({
   selector: 'app-seleziona-acquisto-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatFormFieldModule, MatInputModule, MatTableModule],
+            MatFormFieldModule, MatInputModule, MatTableModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Seleziona fattura di acquisto</h2>
+    <h2 mat-dialog-title>{{ 'arriviMerce.selAcquisto.title' | t }}</h2>
     <mat-dialog-content style="min-width:520px;max-width:700px;padding-top:8px">
       <mat-form-field style="width:100%" subscriptSizing="dynamic">
-        <mat-label>Cerca</mat-label>
-        <input matInput [(ngModel)]="filtro" placeholder="Numero, fornitore...">
+        <mat-label>{{ 'arriviMerce.selAcquisto.cerca' | t }}</mat-label>
+        <input matInput [(ngModel)]="filtro" [placeholder]="'arriviMerce.selAcquisto.cercaPlaceholder' | t">
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
       <div style="margin-top:12px;max-height:420px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead>
             <tr style="background:#f8fafc;position:sticky;top:0;z-index:1">
-              <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">N° Fattura</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">Data</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">Fornitore</th>
-              <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">Importo</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">{{ 'arriviMerce.selAcquisto.col.numero' | t }}</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">{{ 'arriviMerce.selAcquisto.col.data' | t }}</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">{{ 'arriviMerce.selAcquisto.col.fornitore' | t }}</th>
+              <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">{{ 'arriviMerce.selAcquisto.col.importo' | t }}</th>
               <th style="padding:8px 4px;border-bottom:2px solid #e2e8f0"></th>
             </tr>
           </thead>
@@ -66,7 +68,7 @@ import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker
             @if (!righeVisibili.length) {
               <tr>
                 <td colspan="5" style="padding:24px;text-align:center;color:#94a3b8">
-                  Nessuna fattura trovata
+                  {{ 'arriviMerce.selAcquisto.nessunaFattura' | t }}
                 </td>
               </tr>
             }
@@ -75,7 +77,7 @@ import { ProdottoPickerComponent, ProdottoPick } from '../shared/prodotto-picker
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
     </mat-dialog-actions>`,
 })
 export class SelezionaAcquistoDialogComponent {
@@ -121,22 +123,22 @@ const STYLES = `
   selector: 'app-quick-prodotto-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Nuovo prodotto rapido</h2>
+    <h2 mat-dialog-title>{{ 'arriviMerce.quickProdotto.title' | t }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form" style="display:flex;flex-direction:column;gap:12px;min-width:340px;padding-top:8px">
         <mat-form-field>
-          <mat-label>Nome prodotto *</mat-label>
+          <mat-label>{{ 'arriviMerce.quickProdotto.nomeProdotto' | t }}</mat-label>
           <input matInput formControlName="nome">
         </mat-form-field>
         <div style="display:flex;gap:12px">
           <mat-form-field style="flex:1">
-            <mat-label>Categoria</mat-label>
+            <mat-label>{{ 'arriviMerce.quickProdotto.categoria' | t }}</mat-label>
             <input matInput formControlName="categoria">
           </mat-form-field>
           <mat-form-field style="width:110px">
-            <mat-label>UM</mat-label>
+            <mat-label>{{ 'arriviMerce.quickProdotto.um' | t }}</mat-label>
             <mat-select formControlName="unitaMisura">
               <mat-option value="pz">pz</mat-option>
               <mat-option value="kg">kg</mat-option>
@@ -148,33 +150,33 @@ const STYLES = `
         </div>
         <div style="display:flex;gap:12px">
           <mat-form-field style="flex:1">
-            <mat-label>Codice interno</mat-label>
+            <mat-label>{{ 'arriviMerce.quickProdotto.codiceInterno' | t }}</mat-label>
             <input matInput formControlName="codice">
           </mat-form-field>
           <mat-form-field style="flex:1">
-            <mat-label>Codice fornitore</mat-label>
+            <mat-label>{{ 'arriviMerce.quickProdotto.codiceFornitore' | t }}</mat-label>
             <input matInput formControlName="codiceFornitore">
           </mat-form-field>
         </div>
         <div style="display:flex;gap:12px">
           <mat-form-field style="flex:1">
-            <mat-label>Prezzo vendita</mat-label>
+            <mat-label>{{ 'arriviMerce.quickProdotto.prezzoVendita' | t }}</mat-label>
             <input matInput type="number" step="0.01" formControlName="prezzo">
           </mat-form-field>
           <mat-form-field style="width:100px">
-            <mat-label>IVA %</mat-label>
+            <mat-label>{{ 'arriviMerce.quickProdotto.ivaPercent' | t }}</mat-label>
             <input matInput type="number" formControlName="iva">
           </mat-form-field>
         </div>
         <mat-form-field>
-          <mat-label>Soglia minima magazzino</mat-label>
+          <mat-label>{{ 'arriviMerce.quickProdotto.sogliaMinima' | t }}</mat-label>
           <input matInput type="number" formControlName="sogliaMinima">
         </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Crea prodotto</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.invalid">{{ 'arriviMerce.quickProdotto.creaProdotto' | t }}</button>
     </mat-dialog-actions>`,
 })
 export class QuickProdottoDialogComponent {
@@ -207,13 +209,13 @@ export class QuickProdottoDialogComponent {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule,
-            MatAutocompleteModule, MatIconModule, MatTooltipModule, MatChipsModule],
+            MatAutocompleteModule, MatIconModule, MatTooltipModule, MatChipsModule, TPipe],
   template: `
     <h2 mat-dialog-title>
-      {{ data?.id ? 'Modifica arrivo merce' : 'Nuovo arrivo merce' }}
+      {{ (data?.id ? 'arriviMerce.dialog.modificaTitle' : 'arriviMerce.dialog.nuovoTitle') | t }}
       @if (data?.acquistoId) {
         <span style="font-size:13px;color:#64748b;margin-left:8px">
-          importato da fattura {{ data?.numeroDocumentoFornitore }}
+          {{ i18n.t('arriviMerce.dialog.importatoDa', { numero: data?.numeroDocumentoFornitore ?? '' }) }}
         </span>
       }
     </h2>
@@ -221,19 +223,19 @@ export class QuickProdottoDialogComponent {
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">
           <mat-form-field>
-            <mat-label>N° arrivo *</mat-label>
+            <mat-label>{{ 'arriviMerce.dialog.numeroArrivo' | t }}</mat-label>
             <input matInput formControlName="numero">
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Data *</mat-label>
+            <mat-label>{{ 'arriviMerce.dialog.data' | t }}</mat-label>
             <input matInput type="date" formControlName="data">
           </mat-form-field>
         </div>
         <div class="form-row">
           <mat-form-field style="flex:1">
-            <mat-label>Fornitore</mat-label>
+            <mat-label>{{ 'arriviMerce.dialog.fornitore' | t }}</mat-label>
             <input matInput [matAutocomplete]="autoForn" [formControl]="fornitoreCtrl"
-                   (keyup.enter)="autoSelectFornitore()" placeholder="Cerca fornitore...">
+                   (keyup.enter)="autoSelectFornitore()" [placeholder]="'arriviMerce.dialog.cercaFornitore' | t">
             <mat-icon matSuffix>search</mat-icon>
             <mat-autocomplete #autoForn="matAutocomplete" [displayWith]="displayFornitore">
               @for (f of filteredFornitori; track f.id) {
@@ -242,14 +244,14 @@ export class QuickProdottoDialogComponent {
             </mat-autocomplete>
           </mat-form-field>
           <mat-form-field style="flex:1">
-            <mat-label>N° documento fornitore</mat-label>
-            <input matInput formControlName="numeroDocumentoFornitore" placeholder="es. FT 2025/123">
+            <mat-label>{{ 'arriviMerce.dialog.numeroDocFornitore' | t }}</mat-label>
+            <input matInput formControlName="numeroDocumentoFornitore" [placeholder]="'arriviMerce.dialog.numeroDocFornitorePlaceholder' | t">
           </mat-form-field>
           <mat-form-field style="flex:1">
-            <mat-label>Deposito di destinazione</mat-label>
+            <mat-label>{{ 'arriviMerce.dialog.depositoDestinazione' | t }}</mat-label>
             <mat-select formControlName="magazzinoId">
               @for (m of magazzini; track m.id) {
-                <mat-option [value]="m.id">{{ m.nome }}@if (m.predefinito) { · predefinito }</mat-option>
+                <mat-option [value]="m.id">{{ m.nome }}@if (m.predefinito) { · {{ 'arriviMerce.dialog.predefinito' | t }} }</mat-option>
               }
             </mat-select>
           </mat-form-field>
@@ -259,23 +261,23 @@ export class QuickProdottoDialogComponent {
       <!-- Righe -->
       <div class="righe-section">
         <div class="righe-header">
-          <b>Prodotti ricevuti</b>
+          <b>{{ 'arriviMerce.dialog.prodottiRicevuti' | t }}</b>
           <button mat-stroked-button type="button" (click)="addRiga()">
-            <mat-icon>add</mat-icon> Aggiungi riga
+            <mat-icon>add</mat-icon> {{ 'arriviMerce.dialog.aggiungiRiga' | t }}
           </button>
         </div>
         <table class="righe-table">
           <thead>
             <tr>
-              <th>Prodotto</th>
+              <th>{{ 'arriviMerce.dialog.col.prodotto' | t }}</th>
               <th class="td-search"></th>
-              <th>Cod. Fornitore</th>
-              <th>Qtà</th>
-              <th>UM</th>
-              <th>Lotto</th>
-              <th>Scadenza</th>
-              <th>Prezzo acquisto</th>
-              <th>Totale</th>
+              <th>{{ 'arriviMerce.dialog.col.codFornitore' | t }}</th>
+              <th>{{ 'arriviMerce.dialog.col.qta' | t }}</th>
+              <th>{{ 'arriviMerce.dialog.col.um' | t }}</th>
+              <th>{{ 'arriviMerce.dialog.col.lotto' | t }}</th>
+              <th>{{ 'arriviMerce.dialog.col.scadenza' | t }}</th>
+              <th>{{ 'arriviMerce.dialog.col.prezzoAcquisto' | t }}</th>
+              <th>{{ 'arriviMerce.dialog.col.totale' | t }}</th>
               <th></th>
             </tr>
           </thead>
@@ -284,13 +286,13 @@ export class QuickProdottoDialogComponent {
               <tr [class.warn-row]="!riga.prodottoId">
                 <td>
                   <input class="riga-input" #rigaCodice [(ngModel)]="riga.descrizione"
-                         placeholder="Codice / nome prodotto"
-                         [title]="riga.prodottoId ? ('ID: ' + riga.prodottoId) : 'Prodotto non collegato'"
+                         [placeholder]="'arriviMerce.dialog.codiceNomePlaceholder' | t"
+                         [title]="riga.prodottoId ? i18n.t('arriviMerce.dialog.idLabel', { id: riga.prodottoId }) : ('arriviMerce.dialog.prodottoNonCollegato' | t)"
                          (keydown.enter)="risolviCodiceRiga($index, $event)" (keydown.f2)="searchProdotto($index)"
                          (keydown.arrowdown)="focusSiblingCodice($event, 1)" (keydown.arrowup)="focusSiblingCodice($event, -1)" (keydown.backspace)="onCodiceBackspace($index, $event)">
                 </td>
                 <td class="td-search">
-                  <button mat-icon-button type="button" (click)="searchProdotto($index)" title="Cerca prodotto">
+                  <button mat-icon-button type="button" (click)="searchProdotto($index)" [title]="'arriviMerce.dialog.cercaProdotto' | t">
                     <mat-icon>search</mat-icon>
                   </button>
                 </td>
@@ -323,7 +325,7 @@ export class QuickProdottoDialogComponent {
                 <td style="display:flex;align-items:center;gap:2px;padding:4px 0">
                   @if (!riga.prodottoId) {
                     <button mat-icon-button type="button" color="accent"
-                            title="Crea prodotto rapidamente"
+                            [title]="'arriviMerce.dialog.creaProdottoRapido' | t"
                             (click)="quickCreateProdotto($index)">
                       <mat-icon>add_circle_outline</mat-icon>
                     </button>
@@ -337,29 +339,30 @@ export class QuickProdottoDialogComponent {
           </tbody>
         </table>
         <div class="totale-riga">
-          Valore totale: {{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}
+          {{ i18n.t('arriviMerce.dialog.valoreTotale', { importo: (totale | currency:'EUR':'symbol':'1.2-2':'it') ?? '' }) }}
         </div>
       </div>
 
       <div [formGroup]="form" style="margin-top:16px">
         <mat-form-field style="width:100%">
-          <mat-label>Note</mat-label>
+          <mat-label>{{ 'arriviMerce.dialog.note' | t }}</mat-label>
           <textarea matInput rows="2" formControlName="note"></textarea>
         </mat-form-field>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button color="primary" (click)="save('ATTESA')" [disabled]="form.invalid">
-        Salva in attesa
+        {{ 'arriviMerce.dialog.salvaAttesa' | t }}
       </button>
       <button mat-flat-button (click)="save('RICEVUTO')" [disabled]="form.invalid">
-        <mat-icon>inventory</mat-icon> Conferma ricezione
+        <mat-icon>inventory</mat-icon> {{ 'arriviMerce.confermaRicezione' | t }}
       </button>
     </mat-dialog-actions>`,
   styles: [STYLES]
 })
 export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   form: FormGroup;
   fornitori: Fornitore[] = [];
   filteredFornitori: Fornitore[] = [];
@@ -558,10 +561,11 @@ export class ArrivoMerceDialogComponent implements OnInit, AfterViewInit {
   imports: [CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatSortModule,
             MatFormFieldModule, MatInputModule, MatSelectModule, MatTooltipModule, MatPaginatorModule,
-            MatMenuModule],
+            MatMenuModule, TPipe],
   templateUrl: './arrivi-merce.html',
 })
 export class ArriviMerceComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   private allArrivi: ArrivoMerce[] = [];
   dataSource = new MatTableDataSource<ArrivoMerce>([]);
@@ -648,15 +652,15 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
       if (!result) return;
       const op = result.id ? this.ds.updateArrivoMerce(result) : this.ds.createArrivoMerce(result);
       op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
-        error: (e: any) => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' })
+        next: () => { this.load(); this.snack.open(this.i18n.t('arriviMerce.msg.salvato'), '', { duration: 2000 }); },
+        error: (e: any) => this.snack.open(e.error?.error || e.message, this.i18n.t('arriviMerce.msg.ok'), { duration: 4000, panelClass: 'snack-error' })
       });
     });
   }
 
   importaDaAcquisto() {
     if (!this.acquisti.length) {
-      this.snack.open('Nessuna fattura di acquisto disponibile', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('arriviMerce.msg.nessunaFatturaDisponibile'), '', { duration: 3000 });
       return;
     }
     const selRef = this.dialog.open(SelezionaAcquistoDialogComponent, {
@@ -673,7 +677,7 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
           ref.afterClosed().subscribe(result => {
             if (!result) return;
             this.ds.createArrivoMerce(result).subscribe({
-              next: () => { this.load(); this.snack.open('Arrivo merce creato', '', { duration: 2000 }); },
+              next: () => { this.load(); this.snack.open(this.i18n.t('arriviMerce.msg.arrivoCreato'), '', { duration: 2000 }); },
               error: (e: any) => this.snack.open(e.message, '', { duration: 3000 })
             });
           });
@@ -684,9 +688,9 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
   }
 
   async delete(a: ArrivoMerce) {
-    if (!await this.confirm.delete(`Eliminare arrivo ${a.numero}? Le quantità a magazzino verranno stornate.`)) return;
+    if (!await this.confirm.delete(this.i18n.t('arriviMerce.msg.confermaElimina', { numero: a.numero }))) return;
     this.ds.deleteArrivoMerce(a.id!).subscribe({
-      next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      next: () => { this.load(); this.snack.open(this.i18n.t('arriviMerce.msg.eliminato'), '', { duration: 2000 }); },
       error: (e: any) => this.snack.open(e.message, '', { duration: 3000 })
     });
   }
@@ -702,5 +706,13 @@ export class ArriviMerceComponent implements OnInit, AfterViewInit {
     if (stato === 'RICEVUTO') return 'badge-ricevuto';
     if (stato === 'ANNULLATO') return 'badge-annullato';
     return 'badge-attesa';
+  }
+
+  statoLabel(stato: string): string {
+    const map: Record<string, string> = {
+      ATTESA: 'arriviMerce.stato.attesa', RICEVUTO: 'arriviMerce.stato.ricevuto', ANNULLATO: 'arriviMerce.stato.annullato',
+      APERTO: 'arriviMerce.stato.aperto', CONFERMATO: 'arriviMerce.stato.confermato',
+    };
+    return map[stato] ? this.i18n.t(map[stato]) : stato;
   }
 }
