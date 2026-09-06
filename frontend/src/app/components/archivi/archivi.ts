@@ -12,6 +12,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DataService } from '../../services/data.service';
 import { DesktopService } from '../../services/desktop.service';
 import { ConfirmService } from '../shared/confirm-dialog';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface Arc { slug: string; nome: string; cifrato: boolean; }
 
@@ -24,16 +26,13 @@ interface Arc { slug: string; nome: string; cifrato: boolean; }
   selector: 'app-archivi',
   standalone: true,
   imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatMenuModule,
-            MatFormFieldModule, MatInputModule, MatTooltipModule, MatProgressSpinnerModule],
+            MatFormFieldModule, MatInputModule, MatTooltipModule, MatProgressSpinnerModule, TPipe],
   template: `
     <div class="page">
-      <div class="page-header"><h1 class="page-title">Archivi</h1></div>
+      <div class="page-header"><h1 class="page-title">{{ 'archivi.title' | t }}</h1></div>
 
       <p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px;max-width:680px">
-        Ogni archivio è un gestionale indipendente, con i suoi dati e la sua password.
-        Puoi tenerne più di uno (es. due attività, o persone diverse) e cambiarli all'avvio.
-        Proteggere un archivio con una password lo cifra: il suo file di backup è leggibile
-        solo con quella password.
+        {{ 'archivi.intro' | t }}
       </p>
 
       @if (loading) {
@@ -46,39 +45,39 @@ interface Arc { slug: string; nome: string; cifrato: boolean; }
 
               @if (edit && edit.slug === a.slug) {
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" style="flex:1">
-                  <mat-label>{{ edit.mode === 'duplica' ? 'Nome della copia' : 'Nuovo nome' }}</mat-label>
+                  <mat-label>{{ (edit.mode === 'duplica' ? 'archivi.duplicaLabel' : 'archivi.rinominaLabel') | t }}</mat-label>
                   <input matInput [(ngModel)]="edit.value" (keyup.enter)="confermaEdit()" autofocus>
                 </mat-form-field>
-                <button mat-flat-button color="primary" [disabled]="busy || !edit.value.trim()" (click)="confermaEdit()">Conferma</button>
-                <button mat-button [disabled]="busy" (click)="edit = null">Annulla</button>
+                <button mat-flat-button color="primary" [disabled]="busy || !edit.value.trim()" (click)="confermaEdit()">{{ 'archivi.conferma' | t }}</button>
+                <button mat-button [disabled]="busy" (click)="edit = null">{{ 'archivi.annulla' | t }}</button>
               } @else {
                 <div class="arc-info">
                   <span class="arc-nome">{{ a.nome }}</span>
                   <span class="arc-tags">
-                    @if (a.slug === corrente) { <span class="tag tag-cur">in uso</span> }
-                    @if (a.cifrato) { <span class="tag">protetto</span> }
+                    @if (a.slug === corrente) { <span class="tag tag-cur">{{ 'archivi.inUso' | t }}</span> }
+                    @if (a.cifrato) { <span class="tag">{{ 'archivi.protetto' | t }}</span> }
                   </span>
                 </div>
 
                 @if (a.slug !== corrente) {
                   <button mat-stroked-button [disabled]="busy" (click)="cambia(a)">
-                    <mat-icon>login</mat-icon> Apri
+                    <mat-icon>login</mat-icon> {{ 'archivi.apri' | t }}
                   </button>
                 }
-                <button mat-icon-button [matMenuTriggerFor]="m" [disabled]="busy" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <button mat-icon-button [matMenuTriggerFor]="m" [disabled]="busy" [title]="'archivi.azioni' | t"><mat-icon>more_vert</mat-icon></button>
                 <mat-menu #m="matMenu">
-                  <button mat-menu-item (click)="startEdit(a, 'rinomina')"><mat-icon>edit</mat-icon> Rinomina</button>
-                  <button mat-menu-item (click)="startEdit(a, 'duplica')"><mat-icon>content_copy</mat-icon> Duplica</button>
-                  <button mat-menu-item (click)="esporta(a)"><mat-icon>download</mat-icon> Esporta…</button>
+                  <button mat-menu-item (click)="startEdit(a, 'rinomina')"><mat-icon>edit</mat-icon> {{ 'archivi.rinomina' | t }}</button>
+                  <button mat-menu-item (click)="startEdit(a, 'duplica')"><mat-icon>content_copy</mat-icon> {{ 'archivi.duplica' | t }}</button>
+                  <button mat-menu-item (click)="esporta(a)"><mat-icon>download</mat-icon> {{ 'archivi.esportaMenu' | t }}</button>
                   @if (a.slug === corrente) {
                     @if (a.cifrato) {
-                      <button mat-menu-item (click)="rimuoviPassword(a)"><mat-icon>lock_open</mat-icon> Rimuovi password</button>
+                      <button mat-menu-item (click)="rimuoviPassword(a)"><mat-icon>lock_open</mat-icon> {{ 'archivi.rimuoviPasswordMenu' | t }}</button>
                     } @else {
-                      <button mat-menu-item (click)="pwOpen = a.slug; pwValue = ''"><mat-icon>lock</mat-icon> Imposta password</button>
+                      <button mat-menu-item (click)="pwOpen = a.slug; pwValue = ''"><mat-icon>lock</mat-icon> {{ 'archivi.impostaPassword' | t }}</button>
                     }
                   }
                   @if (a.slug !== corrente) {
-                    <button mat-menu-item (click)="elimina(a)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                    <button mat-menu-item (click)="elimina(a)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> {{ 'archivi.elimina' | t }}</button>
                   }
                 </mat-menu>
               }
@@ -87,11 +86,11 @@ interface Arc { slug: string; nome: string; cifrato: boolean; }
             @if (pwOpen === a.slug) {
               <div class="arc-pw">
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" style="flex:1">
-                  <mat-label>Nuova password per "{{ a.nome }}"</mat-label>
+                  <mat-label>{{ 'archivi.nuovaPasswordLabel' | t:{ nome: a.nome } }}</mat-label>
                   <input matInput type="password" [(ngModel)]="pwValue" (keyup.enter)="setPassword()" autocomplete="new-password">
                 </mat-form-field>
-                <button mat-flat-button color="primary" [disabled]="busy || !pwValue.trim()" (click)="setPassword()">Proteggi</button>
-                <button mat-button [disabled]="busy" (click)="pwOpen = null">Annulla</button>
+                <button mat-flat-button color="primary" [disabled]="busy || !pwValue.trim()" (click)="setPassword()">{{ 'archivi.proteggi' | t }}</button>
+                <button mat-button [disabled]="busy" (click)="pwOpen = null">{{ 'archivi.annulla' | t }}</button>
               </div>
             }
           }
@@ -99,14 +98,14 @@ interface Arc { slug: string; nome: string; cifrato: boolean; }
           <!-- Nuovo / Importa -->
           <div class="arc-new">
             <mat-form-field appearance="outline" subscriptSizing="dynamic" style="flex:1">
-              <mat-label>Nome nuovo archivio</mat-label>
-              <input matInput [(ngModel)]="nuovoNome" (keyup.enter)="crea()" placeholder="es. La mia seconda attività">
+              <mat-label>{{ 'archivi.nuovoArchivioLabel' | t }}</mat-label>
+              <input matInput [(ngModel)]="nuovoNome" (keyup.enter)="crea()" [placeholder]="'archivi.nuovoArchivioPlaceholder' | t">
             </mat-form-field>
             <button mat-flat-button color="primary" [disabled]="busy || !nuovoNome.trim()" (click)="crea()">
-              <mat-icon>add</mat-icon> Crea
+              <mat-icon>add</mat-icon> {{ 'archivi.crea' | t }}
             </button>
             <button mat-stroked-button [disabled]="busy" (click)="importa()">
-              <mat-icon>upload</mat-icon> Importa da file…
+              <mat-icon>upload</mat-icon> {{ 'archivi.importaFile' | t }}
             </button>
           </div>
         </div>
@@ -132,6 +131,7 @@ export class ArchiviComponent implements OnInit {
   private desktop = inject(DesktopService);
   private confirm = inject(ConfirmService);
   private snack = inject(MatSnackBar);
+  private i18n = inject(I18nService);
 
   archivi: Arc[] = [];
   corrente: string | null = null;
@@ -148,18 +148,18 @@ export class ArchiviComponent implements OnInit {
     this.loading = true;
     this.ds.getArchivi().subscribe({
       next: r => { this.archivi = r.archivi || []; this.corrente = r.corrente; this.loading = false; },
-      error: () => { this.loading = false; this.snack.open('Impossibile leggere gli archivi', '', { duration: 3000 }); },
+      error: () => { this.loading = false; this.snack.open(this.i18n.t('archivi.msg.erroreLettura'), '', { duration: 3000 }); },
     });
   }
 
   private done(msg: string) { this.busy = false; this.edit = null; this.pwOpen = null; this.snack.open(msg, '', { duration: 2500 }); this.load(); }
-  private fail(e: any) { this.busy = false; this.snack.open(e?.error?.error || 'Operazione non riuscita', '', { duration: 3500, panelClass: 'snack-error' }); }
+  private fail(e: any) { this.busy = false; this.snack.open(e?.error?.error || this.i18n.t('archivi.msg.operazioneNonRiuscita'), '', { duration: 3500, panelClass: 'snack-error' }); }
 
   crea() {
     const nome = this.nuovoNome.trim();
     if (!nome || this.busy) return;
     this.busy = true;
-    this.ds.creaArchivio(nome).subscribe({ next: () => { this.nuovoNome = ''; this.done('Archivio creato'); }, error: e => this.fail(e) });
+    this.ds.creaArchivio(nome).subscribe({ next: () => { this.nuovoNome = ''; this.done(this.i18n.t('archivi.msg.archivioCreato')); }, error: e => this.fail(e) });
   }
 
   startEdit(a: Arc, mode: 'rinomina' | 'duplica') {
@@ -172,15 +172,15 @@ export class ArchiviComponent implements OnInit {
     if (!nome) return;
     this.busy = true;
     const op = mode === 'duplica' ? this.ds.duplicaArchivio(slug, nome) : this.ds.rinominaArchivio(slug, nome);
-    op.subscribe({ next: () => this.done(mode === 'duplica' ? 'Archivio duplicato' : 'Rinominato'), error: e => this.fail(e) });
+    op.subscribe({ next: () => this.done(mode === 'duplica' ? this.i18n.t('archivi.msg.archivioDuplicato') : this.i18n.t('archivi.msg.rinominato')), error: e => this.fail(e) });
   }
 
   async cambia(a: Arc) {
     if (this.busy) return;
     const ok = await this.confirm.ask({
-      title: 'Cambia archivio',
-      message: `Aprire l'archivio "${a.nome}"? Ordeva si riavvierà.`,
-      confirmText: 'Apri e riavvia',
+      title: this.i18n.t('archivi.confirm.cambiaTitle'),
+      message: this.i18n.t('archivi.confirm.cambiaMessage', { nome: a.nome }),
+      confirmText: this.i18n.t('archivi.confirm.cambiaConferma'),
     });
     if (!ok) return;
     this.busy = true;
@@ -191,36 +191,37 @@ export class ArchiviComponent implements OnInit {
   }
 
   async elimina(a: Arc) {
-    if (!await this.confirm.delete(`Eliminare l'archivio "${a.nome}"? Tutti i suoi dati verranno rimossi definitivamente.`)) return;
+    if (!await this.confirm.delete(this.i18n.t('archivi.confirm.eliminaMessage', { nome: a.nome }))) return;
     this.busy = true;
-    this.ds.eliminaArchivio(a.slug).subscribe({ next: () => this.done('Archivio eliminato'), error: e => this.fail(e) });
+    this.ds.eliminaArchivio(a.slug).subscribe({ next: () => this.done(this.i18n.t('archivi.msg.archivioEliminato')), error: e => this.fail(e) });
   }
 
   async esporta(a: Arc) {
     const dest = await this.desktop.pickSaveDb(`${a.slug}${a.cifrato ? '.db.enc' : '.db'}`);
     if (!dest) return;
     this.busy = true;
-    this.ds.esportaArchivio(a.slug, dest).subscribe({ next: () => this.done('Archivio esportato'), error: e => this.fail(e) });
+    this.ds.esportaArchivio(a.slug, dest).subscribe({ next: () => this.done(this.i18n.t('archivi.msg.archivioEsportato')), error: e => this.fail(e) });
   }
 
   async importa() {
     const file = await this.desktop.pickBackupFile();
     if (!file) return;
-    const base = (file.split(/[\\/]/).pop() || 'Archivio importato').replace(/\.(db|enc)$/i, '').replace(/\.db$/i, '');
+    const fallback = this.i18n.t('archivi.msg.importaNomeFallback');
+    const base = (file.split(/[\\/]/).pop() || fallback).replace(/\.(db|enc)$/i, '').replace(/\.db$/i, '');
     this.busy = true;
-    this.ds.importaArchivio(file, base || 'Archivio importato').subscribe({ next: () => this.done('Archivio importato'), error: e => this.fail(e) });
+    this.ds.importaArchivio(file, base || fallback).subscribe({ next: () => this.done(this.i18n.t('archivi.msg.archivioImportato')), error: e => this.fail(e) });
   }
 
   setPassword() {
     const pw = this.pwValue.trim();
     if (!pw || this.busy) return;
     this.busy = true;
-    this.ds.setPasswordArchivio(pw).subscribe({ next: () => { this.pwValue = ''; this.done('Archivio protetto: la password verrà richiesta all\'avvio'); }, error: e => this.fail(e) });
+    this.ds.setPasswordArchivio(pw).subscribe({ next: () => { this.pwValue = ''; this.done(this.i18n.t('archivi.msg.passwordProtettoAvviso')); }, error: e => this.fail(e) });
   }
 
   async rimuoviPassword(a: Arc) {
-    if (!await this.confirm.ask({ title: 'Rimuovi password', message: `Togliere la protezione da "${a.nome}"? I dati non saranno più cifrati.`, confirmText: 'Rimuovi' })) return;
+    if (!await this.confirm.ask({ title: this.i18n.t('archivi.confirm.rimuoviPwTitle'), message: this.i18n.t('archivi.confirm.rimuoviPwMessage', { nome: a.nome }), confirmText: this.i18n.t('archivi.confirm.rimuoviPwConferma') })) return;
     this.busy = true;
-    this.ds.rimuoviPasswordArchivio().subscribe({ next: () => this.done('Password rimossa'), error: e => this.fail(e) });
+    this.ds.rimuoviPasswordArchivio().subscribe({ next: () => this.done(this.i18n.t('archivi.msg.passwordRimossa')), error: e => this.fail(e) });
   }
 }

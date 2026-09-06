@@ -1,4 +1,4 @@
-import { Component, Inject, Injectable } from '@angular/core';
+import { Component, Inject, Injectable, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -7,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { firstValueFrom } from 'rxjs';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 /**
  * Conferma coerente e a tema per tutta l'app.
@@ -75,11 +77,12 @@ export interface ConfirmOptions {
   `],
 })
 export class ConfirmDialogComponent {
+  private i18n = inject(I18nService);
   constructor(@Inject(MAT_DIALOG_DATA) public data: ConfirmOptions) {}
 
-  get title(): string { return this.data.title || (this.data.danger ? 'Confermi l\'azione?' : 'Conferma'); }
-  get confirmText(): string { return this.data.confirmText || 'Conferma'; }
-  get cancelText(): string { return this.data.cancelText || 'Annulla'; }
+  get title(): string { return this.data.title || (this.data.danger ? this.i18n.t('shared.confirmDialog.confermiAzione') : this.i18n.t('shared.confirmDialog.conferma')); }
+  get confirmText(): string { return this.data.confirmText || this.i18n.t('shared.confirmDialog.conferma'); }
+  get cancelText(): string { return this.data.cancelText || this.i18n.t('shared.confirmDialog.annulla'); }
   get icon(): string { return this.data.icon || (this.data.danger ? 'delete' : 'help'); }
 }
 
@@ -100,23 +103,23 @@ export interface TypedConfirmOptions extends ConfirmOptions {
   selector: 'app-typed-confirm-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatFormFieldModule, MatInputModule],
+            MatFormFieldModule, MatInputModule, TPipe],
   template: `
     <div mat-dialog-title class="cd-head">
       <span class="cd-icon danger"><mat-icon>{{ data.icon || 'delete_forever' }}</mat-icon></span>
-      <span class="cd-title">{{ data.title || 'Confermi l\\'azione?' }}</span>
+      <span class="cd-title">{{ data.title || ('shared.confirmDialog.confermiAzione' | t) }}</span>
     </div>
     <mat-dialog-content>
       <p class="cd-message">{{ data.message }}</p>
       <mat-form-field appearance="outline" class="cd-field">
-        <mat-label>{{ data.label || 'Scrivi «' + data.parola + '» per confermare' }}</mat-label>
+        <mat-label>{{ data.label || ('shared.confirmDialog.scriviParola' | t:{ parola: data.parola }) }}</mat-label>
         <input matInput [(ngModel)]="digitato" autocomplete="off" spellcheck="false" cdkFocusInitial>
       </mat-form-field>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-stroked-button [mat-dialog-close]="false">{{ data.cancelText || 'Annulla' }}</button>
+      <button mat-stroked-button [mat-dialog-close]="false">{{ data.cancelText || ('shared.confirmDialog.annulla' | t) }}</button>
       <button mat-flat-button color="warn" [disabled]="digitato.trim() !== data.parola"
-              [mat-dialog-close]="true">{{ data.confirmText || 'Elimina' }}</button>
+              [mat-dialog-close]="true">{{ data.confirmText || ('shared.confirmDialog.elimina' | t) }}</button>
     </mat-dialog-actions>`,
   styles: [`
     .cd-head { display: flex; align-items: center; gap: 12px; padding-bottom: 4px; }
@@ -164,25 +167,25 @@ export interface PromptOptions {
   selector: 'app-prompt-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatFormFieldModule, MatInputModule],
+            MatFormFieldModule, MatInputModule, TPipe],
   template: `
     <div mat-dialog-title class="cd-head">
       <span class="cd-icon"><mat-icon>{{ data.icon || 'edit' }}</mat-icon></span>
-      <span class="cd-title">{{ data.title || 'Conferma' }}</span>
+      <span class="cd-title">{{ data.title || ('shared.confirmDialog.conferma' | t) }}</span>
     </div>
     <mat-dialog-content>
       <p class="cd-message">{{ data.message }}</p>
       <mat-form-field appearance="outline" class="cd-field">
-        <mat-label>{{ data.label || 'Valore' }}</mat-label>
+        <mat-label>{{ data.label || ('shared.confirmDialog.valore' | t) }}</mat-label>
         <input matInput [type]="data.password ? 'password' : 'text'" [(ngModel)]="valore"
                [placeholder]="data.placeholder || ''" autocomplete="off" spellcheck="false"
                cdkFocusInitial (keydown.enter)="valore.trim() && dialogRef.close(valore)">
       </mat-form-field>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-stroked-button [mat-dialog-close]="null">{{ data.cancelText || 'Annulla' }}</button>
+      <button mat-stroked-button [mat-dialog-close]="null">{{ data.cancelText || ('shared.confirmDialog.annulla' | t) }}</button>
       <button mat-flat-button color="primary" [disabled]="!valore.trim()"
-              [mat-dialog-close]="valore">{{ data.confirmText || 'Conferma' }}</button>
+              [mat-dialog-close]="valore">{{ data.confirmText || ('shared.confirmDialog.conferma' | t) }}</button>
     </mat-dialog-actions>`,
   styles: [`
     .cd-head { display: flex; align-items: center; gap: 12px; padding-bottom: 4px; }
@@ -204,6 +207,7 @@ export class PromptDialogComponent {
 
 @Injectable({ providedIn: 'root' })
 export class ConfirmService {
+  private i18n = inject(I18nService);
   constructor(private dialog: MatDialog) {}
 
   /** Conferma generica. Restituisce true se l'utente conferma. */
@@ -233,9 +237,9 @@ export class ConfirmService {
   alert(opts: string | ConfirmOptions): Promise<void> {
     const data: ConfirmOptions = typeof opts === 'string' ? { message: opts } : opts;
     return this.ask({
-      title: 'Attenzione',
+      title: this.i18n.t('shared.confirmDialog.attenzione'),
       icon: 'error_outline',
-      confirmText: 'Ho capito',
+      confirmText: this.i18n.t('shared.confirmDialog.hoCapito'),
       ...data,
       hideCancel: true,
     }).then(() => undefined);
@@ -274,8 +278,8 @@ export class ConfirmService {
   /** Conferma di eliminazione (rossa, etichetta "Elimina"). */
   delete(message: string, opts: Partial<ConfirmOptions> = {}): Promise<boolean> {
     return this.ask({
-      title: 'Eliminazione',
-      confirmText: 'Elimina',
+      title: this.i18n.t('shared.confirmDialog.eliminazione'),
+      confirmText: this.i18n.t('shared.confirmDialog.elimina'),
       danger: true,
       icon: 'delete',
       ...opts,
