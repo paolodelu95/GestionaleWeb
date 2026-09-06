@@ -3149,4 +3149,20 @@ export const FR: Record<string, string> = {
   'andamento.export.percCumulativa': '% cumulé',
   'andamento.export.costiStimati': 'Coûts estimés',
   'andamento.export.qtaVenduta': 'Qté vendue',
+
+  // ── Report Tabellari (rapports tabulaires) ──────────────────────────────────
+  'reportsTabellari.title': 'Rapports tabulaires',
+  'reportsTabellari.intro': 'Agrégations prédéfinies sur les ventes, achats, stock et comptabilité. Filtrez par période, visualisez et exportez vers Excel.',
+  'reportsTabellari.reportLabel': 'Rapport',
+  'reportsTabellari.dalLabel': 'Du',
+  'reportsTabellari.alLabel': 'Au',
+  'reportsTabellari.esegui': 'Exécuter',
+  'reportsTabellari.esportaExcel': 'Exporter vers Excel',
+  'reportsTabellari.stampa': 'Imprimer',
+  'reportsTabellari.nessunDato': 'Aucune donnée pour les paramètres sélectionnés.',
+  'reportsTabellari.totali': 'Totaux',
+  'reportsTabellari.msg.righe.one': '{{n}} ligne',
+  'reportsTabellari.msg.righe.other': '{{n}} lignes',
+  'reportsTabellari.msg.errore': 'Erreur : {{err}}',
+  'reportsTabellari.msg.ok': 'OK',
 };

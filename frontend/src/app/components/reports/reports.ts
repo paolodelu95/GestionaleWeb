@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -11,6 +11,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 import { ExcelService } from '../../services/excel.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 interface ReportTpl { key: string; nome: string; descrizione: string; categoria: string; parametri: string[]; }
 interface ReportColonna { key: string; label: string; format: 'text' | 'int' | 'num' | 'eur' | 'pct' | 'date'; }
@@ -23,20 +26,21 @@ interface ReportResult { key: string; nome: string; parametri: any; colonne: Rep
   imports: [
     CommonModule, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule, MatSnackBarModule,
+    TPipe, TnPipe,
   ],
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">Report tabellari</h1>
+        <h1 class="page-title">{{ 'reportsTabellari.title' | t }}</h1>
         <p style="color:#64748b;font-size:13px;margin:4px 0 0">
-          Aggregazioni predefinite su vendite, acquisti, magazzino e contabilità. Filtra per periodo, visualizza ed esporta in Excel.
+          {{ 'reportsTabellari.intro' | t }}
         </p>
       </div>
 
       <div class="card" style="margin-bottom:16px">
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="flex:1;min-width:260px">
-            <mat-label>Report</mat-label>
+            <mat-label>{{ 'reportsTabellari.reportLabel' | t }}</mat-label>
             <mat-select [(ngModel)]="selKey" (selectionChange)="onSelect()">
               @for (cat of categorie(); track cat) {
                 <mat-optgroup [label]="cat">
@@ -50,25 +54,25 @@ interface ReportResult { key: string; nome: string; parametri: any; colonne: Rep
 
           @if (selTpl?.parametri?.includes('dataDa')) {
             <mat-form-field appearance="outline" subscriptSizing="dynamic" style="max-width:160px">
-              <mat-label>Dal</mat-label>
+              <mat-label>{{ 'reportsTabellari.dalLabel' | t }}</mat-label>
               <input matInput type="date" [(ngModel)]="dataDa">
             </mat-form-field>
           }
           @if (selTpl?.parametri?.includes('dataA')) {
             <mat-form-field appearance="outline" subscriptSizing="dynamic" style="max-width:160px">
-              <mat-label>Al</mat-label>
+              <mat-label>{{ 'reportsTabellari.alLabel' | t }}</mat-label>
               <input matInput type="date" [(ngModel)]="dataA">
             </mat-form-field>
           }
           <button mat-flat-button (click)="esegui()" [disabled]="!selKey || loading">
-            <mat-icon>play_arrow</mat-icon> Esegui
+            <mat-icon>play_arrow</mat-icon> {{ 'reportsTabellari.esegui' | t }}
           </button>
           @if (result) {
             <button mat-stroked-button (click)="exportExcel()">
-              <mat-icon>download</mat-icon> Esporta Excel
+              <mat-icon>download</mat-icon> {{ 'reportsTabellari.esportaExcel' | t }}
             </button>
             <button mat-stroked-button (click)="stampa()">
-              <mat-icon>print</mat-icon> Stampa
+              <mat-icon>print</mat-icon> {{ 'reportsTabellari.stampa' | t }}
             </button>
           }
         </div>
@@ -84,7 +88,7 @@ interface ReportResult { key: string; nome: string; parametri: any; colonne: Rep
         <div class="card" #reportArea>
           <h3 style="margin:0 0 12px">{{ result.nome }}</h3>
           @if (result.righe.length === 0) {
-            <p style="color:#94a3b8;text-align:center;padding:24px">Nessun dato per i parametri selezionati.</p>
+            <p style="color:#94a3b8;text-align:center;padding:24px">{{ 'reportsTabellari.nessunDato' | t }}</p>
           } @else {
             <table class="rep-table">
               <thead>
@@ -107,7 +111,7 @@ interface ReportResult { key: string; nome: string; parametri: any; colonne: Rep
                 <tr>
                   @for (c of result.colonne; track c.key; let i = $index) {
                     <td [class.right]="isNumeric(c.format)">
-                      @if (i === 0) { <b>Totali</b> }
+                      @if (i === 0) { <b>{{ 'reportsTabellari.totali' | t }}</b> }
                       @else if (result.totali[c.key] !== undefined) {
                         <b>{{ formatCell(result.totali[c.key], c.format) }}</b>
                       }
@@ -116,7 +120,7 @@ interface ReportResult { key: string; nome: string; parametri: any; colonne: Rep
                 </tr>
               </tfoot>
             </table>
-            <p style="font-size:11px;color:#94a3b8;margin-top:12px">{{ result.righe.length }} righe</p>
+            <p style="font-size:11px;color:#94a3b8;margin-top:12px">{{ result.righe.length | tn:'reportsTabellari.msg.righe' }}</p>
           }
         </div>
       }
@@ -141,6 +145,7 @@ interface ReportResult { key: string; nome: string; parametri: any; colonne: Rep
   `],
 })
 export class ReportsComponent implements OnInit {
+  private i18n = inject(I18nService);
   templates: ReportTpl[] = [];
   selKey: string = '';
   get selTpl(): ReportTpl | undefined { return this.templates.find(t => t.key === this.selKey); }
@@ -190,7 +195,7 @@ export class ReportsComponent implements OnInit {
     if (this.selTpl?.parametri.includes('dataA')) parametri.dataA = this.dataA;
     this.api.post<ReportResult>('reports/run', { key: this.selKey, parametri }).subscribe({
       next: r => { this.result = r; this.loading = false; },
-      error: e => { this.loading = false; this.snack.open('Errore: ' + (e.error?.error || e.message), 'OK', { duration: 4000 }); },
+      error: e => { this.loading = false; this.snack.open(this.i18n.t('reportsTabellari.msg.errore', { err: e.error?.error || e.message }), this.i18n.t('reportsTabellari.msg.ok'), { duration: 4000 }); },
     });
   }
 

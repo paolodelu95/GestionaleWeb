@@ -3149,4 +3149,20 @@ export const IT: Record<string, string> = {
   'andamento.export.percCumulativa': '% cumulativa',
   'andamento.export.costiStimati': 'Costi stimati',
   'andamento.export.qtaVenduta': 'Qta venduta',
+
+  // ── Report Tabellari ─────────────────────────────────────────────────────────
+  'reportsTabellari.title': 'Report tabellari',
+  'reportsTabellari.intro': 'Aggregazioni predefinite su vendite, acquisti, magazzino e contabilità. Filtra per periodo, visualizza ed esporta in Excel.',
+  'reportsTabellari.reportLabel': 'Report',
+  'reportsTabellari.dalLabel': 'Dal',
+  'reportsTabellari.alLabel': 'Al',
+  'reportsTabellari.esegui': 'Esegui',
+  'reportsTabellari.esportaExcel': 'Esporta Excel',
+  'reportsTabellari.stampa': 'Stampa',
+  'reportsTabellari.nessunDato': 'Nessun dato per i parametri selezionati.',
+  'reportsTabellari.totali': 'Totali',
+  'reportsTabellari.msg.righe.one': '{{n}} riga',
+  'reportsTabellari.msg.righe.other': '{{n}} righe',
+  'reportsTabellari.msg.errore': 'Errore: {{err}}',
+  'reportsTabellari.msg.ok': 'OK',
 };
