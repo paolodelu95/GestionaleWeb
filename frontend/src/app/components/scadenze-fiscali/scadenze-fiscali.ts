@@ -13,6 +13,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DataService } from '../../services/data.service';
 import { ConfirmService } from '../shared/confirm-dialog';
 import { ScadenzaFiscale } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 /**
  * Calendario delle scadenze fiscali italiane (edizione offline). Le scadenze standard
@@ -26,70 +28,70 @@ import { ScadenzaFiscale } from '../../models';
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatIconModule, MatButtonModule, MatCheckboxModule,
-    MatSelectModule, MatSlideToggleModule, MatFormFieldModule, MatInputModule,
+    MatSelectModule, MatSlideToggleModule, MatFormFieldModule, MatInputModule, TPipe,
   ],
   template: `
     <div class="page">
       <header class="head">
         <div>
-          <h1>Scadenze fiscali</h1>
-          <p class="sub">Promemoria di IVA, LIPE, ritenute, imposte e dichiarazioni. Date ordinarie, salvo proroghe ufficiali.</p>
+          <h1>{{ 'scadenzeFiscali.title' | t }}</h1>
+          <p class="sub">{{ 'scadenzeFiscali.subtitle' | t }}</p>
         </div>
         <div class="year">
-          <button mat-icon-button (click)="cambiaAnno(-1)" title="Anno precedente"><mat-icon>chevron_left</mat-icon></button>
+          <button mat-icon-button (click)="cambiaAnno(-1)" [title]="'scadenzeFiscali.annoPrecedente' | t"><mat-icon>chevron_left</mat-icon></button>
           <span class="year-val">{{ anno }}</span>
-          <button mat-icon-button (click)="cambiaAnno(1)" title="Anno successivo"><mat-icon>chevron_right</mat-icon></button>
+          <button mat-icon-button (click)="cambiaAnno(1)" [title]="'scadenzeFiscali.annoSuccessivo' | t"><mat-icon>chevron_right</mat-icon></button>
         </div>
       </header>
 
       <div class="card config">
         <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:220px">
-          <mat-label>Liquidazione IVA</mat-label>
+          <mat-label>{{ 'scadenzeFiscali.liquidazioneIva' | t }}</mat-label>
           <mat-select [(value)]="ivaPeriodicita" (selectionChange)="salvaConfig()">
-            <mat-option value="trimestrale">Trimestrale</mat-option>
-            <mat-option value="mensile">Mensile</mat-option>
+            <mat-option value="trimestrale">{{ 'scadenzeFiscali.trimestrale' | t }}</mat-option>
+            <mat-option value="mensile">{{ 'scadenzeFiscali.mensile' | t }}</mat-option>
           </mat-select>
         </mat-form-field>
         <mat-slide-toggle [(ngModel)]="sostitutoImposta" (change)="salvaConfig()">
-          Sostituto d'imposta (ritenute)
+          {{ 'scadenzeFiscali.sostitutoImposta' | t }}
         </mat-slide-toggle>
         <span class="spacer"></span>
-        <button mat-stroked-button (click)="toggleNuova()"><mat-icon>add</mat-icon> Aggiungi scadenza</button>
+        <button mat-stroked-button (click)="toggleNuova()"><mat-icon>add</mat-icon> {{ 'scadenzeFiscali.aggiungiScadenza' | t }}</button>
       </div>
 
       @if (mostraNuova) {
         <div class="card nuova">
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Data</mat-label>
+            <mat-label>{{ 'scadenzeFiscali.nuova.data' | t }}</mat-label>
             <input matInput type="date" [(ngModel)]="nuova.data">
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="flex:1;min-width:200px">
-            <mat-label>Descrizione</mat-label>
-            <input matInput [(ngModel)]="nuova.titolo" placeholder="es. Diritto camerale">
+            <mat-label>{{ 'scadenzeFiscali.nuova.descrizione' | t }}</mat-label>
+            <input matInput [(ngModel)]="nuova.titolo" [placeholder]="'scadenzeFiscali.nuova.descrizionePlaceholder' | t">
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:170px">
-            <mat-label>Categoria</mat-label>
+            <mat-label>{{ 'scadenzeFiscali.nuova.categoria' | t }}</mat-label>
             <mat-select [(value)]="nuova.categoria">
-              @for (c of categorie; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
+              @for (c of categorie; track c) { <mat-option [value]="c">{{ categoriaLabel(c) }}</mat-option> }
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:130px">
-            <mat-label>Importo €</mat-label>
+            <mat-label>{{ 'scadenzeFiscali.nuova.importo' | t }}</mat-label>
             <input matInput type="number" [(ngModel)]="nuova.importo">
           </mat-form-field>
-          <button mat-flat-button color="primary" [disabled]="!nuova.data || !nuova.titolo" (click)="creaNuova()">Salva</button>
+          <button mat-flat-button color="primary" [disabled]="!nuova.data || !nuova.titolo" (click)="creaNuova()">{{ 'fatture.dialog.salva' | t }}</button>
         </div>
       }
 
       @if (scadenze.length === 0) {
-        <p class="vuoto">Nessuna scadenza per il {{ anno }}.</p>
+        <p class="vuoto">{{ i18n.t('scadenzeFiscali.nessunaScadenza', { anno }) }}</p>
       }
 
       <div class="lista">
         @for (s of scadenze; track s.id) {
           <div class="riga" [class.fatto]="s.stato === 'fatto'"
                [class.scaduta]="stato(s) === 'scaduta'" [class.imminente]="stato(s) === 'imminente'">
-            <mat-checkbox [checked]="s.stato === 'fatto'" (change)="segna(s, $event.checked)" title="Segna come fatto"></mat-checkbox>
+            <mat-checkbox [checked]="s.stato === 'fatto'" (change)="segna(s, $event.checked)" [title]="'scadenzeFiscali.segnaFatto' | t"></mat-checkbox>
             <div class="data">
               <span class="g">{{ s.data | date:'dd' }}</span>
               <span class="m">{{ s.data | date:'MMM' }}</span>
@@ -97,14 +99,14 @@ import { ScadenzaFiscale } from '../../models';
             <div class="info">
               <div class="titolo">{{ s.titolo }}</div>
               <div class="meta">
-                <span class="chip" [attr.data-cat]="s.categoria">{{ s.categoria }}</span>
+                <span class="chip" [attr.data-cat]="s.categoria">{{ categoriaLabel(s.categoria) }}</span>
                 @if (s.importo) { <span class="imp">€ {{ s.importo | number:'1.2-2' }}</span> }
-                @if (stato(s) === 'scaduta') { <span class="warn">scaduta</span> }
-                @else if (stato(s) === 'imminente') { <span class="soon">in arrivo</span> }
+                @if (stato(s) === 'scaduta') { <span class="warn">{{ 'scadenzeFiscali.scaduta' | t }}</span> }
+                @else if (stato(s) === 'imminente') { <span class="soon">{{ 'scadenzeFiscali.inArrivo' | t }}</span> }
               </div>
             </div>
             @if (!s.auto) {
-              <button mat-icon-button (click)="elimina(s)" title="Elimina"><mat-icon>delete_outline</mat-icon></button>
+              <button mat-icon-button (click)="elimina(s)" [title]="'scadenzeFiscali.elimina' | t"><mat-icon>delete_outline</mat-icon></button>
             }
           </div>
         }
@@ -147,6 +149,7 @@ import { ScadenzaFiscale } from '../../models';
   `],
 })
 export class ScadenzeFiscaliComponent implements OnInit {
+  i18n = inject(I18nService);
   private ds = inject(DataService);
   private confirm = inject(ConfirmService);
   private snack = inject(MatSnackBar);
@@ -156,6 +159,17 @@ export class ScadenzeFiscaliComponent implements OnInit {
   sostitutoImposta = false;
   scadenze: ScadenzaFiscale[] = [];
   readonly categorie = ['IVA', 'LIPE', 'Ritenute', 'Imposte', 'Dichiarazioni', 'Altro'];
+  private static readonly CATEGORIA_I18N: Record<string, string> = {
+    IVA: 'scadenzeFiscali.categoria.iva',
+    LIPE: 'scadenzeFiscali.categoria.lipe',
+    Ritenute: 'scadenzeFiscali.categoria.ritenute',
+    Imposte: 'scadenzeFiscali.categoria.imposte',
+    Dichiarazioni: 'scadenzeFiscali.categoria.dichiarazioni',
+    Altro: 'scadenzeFiscali.categoria.altro',
+  };
+  categoriaLabel(c: string | undefined): string {
+    return this.i18n.t(ScadenzeFiscaliComponent.CATEGORIA_I18N[c ?? ''] || c || '');
+  }
 
   mostraNuova = false;
   nuova: Partial<ScadenzaFiscale> = { categoria: 'Altro' };
@@ -194,23 +208,23 @@ export class ScadenzeFiscaliComponent implements OnInit {
 
   salvaConfig() {
     this.ds.setScadenzeFiscaliConfig({ ivaPeriodicita: this.ivaPeriodicita, sostitutoImposta: this.sostitutoImposta })
-      .subscribe({ next: () => this.carica(), error: () => this.snack.open('Errore salvataggio', '', { duration: 2500 }) });
+      .subscribe({ next: () => this.carica(), error: () => this.snack.open(this.i18n.t('scadenzeFiscali.msg.erroreSalvataggio'), '', { duration: 2500 }) });
   }
 
   toggleNuova() { this.mostraNuova = !this.mostraNuova; if (this.mostraNuova) this.nuova = { categoria: 'Altro', data: this.anno + '-01-01' }; }
 
   creaNuova() {
     this.ds.createScadenzaFiscale(this.nuova).subscribe({
-      next: () => { this.mostraNuova = false; this.nuova = { categoria: 'Altro' }; this.carica(); this.snack.open('Scadenza aggiunta', '', { duration: 2000 }); },
-      error: e => this.snack.open(e.error?.error || 'Errore', '', { duration: 3000 }),
+      next: () => { this.mostraNuova = false; this.nuova = { categoria: 'Altro' }; this.carica(); this.snack.open(this.i18n.t('scadenzeFiscali.msg.scadenzaAggiunta'), '', { duration: 2000 }); },
+      error: e => this.snack.open(e.error?.error || this.i18n.t('scadenzeFiscali.msg.errore'), '', { duration: 3000 }),
     });
   }
 
   async elimina(s: ScadenzaFiscale) {
-    if (!await this.confirm.delete(`Eliminare "${s.titolo}"?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('scadenzeFiscali.msg.confermaElimina', { titolo: s.titolo }))) return;
     this.ds.deleteScadenzaFiscale(s.id!).subscribe({
-      next: () => { this.carica(); this.snack.open('Eliminata', '', { duration: 2000 }); },
-      error: () => this.snack.open('Errore', '', { duration: 2500 }),
+      next: () => { this.carica(); this.snack.open(this.i18n.t('scadenzeFiscali.msg.eliminata'), '', { duration: 2000 }); },
+      error: () => this.snack.open(this.i18n.t('scadenzeFiscali.msg.errore'), '', { duration: 2500 }),
     });
   }
 }
