@@ -2830,4 +2830,30 @@ export const FR: Record<string, string> = {
   'sdiPassive.msg.nessunaOperazione': 'aucune opération',
   'sdiPassive.msg.arrivoMerce': 'réception de marchandises {{numero}}',
   'sdiPassive.msg.pagamentoImporto': 'paiement € {{importo}}',
+
+  // ── Shared: WIP Placeholder ───────────────────────────────────────────────
+  'shared.wipPlaceholder.title': 'À implémenter',
+  'shared.wipPlaceholder.subtitle': 'Le backend est prêt. Interface à venir.',
+  'shared.wipPlaceholder.defaultSubtitle': 'Nous travaillons sur cette fonctionnalité.',
+  'shared.wipPlaceholder.developmentTitle': 'L\'interface est en cours de développement.',
+  'shared.wipPlaceholder.etaPart1': 'Les API backend sont déjà prêtes et opérationnelles : si vous devez utiliser cette fonctionnalité immédiatement, contactez-nous à',
+  'shared.wipPlaceholder.etaPart2': 'et nous vous aiderons à l\'intégrer directement via l\'API.',
+  'shared.wipPlaceholder.docsLink': 'Documentation du fournisseur',
+  'shared.wipPlaceholder.techDetails': 'Détails techniques pour les développeurs',
+  'shared.wipPlaceholder.endpointsTitle': 'Points de terminaison backend disponibles',
+  'shared.wipPlaceholder.col.metodo': 'Méthode',
+  'shared.wipPlaceholder.col.path': 'Chemin',
+  'shared.wipPlaceholder.col.descrizione': 'Description',
+  'shared.wipPlaceholder.envVarsTitle': 'Variables d\'environnement à configurer sur Fly',
+
+  // ── E-commerce ────────────────────────────────────────────────────────────
+  'ecommerce.title': 'E-commerce — WooCommerce / Shopify',
+  'ecommerce.subtitle': 'Backend prêt. L\'interface pour gérer la configuration et les synchronisations reste à construire.',
+  'ecommerce.description': 'Synchronise les produits du logiciel de gestion vers le site (push) et importe les commandes du site vers le logiciel de gestion en tant que « Commandes client » en BROUILLON (pull). Correspondance persistante pour éviter les doublons. Les identifiants API se configurent par config dans l\'application (pas via env).',
+  'ecommerce.endpoint.listaConfig': 'Liste des configurations',
+  'ecommerce.endpoint.creaConfig': 'Créer une config { provider, nome, baseUrl, apiKey, apiSecret }',
+  'ecommerce.endpoint.aggiornaConfig': 'Mettre à jour la config',
+  'ecommerce.endpoint.rimuoviConfig': 'Supprimer la config',
+  'ecommerce.endpoint.syncProdotti': 'Pousser les produits locaux → distant (opt. body { ids: [..] })',
+  'ecommerce.endpoint.pullOrdini': 'Récupérer les nouvelles commandes → commandes client BROUILLON (opt. body { since: ISO })',
 };

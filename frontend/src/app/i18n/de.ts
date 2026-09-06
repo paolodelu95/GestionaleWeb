@@ -2830,4 +2830,30 @@ export const DE: Record<string, string> = {
   'sdiPassive.msg.nessunaOperazione': 'keine Aktion',
   'sdiPassive.msg.arrivoMerce': 'Wareneingang {{numero}}',
   'sdiPassive.msg.pagamentoImporto': 'Zahlung € {{importo}}',
+
+  // ── Shared: WIP Placeholder ───────────────────────────────────────────────
+  'shared.wipPlaceholder.title': 'Noch umzusetzen',
+  'shared.wipPlaceholder.subtitle': 'Das Backend ist bereit. UI folgt in Kürze.',
+  'shared.wipPlaceholder.defaultSubtitle': 'Wir arbeiten an dieser Funktion.',
+  'shared.wipPlaceholder.developmentTitle': 'Die Benutzeroberfläche befindet sich in der Entwicklung.',
+  'shared.wipPlaceholder.etaPart1': 'Die Backend-APIs sind bereits einsatzbereit: Wenn Sie diese Funktion sofort nutzen möchten, kontaktieren Sie uns unter',
+  'shared.wipPlaceholder.etaPart2': 'und wir helfen Ihnen bei der direkten Integration über die API.',
+  'shared.wipPlaceholder.docsLink': 'Anbieter-Dokumentation',
+  'shared.wipPlaceholder.techDetails': 'Technische Details für Entwickler',
+  'shared.wipPlaceholder.endpointsTitle': 'Verfügbare Backend-Endpunkte',
+  'shared.wipPlaceholder.col.metodo': 'Methode',
+  'shared.wipPlaceholder.col.path': 'Pfad',
+  'shared.wipPlaceholder.col.descrizione': 'Beschreibung',
+  'shared.wipPlaceholder.envVarsTitle': 'Auf Fly zu konfigurierende Umgebungsvariablen',
+
+  // ── E-Commerce ────────────────────────────────────────────────────────────
+  'ecommerce.title': 'E-Commerce — WooCommerce / Shopify',
+  'ecommerce.subtitle': 'Backend bereit. Die UI zur Verwaltung von Konfiguration und Synchronisierung muss noch erstellt werden.',
+  'ecommerce.description': 'Synchronisiert Produkte von der Verwaltungssoftware zur Website (Push) und importiert Bestellungen von der Website in die Verwaltungssoftware als „Kundenaufträge" im ENTWURF (Pull). Dauerhafte Zuordnung zur Vermeidung von Duplikaten. API-Zugangsdaten werden pro Konfiguration in der App eingerichtet (nicht über env).',
+  'ecommerce.endpoint.listaConfig': 'Konfigurationsliste',
+  'ecommerce.endpoint.creaConfig': 'Konfiguration erstellen { provider, nome, baseUrl, apiKey, apiSecret }',
+  'ecommerce.endpoint.aggiornaConfig': 'Konfiguration aktualisieren',
+  'ecommerce.endpoint.rimuoviConfig': 'Konfiguration entfernen',
+  'ecommerce.endpoint.syncProdotti': 'Lokale Produkte an Remote pushen (opt. body { ids: [..] })',
+  'ecommerce.endpoint.pullOrdini': 'Neue Bestellungen abrufen → Kundenaufträge ENTWURF (opt. body { since: ISO })',
 };

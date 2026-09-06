@@ -2830,4 +2830,30 @@ export const ES: Record<string, string> = {
   'sdiPassive.msg.nessunaOperazione': 'ninguna operación',
   'sdiPassive.msg.arrivoMerce': 'entrada de mercancía {{numero}}',
   'sdiPassive.msg.pagamentoImporto': 'pago € {{importo}}',
+
+  // ── Shared: WIP Placeholder ───────────────────────────────────────────────
+  'shared.wipPlaceholder.title': 'Por implementar',
+  'shared.wipPlaceholder.subtitle': 'El backend está listo. La interfaz llegará pronto.',
+  'shared.wipPlaceholder.defaultSubtitle': 'Estamos trabajando en esta función.',
+  'shared.wipPlaceholder.developmentTitle': 'La interfaz está en desarrollo.',
+  'shared.wipPlaceholder.etaPart1': 'Las API del backend ya están listas y operativas: si necesitas usar esta función de inmediato, contáctanos en',
+  'shared.wipPlaceholder.etaPart2': 'y te ayudamos a integrarla directamente vía API.',
+  'shared.wipPlaceholder.docsLink': 'Documentación del proveedor',
+  'shared.wipPlaceholder.techDetails': 'Detalles técnicos para desarrolladores',
+  'shared.wipPlaceholder.endpointsTitle': 'Endpoints de backend disponibles',
+  'shared.wipPlaceholder.col.metodo': 'Método',
+  'shared.wipPlaceholder.col.path': 'Ruta',
+  'shared.wipPlaceholder.col.descrizione': 'Descripción',
+  'shared.wipPlaceholder.envVarsTitle': 'Variables de entorno a configurar en Fly',
+
+  // ── Comercio electrónico ──────────────────────────────────────────────────
+  'ecommerce.title': 'Comercio electrónico — WooCommerce / Shopify',
+  'ecommerce.subtitle': 'Backend listo. La interfaz para gestionar la configuración y las sincronizaciones está por construir.',
+  'ecommerce.description': 'Sincroniza productos del sistema de gestión al sitio (push) e importa los pedidos del sitio al sistema de gestión como "Pedidos de cliente" en BORRADOR (pull). Asignación persistente para evitar duplicados. Las credenciales de la API se configuran por configuración dentro de la app (no mediante env).',
+  'ecommerce.endpoint.listaConfig': 'Lista de configuraciones',
+  'ecommerce.endpoint.creaConfig': 'Crear configuración { provider, nome, baseUrl, apiKey, apiSecret }',
+  'ecommerce.endpoint.aggiornaConfig': 'Actualizar configuración',
+  'ecommerce.endpoint.rimuoviConfig': 'Eliminar configuración',
+  'ecommerce.endpoint.syncProdotti': 'Enviar productos locales → remoto (opc. body { ids: [..] })',
+  'ecommerce.endpoint.pullOrdini': 'Obtener nuevos pedidos → pedidos de cliente BORRADOR (opc. body { since: ISO })',
 };

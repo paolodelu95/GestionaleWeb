@@ -2830,4 +2830,30 @@ export const EN: Record<string, string> = {
   'sdiPassive.msg.nessunaOperazione': 'no operation',
   'sdiPassive.msg.arrivoMerce': 'goods receipt {{numero}}',
   'sdiPassive.msg.pagamentoImporto': 'payment € {{importo}}',
+
+  // ── Shared: WIP Placeholder ───────────────────────────────────────────────
+  'shared.wipPlaceholder.title': 'To be implemented',
+  'shared.wipPlaceholder.subtitle': 'The backend is ready. UI coming soon.',
+  'shared.wipPlaceholder.defaultSubtitle': 'We are working on this feature.',
+  'shared.wipPlaceholder.developmentTitle': 'The interface is under development.',
+  'shared.wipPlaceholder.etaPart1': 'The backend APIs are already ready and operational: if you need to use this feature right away, contact us at',
+  'shared.wipPlaceholder.etaPart2': 'and we\'ll help you integrate it directly via API.',
+  'shared.wipPlaceholder.docsLink': 'Provider documentation',
+  'shared.wipPlaceholder.techDetails': 'Technical details for developers',
+  'shared.wipPlaceholder.endpointsTitle': 'Available backend endpoints',
+  'shared.wipPlaceholder.col.metodo': 'Method',
+  'shared.wipPlaceholder.col.path': 'Path',
+  'shared.wipPlaceholder.col.descrizione': 'Description',
+  'shared.wipPlaceholder.envVarsTitle': 'Environment variables to configure on Fly',
+
+  // ── E-commerce ────────────────────────────────────────────────────────────
+  'ecommerce.title': 'E-commerce — WooCommerce / Shopify',
+  'ecommerce.subtitle': 'Backend ready. The UI to manage configuration and syncs is yet to be built.',
+  'ecommerce.description': 'Syncs products from the management software to the site (push) and imports orders from the site into the management software as "Customer orders" in DRAFT (pull). Persistent mapping to avoid duplicates. API credentials are configured per-config within the app (not via env).',
+  'ecommerce.endpoint.listaConfig': 'List configurations',
+  'ecommerce.endpoint.creaConfig': 'Create config { provider, nome, baseUrl, apiKey, apiSecret }',
+  'ecommerce.endpoint.aggiornaConfig': 'Update config',
+  'ecommerce.endpoint.rimuoviConfig': 'Remove config',
+  'ecommerce.endpoint.syncProdotti': 'Push local products → remote (opt. body { ids: [..] })',
+  'ecommerce.endpoint.pullOrdini': 'Pull new orders → customer orders DRAFT (opt. body { since: ISO })',
 };

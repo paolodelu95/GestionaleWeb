@@ -2830,4 +2830,30 @@ export const IT: Record<string, string> = {
   'sdiPassive.msg.nessunaOperazione': 'nessuna operazione',
   'sdiPassive.msg.arrivoMerce': 'arrivo merce {{numero}}',
   'sdiPassive.msg.pagamentoImporto': 'pagamento € {{importo}}',
+
+  // ── Shared: WIP Placeholder ───────────────────────────────────────────────
+  'shared.wipPlaceholder.title': 'Da implementare',
+  'shared.wipPlaceholder.subtitle': 'Il backend è pronto. UI in arrivo.',
+  'shared.wipPlaceholder.defaultSubtitle': 'Stiamo lavorando a questa funzionalità.',
+  'shared.wipPlaceholder.developmentTitle': "L'interfaccia è in fase di sviluppo.",
+  'shared.wipPlaceholder.etaPart1': 'Le API backend sono già pronte e operative: se ti serve usare questa funzione subito, contattaci a',
+  'shared.wipPlaceholder.etaPart2': 'e ti aiutiamo a integrarla direttamente via API.',
+  'shared.wipPlaceholder.docsLink': 'Documentazione provider',
+  'shared.wipPlaceholder.techDetails': 'Dettagli tecnici per sviluppatori',
+  'shared.wipPlaceholder.endpointsTitle': 'Endpoint backend disponibili',
+  'shared.wipPlaceholder.col.metodo': 'Metodo',
+  'shared.wipPlaceholder.col.path': 'Path',
+  'shared.wipPlaceholder.col.descrizione': 'Descrizione',
+  'shared.wipPlaceholder.envVarsTitle': "Variabili d'ambiente da configurare su Fly",
+
+  // ── E-commerce ────────────────────────────────────────────────────────────
+  'ecommerce.title': 'E-commerce — WooCommerce / Shopify',
+  'ecommerce.subtitle': 'Backend pronto. La UI per gestire la configurazione e i sync è da costruire.',
+  'ecommerce.description': "Sincronizza prodotti dal gestionale al sito (push) e importa gli ordini dal sito al gestionale come 'Ordini cliente' in BOZZA (pull). Mapping persistente per non duplicare. Le credenziali API si configurano per-config dentro l'app (non via env).",
+  'ecommerce.endpoint.listaConfig': 'Lista configurazioni',
+  'ecommerce.endpoint.creaConfig': 'Crea config { provider, nome, baseUrl, apiKey, apiSecret }',
+  'ecommerce.endpoint.aggiornaConfig': 'Aggiorna config',
+  'ecommerce.endpoint.rimuoviConfig': 'Rimuovi config',
+  'ecommerce.endpoint.syncProdotti': 'Push prodotti locali → remoto (opt. body { ids: [..] })',
+  'ecommerce.endpoint.pullOrdini': 'Pull nuovi ordini → ordini cliente BOZZA (opt. body { since: ISO })',
 };

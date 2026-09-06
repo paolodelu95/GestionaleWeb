@@ -1,7 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 export interface WipEndpoint {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -17,7 +19,7 @@ export interface WipEndpoint {
 @Component({
   selector: 'app-wip-placeholder',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule],
+  imports: [CommonModule, MatIconModule, MatButtonModule, TPipe],
   template: `
     <div class="wip-page">
       <div class="wip-card">
@@ -25,7 +27,7 @@ export interface WipEndpoint {
           <mat-icon>schedule</mat-icon>
         </div>
         <h1 class="wip-title">{{ title }}</h1>
-        <p class="wip-sub">{{ subtitle || 'Stiamo lavorando a questa funzionalità.' }}</p>
+        <p class="wip-sub">{{ subtitle || ('shared.wipPlaceholder.defaultSubtitle' | t) }}</p>
 
         @if (description) {
           <p class="wip-desc">{{ description }}</p>
@@ -34,30 +36,29 @@ export interface WipEndpoint {
         <div class="wip-eta">
           <mat-icon>info_outline</mat-icon>
           <div>
-            <strong>L'interfaccia è in fase di sviluppo.</strong>
+            <strong>{{ 'shared.wipPlaceholder.developmentTitle' | t }}</strong>
             <br>
-            Le API backend sono già pronte e operative: se ti serve usare questa
-            funzione subito, contattaci a
+            {{ 'shared.wipPlaceholder.etaPart1' | t }}
             <a href="mailto:supporto@ordeva.it">supporto@ordeva.it</a>
-            e ti aiutiamo a integrarla direttamente via API.
+            {{ 'shared.wipPlaceholder.etaPart2' | t }}
           </div>
         </div>
 
         @if (docsUrl) {
           <a mat-stroked-button [href]="docsUrl" target="_blank" rel="noopener" class="wip-docs">
-            <mat-icon>open_in_new</mat-icon> Documentazione provider
+            <mat-icon>open_in_new</mat-icon> {{ 'shared.wipPlaceholder.docsLink' | t }}
           </a>
         }
 
         @if (endpoints.length || envVars.length) {
           <details class="wip-tech">
-            <summary>Dettagli tecnici per sviluppatori</summary>
+            <summary>{{ 'shared.wipPlaceholder.techDetails' | t }}</summary>
 
             @if (endpoints && endpoints.length) {
               <div class="wip-block">
-                <div class="wip-block-title">Endpoint backend disponibili</div>
+                <div class="wip-block-title">{{ 'shared.wipPlaceholder.endpointsTitle' | t }}</div>
                 <table class="wip-table">
-                  <thead><tr><th>Metodo</th><th>Path</th><th>Descrizione</th></tr></thead>
+                  <thead><tr><th>{{ 'shared.wipPlaceholder.col.metodo' | t }}</th><th>{{ 'shared.wipPlaceholder.col.path' | t }}</th><th>{{ 'shared.wipPlaceholder.col.descrizione' | t }}</th></tr></thead>
                   <tbody>
                     @for (e of endpoints; track e.path) {
                       <tr>
@@ -73,7 +74,7 @@ export interface WipEndpoint {
 
             @if (envVars && envVars.length) {
               <div class="wip-block">
-                <div class="wip-block-title">Variabili d'ambiente da configurare su Fly</div>
+                <div class="wip-block-title">{{ 'shared.wipPlaceholder.envVarsTitle' | t }}</div>
                 <pre class="wip-code">@for (v of envVars; track v) {<span>fly secrets set {{ v }}=&lt;valore&gt; -a invoxa
 </span>}</pre>
               </div>
@@ -129,8 +130,9 @@ export interface WipEndpoint {
   `],
 })
 export class WipPlaceholderComponent {
-  @Input() title = 'Da implementare';
-  @Input() subtitle = 'Il backend è pronto. UI in arrivo.';
+  private i18n = inject(I18nService);
+  @Input() title = this.i18n.t('shared.wipPlaceholder.title');
+  @Input() subtitle = this.i18n.t('shared.wipPlaceholder.subtitle');
   @Input() description = '';
   @Input() endpoints: WipEndpoint[] = [];
   @Input() envVars: string[] = [];
