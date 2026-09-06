@@ -1,16 +1,16 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Fatturazione Ricorrente</h1>
+    <h1 class="page-title">{{ 'fattureRicorrenti.title' | t }}</h1>
     <button mat-flat-button type="button" (click)="open()">
-      <mat-icon>add</mat-icon> Nuova ricorrente
+      <mat-icon>add</mat-icon> {{ 'fattureRicorrenti.nuovaRicorrente' | t }}
     </button>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAttiva" placeholder="Stato">
-      <mat-option value="all">Tutti</mat-option>
-      <mat-option value="attiva">Solo attive</mat-option>
-      <mat-option value="non-attiva">Solo non attive</mat-option>
+    <mat-select [(ngModel)]="filtroAttiva" [placeholder]="'fattureRicorrenti.stato' | t">
+      <mat-option value="all">{{ 'fattureRicorrenti.filtro.tutti' | t }}</mat-option>
+      <mat-option value="attiva">{{ 'fattureRicorrenti.filtro.soloAttive' | t }}</mat-option>
+      <mat-option value="non-attiva">{{ 'fattureRicorrenti.filtro.soloNonAttive' | t }}</mat-option>
     </mat-select>
   </div>
 
@@ -18,36 +18,36 @@
     <table mat-table [dataSource]="filtered" class="mat-mdc-table">
 
       <ng-container matColumnDef="cliente">
-        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'fattureRicorrenti.col.cliente' | t }}</th>
         <td mat-cell *matCellDef="let r"><b>{{ r.clienteNome || '—' }}</b></td>
       </ng-container>
 
       <ng-container matColumnDef="descrizione">
-        <th mat-header-cell *matHeaderCellDef>Descrizione</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'fattureRicorrenti.col.descrizione' | t }}</th>
         <td mat-cell *matCellDef="let r">{{ r.descrizione }}</td>
       </ng-container>
 
       <ng-container matColumnDef="frequenza">
-        <th mat-header-cell *matHeaderCellDef>Frequenza</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'fattureRicorrenti.col.frequenza' | t }}</th>
         <td mat-cell *matCellDef="let r">
           <span class="freq-chip freq-{{ r.frequenza | lowercase }}">{{ frequenzaLabel(r.frequenza) }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="prossimaEmissione">
-        <th mat-header-cell *matHeaderCellDef>Prossima emissione</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'fattureRicorrenti.col.prossimaEmissione' | t }}</th>
         <td mat-cell *matCellDef="let r">
           <span [class.scaduta]="isScaduta(r)" [class.ok-date]="!isScaduta(r)">
             {{ r.prossimaEmissione | date:'dd/MM/yyyy' }}
           </span>
           @if (isScaduta(r)) {
-            <mat-icon class="scaduta-icon" matTooltip="Emissione scaduta">warning</mat-icon>
+            <mat-icon class="scaduta-icon" [matTooltip]="'fattureRicorrenti.emissioneScaduta' | t">warning</mat-icon>
           }
         </td>
       </ng-container>
 
       <ng-container matColumnDef="attiva">
-        <th mat-header-cell *matHeaderCellDef>Attiva</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'fattureRicorrenti.col.attiva' | t }}</th>
         <td mat-cell *matCellDef="let r">
           <mat-slide-toggle
             [checked]="r.attiva"
@@ -60,11 +60,11 @@
       <ng-container matColumnDef="azioni">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let r" class="table-actions">
-          <button mat-icon-button type="button" [matMenuTriggerFor]="frMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+          <button mat-icon-button type="button" [matMenuTriggerFor]="frMenu" [title]="'fattureRicorrenti.azioni' | t"><mat-icon>more_vert</mat-icon></button>
           <mat-menu #frMenu="matMenu">
-            <button mat-menu-item type="button" (click)="emetti(r)"><mat-icon style="color:#11769b">send</mat-icon> Emetti fattura adesso</button>
-            <button mat-menu-item type="button" (click)="open(r)"><mat-icon>edit</mat-icon> Modifica</button>
-            <button mat-menu-item type="button" (click)="delete(r)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+            <button mat-menu-item type="button" (click)="emetti(r)"><mat-icon style="color:#11769b">send</mat-icon> {{ 'fattureRicorrenti.emettiOra' | t }}</button>
+            <button mat-menu-item type="button" (click)="open(r)"><mat-icon>edit</mat-icon> {{ 'fattureRicorrenti.modifica' | t }}</button>
+            <button mat-menu-item type="button" (click)="delete(r)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> {{ 'fattureRicorrenti.elimina' | t }}</button>
           </mat-menu>
         </td>
       </ng-container>
@@ -74,13 +74,13 @@
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
           @if (ricorrenti.length > 0) {
-            <app-empty-state compact icon="search_off" title="Nessun risultato"
-              message="Nessuna ricorrente con i filtri selezionati." />
+            <app-empty-state compact icon="search_off" [title]="'fattureRicorrenti.empty.nessunRisultatoTitle' | t"
+              [message]="'fattureRicorrenti.empty.nessunRisultatoMsg' | t" />
           } @else {
-            <app-empty-state icon="autorenew" title="Ancora nessuna fattura ricorrente"
-              message="Imposta una fattura che si genera da sola a intervalli regolari (canoni, abbonamenti…).">
+            <app-empty-state icon="autorenew" [title]="'fattureRicorrenti.empty.vuotaTitle' | t"
+              [message]="'fattureRicorrenti.empty.vuotaMsg' | t">
               <button mat-flat-button color="primary" type="button" (click)="open()">
-                <mat-icon>add</mat-icon> Nuova ricorrente
+                <mat-icon>add</mat-icon> {{ 'fattureRicorrenti.nuovaRicorrente' | t }}
               </button>
             </app-empty-state>
           }

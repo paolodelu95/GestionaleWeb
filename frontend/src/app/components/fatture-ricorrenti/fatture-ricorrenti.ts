@@ -19,6 +19,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService } from '../../services/data.service';
 import { Cliente, TipoPagamento, UnitaMisura } from '../../models';
 import { docRigaTotale } from '../../utils/doc-calc';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 // ── Styles shared by dialog rig table ──────────────────────────────────────
 // ── Dialog ─────────────────────────────────────────────────────────────────
@@ -29,7 +31,7 @@ import { docRigaTotale } from '../../utils/doc-calc';
     CommonModule, FormsModule, ReactiveFormsModule,
     MatDialogModule, MatFormFieldModule, MatInputModule,
     MatButtonModule, MatSelectModule, MatSlideToggleModule,
-    MatIconModule, MatSnackBarModule
+    MatIconModule, MatSnackBarModule, TPipe
   ],
   template: `
     <mat-dialog-content>
@@ -38,73 +40,73 @@ import { docRigaTotale } from '../../utils/doc-calc';
           <mat-icon>repeat</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">{{ data?.id ? 'Modifica fattura ricorrente' : 'Nuova fattura ricorrente' }}</span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Aggiorna le impostazioni di ricorrenza' : 'Configura la generazione automatica della fattura' }}</span>
+          <span class="dialog-hero-title">{{ (data?.id ? 'fattureRicorrenti.dialog.modificaTitle' : 'fattureRicorrenti.dialog.nuovaTitle') | t }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'fattureRicorrenti.dialog.modificaSub' : 'fattureRicorrenti.dialog.nuovaSub') | t }}</span>
         </div>
       </div>
 
       <div class="doc-form">
 
         <div class="form-section is-primary">
-          <div class="form-section-header"><mat-icon>person</mat-icon><span>Cliente e contenuto</span></div>
+          <div class="form-section-header"><mat-icon>person</mat-icon><span>{{ 'fattureRicorrenti.dialog.clienteContenuto' | t }}</span></div>
           <div class="doc-field-grid has-2-extra" [formGroup]="form">
             <mat-form-field>
-              <mat-label>Cliente *</mat-label>
+              <mat-label>{{ 'fattureRicorrenti.dialog.cliente' | t }}</mat-label>
               <mat-select formControlName="clienteId">
                 @for (c of clienti; track c.id) {
                   <mat-option [value]="c.id">{{ c.ragioneSociale }}</mat-option>
                 }
               </mat-select>
               @if (form.get('clienteId')?.invalid && submitted) {
-                <mat-error>Seleziona un cliente</mat-error>
+                <mat-error>{{ 'fattureRicorrenti.dialog.selezionaCliente' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field class="grid-span-all">
-              <mat-label>Descrizione *</mat-label>
-              <input matInput formControlName="descrizione" placeholder="Es. Canone mensile assistenza">
+              <mat-label>{{ 'fattureRicorrenti.dialog.descrizione' | t }}</mat-label>
+              <input matInput formControlName="descrizione" [placeholder]="'fattureRicorrenti.dialog.descrizionePlaceholder' | t">
               @if (form.get('descrizione')?.invalid && submitted) {
-                <mat-error>Campo obbligatorio</mat-error>
+                <mat-error>{{ 'fattureRicorrenti.dialog.campoObbligatorio' | t }}</mat-error>
               }
             </mat-form-field>
           </div>
         </div>
 
         <div class="form-section">
-          <div class="form-section-header"><mat-icon>event_repeat</mat-icon><span>Pianificazione</span></div>
+          <div class="form-section-header"><mat-icon>event_repeat</mat-icon><span>{{ 'fattureRicorrenti.dialog.pianificazione' | t }}</span></div>
           <div class="doc-field-grid has-2-extra" [formGroup]="form">
             <mat-form-field>
-              <mat-label>Frequenza *</mat-label>
+              <mat-label>{{ 'fattureRicorrenti.dialog.frequenza' | t }}</mat-label>
               <mat-select formControlName="frequenza">
-                <mat-option value="MENSILE">Mensile</mat-option>
-                <mat-option value="BIMESTRALE">Bimestrale</mat-option>
-                <mat-option value="TRIMESTRALE">Trimestrale</mat-option>
-                <mat-option value="SEMESTRALE">Semestrale</mat-option>
-                <mat-option value="ANNUALE">Annuale</mat-option>
+                <mat-option value="MENSILE">{{ 'fattureRicorrenti.freq.mensile' | t }}</mat-option>
+                <mat-option value="BIMESTRALE">{{ 'fattureRicorrenti.freq.bimestrale' | t }}</mat-option>
+                <mat-option value="TRIMESTRALE">{{ 'fattureRicorrenti.freq.trimestrale' | t }}</mat-option>
+                <mat-option value="SEMESTRALE">{{ 'fattureRicorrenti.freq.semestrale' | t }}</mat-option>
+                <mat-option value="ANNUALE">{{ 'fattureRicorrenti.freq.annuale' | t }}</mat-option>
               </mat-select>
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Giorno emissione (1-28)</mat-label>
+              <mat-label>{{ 'fattureRicorrenti.dialog.giornoEmissione' | t }}</mat-label>
               <input matInput type="number" min="1" max="28" formControlName="giornoEmissione">
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Prima/prossima emissione *</mat-label>
+              <mat-label>{{ 'fattureRicorrenti.dialog.primaProssimaEmissione' | t }}</mat-label>
               <input matInput type="date" formControlName="prossimaEmissione">
               @if (form.get('prossimaEmissione')?.invalid && submitted) {
-                <mat-error>Data obbligatoria</mat-error>
+                <mat-error>{{ 'fattureRicorrenti.dialog.dataObbligatoria' | t }}</mat-error>
               }
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Tipo di pagamento</mat-label>
+              <mat-label>{{ 'fattureRicorrenti.dialog.tipoPagamento' | t }}</mat-label>
               <mat-select formControlName="tipoPagamentoId">
-                <mat-option [value]="null">— non specificato —</mat-option>
+                <mat-option [value]="null">{{ 'fattureRicorrenti.dialog.nonSpecificato' | t }}</mat-option>
                 @for (t of tipiPagamento; track t.id) {
                   <mat-option [value]="t.id">{{ t.nome }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
             <div class="ric-toggle grid-span-all">
-              <mat-slide-toggle formControlName="attiva">Ricorrenza attiva</mat-slide-toggle>
-              <span class="ric-toggle-hint">Se disattivata, la fattura non verrà generata automaticamente.</span>
+              <mat-slide-toggle formControlName="attiva">{{ 'fattureRicorrenti.dialog.ricorrenzaAttiva' | t }}</mat-slide-toggle>
+              <span class="ric-toggle-hint">{{ 'fattureRicorrenti.dialog.ricorrenzaHint' | t }}</span>
             </div>
           </div>
         </div>
@@ -112,14 +114,14 @@ import { docRigaTotale } from '../../utils/doc-calc';
         <div class="form-section">
           <div class="righe-header">
             <div class="righe-header-title">
-              <span>Righe *</span>
+              <span>{{ 'fattureRicorrenti.dialog.righe' | t }}</span>
               @if (submitted && !hasRighe) {
-                <span class="righe-error"><mat-icon>error_outline</mat-icon> Aggiungi almeno una riga</span>
+                <span class="righe-error"><mat-icon>error_outline</mat-icon> {{ 'fattureRicorrenti.dialog.aggiungiRigaErrore' | t }}</span>
               }
             </div>
             <div class="righe-actions">
               <button mat-flat-button color="primary" type="button" (click)="addRiga()">
-                <mat-icon>add</mat-icon> Aggiungi riga
+                <mat-icon>add</mat-icon> {{ 'fattureRicorrenti.dialog.aggiungiRiga' | t }}
               </button>
             </div>
           </div>
@@ -127,22 +129,22 @@ import { docRigaTotale } from '../../utils/doc-calc';
           <table class="righe-table">
             <thead>
               <tr>
-                <th class="td-desc">Descrizione</th>
-                <th class="td-qta">Qtà</th>
-                <th class="td-um">UM</th>
-                <th class="td-prezzo">Prezzo</th>
-                <th class="td-sconto">Sconto%</th>
-                <th class="td-iva">IVA%</th>
-                <th class="td-totale">Totale</th>
+                <th class="td-desc">{{ 'fattureRicorrenti.dialog.col.descrizione' | t }}</th>
+                <th class="td-qta">{{ 'fattureRicorrenti.dialog.col.qta' | t }}</th>
+                <th class="td-um">{{ 'fattureRicorrenti.dialog.col.um' | t }}</th>
+                <th class="td-prezzo">{{ 'fattureRicorrenti.dialog.col.prezzo' | t }}</th>
+                <th class="td-sconto">{{ 'fattureRicorrenti.dialog.col.sconto' | t }}</th>
+                <th class="td-iva">{{ 'fattureRicorrenti.dialog.col.iva' | t }}</th>
+                <th class="td-totale">{{ 'fattureRicorrenti.dialog.col.totale' | t }}</th>
                 <th class="td-actions"></th>
               </tr>
             </thead>
             <tbody>
               @for (riga of righe; track $index) {
                 <tr>
-                  <td class="td-desc"><input class="riga-input" [(ngModel)]="riga.descrizione" placeholder="Descrizione"></td>
-                  <td class="td-qta" [attr.data-label]="'Qtà'"><input class="riga-input" type="number" min="0" step="0.01" [(ngModel)]="riga.quantita"></td>
-                  <td class="td-um" [attr.data-label]="'UM'">
+                  <td class="td-desc"><input class="riga-input" [(ngModel)]="riga.descrizione" [placeholder]="'fattureRicorrenti.dialog.col.descrizione' | t"></td>
+                  <td class="td-qta" [attr.data-label]="'fattureRicorrenti.dialog.col.qta' | t"><input class="riga-input" type="number" min="0" step="0.01" [(ngModel)]="riga.quantita"></td>
+                  <td class="td-um" [attr.data-label]="'fattureRicorrenti.dialog.col.um' | t">
                     <select class="riga-input" [(ngModel)]="riga.unitaMisura">
                       <option value="">—</option>
                       @for (u of unitaMisura; track u.id) {
@@ -150,10 +152,10 @@ import { docRigaTotale } from '../../utils/doc-calc';
                       }
                     </select>
                   </td>
-                  <td class="td-prezzo" [attr.data-label]="'Prezzo'"><input class="riga-input" type="number" min="0" step="0.01" [(ngModel)]="riga.prezzo"></td>
-                  <td class="td-sconto" [attr.data-label]="'Sconto %'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
-                  <td class="td-iva" [attr.data-label]="'IVA'"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
-                  <td class="td-totale" [attr.data-label]="'Totale'">
+                  <td class="td-prezzo" [attr.data-label]="'fattureRicorrenti.dialog.col.prezzo' | t"><input class="riga-input" type="number" min="0" step="0.01" [(ngModel)]="riga.prezzo"></td>
+                  <td class="td-sconto" [attr.data-label]="'fattureRicorrenti.dialog.col.sconto' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.sconto" placeholder="0"></td>
+                  <td class="td-iva" [attr.data-label]="'fattureRicorrenti.dialog.col.iva' | t"><input class="riga-input" type="number" min="0" max="100" step="0.1" [(ngModel)]="riga.iva"></td>
+                  <td class="td-totale" [attr.data-label]="'fattureRicorrenti.dialog.col.totale' | t">
                     {{ rigaTotale(riga) | currency:'EUR':'symbol':'1.2-2':'it' }}
                   </td>
                   <td class="td-actions">
@@ -169,24 +171,24 @@ import { docRigaTotale } from '../../utils/doc-calc';
         </div>
 
         <div class="doc-totals-strip">
-          <div class="totals-item"><span class="totals-label">Imponibile</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
-          <div class="totals-item"><span class="totals-label">IVA</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fattureRicorrenti.dialog.imponibile' | t }}</span><span class="totals-value">{{ imponibile | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-item"><span class="totals-label">{{ 'fattureRicorrenti.dialog.iva' | t }}</span><span class="totals-value">{{ ivaTotal | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
           <span class="totals-spacer"></span>
-          <div class="totals-grand"><span class="totals-label">Totale</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
+          <div class="totals-grand"><span class="totals-label">{{ 'fattureRicorrenti.dialog.totale' | t }}</span><span class="totals-value">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span></div>
         </div>
 
         <div class="form-section is-flat" [formGroup]="form">
-          <div class="form-section-header"><mat-icon>notes</mat-icon><span>Note</span></div>
+          <div class="form-section-header"><mat-icon>notes</mat-icon><span>{{ 'fattureRicorrenti.dialog.note' | t }}</span></div>
           <mat-form-field>
-            <mat-label>Note</mat-label>
+            <mat-label>{{ 'fattureRicorrenti.dialog.note' | t }}</mat-label>
             <textarea matInput rows="2" formControlName="note"></textarea>
           </mat-form-field>
         </div>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()">Salva</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()">{{ 'fatture.dialog.salva' | t }}</button>
     </mat-dialog-actions>
   `,
   styles: [RIGHE_STYLES + `
@@ -254,11 +256,12 @@ export class FatturaRicorrenteDialogComponent implements OnInit {
     MatTableModule, MatButtonModule, MatIconModule,
     MatDialogModule, MatSnackBarModule, MatSelectModule,
     MatChipsModule, MatTooltipModule, MatSlideToggleModule, MatMenuModule
-  , EmptyStateComponent],
+  , EmptyStateComponent, TPipe],
   templateUrl: './fatture-ricorrenti.html',
   styleUrl: './fatture-ricorrenti.scss'
 })
 export class FattureRicorrentiComponent implements OnInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   ricorrenti: any[] = [];
   filtroAttiva: 'all' | 'attiva' | 'non-attiva' = 'all';
@@ -284,16 +287,17 @@ export class FattureRicorrentiComponent implements OnInit {
 
   frequenzaLabel(f: string): string {
     const map: Record<string, string> = {
-      MENSILE: 'Mensile', BIMESTRALE: 'Bimestrale', TRIMESTRALE: 'Trimestrale',
-      SEMESTRALE: 'Semestrale', ANNUALE: 'Annuale'
+      MENSILE: 'fattureRicorrenti.freq.mensile', BIMESTRALE: 'fattureRicorrenti.freq.bimestrale',
+      TRIMESTRALE: 'fattureRicorrenti.freq.trimestrale', SEMESTRALE: 'fattureRicorrenti.freq.semestrale',
+      ANNUALE: 'fattureRicorrenti.freq.annuale'
     };
-    return map[f] ?? f;
+    return map[f] ? this.i18n.t(map[f]) : f;
   }
 
   toggleAttiva(r: any) {
     this.ds.updateFatturaRicorrente({ ...r, attiva: !r.attiva }).subscribe({
       next: () => { r.attiva = !r.attiva; },
-      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 3000 })
+      error: e => this.snack.open(this.i18n.t('fattureRicorrenti.msg.errore', { err: e.error?.error || e.message }), '', { duration: 3000 })
     });
   }
 
@@ -305,7 +309,7 @@ export class FattureRicorrentiComponent implements OnInit {
       if (!result) return;
       const op = result.id ? this.ds.updateFatturaRicorrente(result) : this.ds.createFatturaRicorrente(result);
       op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('fattureRicorrenti.msg.salvato'), '', { duration: 2000 }); },
         error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
       });
     });
@@ -315,16 +319,16 @@ export class FattureRicorrentiComponent implements OnInit {
     this.ds.emettiFatturaRicorrente(r.id).subscribe({
       next: res => {
         this.load();
-        this.snack.open(`Fattura emessa: n. ${res.numero}`, '', { duration: 3500 });
+        this.snack.open(this.i18n.t('fattureRicorrenti.msg.fatturaEmessa', { numero: res.numero }), '', { duration: 3500 });
       },
-      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), '', { duration: 4000 })
+      error: e => this.snack.open(this.i18n.t('fattureRicorrenti.msg.errore', { err: e.error?.error || e.message }), '', { duration: 4000 })
     });
   }
 
   async delete(r: any) {
-    if (!await this.confirm.delete(`Eliminare la ricorrente "${r.descrizione}"?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('fattureRicorrenti.msg.confermaElimina', { descrizione: r.descrizione }))) return;
     this.ds.deleteFatturaRicorrente(r.id).subscribe({
-      next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      next: () => { this.load(); this.snack.open(this.i18n.t('fattureRicorrenti.msg.eliminato'), '', { duration: 2000 }); },
       error: e => this.snack.open(e.error?.error || e.message, '', { duration: 3000 })
     });
   }
