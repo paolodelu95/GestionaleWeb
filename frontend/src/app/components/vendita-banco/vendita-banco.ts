@@ -22,6 +22,8 @@ import { DocInfoDialogComponent, DocInfoData } from '../shared/doc-info-dialog';
 import { BarcodeScannerDialogComponent } from '../shared/barcode-scanner-dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface RigaVendita extends RigaDocumento {
   varianteId?: number | null;
@@ -44,7 +46,7 @@ interface MetodoPagamento {
     MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatTabsModule, MatSnackBarModule, MatAutocompleteModule,
-    MatProgressSpinnerModule, MatMenuModule, MatDialogModule,
+    MatProgressSpinnerModule, MatMenuModule, MatDialogModule, TPipe,
   ],
   templateUrl: './vendita-banco.html',
   styles: [RIGHE_STYLES + `
@@ -151,6 +153,7 @@ interface MetodoPagamento {
   `]
 })
 export class VenditaBancoComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
 
   today = new Date().toISOString().substring(0, 10);
@@ -164,11 +167,11 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   clientiList: Cliente[] = [];
 
   readonly metodiPagamento: MetodoPagamento[] = [
-    { valore: 'CONTANTI',         label: 'Contanti',         icon: 'payments' },
-    { valore: 'BANCOMAT',         label: 'Bancomat',         icon: 'credit_card' },
-    { valore: 'CARTA DI CREDITO', label: 'Carta credito',    icon: 'contactless' },
-    { valore: 'BONIFICO',         label: 'Bonifico',         icon: 'account_balance' },
-    { valore: 'ASSEGNO',          label: 'Assegno',          icon: 'receipt_long' },
+    { valore: 'CONTANTI',         label: 'venditaBanco.metodo.contanti',     icon: 'payments' },
+    { valore: 'BANCOMAT',         label: 'venditaBanco.metodo.bancomat',     icon: 'credit_card' },
+    { valore: 'CARTA DI CREDITO', label: 'venditaBanco.metodo.cartaCredito', icon: 'contactless' },
+    { valore: 'BONIFICO',         label: 'venditaBanco.metodo.bonifico',     icon: 'account_balance' },
+    { valore: 'ASSEGNO',          label: 'venditaBanco.metodo.assegno',      icon: 'receipt_long' },
   ];
 
   // ── Fattura ──────────────────────────────────────────────────────────────
@@ -410,7 +413,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
           this.variantiPerRiga[idx] = [];
           this.selectProdotto(idx, res.prodotto);
         },
-        error: () => this.snack.open(`Barcode ${code} non corrisponde a nessun prodotto`, 'OK', { duration: 4000, panelClass: 'snack-error' })
+        error: () => this.snack.open(this.i18n.t('venditaBanco.msg.barcodeNonTrovato', { code }), this.i18n.t('venditaBanco.msg.ok'), { duration: 4000, panelClass: 'snack-error' })
       });
     });
   }
@@ -481,7 +484,9 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
 
   varianteLabel(v: ProdottoVariante): string {
     const parts = [v.taglia, v.colore].filter(Boolean);
-    return parts.length ? `${parts.join(' / ')} (qtà: ${v.quantita})` : `Variante #${v.id}`;
+    return parts.length
+      ? `${parts.join(' / ')} ${this.i18n.t('venditaBanco.varianteQta', { n: v.quantita })}`
+      : this.i18n.t('venditaBanco.varianteNumero', { n: v.id! });
   }
 
   roundIfPz(r: { unitaMisura?: string; quantita: number }) {
@@ -503,33 +508,33 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
 
   // ── Salva ─────────────────────────────────────────────────────────────────
   salvaEStampa() {
-    if (!this.righe.length) { this.snack.open('Aggiungi almeno un prodotto', '', { duration: 2000 }); return; }
+    if (!this.righe.length) { this.snack.open(this.i18n.t('venditaBanco.msg.aggiungiProdotto'), '', { duration: 2000 }); return; }
 
     if (this.pagamentoMisto) {
       if (this.pagamentiMisti.some(p => !p.importo || p.importo <= 0)) {
-        this.snack.open('Inserisci l\'importo per tutti i metodi di pagamento', '', { duration: 2500 }); return;
+        this.snack.open(this.i18n.t('venditaBanco.msg.importoTuttiMetodi'), '', { duration: 2500 }); return;
       }
       if (this.rimanenteAllocare > 0.01) {
-        this.snack.open(`Importo non completo: mancano €${this.rimanenteAllocare.toFixed(2)}`, '', { duration: 2500 }); return;
+        this.snack.open(this.i18n.t('venditaBanco.msg.importoNonCompleto', { importo: `€${this.rimanenteAllocare.toFixed(2)}` }), '', { duration: 2500 }); return;
       }
       if (this.rimanenteAllocare < -0.01) {
-        this.snack.open(`Importo in eccesso di €${(-this.rimanenteAllocare).toFixed(2)}`, '', { duration: 2500 }); return;
+        this.snack.open(this.i18n.t('venditaBanco.msg.importoEccesso', { importo: `€${(-this.rimanenteAllocare).toFixed(2)}` }), '', { duration: 2500 }); return;
       }
     }
 
     if (this.vuoleFattura) {
       if (!this.clienteSelezionato && !this.mostraFormManuale) {
-        this.snack.open('Cerca la P.IVA del cliente per generare la fattura', '', { duration: 2500 }); return;
+        this.snack.open(this.i18n.t('venditaBanco.msg.cercaPivaCliente'), '', { duration: 2500 }); return;
       }
       if (this.mostraFormManuale && !this.nuovoCliente.ragioneSociale.trim()) {
-        this.snack.open('Inserisci la ragione sociale del cliente', '', { duration: 2500 }); return;
+        this.snack.open(this.i18n.t('venditaBanco.msg.inserisciRagioneSociale'), '', { duration: 2500 }); return;
       }
     }
 
     if (this.vuoleFattura && !this.clienteSelezionato) {
       this.ds.createCliente(this.nuovoCliente as unknown as Cliente).subscribe({
         next: r => this.procediSalvataggio(r.id),
-        error: e => this.snack.open('Errore creazione cliente: ' + e.message, '', { duration: 3000 }),
+        error: e => this.snack.open(this.i18n.t('venditaBanco.msg.erroreCreazioneCliente', { err: e.message }), '', { duration: 3000 }),
       });
     } else {
       this.procediSalvataggio(this.clienteSelezionato?.id);
@@ -553,23 +558,23 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
         if (this.vuoleFattura && clienteId) {
           this.ds.generaFatturaFromVendita(res.id, clienteId).subscribe({
             next: fat => {
-              this.snack.open(`Vendita registrata · Fattura ${fat.numero} generata`, '', { duration: 3500 });
+              this.snack.open(this.i18n.t('venditaBanco.msg.venditaFatturaGenerata', { numero: fat.numero }), '', { duration: 3500 });
               this.loadStorico();
               this.resetForm();
             },
             error: () => {
-              this.snack.open('Vendita salvata, errore nella generazione fattura', '', { duration: 3500 });
+              this.snack.open(this.i18n.t('venditaBanco.msg.venditaSalvataErroreFattura'), '', { duration: 3500 });
               this.loadStorico();
               this.resetForm();
             },
           });
         } else {
-          this.snack.open('Vendita registrata', '', { duration: 2000 });
+          this.snack.open(this.i18n.t('venditaBanco.msg.venditaRegistrata'), '', { duration: 2000 });
           this.loadStorico();
           this.resetForm();
         }
       },
-      error: e => this.snack.open(e.error?.error || e.message, 'OK', { duration: 4000, panelClass: 'snack-error' }),
+      error: e => this.snack.open(e.error?.error || e.message, this.i18n.t('venditaBanco.msg.ok'), { duration: 4000, panelClass: 'snack-error' }),
     });
   }
 
@@ -597,7 +602,7 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
       const ivaT = righe.reduce((s: number, r: any) => s + r.quantita * r.prezzo * (1 - (r.sconto ?? 0) / 100) * r.iva / 100, 0);
       this.dialog.open(DocInfoDialogComponent, {
         data: {
-          tipo: 'DOCUMENTO COMMERCIALE', sottotitolo: `Pagamento: ${v.metodoPagamento ?? 'CONTANTI'}`,
+          tipo: this.i18n.t('venditaBanco.docTipo'), sottotitolo: this.i18n.t('venditaBanco.pagamentoInfo', { metodo: v.metodoPagamento ?? 'CONTANTI' }),
           numero: doc.numero, data: doc.data, stato: doc.stato ?? 'EMESSA',
           controparte: doc.clienteNome || undefined,
           totale: imponibile + ivaT, imponibile, righe,
@@ -609,10 +614,10 @@ export class VenditaBancoComponent implements OnInit, AfterViewInit {
   }
 
   async elimina(v: VenditaBanco) {
-    if (!await this.confirm.delete(`Eliminare la vendita ${v.numero}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('venditaBanco.msg.confermaElimina', { numero: v.numero }))) return;
     this.ds.deleteVenditaBanco(v.id!).subscribe(() => {
       this.loadStorico();
-      this.snack.open('Eliminata', '', { duration: 2000 });
+      this.snack.open(this.i18n.t('venditaBanco.msg.eliminata'), '', { duration: 2000 });
     });
   }
 
