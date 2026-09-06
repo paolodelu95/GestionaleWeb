@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -9,6 +9,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface Candidato {
   prodottoId: number;
@@ -38,7 +40,7 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
     CommonModule, FormsModule,
     MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatSnackBarModule,
-    MatTooltipModule, RouterLink,
+    MatTooltipModule, RouterLink, TPipe,
   ],
   styles: [`
     :host { display: block; padding: 24px; max-width: 900px; margin: 0 auto; }
@@ -176,8 +178,8 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
     <div class="page-header">
       <div class="page-header-icon"><mat-icon>document_scanner</mat-icon></div>
       <div>
-        <h1 class="page-title">OCR fatture passive</h1>
-        <p class="page-sub">Carica il PDF · Mindee estrae i dati · Conferma per creare l'acquisto</p>
+        <h1 class="page-title">{{ 'ocrFatture.title' | t }}</h1>
+        <p class="page-sub">{{ 'ocrFatture.subtitle' | t }}</p>
       </div>
     </div>
 
@@ -185,21 +187,21 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
       <div class="card drop-card" [class.drag-over]="dragOver"
            (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
         <mat-icon class="drop-icon">upload_file</mat-icon>
-        <p class="drop-title">Trascina qui il PDF della fattura</p>
-        <p class="drop-sub">oppure</p>
+        <p class="drop-title">{{ 'ocrFatture.dropTitle' | t }}</p>
+        <p class="drop-sub">{{ 'ocrFatture.oppure' | t }}</p>
         <input #fileInput type="file" accept=".pdf" style="display:none" (change)="onFileSelected($event)">
         <button mat-flat-button color="primary" (click)="fileInput.click()">
-          <mat-icon>attach_file</mat-icon>&nbsp;Sfoglia file
+          <mat-icon>attach_file</mat-icon>&nbsp;{{ 'ocrFatture.sfoglia' | t }}
         </button>
-        <p class="drop-hint">Solo PDF &middot; max 10 MB</p>
+        <p class="drop-hint">{{ 'ocrFatture.dropHint' | t }}</p>
       </div>
     }
 
     @if (step === 'loading') {
       <div class="card center-card">
         <mat-spinner diameter="52"></mat-spinner>
-        <p class="loading-title">Analisi in corso…</p>
-        <p class="loading-sub">Mindee sta elaborando la fattura, attendi qualche secondo</p>
+        <p class="loading-title">{{ 'ocrFatture.analisiInCorso' | t }}</p>
+        <p class="loading-sub">{{ 'ocrFatture.loadingSub' | t }}</p>
       </div>
     }
 
@@ -207,29 +209,29 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
       <div class="card">
         <div class="preview-header">
           <div>
-            <h2 class="preview-title">Dati estratti — verifica e correggi</h2>
-            <p class="preview-sub">I campi sono editabili. Aggiungi o rimuovi righe prima di confermare.</p>
+            <h2 class="preview-title">{{ 'ocrFatture.datiEstratti' | t }}</h2>
+            <p class="preview-sub">{{ 'ocrFatture.previewSub' | t }}</p>
           </div>
-          <button mat-icon-button matTooltip="Ricomincia" (click)="reset()">
+          <button mat-icon-button [matTooltip]="'ocrFatture.ricomincia' | t" (click)="reset()">
             <mat-icon>close</mat-icon>
           </button>
         </div>
 
         <div class="fields-grid">
           <div class="field-group">
-            <label>Fornitore *</label>
-            <input class="field-input" [(ngModel)]="fornitore" placeholder="Ragione sociale">
+            <label>{{ 'ocrFatture.fornitore' | t }}</label>
+            <input class="field-input" [(ngModel)]="fornitore" [placeholder]="'ocrFatture.ragioneSocialePlaceholder' | t">
           </div>
           <div class="field-group">
-            <label>P.IVA fornitore</label>
+            <label>{{ 'ocrFatture.pIvaFornitore' | t }}</label>
             <input class="field-input" [(ngModel)]="pIva" placeholder="IT12345678901">
           </div>
           <div class="field-group">
-            <label>Numero fattura</label>
+            <label>{{ 'ocrFatture.numeroFattura' | t }}</label>
             <input class="field-input" [(ngModel)]="numero" placeholder="2024/001">
           </div>
           <div class="field-group">
-            <label>Data documento *</label>
+            <label>{{ 'ocrFatture.dataDocumento' | t }}</label>
             <input class="field-input" type="date" [(ngModel)]="dataDoc">
           </div>
         </div>
@@ -237,7 +239,7 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
         @if (avvisi.length) {
           <div style="background:var(--warning-soft,#fef3c7);border:1px solid var(--warning,#f59e0b);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:18px">
             <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:var(--warning-on,#b45309)">
-              <mat-icon style="font-size:18px;width:18px;height:18px">warning</mat-icon> Controlli da verificare
+              <mat-icon style="font-size:18px;width:18px;height:18px">warning</mat-icon> {{ 'ocrFatture.controlliDaVerificare' | t }}
             </div>
             <ul style="margin:6px 0 0;padding-left:20px;font-size:12px;color:var(--text-secondary)">
               @for (w of avvisi; track w) { <li>{{ w }}</li> }
@@ -247,49 +249,49 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
 
         <div class="righe-section">
           <div class="righe-header">
-            <b>Righe ({{ righe.length }})</b>
+            <b>{{ i18n.t('ocrFatture.righeCount', { n: righe.length }) }}</b>
             <div style="display:flex;align-items:center;gap:10px">
               @if (analizzando) {
                 <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-tertiary)">
-                  <mat-spinner diameter="14"></mat-spinner> riconoscimento prodotti…
+                  <mat-spinner diameter="14"></mat-spinner> {{ 'ocrFatture.riconoscimentoProdotti' | t }}
                 </span>
               } @else if (righe.length) {
-                <span style="font-size:12px;color:var(--text-tertiary)">{{ nAbbinate }}/{{ righe.length }} abbinate</span>
-                <button mat-button (click)="analizzaRighe()" matTooltip="Ricalcola gli abbinamenti">
-                  <mat-icon>auto_fix_high</mat-icon> Riconosci prodotti
+                <span style="font-size:12px;color:var(--text-tertiary)">{{ i18n.t('ocrFatture.abbinate', { n: nAbbinate, totale: righe.length }) }}</span>
+                <button mat-button (click)="analizzaRighe()" [matTooltip]="'ocrFatture.ricalcolaTooltip' | t">
+                  <mat-icon>auto_fix_high</mat-icon> {{ 'ocrFatture.riconosciProdotti' | t }}
                 </button>
               }
               <button mat-button (click)="addRiga()">
-                <mat-icon>add</mat-icon> Aggiungi riga
+                <mat-icon>add</mat-icon> {{ 'ocrFatture.aggiungiRiga' | t }}
               </button>
             </div>
           </div>
           <table class="righe-table">
             <thead>
               <tr>
-                <th>Descrizione</th>
-                <th style="min-width:180px">Prodotto a magazzino</th>
-                <th class="num-col">Qtà</th>
-                <th class="num-col">Prezzo</th>
-                <th class="num-col">IVA %</th>
-                <th class="num-col">Totale</th>
+                <th>{{ 'ocrFatture.col.descrizione' | t }}</th>
+                <th style="min-width:180px">{{ 'ocrFatture.col.prodottoMagazzino' | t }}</th>
+                <th class="num-col">{{ 'ocrFatture.col.qta' | t }}</th>
+                <th class="num-col">{{ 'ocrFatture.col.prezzo' | t }}</th>
+                <th class="num-col">{{ 'ocrFatture.col.ivaPercent' | t }}</th>
+                <th class="num-col">{{ 'ocrFatture.col.totale' | t }}</th>
                 <th class="del-col"></th>
               </tr>
             </thead>
             <tbody>
               @for (r of righe; track $index) {
                 <tr>
-                  <td><input class="riga-input" [(ngModel)]="r.descrizione" placeholder="Descrizione"></td>
+                  <td><input class="riga-input" [(ngModel)]="r.descrizione" [placeholder]="'ocrFatture.descrizionePlaceholder' | t"></td>
                   <td>
                     <select class="riga-input" [(ngModel)]="r.prodottoId" style="width:100%">
-                      <option [ngValue]="null">— non abbinato —</option>
+                      <option [ngValue]="null">{{ 'ocrFatture.nonAbbinato' | t }}</option>
                       @for (c of r.candidati; track c.prodottoId) {
                         <option [ngValue]="c.prodottoId">{{ c.nome }}{{ c.giaMemorizzato ? ' ★' : '' }}</option>
                       }
                     </select>
                     @if (candidatoSel(r); as c) {
                       <div style="font-size:11px;margin-top:1px" [style.color]="fasciaColor(c.fascia)">
-                        {{ c.giaMemorizzato ? 'già abbinato' : c.fascia }}<span style="color:var(--text-tertiary)"> · {{ c.perche }}</span>
+                        {{ c.giaMemorizzato ? ('ocrFatture.giaAbbinato' | t) : c.fascia }}<span style="color:var(--text-tertiary)"> · {{ c.perche }}</span>
                       </div>
                     }
                   </td>
@@ -299,7 +301,7 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
                   <td class="total-cell">{{ formatCurrency(r.quantita * r.prezzo) }}</td>
                   <td>
                     <button mat-icon-button (click)="removeRiga($index)" [disabled]="righe.length <= 1"
-                            matTooltip="Rimuovi riga">
+                            [matTooltip]="'ocrFatture.rimuoviRigaTooltip' | t">
                       <mat-icon>delete_outline</mat-icon>
                     </button>
                   </td>
@@ -308,15 +310,15 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
             </tbody>
             <tfoot>
               <tr>
-                <td colspan="5" class="summary-label">Imponibile</td>
+                <td colspan="5" class="summary-label">{{ 'ocrFatture.imponibile' | t }}</td>
                 <td colspan="2" class="summary-value">{{ formatCurrency(totaleNetto) }}</td>
               </tr>
               <tr>
-                <td colspan="5" class="summary-label">IVA</td>
+                <td colspan="5" class="summary-label">{{ 'ocrFatture.iva' | t }}</td>
                 <td colspan="2" class="summary-value">{{ formatCurrency(totaleIva) }}</td>
               </tr>
               <tr class="total-row">
-                <td colspan="5" class="summary-label">Totale lordo</td>
+                <td colspan="5" class="summary-label">{{ 'ocrFatture.totaleLordo' | t }}</td>
                 <td colspan="2" class="summary-value">{{ formatCurrency(totaleLordo) }}</td>
               </tr>
             </tfoot>
@@ -324,9 +326,9 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
         </div>
 
         <div class="preview-actions">
-          <button mat-button (click)="reset()">Ricomincia</button>
+          <button mat-button (click)="reset()">{{ 'ocrFatture.ricomincia' | t }}</button>
           <button mat-flat-button color="primary" (click)="conferma()">
-            <mat-icon>check</mat-icon>&nbsp;Conferma e crea acquisto
+            <mat-icon>check</mat-icon>&nbsp;{{ 'ocrFatture.confermaCreaAcquisto' | t }}
           </button>
         </div>
       </div>
@@ -335,11 +337,11 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
     @if (step === 'success') {
       <div class="card center-card">
         <mat-icon class="success-icon">check_circle</mat-icon>
-        <h2 class="success-title">Acquisto creato!</h2>
-        <p class="success-sub">Acquisto <b>#{{ acquistoId }}</b> salvato in stato RICEVUTA.</p>
+        <h2 class="success-title">{{ 'ocrFatture.acquistoCreato' | t }}</h2>
+        <p class="success-sub">{{ 'ocrFatture.acquistoSalvato.part1' | t }} <b>#{{ acquistoId }}</b> {{ 'ocrFatture.acquistoSalvato.part2' | t }}</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-          <button mat-button (click)="reset()">Nuova fattura OCR</button>
-          <button mat-flat-button color="primary" routerLink="/acquisti">Vai agli acquisti</button>
+          <button mat-button (click)="reset()">{{ 'ocrFatture.nuovaFatturaOcr' | t }}</button>
+          <button mat-flat-button color="primary" routerLink="/acquisti">{{ 'ocrFatture.vaiAcquisti' | t }}</button>
         </div>
       </div>
     }
@@ -347,14 +349,15 @@ type Step = 'idle' | 'loading' | 'preview' | 'success' | 'error';
     @if (step === 'error') {
       <div class="card center-card">
         <mat-icon class="error-icon">error_outline</mat-icon>
-        <h2 class="error-title">Errore durante l'analisi</h2>
+        <h2 class="error-title">{{ 'ocrFatture.erroreAnalisi' | t }}</h2>
         <p class="error-msg">{{ errorMsg }}</p>
-        <button mat-flat-button color="primary" (click)="reset()">Riprova</button>
+        <button mat-flat-button color="primary" (click)="reset()">{{ 'ocrFatture.riprova' | t }}</button>
       </div>
     }
   `,
 })
 export class OcrFattureComponent {
+  i18n = inject(I18nService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   step: Step = 'idle';
@@ -401,11 +404,11 @@ export class OcrFattureComponent {
 
   processFile(file: File) {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      this.snack.open('Seleziona un file PDF', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('ocrFatture.msg.selezionaPdf'), '', { duration: 3000 });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      this.snack.open('File troppo grande (max 10 MB)', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('ocrFatture.msg.fileTroppoGrande'), '', { duration: 3000 });
       return;
     }
 
@@ -428,7 +431,7 @@ export class OcrFattureComponent {
         this.analizzaRighe();
       },
       error: (e) => {
-        this.errorMsg = e.error?.error || 'Errore durante l\'analisi OCR';
+        this.errorMsg = e.error?.error || this.i18n.t('ocrFatture.msg.erroreAnalisiOcr');
         this.step = 'error';
       },
     });
@@ -486,10 +489,12 @@ export class OcrFattureComponent {
   }
   get avvisi(): string[] {
     const a: string[] = [];
-    if (this.duplicatoId) a.push(`Questa fattura sembra gia caricata (acquisto #${this.duplicatoId}).`);
-    if (!this.pIvaValida) a.push('La P.IVA del fornitore non e valida (controllo cifra di controllo).');
+    if (this.duplicatoId) a.push(this.i18n.t('ocrFatture.avviso.duplicato', { id: this.duplicatoId }));
+    if (!this.pIvaValida) a.push(this.i18n.t('ocrFatture.avviso.pivaNonValida'));
     const d = this.quadraturaDelta;
-    if (d != null && Math.abs(d) > 0.02) a.push(`L'imponibile delle righe (${this.formatCurrency(this.totaleNetto)}) non quadra con il totale letto (${this.formatCurrency(this.ocrTotaleNetto!)}): differenza ${this.formatCurrency(d)}.`);
+    if (d != null && Math.abs(d) > 0.02) a.push(this.i18n.t('ocrFatture.avviso.quadratura', {
+      righe: this.formatCurrency(this.totaleNetto), letto: this.formatCurrency(this.ocrTotaleNetto!), diff: this.formatCurrency(d),
+    }));
     return a;
   }
   get nAbbinate(): number { return this.righe.filter(r => r.prodottoId != null).length; }
@@ -516,11 +521,11 @@ export class OcrFattureComponent {
 
   conferma() {
     if (!this.fornitore.trim()) {
-      this.snack.open('Il fornitore è obbligatorio', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('ocrFatture.msg.fornitoreObbligatorio'), '', { duration: 3000 });
       return;
     }
     if (!this.dataDoc) {
-      this.snack.open('La data documento è obbligatoria', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('ocrFatture.msg.dataObbligatoria'), '', { duration: 3000 });
       return;
     }
 
@@ -542,13 +547,13 @@ export class OcrFattureComponent {
       error: (e) => {
         if (e.status === 409) {
           this.snack.open(
-            `Acquisto già presente (ID #${e.error?.acquistoId})`,
-            'Vai agli acquisti',
+            this.i18n.t('ocrFatture.msg.acquistoGiaPresente', { id: e.error?.acquistoId }),
+            this.i18n.t('ocrFatture.vaiAcquisti'),
             { duration: 5000 }
           );
           this.step = 'preview';
         } else {
-          this.errorMsg = e.error?.error || 'Errore durante la conferma';
+          this.errorMsg = e.error?.error || this.i18n.t('ocrFatture.msg.erroreConferma');
           this.step = 'error';
         }
       },
