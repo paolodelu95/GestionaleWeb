@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -12,6 +12,9 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiService } from '../../services/api.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 interface Transazione {
   data: string;
@@ -39,31 +42,33 @@ interface Candidato {
     CommonModule, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
     MatSelectModule, MatSnackBarModule, MatTableModule, MatTabsModule, MatProgressSpinnerModule,
+    TPipe, TnPipe,
   ],
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">Riconciliazione bancaria</h1>
+        <h1 class="page-title">{{ 'riconciliazione.title' | t }}</h1>
       </div>
 
       <mat-tab-group animationDuration="0">
-        <mat-tab label="1. Importa estratto conto">
+        <mat-tab [label]="'riconciliazione.tab1' | t">
           <div class="card" style="margin-top:16px">
             <p style="font-size:13px;color:#64748b;margin-top:0">
-              Incolla qui sotto il contenuto di un file <b>OFX</b> (Open Financial Exchange) o
-              <b>CSV</b> esportato dall'home banking. Il sistema parsifica le transazioni e
-              suggerisce automaticamente la fattura o l'acquisto che ognuna salda.
+              {{ 'riconciliazione.intro.part1' | t }} <b>OFX</b> {{ 'riconciliazione.intro.ofxNote' | t }}
+              {{ 'riconciliazione.intro.or' | t }}
+              <b>CSV</b> {{ 'riconciliazione.intro.part2' | t }}
+              {{ 'riconciliazione.intro.part3' | t }}
             </p>
 
             <mat-form-field appearance="outline" style="width:100%">
-              <mat-label>Contenuto file</mat-label>
+              <mat-label>{{ 'riconciliazione.contenutoFile' | t }}</mat-label>
               <textarea matInput rows="8" [(ngModel)]="contenuto"
-                        placeholder="Incolla OFX o CSV qui..."></textarea>
+                        [placeholder]="'riconciliazione.contenutoPlaceholder' | t"></textarea>
             </mat-form-field>
 
             <div style="display:flex;gap:12px;flex-wrap:wrap">
               <mat-form-field appearance="outline" style="max-width:140px">
-                <mat-label>Formato</mat-label>
+                <mat-label>{{ 'riconciliazione.formato' | t }}</mat-label>
                 <mat-select [(ngModel)]="formato">
                   <mat-option value="ofx">OFX</mat-option>
                   <mat-option value="csv">CSV</mat-option>
@@ -71,19 +76,19 @@ interface Candidato {
               </mat-form-field>
               @if (formato === 'csv') {
                 <mat-form-field appearance="outline" style="max-width:140px">
-                  <mat-label>Separatore</mat-label>
+                  <mat-label>{{ 'riconciliazione.separatore' | t }}</mat-label>
                   <mat-select [(ngModel)]="separatore">
-                    <mat-option value=";">; (Punto e virgola)</mat-option>
-                    <mat-option value=",">, (Virgola)</mat-option>
-                    <mat-option value="\t">Tab</mat-option>
+                    <mat-option value=";">{{ 'riconciliazione.sep.puntoVirgola' | t }}</mat-option>
+                    <mat-option value=",">{{ 'riconciliazione.sep.virgola' | t }}</mat-option>
+                    <mat-option value="\t">{{ 'riconciliazione.sep.tab' | t }}</mat-option>
                   </mat-select>
                 </mat-form-field>
               }
               <button mat-flat-button (click)="analizza()" [disabled]="!contenuto.trim() || loading">
-                <mat-icon>analytics</mat-icon> Analizza
+                <mat-icon>analytics</mat-icon> {{ 'riconciliazione.analizza' | t }}
               </button>
               <button mat-stroked-button (click)="reset()" [disabled]="!transazioni.length">
-                <mat-icon>clear</mat-icon> Pulisci
+                <mat-icon>clear</mat-icon> {{ 'riconciliazione.pulisci' | t }}
               </button>
             </div>
 
@@ -95,30 +100,30 @@ interface Candidato {
           </div>
         </mat-tab>
 
-        <mat-tab label="2. Match & conferma">
+        <mat-tab [label]="'riconciliazione.tab2' | t">
           <div class="card" style="margin-top:16px">
             @if (transazioni.length === 0) {
               <p style="color:#94a3b8;text-align:center;padding:32px">
-                Carica un estratto conto nel tab precedente per vedere le transazioni qui.
+                {{ 'riconciliazione.caricaEstratto' | t }}
               </p>
             } @else {
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div style="font-size:13px;color:#64748b">
-                  {{ transazioni.length }} transazioni trovate.
-                  Confermate: <b>{{ confermateCount() }}</b> / {{ transazioni.length }}
+                  {{ transazioni.length | tn:'riconciliazione.transazioniTrovate' }}
+                  {{ 'riconciliazione.confermate' | t }} <b>{{ confermateCount() }}</b> / {{ transazioni.length }}
                 </div>
                 <button mat-flat-button (click)="confermaTutte()" [disabled]="confermateCount() === 0">
-                  <mat-icon>check_circle</mat-icon> Registra pagamenti ({{ confermateCount() }})
+                  <mat-icon>check_circle</mat-icon> {{ i18n.t('riconciliazione.registraPagamenti', { n: confermateCount() }) }}
                 </button>
               </div>
 
               <table class="riconc-table">
                 <thead>
                   <tr>
-                    <th>Data</th>
-                    <th style="text-align:right">Importo</th>
-                    <th>Descrizione</th>
-                    <th>Match suggerito</th>
+                    <th>{{ 'riconciliazione.col.data' | t }}</th>
+                    <th style="text-align:right">{{ 'riconciliazione.col.importo' | t }}</th>
+                    <th>{{ 'riconciliazione.col.descrizione' | t }}</th>
+                    <th>{{ 'riconciliazione.col.matchSuggerito' | t }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -135,11 +140,11 @@ interface Candidato {
                         @if (t.loading) {
                           <mat-spinner diameter="16"></mat-spinner>
                         } @else if (!t.candidati || t.candidati.length === 0) {
-                          <span style="color:#94a3b8;font-size:12px">Nessuna corrispondenza</span>
+                          <span style="color:#94a3b8;font-size:12px">{{ 'riconciliazione.nessunaCorrispondenza' | t }}</span>
                         } @else {
                           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:100%">
-                            <mat-select [(ngModel)]="t.matchScelto" placeholder="Scegli scadenza...">
-                              <mat-option [value]="null">— ignora —</mat-option>
+                            <mat-select [(ngModel)]="t.matchScelto" [placeholder]="'riconciliazione.scegliScadenza' | t">
+                              <mat-option [value]="null">{{ 'riconciliazione.ignora' | t }}</mat-option>
                               @for (c of t.candidati; track c.id + '_' + c.tipoEntry) {
                                 <mat-option [value]="c">
                                   {{ c.tipoEntry === 'FATTURA' ? 'F' : 'A' }} {{ c.numero }} ·
@@ -172,6 +177,7 @@ interface Candidato {
   `],
 })
 export class RiconciliazioneComponent {
+  i18n = inject(I18nService);
   contenuto = '';
   formato: 'ofx' | 'csv' = 'ofx';
   separatore = ';';
@@ -204,11 +210,11 @@ export class RiconciliazioneComponent {
         xhr.send(this.contenuto);
       });
       this.transazioni = r.transazioni;
-      this.snack.open(`Trovate ${r.count} transazioni — analizzo i match...`, '', { duration: 2000 });
+      this.snack.open(this.i18n.tn('riconciliazione.msg.trovate', r.count), '', { duration: 2000 });
       await Promise.all(this.transazioni.map(t => this.cercaMatch(t)));
-      this.snack.open('Match completati. Vai al tab "2. Match & conferma".', 'OK', { duration: 3500 });
+      this.snack.open(this.i18n.t('riconciliazione.msg.matchCompletati'), this.i18n.t('riconciliazione.msg.ok'), { duration: 3500 });
     } catch (e: any) {
-      this.snack.open('Errore parsing: ' + (e.message || e), 'OK', { duration: 4000 });
+      this.snack.open(this.i18n.t('riconciliazione.msg.erroreParsing', { err: e.message || e }), this.i18n.t('riconciliazione.msg.ok'), { duration: 4000 });
     } finally { this.loading = false; }
   }
 
@@ -243,11 +249,13 @@ export class RiconciliazioneComponent {
     this.api.post<{ creati: number; errori: any[] }>('riconciliazione/conferma', { transazioni: payload })
       .subscribe({
         next: r => {
-          this.snack.open(`${r.creati} pagamenti registrati${r.errori.length ? ` · ${r.errori.length} errori` : ''}`, 'OK', { duration: 4000 });
+          const msg = this.i18n.tn('riconciliazione.msg.pagamentiRegistrati', r.creati)
+            + (r.errori.length ? this.i18n.tn('riconciliazione.msg.erroriSuffix', r.errori.length) : '');
+          this.snack.open(msg, this.i18n.t('riconciliazione.msg.ok'), { duration: 4000 });
           // rimuovi confermate dalla lista
           this.transazioni = this.transazioni.filter(t => !t.matchScelto);
         },
-        error: e => this.snack.open('Errore conferma: ' + (e.error?.error || e.message), 'OK', { duration: 4000 }),
+        error: e => this.snack.open(this.i18n.t('riconciliazione.msg.erroreConferma', { err: e.error?.error || e.message }), this.i18n.t('riconciliazione.msg.ok'), { duration: 4000 }),
       });
   }
 }
