@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -10,6 +10,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DataService } from '../../services/data.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface FatturaSdi {
   id: number;
@@ -27,15 +29,15 @@ interface StatoMeta { key: string; label: string; cls: string; icon: string; }
 
 // Stati notifica SDI (FatturaPA). Riproducono le ricevute dell'intermediario.
 const STATI: StatoMeta[] = [
-  { key: 'NON_INVIATA',        label: 'Non inviata',        cls: 'sdi-grey',  icon: 'drafts' },
-  { key: 'INVIATA',            label: 'Inviata',            cls: 'sdi-blue',  icon: 'send' },
-  { key: 'CONSEGNATA',         label: 'Consegnata',         cls: 'sdi-green', icon: 'mark_email_read' },
-  { key: 'MANCATA_CONSEGNA',   label: 'Mancata consegna',   cls: 'sdi-amber', icon: 'unsubscribe' },
-  { key: 'ACCETTATA',          label: 'Accettata',          cls: 'sdi-green', icon: 'verified' },
-  { key: 'RIFIUTATA',          label: 'Rifiutata',          cls: 'sdi-red',   icon: 'cancel' },
-  { key: 'SCARTATA',           label: 'Scartata',           cls: 'sdi-red',   icon: 'report' },
-  { key: 'DECORRENZA_TERMINI', label: 'Decorrenza termini', cls: 'sdi-teal',  icon: 'schedule' },
-  { key: 'NON_RECAPITABILE',   label: 'Non recapitabile',   cls: 'sdi-amber', icon: 'error_outline' },
+  { key: 'NON_INVIATA',        label: 'fattureElettroniche.stato.nonInviata',        cls: 'sdi-grey',  icon: 'drafts' },
+  { key: 'INVIATA',            label: 'fattureElettroniche.stato.inviata',           cls: 'sdi-blue',  icon: 'send' },
+  { key: 'CONSEGNATA',         label: 'fattureElettroniche.stato.consegnata',        cls: 'sdi-green', icon: 'mark_email_read' },
+  { key: 'MANCATA_CONSEGNA',   label: 'fattureElettroniche.stato.mancataConsegna',   cls: 'sdi-amber', icon: 'unsubscribe' },
+  { key: 'ACCETTATA',          label: 'fattureElettroniche.stato.accettata',         cls: 'sdi-green', icon: 'verified' },
+  { key: 'RIFIUTATA',          label: 'fattureElettroniche.stato.rifiutata',         cls: 'sdi-red',   icon: 'cancel' },
+  { key: 'SCARTATA',           label: 'fattureElettroniche.stato.scartata',          cls: 'sdi-red',   icon: 'report' },
+  { key: 'DECORRENZA_TERMINI', label: 'fattureElettroniche.stato.decorrenzaTermini', cls: 'sdi-teal',  icon: 'schedule' },
+  { key: 'NON_RECAPITABILE',   label: 'fattureElettroniche.stato.nonRecapitabile',   cls: 'sdi-amber', icon: 'error_outline' },
 ];
 
 @Component({
@@ -43,13 +45,13 @@ const STATI: StatoMeta[] = [
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatButtonModule, MatIconModule, MatFormFieldModule,
-    MatInputModule, MatSelectModule, MatTooltipModule, MatSnackBarModule,
+    MatInputModule, MatSelectModule, MatTooltipModule, MatSnackBarModule, TPipe,
   ],
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">Fatture elettroniche — Stato SDI</h1>
-        <button mat-icon-button type="button" (click)="load()" aria-label="Aggiorna" matTooltip="Aggiorna"><mat-icon>refresh</mat-icon></button>
+        <h1 class="page-title">{{ 'fattureElettroniche.title' | t }}</h1>
+        <button mat-icon-button type="button" (click)="load()" [attr.aria-label]="'fattureElettroniche.aggiorna' | t" [matTooltip]="'fattureElettroniche.aggiorna' | t"><mat-icon>refresh</mat-icon></button>
       </div>
 
       <!-- KPI per stato -->
@@ -58,7 +60,7 @@ const STATI: StatoMeta[] = [
           <button class="kpi-chip" [class.active]="filtroStato === s.key" [ngClass]="s.cls" (click)="toggleStato(s.key)">
             <mat-icon>{{ s.icon }}</mat-icon>
             <span class="kpi-n">{{ s.count }}</span>
-            <span class="kpi-l">{{ s.label }}</span>
+            <span class="kpi-l">{{ s.label | t }}</span>
           </button>
         }
       </div>
@@ -66,55 +68,55 @@ const STATI: StatoMeta[] = [
       <div class="card">
         <div class="filter-bar">
           <mat-form-field appearance="outline" class="f-search">
-            <mat-label>Cerca numero o cliente…</mat-label>
+            <mat-label>{{ 'fattureElettroniche.cercaPlaceholder' | t }}</mat-label>
             <input matInput [(ngModel)]="search" (ngModelChange)="applyFilters()">
             <mat-icon matSuffix>search</mat-icon>
           </mat-form-field>
           <mat-form-field appearance="outline" style="max-width:150px">
-            <mat-label>Anno</mat-label>
+            <mat-label>{{ 'fattureElettroniche.anno' | t }}</mat-label>
             <mat-select [(ngModel)]="filtroAnno" (selectionChange)="applyFilters()">
-              <mat-option [value]="null">Tutti</mat-option>
+              <mat-option [value]="null">{{ 'fattureElettroniche.tutti' | t }}</mat-option>
               @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline" style="max-width:200px">
-            <mat-label>Stato SDI</mat-label>
+            <mat-label>{{ 'fattureElettroniche.statoSdi' | t }}</mat-label>
             <mat-select [(ngModel)]="filtroStato" (selectionChange)="applyFilters()">
-              <mat-option [value]="null">Tutti gli stati</mat-option>
-              @for (s of stati; track s.key) { <mat-option [value]="s.key">{{ s.label }}</mat-option> }
+              <mat-option [value]="null">{{ 'fattureElettroniche.tuttiGliStati' | t }}</mat-option>
+              @for (s of stati; track s.key) { <mat-option [value]="s.key">{{ s.label | t }}</mat-option> }
             </mat-select>
           </mat-form-field>
           @if (search || filtroAnno || filtroStato) {
-            <button mat-icon-button type="button" matTooltip="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+            <button mat-icon-button type="button" [matTooltip]="'fattureElettroniche.rimuoviFiltri' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
           }
         </div>
 
         @if (loading) {
-          <p style="color:var(--text-tertiary)">Caricamento…</p>
+          <p style="color:var(--text-tertiary)">{{ 'fattureElettroniche.caricamento' | t }}</p>
         } @else if (!filtered.length) {
-          <div class="empty"><mat-icon>receipt_long</mat-icon><p>Nessuna fattura corrisponde ai filtri.</p></div>
+          <div class="empty"><mat-icon>receipt_long</mat-icon><p>{{ 'fattureElettroniche.nessunaFattura' | t }}</p></div>
         } @else {
           <div class="fe-list">
             <div class="fe-row fe-head">
-              <span>Numero</span><span>Cliente</span><span class="r">Importo</span>
-              <span>Invio SDI</span><span>Stato</span>
+              <span>{{ 'fattureElettroniche.col.numero' | t }}</span><span>{{ 'fattureElettroniche.col.cliente' | t }}</span><span class="r">{{ 'fattureElettroniche.col.importo' | t }}</span>
+              <span>{{ 'fattureElettroniche.col.invioSdi' | t }}</span><span>{{ 'fattureElettroniche.col.stato' | t }}</span>
             </div>
             @for (f of filtered; track f.id) {
               <div class="fe-row">
-                <div class="fe-num" data-label="Numero">
+                <div class="fe-num" [attr.data-label]="'fattureElettroniche.col.numero' | t">
                   <b>{{ f.numero }}</b><span class="fe-date">{{ f.dataEmissione | date:'dd/MM/yyyy' }}</span>
                 </div>
-                <div class="fe-cli" data-label="Cliente">{{ f.clienteNome || '—' }}</div>
-                <div class="fe-tot r" data-label="Importo">{{ f.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
-                <div class="fe-invio" data-label="Invio SDI">
+                <div class="fe-cli" [attr.data-label]="'fattureElettroniche.col.cliente' | t">{{ f.clienteNome || '—' }}</div>
+                <div class="fe-tot r" [attr.data-label]="'fattureElettroniche.col.importo' | t">{{ f.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
+                <div class="fe-invio" [attr.data-label]="'fattureElettroniche.col.invioSdi' | t">
                   @if (f.dataInvioSdi) {
                     {{ f.dataInvioSdi | date:'dd/MM/yyyy' }}
-                    @if (f.idTrasmissioneSdi) { <span class="fe-id" [matTooltip]="'ID trasmissione: ' + f.idTrasmissioneSdi">#{{ f.idTrasmissioneSdi }}</span> }
+                    @if (f.idTrasmissioneSdi) { <span class="fe-id" [matTooltip]="i18n.t('fattureElettroniche.idTrasmissione', { id: f.idTrasmissioneSdi })">#{{ f.idTrasmissioneSdi }}</span> }
                   } @else { <span class="muted">—</span> }
                 </div>
-                <div class="fe-stato" data-label="Stato">
+                <div class="fe-stato" [attr.data-label]="'fattureElettroniche.col.stato' | t">
                   <span class="sdi-badge" [ngClass]="metaOf(f.statoSdi).cls">
-                    <mat-icon>{{ metaOf(f.statoSdi).icon }}</mat-icon>{{ metaOf(f.statoSdi).label }}
+                    <mat-icon>{{ metaOf(f.statoSdi).icon }}</mat-icon>{{ metaOf(f.statoSdi).label | t }}
                   </span>
                 </div>
               </div>
@@ -125,8 +127,7 @@ const STATI: StatoMeta[] = [
 
       <p class="foot-note">
         <mat-icon>info_outline</mat-icon>
-        Lo stato di ogni fattura è quello notificato dallo SDI: viene aggiornato automaticamente
-        (inviata, consegnata, scartata, accettata, rifiutata…) e non è modificabile a mano.
+        {{ 'fattureElettroniche.footNote' | t }}
       </p>
     </div>
   `,
@@ -175,6 +176,7 @@ const STATI: StatoMeta[] = [
   `]
 })
 export class FattureElettronicheComponent implements OnInit {
+  i18n = inject(I18nService);
   readonly stati = STATI;
   loading = true;
   all: FatturaSdi[] = [];

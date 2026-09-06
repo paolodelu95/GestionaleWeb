@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,6 +16,8 @@ import { DataService } from '../../services/data.service';
 import { ApiService } from '../../services/api.service';
 import { AcquistoRegistraDialogComponent } from '../acquisti/acquisto-registra-dialog';
 import { markSdiSeen } from '../../utils/sdi-letture';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface Ricevuta {
   id: number;
@@ -36,19 +38,19 @@ interface Ricevuta {
   imports: [
     CommonModule, FormsModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatMenuModule, MatTooltipModule, MatProgressBarModule,
-    MatSnackBarModule, MatDialogModule,
+    MatSnackBarModule, MatDialogModule, TPipe,
   ],
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">SDI — Fatture passive</h1>
+        <h1 class="page-title">{{ 'sdiPassive.title' | t }}</h1>
         <div class="header-actions">
           <button mat-stroked-button type="button" (click)="xmlInput.click()">
-            <mat-icon>upload_file</mat-icon> Importa XML
+            <mat-icon>upload_file</mat-icon> {{ 'sdiPassive.importaXml' | t }}
           </button>
           <input #xmlInput type="file" accept=".xml,text/xml,application/xml" hidden (change)="importaXml($event)">
           <button mat-flat-button type="button" (click)="scarica()" [disabled]="polling">
-            <mat-icon>cloud_download</mat-icon> Scarica da SDI
+            <mat-icon>cloud_download</mat-icon> {{ 'sdiPassive.scaricaSdi' | t }}
           </button>
         </div>
       </div>
@@ -57,7 +59,7 @@ interface Ricevuta {
       <div class="card scarica-card">
         <div class="filter-bar">
           <mat-form-field appearance="outline" style="max-width:160px">
-            <mat-label>Provider</mat-label>
+            <mat-label>{{ 'sdiPassive.provider' | t }}</mat-label>
             <mat-select [(ngModel)]="provider">
               <mat-option value="aruba">Aruba</mat-option>
               <mat-option value="fic">Fatture in Cloud</mat-option>
@@ -65,11 +67,11 @@ interface Ricevuta {
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Dal</mat-label>
+            <mat-label>{{ 'sdiPassive.dal' | t }}</mat-label>
             <input matInput type="date" [(ngModel)]="dataDa">
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Al</mat-label>
+            <mat-label>{{ 'sdiPassive.al' | t }}</mat-label>
             <input matInput type="date" [(ngModel)]="dataA">
           </mat-form-field>
         </div>
@@ -84,31 +86,29 @@ interface Ricevuta {
               </div>
             } @else {
               <mat-icon>check_circle</mat-icon>
-              <span>Trovate {{ pollResult.trovate }} · importate {{ pollResult.importate }} · saltate {{ pollResult.saltate }}@if (pollResult.errori?.length) { · errori {{ pollResult.errori.length }} }</span>
+              <span>{{ i18n.t('sdiPassive.trovateImportateSaltate', { trovate: pollResult.trovate, importate: pollResult.importate, saltate: pollResult.saltate }) }}@if (pollResult.errori?.length) { {{ i18n.t('sdiPassive.errori', { n: pollResult.errori.length }) }} }</span>
             }
           </div>
         }
         <p class="config-note">
           <mat-icon>info_outline</mat-icon>
-          <span class="config-note__text">Per scaricare automaticamente le fatture passive serve un intermediario SDI configurato
-          (es. Aruba: variabili <code>ARUBA_USER</code> / <code>ARUBA_PASS</code>). In assenza di
-          credenziali puoi comunque <b>importare il singolo XML</b> ricevuto dal tuo intermediario.</span>
+          <span class="config-note__text">{{ 'sdiPassive.configNote.part1' | t }} <code>ARUBA_USER</code> / <code>ARUBA_PASS</code>{{ 'sdiPassive.configNote.part3' | t }} <b>{{ 'sdiPassive.configNote.boldPart' | t }}</b> {{ 'sdiPassive.configNote.part4' | t }}</span>
         </p>
       </div>
 
       <!-- ── Fatture passive ricevute ─────────────────────────────────────── -->
       <div class="card">
         <div class="card-title-row">
-          <h3 style="margin:0">Fatture ricevute ({{ ricevute.length }})</h3>
-          <button mat-icon-button type="button" (click)="load()" aria-label="Aggiorna" matTooltip="Aggiorna"><mat-icon>refresh</mat-icon></button>
+          <h3 style="margin:0">{{ i18n.t('sdiPassive.fattureRicevute', { n: ricevute.length }) }}</h3>
+          <button mat-icon-button type="button" (click)="load()" [attr.aria-label]="'sdiPassive.aggiorna' | t" [matTooltip]="'sdiPassive.aggiorna' | t"><mat-icon>refresh</mat-icon></button>
         </div>
 
         @if (loading) {
-          <p style="color:var(--text-tertiary)">Caricamento…</p>
+          <p style="color:var(--text-tertiary)">{{ 'sdiPassive.caricamento' | t }}</p>
         } @else if (!ricevute.length) {
           <div class="empty">
             <mat-icon>inbox</mat-icon>
-            <p>Nessuna fattura passiva importata.<br>Usa <b>Scarica da SDI</b> o <b>Importa XML</b>.</p>
+            <p>{{ 'sdiPassive.nessunaFatturaPassiva' | t }}<br>{{ 'sdiPassive.usaPrefix' | t }} <b>{{ 'sdiPassive.scaricaSdi' | t }}</b> {{ 'sdiPassive.oConnector' | t }} <b>{{ 'sdiPassive.importaXml' | t }}</b>.</p>
           </div>
         } @else {
           <div class="ric-list">
@@ -119,29 +119,29 @@ interface Ricevuta {
                   <div class="ric-forn">{{ r.fornitoreNome }}</div>
                 </div>
                 <div class="ric-meta">
-                  <span class="ric-righe">{{ r.numRighe }} righe</span>
+                  <span class="ric-righe">{{ i18n.t('sdiPassive.righe', { n: r.numRighe ?? '' }) }}</span>
                   <span class="ric-tot euro-neg">{{ r.totale | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
                 </div>
                 <div class="ric-badges">
                   <span class="badge" [class.badge-on]="r.caricatoMagazzino">
                     <mat-icon>{{ r.caricatoMagazzino ? 'inventory_2' : 'inventory' }}</mat-icon>
-                    {{ r.caricatoMagazzino ? 'A magazzino' : 'Non caricata' }}
+                    {{ (r.caricatoMagazzino ? 'sdiPassive.aMagazzino' : 'sdiPassive.nonCaricata') | t }}
                   </span>
                   <span class="badge" [class.badge-on]="r.pagato">
                     <mat-icon>{{ r.pagato ? 'paid' : 'schedule' }}</mat-icon>
-                    {{ r.pagato ? 'Pagata' : 'Da pagare' }}
+                    {{ (r.pagato ? 'sdiPassive.pagata' : 'sdiPassive.daPagare') | t }}
                   </span>
                 </div>
                 <div class="ric-actions">
                   <button mat-flat-button type="button" (click)="registra(r)"
                           [disabled]="r.pagato && r.caricatoMagazzino"
-                          matTooltip="Registra pagamento e carico magazzino">
-                    <mat-icon>task_alt</mat-icon> Registra
+                          [matTooltip]="'sdiPassive.registraTooltip' | t">
+                    <mat-icon>task_alt</mat-icon> {{ 'sdiPassive.registra' | t }}
                   </button>
                   <button mat-icon-button type="button" [matMenuTriggerFor]="m"
-                          [attr.aria-label]="'Azioni per la fattura ' + (r.numero || r.id)" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                          [attr.aria-label]="i18n.t('sdiPassive.azioniPerFattura', { numero: r.numero || r.id })" [title]="'sdiPassive.azioni' | t"><mat-icon>more_vert</mat-icon></button>
                   <mat-menu #m="matMenu">
-                    <button mat-menu-item type="button" (click)="vaiAcquisto()"><mat-icon>open_in_new</mat-icon> Apri in Acquisti</button>
+                    <button mat-menu-item type="button" (click)="vaiAcquisto()"><mat-icon>open_in_new</mat-icon> {{ 'sdiPassive.apriInAcquisti' | t }}</button>
                   </mat-menu>
                 </div>
               </div>
@@ -188,6 +188,7 @@ interface Ricevuta {
   `]
 })
 export class SdiPassiveComponent implements OnInit {
+  i18n = inject(I18nService);
   provider = 'aruba';
   dataDa = `${new Date().getFullYear()}-01-01`;
   dataA = new Date().toISOString().slice(0, 10);
@@ -232,7 +233,7 @@ export class SdiPassiveComponent implements OnInit {
       },
       error: e => {
         this.polling = false;
-        this.pollResult = { error: e.error?.error || 'Errore durante lo scarico', hint: e.error?.hint };
+        this.pollResult = { error: e.error?.error || this.i18n.t('sdiPassive.msg.erroreScarico'), hint: e.error?.hint };
       },
     });
   }
@@ -245,10 +246,10 @@ export class SdiPassiveComponent implements OnInit {
     reader.onload = () => {
       this.ds.sdiImportXml(reader.result as string).subscribe({
         next: (r: any) => {
-          this.snack.open(`Importata fattura ${r.numero} (${r.righe} righe) da ${r.ragSoc}`, 'OK', { duration: 4500, panelClass: 'snack-ok' });
+          this.snack.open(this.i18n.t('sdiPassive.msg.importataFattura', { numero: r.numero, righe: r.righe, ragSoc: r.ragSoc }), this.i18n.t('sdiPassive.msg.ok'), { duration: 4500, panelClass: 'snack-ok' });
           this.load();
         },
-        error: e => this.snack.open(e.error?.error || 'XML non valido o non riconosciuto', 'OK', { duration: 4000, panelClass: 'snack-error' }),
+        error: e => this.snack.open(e.error?.error || this.i18n.t('sdiPassive.msg.xmlNonValido'), this.i18n.t('sdiPassive.msg.ok'), { duration: 4000, panelClass: 'snack-error' }),
       });
     };
     reader.readAsText(file, 'UTF-8');
@@ -262,9 +263,9 @@ export class SdiPassiveComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (!result?.registered) return;
       const parts: string[] = [];
-      if (result.arrivo) parts.push(`arrivo merce ${result.arrivo.numero}`);
-      if (result.pagamento) parts.push(`pagamento € ${result.pagamento.importo.toFixed(2)}`);
-      this.snack.open(`Registrato: ${parts.join(' + ') || 'nessuna operazione'}`, 'OK', { duration: 4500, panelClass: 'snack-ok' });
+      if (result.arrivo) parts.push(this.i18n.t('sdiPassive.msg.arrivoMerce', { numero: result.arrivo.numero }));
+      if (result.pagamento) parts.push(this.i18n.t('sdiPassive.msg.pagamentoImporto', { importo: result.pagamento.importo.toFixed(2) }));
+      this.snack.open(this.i18n.t('sdiPassive.msg.registrato', { parts: parts.join(' + ') || this.i18n.t('sdiPassive.msg.nessunaOperazione') }), this.i18n.t('sdiPassive.msg.ok'), { duration: 4500, panelClass: 'snack-ok' });
       this.load();
     });
   }
