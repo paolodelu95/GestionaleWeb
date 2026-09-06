@@ -1,15 +1,15 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Andamento</h1>
+    <h1 class="page-title">{{ 'andamento.title' | t }}</h1>
     <div style="display:flex;gap:12px;align-items:center">
       <mat-form-field style="width:110px" subscriptSizing="dynamic">
-        <mat-label>Anno</mat-label>
+        <mat-label>{{ 'andamento.annoLabel' | t }}</mat-label>
         <mat-select [(ngModel)]="annoSel" (ngModelChange)="load()">
           @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
         </mat-select>
       </mat-form-field>
       <button mat-stroked-button (click)="load()">
-        <mat-icon>refresh</mat-icon> Aggiorna
+        <mat-icon>refresh</mat-icon> {{ 'andamento.aggiorna' | t }}
       </button>
     </div>
   </div>
@@ -23,31 +23,31 @@
     <div class="report-empty">
       <div class="report-empty-icon"><mat-icon>insights</mat-icon></div>
       @if (loadError) {
-        <h2>Impossibile caricare i dati</h2>
+        <h2>{{ 'andamento.erroreCaricamento' | t }}</h2>
         <p>
-          C'è stato un problema nel recupero delle statistiche.<br>
-          Verifica la connessione e riprova.
+          {{ 'andamento.erroreDettaglioPart1' | t }}<br>
+          {{ 'andamento.erroreDettaglioPart2' | t }}
         </p>
         <div class="report-empty-actions">
           <button mat-flat-button color="primary" type="button" (click)="load()">
-            <mat-icon>refresh</mat-icon> Riprova
+            <mat-icon>refresh</mat-icon> {{ 'andamento.riprova' | t }}
           </button>
         </div>
       } @else {
-        <h2>Nessun dato per il {{ annoSel }}</h2>
+        <h2>{{ 'andamento.nessunDatoAnno' | t:{ anno: annoSel } }}</h2>
         <p>
-          Per vedere statistiche e grafici servono fatture o acquisti registrati nell'anno selezionato.<br>
-          Crea il tuo primo documento per iniziare a tracciare l'andamento del business.
+          {{ 'andamento.nessunDatoDettaglioPart1' | t }}<br>
+          {{ 'andamento.nessunDatoDettaglioPart2' | t }}
         </p>
         <div class="report-empty-actions">
           <a mat-flat-button color="primary" routerLink="/fatture">
-            <mat-icon>receipt</mat-icon> Vai alle fatture
+            <mat-icon>receipt</mat-icon> {{ 'andamento.vaiFatture' | t }}
           </a>
           <a mat-stroked-button routerLink="/acquisti">
-            <mat-icon>shopping_bag</mat-icon> Vai agli acquisti
+            <mat-icon>shopping_bag</mat-icon> {{ 'andamento.vaiAcquisti' | t }}
           </a>
           @if (anni.length > 1) {
-            <span class="report-empty-hint">oppure cambia anno dal selettore in alto</span>
+            <span class="report-empty-hint">{{ 'andamento.cambiaAnnoHint' | t }}</span>
           }
         </div>
       }
@@ -59,12 +59,12 @@
       <div class="kpi-card">
         <div class="kpi-icon" style="background:#e6f1f6;color:#11769b"><mat-icon>euro</mat-icon></div>
         <div class="kpi-body">
-          <div class="kpi-label">Fatturato {{ annoSel }}</div>
+          <div class="kpi-label">{{ 'andamento.kpi.fatturatoLabel' | t:{ anno: annoSel } }}</div>
           <div class="kpi-value">{{ kpiFatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</div>
           @if (kpiVariazione !== null) {
             <div class="kpi-delta" [class.positivo]="kpiVariazione >= 0" [class.negativo]="kpiVariazione < 0">
               <mat-icon style="font-size:14px">{{ kpiVariazione >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
-              {{ kpiVariazione >= 0 ? '+' : '' }}{{ kpiVariazione | number:'1.1-1' }}% vs {{ bi.annoPrec }}
+              {{ kpiVariazione >= 0 ? '+' : '' }}{{ kpiVariazione | number:'1.1-1' }}% {{ 'andamento.kpi.vsAnnoPrec' | t:{ anno: bi.annoPrec } }}
             </div>
           }
         </div>
@@ -72,28 +72,28 @@
       <div class="kpi-card">
         <div class="kpi-icon" style="background:#f0fdf4;color:#22c55e"><mat-icon>savings</mat-icon></div>
         <div class="kpi-body">
-          <div class="kpi-label">Margine lordo</div>
+          <div class="kpi-label">{{ 'andamento.kpi.margineLordo' | t }}</div>
           <div class="kpi-value" [style.color]="kpiMargine >= 0 ? '#22c55e' : '#ef4444'">
             {{ kpiMargine | currency:'EUR':'symbol':'1.0-0':'it' }}
           </div>
-          <div class="kpi-sub">{{ kpiMarginePerc | number:'1.1-1' }}% del fatturato</div>
+          <div class="kpi-sub">{{ kpiMarginePerc | number:'1.1-1' }}% {{ 'andamento.kpi.delFatturato' | t }}</div>
         </div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon" style="background:#fff7ed;color:#f59e0b"><mat-icon>schedule</mat-icon></div>
         <div class="kpi-body">
-          <div class="kpi-label">DSO medio</div>
+          <div class="kpi-label">{{ 'andamento.kpi.dsoMedio' | t }}</div>
           <div class="kpi-value">
-            @if (bi.dsoMedio !== null) { {{ bi.dsoMedio }} gg }
+            @if (bi.dsoMedio !== null) { {{ bi.dsoMedio }} {{ 'andamento.kpi.giorni' | t }} }
             @else { — }
           </div>
-          <div class="kpi-sub">giorni medi di incasso</div>
+          <div class="kpi-sub">{{ 'andamento.kpi.giorniMediIncasso' | t }}</div>
         </div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon" style="background:#fef2f2;color:#ef4444"><mat-icon>account_balance_wallet</mat-icon></div>
         <div class="kpi-body">
-          <div class="kpi-label">Tasso incasso</div>
+          <div class="kpi-label">{{ 'andamento.kpi.tassoIncasso' | t }}</div>
           <div class="kpi-value" [style.color]="bi.incassoStats?.tassoIncasso >= 80 ? '#22c55e' : '#f59e0b'">
             {{ bi.incassoStats?.tassoIncasso | number:'1.1-1' }}%
           </div>
@@ -108,14 +108,14 @@
       <div class="highlight-card">
         <div class="highlight-header">
           <mat-icon>emoji_events</mat-icon>
-          <span>Cliente top {{ annoSel }}</span>
+          <span>{{ 'andamento.clienteTopLabel' | t:{ anno: annoSel } }}</span>
         </div>
         @if (clienteTop) {
           <div class="highlight-value">{{ clienteTop.nome }}</div>
           <div class="highlight-sub">
             <span class="highlight-amount">{{ clienteTop.fatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</span>
             @if (clienteTop.numFatture) {
-              <span class="highlight-meta">· {{ clienteTop.numFatture }} {{ clienteTop.numFatture === 1 ? 'fattura' : 'fatture' }}</span>
+              <span class="highlight-meta">· {{ clienteTop.numFatture | tn:'andamento.msg.numFatture' }}</span>
             }
           </div>
         } @else {
@@ -127,14 +127,14 @@
       <div class="highlight-card highlight-card--success">
         <div class="highlight-header">
           <mat-icon>star</mat-icon>
-          <span>Prodotto pi&ugrave; venduto</span>
+          <span>{{ 'andamento.prodottoPiuVenduto' | t }}</span>
         </div>
         @if (prodottoTop) {
           <div class="highlight-value">{{ prodottoTop.nome }}</div>
           <div class="highlight-sub">
             <span class="highlight-amount">{{ prodottoTop.ricavi | currency:'EUR':'symbol':'1.0-0':'it' }}</span>
             @if (prodottoTop.marginePerc != null) {
-              <span class="highlight-meta">· margine {{ prodottoTop.marginePerc | number:'1.0-0' }}%</span>
+              <span class="highlight-meta">· {{ 'andamento.margineLabel' | t }} {{ prodottoTop.marginePerc | number:'1.0-0' }}%</span>
             }
           </div>
         } @else {
@@ -146,13 +146,13 @@
       <div class="highlight-card highlight-card--warning">
         <div class="highlight-header">
           <mat-icon>calendar_month</mat-icon>
-          <span>Mese record</span>
+          <span>{{ 'andamento.meseRecord' | t }}</span>
         </div>
         @if (meseTop) {
           <div class="highlight-value">{{ meseTop.mese }} {{ annoSel }}</div>
           <div class="highlight-sub">
             <span class="highlight-amount">{{ meseTop.fatturato | currency:'EUR':'symbol':'1.0-0':'it' }}</span>
-            <span class="highlight-meta">di fatturato</span>
+            <span class="highlight-meta">{{ 'andamento.diFatturato' | t }}</span>
           </div>
         } @else {
           <div class="highlight-empty">—</div>
@@ -163,17 +163,17 @@
     <mat-tab-group animationDuration="200ms" style="margin-top:24px">
 
       <!-- TAB: Andamento -->
-      <mat-tab label="Andamento">
+      <mat-tab [label]="'andamento.tab.andamento' | t">
         <div class="tab-content report-grid">
           <div class="card" style="grid-column:1/-1">
             <div class="card-title">
-              <mat-icon>bar_chart</mat-icon> Confronto anno su anno
+              <mat-icon>bar_chart</mat-icon> {{ 'andamento.confrontoAnnoSuAnno' | t }}
             </div>
             <div style="height:280px"><canvas #chartYoy></canvas></div>
           </div>
           <div class="card" style="grid-column:1/-1">
             <div class="card-title">
-              <mat-icon>show_chart</mat-icon> Ricavi vs Costi vs Margine
+              <mat-icon>show_chart</mat-icon> {{ 'andamento.ricaviVsCostiVsMargine' | t }}
             </div>
             <div style="height:280px"><canvas #chartMargine></canvas></div>
           </div>
@@ -181,17 +181,17 @@
       </mat-tab>
 
       <!-- TAB: Clienti ABC -->
-      <mat-tab label="Analisi ABC Clienti">
+      <mat-tab [label]="'andamento.tab.abc' | t">
         <div class="tab-content">
           <div class="card">
             <div class="card-title" style="justify-content:space-between">
-              <span><mat-icon>people</mat-icon> Analisi Pareto — Clienti per fatturato {{ annoSel }}</span>
+              <span><mat-icon>people</mat-icon> {{ 'andamento.analisiPareto' | t:{ anno: annoSel } }}</span>
               <div style="display:flex;gap:8px;align-items:center">
-                <div class="classe-badge A" (click)="abcFiltro='A'" [class.active]="abcFiltro==='A'" matTooltip="Classe A: top 80% del fatturato">A</div>
-                <div class="classe-badge B" (click)="abcFiltro='B'" [class.active]="abcFiltro==='B'" matTooltip="Classe B: 80–95%">B</div>
-                <div class="classe-badge C" (click)="abcFiltro='C'" [class.active]="abcFiltro==='C'" matTooltip="Classe C: bottom 5%">C</div>
-                <div class="classe-badge" (click)="abcFiltro='tutti'" [class.active]="abcFiltro==='tutti'">Tutti</div>
-                <button mat-icon-button (click)="exportAbc()" matTooltip="Esporta Excel">
+                <div class="classe-badge A" (click)="abcFiltro='A'" [class.active]="abcFiltro==='A'" [matTooltip]="'andamento.classeA' | t">A</div>
+                <div class="classe-badge B" (click)="abcFiltro='B'" [class.active]="abcFiltro==='B'" [matTooltip]="'andamento.classeB' | t">B</div>
+                <div class="classe-badge C" (click)="abcFiltro='C'" [class.active]="abcFiltro==='C'" [matTooltip]="'andamento.classeC' | t">C</div>
+                <div class="classe-badge" (click)="abcFiltro='tutti'" [class.active]="abcFiltro==='tutti'">{{ 'andamento.tutti' | t }}</div>
+                <button mat-icon-button (click)="exportAbc()" [matTooltip]="'andamento.esportaExcel' | t">
                   <mat-icon>download</mat-icon>
                 </button>
               </div>
@@ -199,14 +199,14 @@
             <div class="report-table-wrap"><table class="report-table">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Cliente</th>
-                  <th style="text-align:right">Fatturato</th>
-                  <th style="text-align:right">% sul tot.</th>
-                  <th style="text-align:right">% cum.</th>
-                  <th>Classe</th>
-                  <th>N° Fatt.</th>
-                  <th style="min-width:120px">Pareto</th>
+                  <th>{{ 'andamento.col.numero' | t }}</th>
+                  <th>{{ 'andamento.col.cliente' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.fatturato' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.percSulTot' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.percCum' | t }}</th>
+                  <th>{{ 'andamento.col.classe' | t }}</th>
+                  <th>{{ 'andamento.col.nFatt' | t }}</th>
+                  <th style="min-width:120px">{{ 'andamento.col.pareto' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -227,7 +227,7 @@
                   </tr>
                 }
                 @if (!abcVisibili.length) {
-                  <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato</td></tr>
+                  <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px">{{ 'andamento.nessunDato' | t }}</td></tr>
                 }
               </tbody>
             </table></div>
@@ -236,26 +236,26 @@
       </mat-tab>
 
       <!-- TAB: Prodotti e Categorie -->
-      <mat-tab label="Prodotti">
+      <mat-tab [label]="'andamento.tab.prodotti' | t">
         <div class="tab-content report-grid">
           <div class="card">
-            <div class="card-title"><mat-icon>donut_large</mat-icon> Fatturato per categoria</div>
+            <div class="card-title"><mat-icon>donut_large</mat-icon> {{ 'andamento.fatturatoPerCategoria' | t }}</div>
             <div style="height:300px"><canvas #chartCategorie></canvas></div>
           </div>
           <div class="card">
             <div class="card-title" style="justify-content:space-between">
-              <span><mat-icon>trending_up</mat-icon> Top prodotti per margine</span>
-              <button mat-icon-button (click)="exportMargini()" matTooltip="Esporta Excel">
+              <span><mat-icon>trending_up</mat-icon> {{ 'andamento.topProdottiMargine' | t }}</span>
+              <button mat-icon-button (click)="exportMargini()" [matTooltip]="'andamento.esportaExcel' | t">
                 <mat-icon>download</mat-icon>
               </button>
             </div>
             <div class="report-table-wrap"><table class="report-table">
               <thead>
                 <tr>
-                  <th>Prodotto</th>
-                  <th style="text-align:right">Ricavi</th>
-                  <th style="text-align:right">Margine %</th>
-                  <th style="min-width:80px">Bar</th>
+                  <th>{{ 'andamento.col.prodotto' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.ricavi' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.marginePerc' | t }}</th>
+                  <th style="min-width:80px">{{ 'andamento.col.bar' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -275,7 +275,7 @@
                   </tr>
                 }
                 @if (!bi.prodottiMargini?.length) {
-                  <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato</td></tr>
+                  <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px">{{ 'andamento.nessunDato' | t }}</td></tr>
                 }
               </tbody>
             </table></div>
@@ -284,20 +284,20 @@
       </mat-tab>
 
       <!-- TAB: Stagionalità -->
-      <mat-tab label="Stagionalità">
+      <mat-tab [label]="'andamento.tab.stagionalita' | t">
         <div class="tab-content report-grid">
           <div class="card">
-            <div class="card-title"><mat-icon>calendar_month</mat-icon> Radar stagionalità pluriennale</div>
+            <div class="card-title"><mat-icon>calendar_month</mat-icon> {{ 'andamento.radarStagionalita' | t }}</div>
             <div style="height:320px"><canvas #chartStagione></canvas></div>
           </div>
           <div class="card">
-            <div class="card-title"><mat-icon>insights</mat-icon> Media mensile storica</div>
+            <div class="card-title"><mat-icon>insights</mat-icon> {{ 'andamento.mediaMensileStorica' | t }}</div>
             <div class="report-table-wrap"><table class="report-table">
-              <thead><tr><th>Mese</th><th style="text-align:right">Media mensile</th><th style="min-width:100px">Intensità</th></tr></thead>
+              <thead><tr><th>{{ 'andamento.col.mese' | t }}</th><th style="text-align:right">{{ 'andamento.col.mediaMensile' | t }}</th><th style="min-width:100px">{{ 'andamento.col.intensita' | t }}</th></tr></thead>
               <tbody>
                 @for (s of bi.stagionalita; track s.mese_num) {
                   <tr>
-                    <td><b>{{ ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][+s.mese_num - 1] }}</b></td>
+                    <td><b>{{ mesi[+s.mese_num - 1] }}</b></td>
                     <td class="text-right">{{ s.media | currency:'EUR':'symbol':'1.0-0':'it' }}</td>
                     <td>
                       <div class="pareto-bar">
@@ -314,21 +314,21 @@
       </mat-tab>
 
       <!-- TAB: Margini (prodotto + cliente) -->
-      <mat-tab label="Margini">
+      <mat-tab [label]="'andamento.tab.margini' | t">
         <!-- Impilate (non affiancate come .report-grid): il nome cliente/prodotto
              ha bisogno di tutta la larghezza pagina, altrimenti la colonna nome
              si tronca troppo presto nelle due colonne strette dell'auto-fill. -->
         <div class="tab-content report-stack">
           <div class="card">
-            <div class="card-title"><mat-icon>groups</mat-icon> Margine per cliente</div>
+            <div class="card-title"><mat-icon>groups</mat-icon> {{ 'andamento.margineCliente' | t }}</div>
             <div class="report-table-wrap"><table class="report-table">
               <thead>
                 <tr>
-                  <th>Cliente</th>
-                  <th style="text-align:right">Ricavo</th>
-                  <th style="text-align:right">Costo</th>
-                  <th style="text-align:right">Margine €</th>
-                  <th style="text-align:right">%</th>
+                  <th>{{ 'andamento.col.cliente' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.ricavo' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.costo' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.margineEuro' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.percent' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -342,21 +342,21 @@
                   </tr>
                 }
                 @if (!margini?.clienti?.length) {
-                  <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato (serve il prezzo d'acquisto sui prodotti)</td></tr>
+                  <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px">{{ 'andamento.nessunDatoPrezzoAcquisto' | t }}</td></tr>
                 }
               </tbody>
             </table></div>
           </div>
           <div class="card">
-            <div class="card-title"><mat-icon>inventory_2</mat-icon> Margine per prodotto <span style="font-weight:400;color:#94a3b8;font-size:12px">· sottocosto in rosso</span></div>
+            <div class="card-title"><mat-icon>inventory_2</mat-icon> {{ 'andamento.margineProdotto' | t }} <span style="font-weight:400;color:#94a3b8;font-size:12px">· {{ 'andamento.sottocostoRosso' | t }}</span></div>
             <div class="report-table-wrap"><table class="report-table">
               <thead>
                 <tr>
-                  <th>Prodotto</th>
-                  <th style="text-align:right">Ricavo</th>
-                  <th style="text-align:right">Costo</th>
-                  <th style="text-align:right">Margine €</th>
-                  <th style="text-align:right">%</th>
+                  <th>{{ 'andamento.col.prodotto' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.ricavo' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.costo' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.margineEuro' | t }}</th>
+                  <th style="text-align:right">{{ 'andamento.col.percent' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -370,7 +370,7 @@
                   </tr>
                 }
                 @if (!margini?.prodotti?.length) {
-                  <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px">Nessun dato (serve il prezzo d'acquisto sui prodotti)</td></tr>
+                  <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px">{{ 'andamento.nessunDatoPrezzoAcquisto' | t }}</td></tr>
                 }
               </tbody>
             </table></div>

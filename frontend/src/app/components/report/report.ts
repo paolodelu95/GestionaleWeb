@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -12,10 +12,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Chart, registerables } from 'chart.js';
 import { DataService } from '../../services/data.service';
 import { ExcelService } from '../../services/excel.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 Chart.register(...registerables);
-
-const MESI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
 function fmtEuro(v: number): string {
   if (v >= 1_000_000) return '€' + (v / 1_000_000).toFixed(1) + 'M';
@@ -27,11 +28,14 @@ function fmtEuro(v: number): string {
   selector: 'app-report',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, MatButtonModule, MatIconModule, MatTabsModule,
-            MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule],
+            MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule, TPipe, TnPipe],
   templateUrl: './report.html',
   styleUrl: './report.scss'
 })
 export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
+  i18n = inject(I18nService);
+  mesi = Array.from({ length: 12 }, (_, i) => this.i18n.t(`fatture.mese.${i + 1}`));
+
   @ViewChild('chartYoy')      chartYoyRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('chartMargine')  chartMargineRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('chartCategorie') chartCatRef!: ElementRef<HTMLCanvasElement>;
@@ -140,7 +144,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
     const top = arr.slice().sort((a: any, b: any) => (b.fatturato ?? 0) - (a.fatturato ?? 0))[0];
     if (!top?.fatturato) return null;
     const idx = parseInt(top.mese.split('-')[1], 10) - 1;
-    return { mese: MESI[idx] || top.mese, fatturato: top.fatturato };
+    return { mese: this.mesi[idx] || top.mese, fatturato: top.fatturato };
   }
 
   get hasData(): boolean {
@@ -165,7 +169,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
       return m?.fatturato ?? 0;
     };
 
-    const labels = MESI;
+    const labels = this.mesi;
     const dataCorr = labels.map((_, i) => mesiFattura(`${annoStr}-${String(i+1).padStart(2,'0')}`));
     const dataPrec = labels.map((_, i) => mesiFattura(`${precStr}-${String(i+1).padStart(2,'0')}`));
 
@@ -191,7 +195,7 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
   private buildMargineChart() {
     if (!this.chartMargineRef) return;
     const annoStr = this.annoSel.toString();
-    const labels = MESI;
+    const labels = this.mesi;
     const fat = labels.map((_, i) => {
       const m = this.bi.fatturaMensile.find((r: any) => r.mese === `${annoStr}-${String(i+1).padStart(2,'0')}`);
       return m?.imponibile ?? 0;
@@ -207,9 +211,9 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
       data: {
         labels,
         datasets: [
-          { label: 'Ricavi', data: fat, backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4, stack: 'a' },
-          { label: 'Costi', data: acq, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4, stack: 'b' },
-          { type: 'line', label: 'Margine', data: margini, borderColor: '#11769b',
+          { label: this.i18n.t('andamento.legend.ricavi'), data: fat, backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4, stack: 'a' },
+          { label: this.i18n.t('andamento.legend.costi'), data: acq, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4, stack: 'b' },
+          { type: 'line', label: this.i18n.t('andamento.legend.margine'), data: margini, borderColor: '#11769b',
             backgroundColor: 'rgba(21, 164, 162,0.1)', tension: 0.4, fill: true, pointRadius: 3 } as any,
         ]
       },
@@ -250,9 +254,9 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
     this.charts.push(new Chart(this.chartStagRef.nativeElement, {
       type: 'radar',
       data: {
-        labels: MESI,
+        labels: this.mesi,
         datasets: [{
-          label: 'Media mensile',
+          label: this.i18n.t('andamento.legend.mediaMensile'),
           data: byMese,
           backgroundColor: 'rgba(21, 164, 162,0.2)',
           borderColor: '#11769b',
@@ -275,24 +279,24 @@ export class ReportComponent implements OnInit, AfterViewInit, OnDestroy {
   exportAbc() {
     if (!this.bi?.abcClienti) return;
     this.excel.export(this.bi.abcClienti, [
-      { header: 'Cliente', field: 'nome', width: 35 },
-      { header: 'Fatturato', field: 'fatturato', width: 14 },
-      { header: '% sul totale', field: 'pct', width: 12 },
-      { header: '% cumulativa', field: 'pctCumulativa', width: 14 },
-      { header: 'Classe', field: 'classe', width: 8 },
-      { header: 'N° Fatture', field: 'numFatture', width: 10 },
+      { header: this.i18n.t('andamento.col.cliente'), field: 'nome', width: 35 },
+      { header: this.i18n.t('andamento.col.fatturato'), field: 'fatturato', width: 14 },
+      { header: this.i18n.t('andamento.export.percSulTotale'), field: 'pct', width: 12 },
+      { header: this.i18n.t('andamento.export.percCumulativa'), field: 'pctCumulativa', width: 14 },
+      { header: this.i18n.t('andamento.col.classe'), field: 'classe', width: 8 },
+      { header: this.i18n.t('andamento.col.nFatt'), field: 'numFatture', width: 10 },
     ], `abc-clienti-${this.annoSel}`);
   }
 
   exportMargini() {
     if (!this.bi?.prodottiMargini) return;
     this.excel.export(this.bi.prodottiMargini, [
-      { header: 'Prodotto', field: 'nome', width: 35 },
-      { header: 'Ricavi', field: 'ricavi', width: 14 },
-      { header: 'Costi stimati', field: 'costiStimati', width: 14 },
-      { header: 'Margine €', field: 'margine', width: 12 },
-      { header: 'Margine %', field: 'marginePerc', width: 12 },
-      { header: 'Qta venduta', field: 'qtaVenduta', width: 12 },
+      { header: this.i18n.t('andamento.col.prodotto'), field: 'nome', width: 35 },
+      { header: this.i18n.t('andamento.col.ricavi'), field: 'ricavi', width: 14 },
+      { header: this.i18n.t('andamento.export.costiStimati'), field: 'costiStimati', width: 14 },
+      { header: this.i18n.t('andamento.col.margineEuro'), field: 'margine', width: 12 },
+      { header: this.i18n.t('andamento.col.marginePerc'), field: 'marginePerc', width: 12 },
+      { header: this.i18n.t('andamento.export.qtaVenduta'), field: 'qtaVenduta', width: 12 },
     ], `margini-prodotti-${this.annoSel}`);
   }
 }
