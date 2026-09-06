@@ -20,6 +20,9 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { TipoPagamento } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 interface ScadenzarioItem {
   id: number;
@@ -40,16 +43,16 @@ interface ScadenzarioItem {
   selector: 'app-saldo-multiplo-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule],
+            MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule, TPipe, TnPipe],
   template: `
     <div style="display:flex;align-items:center;gap:12px;padding:20px 24px 0">
       <div style="width:44px;height:44px;background:linear-gradient(135deg,#11769b,#0891b2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px -2px rgba(21, 164, 162,.35)">
         <mat-icon style="color:#fff;font-size:22px;width:22px;height:22px">payments</mat-icon>
       </div>
       <div>
-        <h2 mat-dialog-title style="margin:0;padding:0;font-size:16px;font-weight:600">Saldo multiplo</h2>
+        <h2 mat-dialog-title style="margin:0;padding:0;font-size:16px;font-weight:600">{{ 'scadenzario.dialog.title' | t }}</h2>
         <p style="margin:2px 0 0;font-size:13px;color:#64748b">
-          {{ data.items.length }} {{ data.items.length === 1 ? 'documento selezionato' : 'documenti selezionati' }}
+          {{ data.items.length | tn:'scadenzario.dialog.docSelezionato' }}
         </p>
       </div>
     </div>
@@ -60,10 +63,10 @@ interface ScadenzarioItem {
       <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
         <thead>
           <tr style="background:#f8fafc">
-            <th style="text-align:left;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">N°</th>
-            <th style="text-align:left;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">Controparte</th>
-            <th style="text-align:left;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">Scadenza</th>
-            <th style="text-align:right;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">Importo</th>
+            <th style="text-align:left;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">{{ 'scadenzario.dialog.colNumero' | t }}</th>
+            <th style="text-align:left;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">{{ 'scadenzario.col.controparte' | t }}</th>
+            <th style="text-align:left;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">{{ 'scadenzario.dialog.colScadenza' | t }}</th>
+            <th style="text-align:right;padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b">{{ 'scadenzario.col.importo' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -83,7 +86,7 @@ interface ScadenzarioItem {
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="3" style="padding:9px 10px;font-weight:600;background:#f8fafc;border-top:2px solid #e2e8f0">Totale da saldare</td>
+            <td colspan="3" style="padding:9px 10px;font-weight:600;background:#f8fafc;border-top:2px solid #e2e8f0">{{ 'scadenzario.dialog.totaleDaSaldare' | t }}</td>
             <td style="padding:9px 10px;text-align:right;font-weight:700;font-size:15px;background:#f8fafc;border-top:2px solid #e2e8f0;color:#1e293b">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
           </tr>
         </tfoot>
@@ -91,29 +94,29 @@ interface ScadenzarioItem {
 
       <!-- Parametri pagamento -->
       <div style="background:#f8fafc;border-radius:8px;padding:16px;border:1px solid #e2e8f0">
-        <p style="margin:0 0 14px;font-size:12px;font-weight:600;text-transform:uppercase;color:#64748b;letter-spacing:.05em">Parametri pagamento</p>
+        <p style="margin:0 0 14px;font-size:12px;font-weight:600;text-transform:uppercase;color:#64748b;letter-spacing:.05em">{{ 'scadenzario.dialog.parametriPagamento' | t }}</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <mat-form-field style="flex:1;min-width:160px">
-            <mat-label>Data pagamento *</mat-label>
+            <mat-label>{{ 'scadenzario.dialog.dataPagamento' | t }}</mat-label>
             <input matInput type="date" [(ngModel)]="dataPagamento">
           </mat-form-field>
           <mat-form-field style="flex:2;min-width:200px">
-            <mat-label>Tipo pagamento</mat-label>
+            <mat-label>{{ 'scadenzario.dialog.tipoPagamento' | t }}</mat-label>
             <mat-select [(ngModel)]="tipoPagamentoId" (ngModelChange)="onTipoPagamentoChange()">
-              <mat-option [value]="null">— non specificato —</mat-option>
+              <mat-option [value]="null">{{ 'scadenzario.dialog.nonSpecificato' | t }}</mat-option>
               @for (tp of tipiPagamento; track tp.id) {
                 <mat-option [value]="tp.id">{{ tp.nome }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
           <mat-form-field style="flex:1;min-width:120px">
-            <mat-label>Conto</mat-label>
+            <mat-label>{{ 'scadenzario.dialog.conto' | t }}</mat-label>
             <mat-select [(ngModel)]="conto">
               <mat-option value="BANCA">
-                <mat-icon style="font-size:16px;vertical-align:middle;margin-right:4px">account_balance</mat-icon>Banca
+                <mat-icon style="font-size:16px;vertical-align:middle;margin-right:4px">account_balance</mat-icon>{{ 'scadenzario.dialog.banca' | t }}
               </mat-option>
               <mat-option value="CASSA">
-                <mat-icon style="font-size:16px;vertical-align:middle;margin-right:4px">account_balance_wallet</mat-icon>Cassa
+                <mat-icon style="font-size:16px;vertical-align:middle;margin-right:4px">account_balance_wallet</mat-icon>{{ 'scadenzario.dialog.cassa' | t }}
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -123,16 +126,17 @@ interface ScadenzarioItem {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" style="padding:12px 24px 16px;gap:8px">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button [disabled]="!dataPagamento" (click)="confirm()"
               style="background:linear-gradient(135deg,#11769b,#0891b2);color:#fff">
         <mat-icon>check_circle</mat-icon>
-        Conferma saldo ({{ data.items.length }})
+        {{ i18n.t('scadenzario.dialog.confermaSaldo', { n: data.items.length }) }}
       </button>
     </mat-dialog-actions>
   `,
 })
 export class SaldoMultiploDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   tipiPagamento: TipoPagamento[] = [];
   dataPagamento = new Date().toISOString().substring(0, 10);
   tipoPagamentoId: number | null = null;
@@ -171,12 +175,13 @@ export class SaldoMultiploDialogComponent implements OnInit {
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule, MatInputModule,
     MatTooltipModule, MatSnackBarModule, MatCheckboxModule, MatDialogModule,
-    EmptyStateComponent,
+    EmptyStateComponent, TPipe, TnPipe,
   ],
   templateUrl: './scadenzario.html',
   styleUrl: './scadenzario.scss',
 })
 export class ScadenzarioComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   private allItems: ScadenzarioItem[] = [];
   dataSource = new MatTableDataSource<ScadenzarioItem>();
@@ -254,9 +259,9 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
   setVista(v: 'tutti' | 'in-scadenza' | 'scaduti') { this.filtroVista = v; this.applyVista(); }
 
   async segnaPagato(item: ScadenzarioItem) {
-    const label = item.tipo === 'fattura' ? 'fattura' : 'acquisto';
+    const label = this.i18n.t(item.tipo === 'fattura' ? 'scadenzario.msg.fattura' : 'scadenzario.msg.acquisto');
     const importoFmt = item.totale.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-    if (!await this.confirm.ask(`Segnare come pagato/a la ${label} N. ${item.numero} per ${importoFmt}?`)) return;
+    if (!await this.confirm.ask(this.i18n.t('scadenzario.msg.confermaSegnaPagato', { label, numero: item.numero, importo: importoFmt }))) return;
     const today = new Date().toISOString().substring(0, 10);
     this.ds.createPagamento({
       dataPagamento: today,
@@ -267,8 +272,8 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
       fatturaId: item.tipo === 'fattura' ? item.id : null,
       acquistoId: item.tipo === 'acquisto' ? item.id : null,
     }).subscribe({
-      next: () => { this.snack.open('Pagamento registrato', '', { duration: 2500 }); this.load(); },
-      error: () => this.snack.open('Errore durante il pagamento', '', { duration: 3000 }),
+      next: () => { this.snack.open(this.i18n.t('scadenzario.msg.pagamentoRegistrato'), '', { duration: 2500 }); this.load(); },
+      error: () => this.snack.open(this.i18n.t('scadenzario.msg.errorePagamento'), '', { duration: 3000 }),
     });
   }
 
@@ -296,12 +301,12 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
       forkJoin(calls).subscribe({
         next: () => {
           this.snack.open(
-            `${items.length} ${items.length === 1 ? 'pagamento registrato' : 'pagamenti registrati'}`,
+            this.i18n.tn('scadenzario.msg.pagamentiRegistrati', items.length),
             '', { duration: 2500 }
           );
           this.load();
         },
-        error: () => this.snack.open('Errore durante il saldo multiplo', '', { duration: 3000 }),
+        error: () => this.snack.open(this.i18n.t('scadenzario.msg.erroreSaldoMultiplo'), '', { duration: 3000 }),
       });
     });
   }
@@ -313,8 +318,6 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
   }
 
   private buildMesiOptions(): { value: string; label: string }[] {
-    const mesiIt = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
-                    'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
     const today = new Date();
     const options: { value: string; label: string }[] = [];
     for (let delta = -5; delta <= 6; delta++) {
@@ -322,7 +325,7 @@ export class ScadenzarioComponent implements OnInit, AfterViewInit {
       const y = d.getFullYear();
       const m = d.getMonth();
       const value = `${y}-${String(m + 1).padStart(2, '0')}`;
-      options.push({ value, label: `${mesiIt[m]} ${y}` });
+      options.push({ value, label: `${this.i18n.t('common.meseFull.' + (m + 1))} ${y}` });
     }
     return options;
   }

@@ -1,17 +1,17 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Scadenzario</h1>
+    <h1 class="page-title">{{ 'scadenzario.title' | t }}</h1>
     <div style="display:flex;gap:8px;align-items:center">
       @if (selection.hasValue()) {
         <button mat-flat-button color="primary" type="button" (click)="saldoMultiplo()" style="gap:6px">
           <mat-icon>payments</mat-icon>
-          Saldo multiplo
+          {{ 'scadenzario.saldoMultiplo' | t }}
           <span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;margin-left:2px">
             {{ selection.selected.length }}
           </span>
         </button>
       }
-      <button mat-icon-button type="button" title="Aggiorna" (click)="load()">
+      <button mat-icon-button type="button" [title]="'scadenzario.aggiorna' | t" (click)="load()">
         <mat-icon>refresh</mat-icon>
       </button>
     </div>
@@ -21,30 +21,30 @@
   <div class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-accent" style="background:#16a34a"></div>
-      <div class="kpi-label">Da incassare</div>
+      <div class="kpi-label">{{ 'scadenzario.kpi.daIncassare' | t }}</div>
       <div class="kpi-value" style="color:#16a34a">{{ totDaIncassare | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-accent" style="background:#dc2626"></div>
-      <div class="kpi-label">Da pagare</div>
+      <div class="kpi-label">{{ 'scadenzario.kpi.daPagare' | t }}</div>
       <div class="kpi-value" style="color:#dc2626">{{ totDaPagare | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-accent" style="background:#d97706"></div>
-      <div class="kpi-label">Scaduti</div>
+      <div class="kpi-label">{{ 'scadenzario.kpi.scaduti' | t }}</div>
       <div class="kpi-value" style="color:#d97706">{{ countScaduti }}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-accent" style="background:#11769b"></div>
-      <div class="kpi-label">In scadenza (30 gg)</div>
+      <div class="kpi-label">{{ 'scadenzario.kpi.inScadenza30' | t }}</div>
       <div class="kpi-value" style="color:#11769b">{{ countInScadenza30 }}</div>
     </div>
   </div>
 
   <!-- Filter bar -->
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroMese" (selectionChange)="onMeseChange()" placeholder="Tutti i mesi">
-      <mat-option value="">Tutti i mesi</mat-option>
+    <mat-select [(ngModel)]="filtroMese" (selectionChange)="onMeseChange()" [placeholder]="'scadenzario.filtri.tuttiMesi' | t">
+      <mat-option value="">{{ 'scadenzario.filtri.tuttiMesi' | t }}</mat-option>
       @for (m of mesiOptions; track m.value) {
         <mat-option [value]="m.value">{{ m.label }}</mat-option>
       }
@@ -54,26 +54,26 @@
       <button mat-stroked-button type="button"
               [class.active-btn]="filtroVista === 'tutti'"
               (click)="setVista('tutti')">
-        Tutti
+        {{ 'scadenzario.vista.tutti' | t }}
       </button>
       <button mat-stroked-button type="button"
               [class.active-btn]="filtroVista === 'in-scadenza'"
               (click)="setVista('in-scadenza')">
-        <mat-icon>schedule</mat-icon> In scadenza
+        <mat-icon>schedule</mat-icon> {{ 'scadenzario.vista.inScadenza' | t }}
       </button>
       <button mat-stroked-button type="button"
               [class.active-btn]="filtroVista === 'scaduti'"
               (click)="setVista('scaduti')">
-        <mat-icon>warning_amber</mat-icon> Scaduti
+        <mat-icon>warning_amber</mat-icon> {{ 'scadenzario.vista.scaduti' | t }}
       </button>
     </div>
 
     @if (selection.hasValue()) {
       <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 4px;color:#11769b;font-size:13px;font-weight:500">
         <mat-icon style="font-size:16px;width:16px;height:16px">check_box</mat-icon>
-        {{ selection.selected.length }} selezionati
+        {{ selection.selected.length | tn:'scadenzario.selectedCount' }}
         · {{ selectedTotal | currency:'EUR':'symbol':'1.2-2':'it' }}
-        <button mat-icon-button type="button" style="width:28px;height:28px;line-height:28px" (click)="selection.clear()" matTooltip="Deseleziona tutto">
+        <button mat-icon-button type="button" style="width:28px;height:28px;line-height:28px" (click)="selection.clear()" [matTooltip]="'scadenzario.deselezionaTutto' | t">
           <mat-icon style="font-size:16px;width:16px;height:16px">close</mat-icon>
         </button>
       </div>
@@ -91,7 +91,7 @@
             [checked]="isAllSelected()"
             [indeterminate]="isIndeterminate()"
             (change)="toggleAll()"
-            matTooltip="Seleziona/deseleziona tutti">
+            [matTooltip]="'scadenzario.selezionaTutti' | t">
           </mat-checkbox>
         </th>
         <td mat-cell *matCellDef="let item" style="width:48px;padding-right:0">
@@ -101,24 +101,24 @@
 
       <!-- Direzione / Tipo chip -->
       <ng-container matColumnDef="direzione">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tipo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'scadenzario.col.tipo' | t }}</th>
         <td mat-cell *matCellDef="let item">
           <span class="tipo-chip" [class.entrata]="item.direzione === 'ENTRATA'" [class.uscita]="item.direzione === 'USCITA'">
             <mat-icon>{{ item.direzione === 'ENTRATA' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
-            {{ item.direzione === 'ENTRATA' ? 'ENTRATA' : 'USCITA' }}
+            {{ (item.direzione === 'ENTRATA' ? 'scadenzario.direzione.entrata' : 'scadenzario.direzione.uscita') | t }}
           </span>
         </td>
       </ng-container>
 
       <!-- Numero -->
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'scadenzario.col.numero' | t }}</th>
         <td mat-cell *matCellDef="let item"><b>{{ item.numero }}</b></td>
       </ng-container>
 
       <!-- Data scadenza -->
       <ng-container matColumnDef="dataScadenza">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Data scadenza</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'scadenzario.col.dataScadenza' | t }}</th>
         <td mat-cell *matCellDef="let item">
           <span [class.text-scaduto]="item.scaduto">
             {{ item.dataScadenza ? (item.dataScadenza | date:'dd/MM/yyyy') : '—' }}
@@ -128,13 +128,13 @@
 
       <!-- Controparte -->
       <ng-container matColumnDef="controparte">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Controparte</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'scadenzario.col.controparte' | t }}</th>
         <td mat-cell *matCellDef="let item">{{ item.controparte || '—' }}</td>
       </ng-container>
 
       <!-- Importo -->
       <ng-container matColumnDef="totale">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'scadenzario.col.importo' | t }}</th>
         <td mat-cell *matCellDef="let item" class="euro">
           {{ (item.totale ?? 0) | currency:'EUR':'symbol':'1.2-2':'it' }}
         </td>
@@ -142,7 +142,7 @@
 
       <!-- Stato -->
       <ng-container matColumnDef="stato">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Stato</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'scadenzario.col.stato' | t }}</th>
         <td mat-cell *matCellDef="let item">
           <span class="stato-chip" [class]="item.stato?.toLowerCase()">{{ item.stato }}</span>
         </td>
@@ -150,14 +150,14 @@
 
       <!-- Giorni mancanti -->
       <ng-container matColumnDef="giorni">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Giorni</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'scadenzario.col.giorni' | t }}</th>
         <td mat-cell *matCellDef="let item">
           @if (item.giorniMancanti !== null) {
             <span class="giorni-badge" [class]="giorniBadgeClass(item)">
               @if (item.scaduto) {
-                {{ item.giorniMancanti }} gg
+                {{ i18n.t('scadenzario.giorniScaduti', { n: item.giorniMancanti ?? '' }) }}
               } @else {
-                +{{ item.giorniMancanti }} gg
+                {{ i18n.t('scadenzario.giorniRestanti', { n: item.giorniMancanti ?? '' }) }}
               }
             </span>
           } @else {
@@ -171,8 +171,8 @@
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let item" class="table-actions">
           <button mat-stroked-button type="button" color="primary" (click)="segnaPagato(item)"
-                  matTooltip="Registra il pagamento completo per questo documento">
-            <mat-icon>check_circle</mat-icon> Segna come pagato
+                  [matTooltip]="'scadenzario.azioni.segnaPagatoTooltip' | t">
+            <mat-icon>check_circle</mat-icon> {{ 'scadenzario.azioni.segnaPagato' | t }}
           </button>
         </td>
       </ng-container>
@@ -187,8 +187,8 @@
       </tr>
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [colSpan]="displayedColumns.length">
-          <app-empty-state compact icon="event_available" title="Nessuna scadenza"
-            message="Non ci sono scadenze in questo elenco." />
+          <app-empty-state compact icon="event_available" [title]="'scadenzario.empty.title' | t"
+            [message]="'scadenzario.empty.message' | t" />
         </td>
       </tr>
     </table>
