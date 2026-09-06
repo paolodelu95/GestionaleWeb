@@ -1,46 +1,46 @@
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">Pagamenti</h1>
+    <h1 class="page-title">{{ 'pagamenti.title' | t }}</h1>
 
     @if (filtro !== 'DA_SALDARE') {
-      <button mat-flat-button (click)="open()"><mat-icon>add</mat-icon> Nuovo pagamento</button>
+      <button mat-flat-button (click)="open()"><mat-icon>add</mat-icon> {{ 'pagamenti.nuovoPagamento' | t }}</button>
     }
 
     <mat-button-toggle-group [(ngModel)]="filtro" (change)="load()">
-      <mat-button-toggle value="TUTTI">Tutti</mat-button-toggle>
-      <mat-button-toggle value="ENTRATA">Entrate</mat-button-toggle>
-      <mat-button-toggle value="USCITA">Uscite</mat-button-toggle>
-      <mat-button-toggle value="DA_SALDARE">Da saldare</mat-button-toggle>
+      <mat-button-toggle value="TUTTI">{{ 'pagamenti.filtro.tutti' | t }}</mat-button-toggle>
+      <mat-button-toggle value="ENTRATA">{{ 'pagamenti.filtro.entrate' | t }}</mat-button-toggle>
+      <mat-button-toggle value="USCITA">{{ 'pagamenti.filtro.uscite' | t }}</mat-button-toggle>
+      <mat-button-toggle value="DA_SALDARE">{{ 'pagamenti.filtro.daSaldare' | t }}</mat-button-toggle>
     </mat-button-toggle-group>
 
     @if (filtro === 'DA_SALDARE' && selection.selected.length > 0) {
       <div class="bulk-bar">
-        <span class="bulk-count">{{ selection.selected.length }} selezionati</span>
+        <span class="bulk-count">{{ selection.selected.length | tn:'pagamenti.selected' }}</span>
         <span style="color:#64748b;font-size:13px">— {{ totaleSelezionato | currency:'EUR':'symbol':'1.2-2':'it' }}</span>
         <button mat-flat-button (click)="saldaSelezionati()">
-          <mat-icon>done_all</mat-icon> Salda selezionati
+          <mat-icon>done_all</mat-icon> {{ 'pagamenti.saldaSelezionati' | t }}
         </button>
       </div>
     }
 
-    <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Stampa</button>
+    <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> {{ 'pagamenti.stampa' | t }}</button>
   </div>
 
   <div class="filter-bar">
-    <mat-select [(ngModel)]="filtroAnno" placeholder="Anno">
-      <mat-option [value]="null">Tutti gli anni</mat-option>
+    <mat-select [(ngModel)]="filtroAnno" [placeholder]="'pagamenti.filtri.anno' | t">
+      <mat-option [value]="null">{{ 'pagamenti.filtri.tuttiAnni' | t }}</mat-option>
       @for (a of anni; track a) { <mat-option [value]="a">{{ a }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroMese" placeholder="Mese">
-      <mat-option [value]="null">Tutti i mesi</mat-option>
+    <mat-select [(ngModel)]="filtroMese" [placeholder]="'pagamenti.filtri.mese' | t">
+      <mat-option [value]="null">{{ 'pagamenti.filtri.tuttiMesi' | t }}</mat-option>
       @for (m of mesi; track m.v) { <mat-option [value]="m.v">{{ m.l }}</mat-option> }
     </mat-select>
-    <mat-select [(ngModel)]="filtroControparte" placeholder="Cliente / Fornitore">
-      <mat-option [value]="null">Tutti</mat-option>
+    <mat-select [(ngModel)]="filtroControparte" [placeholder]="'pagamenti.filtri.clienteFornitore' | t">
+      <mat-option [value]="null">{{ 'pagamenti.filtri.tutti' | t }}</mat-option>
       @for (c of controparti; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
     </mat-select>
     @if (filtroAnno || filtroMese || filtroControparte) {
-      <button mat-icon-button type="button" title="Rimuovi filtri" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
+      <button mat-icon-button type="button" [title]="'pagamenti.filtri.rimuovi' | t" (click)="resetFiltri()"><mat-icon>clear</mat-icon></button>
     }
   </div>
 
@@ -50,15 +50,15 @@
     @if (scadenzario.length) {
       <div class="kpi-grid kpi-3col" style="margin-bottom:20px">
         <div class="kpi-card">
-          <div class="kpi-label">Da incassare (fatture)</div>
+          <div class="kpi-label">{{ 'pagamenti.kpi.daIncassareFatture' | t }}</div>
           <div class="kpi-value euro">{{ daSaldareEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Da pagare (acquisti)</div>
+          <div class="kpi-label">{{ 'pagamenti.kpi.daPagareAcquisti' | t }}</div>
           <div class="kpi-value euro-neg">{{ daSaldareUscite | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Voci aperte</div>
+          <div class="kpi-label">{{ 'pagamenti.kpi.vociAperte' | t }}</div>
           <div class="kpi-value">{{ scadenzario.length }}</div>
         </div>
       </div>
@@ -84,28 +84,28 @@
         </ng-container>
 
         <ng-container matColumnDef="tipo">
-          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'pagamenti.col.tipo' | t }}</th>
           <td mat-cell *matCellDef="let e">
             <span class="stato-chip"
                   [style.background]="e.tipoEntry === 'FATTURA' ? '#dcfce7' : '#fee2e2'"
                   [style.color]="e.tipoEntry === 'FATTURA' ? '#16a34a' : '#dc2626'">
-              {{ e.tipoEntry === 'FATTURA' ? 'Entrata' : 'Uscita' }}
+              {{ (e.tipoEntry === 'FATTURA' ? 'pagamenti.tipoEntry.entrata' : 'pagamenti.tipoEntry.uscita') | t }}
             </span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="numero">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.numero' | t }}</th>
           <td mat-cell *matCellDef="let e"><b>{{ e.numero }}</b></td>
         </ng-container>
 
         <ng-container matColumnDef="dataEmissione">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Emissione</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.emissione' | t }}</th>
           <td mat-cell *matCellDef="let e">{{ e.dataEmissione | date:'dd/MM/yyyy' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="dataScadenza">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Scadenza</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.scadenza' | t }}</th>
           <td mat-cell *matCellDef="let e">
             <b [style.color]="isScaduta(e) ? '#dc2626' : '#374151'">
               {{ e.dataScadenza | date:'dd/MM/yyyy' }}
@@ -114,12 +114,12 @@
         </ng-container>
 
         <ng-container matColumnDef="controparte">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente / Fornitore</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.clienteFornitore' | t }}</th>
           <td mat-cell *matCellDef="let e">{{ e.controparte || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="rimanente">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Rimanente</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.rimanente' | t }}</th>
           <td mat-cell *matCellDef="let e">
             <b [class.euro]="e.tipoEntry === 'FATTURA'" [class.euro-neg]="e.tipoEntry === 'ACQUISTO'">
               {{ e.rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}
@@ -130,11 +130,11 @@
         <ng-container matColumnDef="azioni">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let e" class="table-actions">
-            <button mat-icon-button type="button" [matMenuTriggerFor]="scadMenu" title="Azioni" (click)="$event.stopPropagation()"><mat-icon>more_vert</mat-icon></button>
+            <button mat-icon-button type="button" [matMenuTriggerFor]="scadMenu" [title]="'pagamenti.altreAzioni' | t" (click)="$event.stopPropagation()"><mat-icon>more_vert</mat-icon></button>
             <mat-menu #scadMenu="matMenu">
               <button mat-menu-item type="button" (click)="salda(e)">
                 <mat-icon [style.color]="e.tipoEntry === 'FATTURA' ? '#16a34a' : '#dc2626'">payments</mat-icon>
-                Salda
+                {{ 'pagamenti.azioni.salda' | t }}
               </button>
             </mat-menu>
           </td>
@@ -146,7 +146,7 @@
             (click)="selection.toggle(row)" style="cursor:pointer">
         </tr>
       </table>
-      @if (!scadenzario.length) { <app-empty-state compact icon="task_alt" title="Nessuna scadenza aperta" message="Tutto saldato: non ci sono importi in sospeso." /> }
+      @if (!scadenzario.length) { <app-empty-state compact icon="task_alt" [title]="'pagamenti.empty.nessunaScadenzaTitle' | t" [message]="'pagamenti.empty.nessunaScadenzaMsg' | t" /> }
     </div>
 
   } @else {
@@ -156,15 +156,15 @@
     @if (pagamenti.length || (filtro === 'TUTTI' && scadenzario.length)) {
       <div class="kpi-grid" [class.kpi-5col]="filtro === 'TUTTI'" [class.kpi-3col]="filtro !== 'TUTTI'" style="margin-bottom:20px">
         <div class="kpi-card">
-          <div class="kpi-label">Entrate incassate</div>
+          <div class="kpi-label">{{ 'pagamenti.kpi.entrateIncassate' | t }}</div>
           <div class="kpi-value euro">{{ totaleEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Uscite pagate</div>
+          <div class="kpi-label">{{ 'pagamenti.kpi.uscitePagate' | t }}</div>
           <div class="kpi-value euro-neg">{{ totaleUscite | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Saldo movimenti</div>
+          <div class="kpi-label">{{ 'pagamenti.kpi.saldoMovimenti' | t }}</div>
           <div class="kpi-value"
                [class.euro]="totaleEntrate - totaleUscite >= 0"
                [class.euro-neg]="totaleEntrate - totaleUscite < 0">
@@ -173,11 +173,11 @@
         </div>
         @if (filtro === 'TUTTI') {
           <div class="kpi-card">
-            <div class="kpi-label">Da incassare</div>
+            <div class="kpi-label">{{ 'pagamenti.kpi.daIncassare' | t }}</div>
             <div class="kpi-value euro">{{ daSaldareEntrate | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Da pagare</div>
+            <div class="kpi-label">{{ 'pagamenti.kpi.daPagare' | t }}</div>
             <div class="kpi-value euro-neg">{{ daSaldareUscite | currency:'EUR':'symbol':'1.2-2':'it' }}</div>
           </div>
         }
@@ -189,23 +189,23 @@
              matSortActive="data" matSortDirection="desc" matSortDisableClear class="mat-mdc-table">
 
         <ng-container matColumnDef="data">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header="dataPagamento">Data</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="dataPagamento">{{ 'pagamenti.col.data' | t }}</th>
           <td mat-cell *matCellDef="let p">{{ p.dataPagamento | date:'dd/MM/yyyy' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="tipo">
-          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'pagamenti.col.tipo' | t }}</th>
           <td mat-cell *matCellDef="let p">
             <span class="stato-chip" style="font-size:11px"
                   [style.background]="p.tipo === 'ENTRATA' ? '#dcfce7' : '#fee2e2'"
                   [style.color]="p.tipo === 'ENTRATA' ? '#16a34a' : '#dc2626'">
-              {{ p.tipo === 'ENTRATA' ? 'Entrata' : 'Uscita' }}
+              {{ (p.tipo === 'ENTRATA' ? 'pagamenti.tipoEntry.entrata' : 'pagamenti.tipoEntry.uscita') | t }}
             </span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="importo">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Importo</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.importo' | t }}</th>
           <td mat-cell *matCellDef="let p">
             <b [class.euro]="p.tipo === 'ENTRATA'" [class.euro-neg]="p.tipo === 'USCITA'">
               {{ p.importo | currency:'EUR':'symbol':'1.2-2':'it' }}
@@ -214,10 +214,10 @@
         </ng-container>
 
         <ng-container matColumnDef="documento">
-          <th mat-header-cell *matHeaderCellDef>Documento</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'pagamenti.col.documento' | t }}</th>
           <td mat-cell *matCellDef="let p">
-            @if (p.fatturaNumero) { <span>Fatt. {{ p.fatturaNumero }}</span> }
-            @else if (p.acquistoNumero) { <span>Acq. {{ p.acquistoNumero }}</span> }
+            @if (p.fatturaNumero) { <span>{{ 'pagamenti.docPrefix.fatt' | t }} {{ p.fatturaNumero }}</span> }
+            @else if (p.acquistoNumero) { <span>{{ 'pagamenti.docPrefix.acq' | t }} {{ p.acquistoNumero }}</span> }
             @else if (p.venditaBancoNumero) {
               <span style="background:#cffafe;color:#6d28d9;padding:2px 7px;border-radius:99px;font-size:11px;font-weight:700">
                 VB-{{ p.venditaBancoNumero }}
@@ -229,17 +229,17 @@
         </ng-container>
 
         <ng-container matColumnDef="controparte">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente / Fornitore</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.clienteFornitore' | t }}</th>
           <td mat-cell *matCellDef="let p">{{ p.clienteNome || p.fornitoreNome || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="tipoPagamentoNome">
-          <th mat-header-cell *matHeaderCellDef>Metodo</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'pagamenti.col.metodo' | t }}</th>
           <td mat-cell *matCellDef="let p">{{ p.tipoPagamentoNome || p.metodo || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="conto">
-          <th mat-header-cell *matHeaderCellDef>Conto</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'pagamenti.col.conto' | t }}</th>
           <td mat-cell *matCellDef="let p">
             <mat-icon style="font-size:16px;vertical-align:middle;color:#64748b">
               {{ p.conto === 'CASSA' ? 'account_balance_wallet' : 'account_balance' }}
@@ -251,10 +251,10 @@
         <ng-container matColumnDef="azioni">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let p" class="table-actions">
-            <button mat-icon-button [matMenuTriggerFor]="pagMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+            <button mat-icon-button [matMenuTriggerFor]="pagMenu" [title]="'pagamenti.altreAzioni' | t"><mat-icon>more_vert</mat-icon></button>
             <mat-menu #pagMenu="matMenu">
-              <button mat-menu-item type="button" (click)="open(p)"><mat-icon>edit</mat-icon> Modifica</button>
-              <button mat-menu-item type="button" (click)="delete(p)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+              <button mat-menu-item type="button" (click)="open(p)"><mat-icon>edit</mat-icon> {{ 'pagamenti.azioni.modifica' | t }}</button>
+              <button mat-menu-item type="button" (click)="delete(p)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> {{ 'pagamenti.azioni.elimina' | t }}</button>
             </mat-menu>
           </td>
         </ng-container>
@@ -262,7 +262,7 @@
         <tr mat-header-row *matHeaderRowDef="pagamentiCols"></tr>
         <tr mat-row *matRowDef="let row; columns: pagamentiCols;"></tr>
       </table>
-      @if (!pagamenti.length) { <app-empty-state compact icon="payments" title="Nessun pagamento registrato" message="Qui compaiono incassi e pagamenti man mano che li registri." /> }
+      @if (!pagamenti.length) { <app-empty-state compact icon="payments" [title]="'pagamenti.empty.nessunPagamentoTitle' | t" [message]="'pagamenti.empty.nessunPagamentoMsg' | t" /> }
       @if (pagamenti.length) {
         <mat-paginator [length]="pagamenti.length" [pageSize]="pagPageSize" [pageIndex]="pagPageIndexClamped"
                         [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons (page)="onPagPage($event)" />
@@ -271,7 +271,7 @@
 
     @if (filtro === 'TUTTI') {
       <div style="display:flex;align-items:center;gap:10px;margin:24px 0 10px">
-        <span style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Scadenze aperte</span>
+        <span style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px">{{ 'pagamenti.scadenzeAperte' | t }}</span>
         @if (scadenzario.length) {
           <span style="background:#fee2e2;color:#dc2626;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">{{ scadenzario.length }}</span>
         }
@@ -281,28 +281,28 @@
                matSortActive="dataScadenza" matSortDirection="asc" matSortDisableClear class="mat-mdc-table">
 
           <ng-container matColumnDef="tipo">
-            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'pagamenti.col.tipo' | t }}</th>
             <td mat-cell *matCellDef="let e">
               <span class="stato-chip"
                     [style.background]="e.tipoEntry === 'FATTURA' ? '#dcfce7' : '#fee2e2'"
                     [style.color]="e.tipoEntry === 'FATTURA' ? '#16a34a' : '#dc2626'">
-                {{ e.tipoEntry === 'FATTURA' ? 'Entrata' : 'Uscita' }}
+                {{ (e.tipoEntry === 'FATTURA' ? 'pagamenti.tipoEntry.entrata' : 'pagamenti.tipoEntry.uscita') | t }}
               </span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="numero">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Numero</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.numero' | t }}</th>
             <td mat-cell *matCellDef="let e"><b>{{ e.numero }}</b></td>
           </ng-container>
 
           <ng-container matColumnDef="dataEmissione">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Emissione</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.emissione' | t }}</th>
             <td mat-cell *matCellDef="let e">{{ e.dataEmissione | date:'dd/MM/yyyy' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="dataScadenza">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Scadenza</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.scadenza' | t }}</th>
             <td mat-cell *matCellDef="let e">
               <b [style.color]="isScaduta(e) ? '#dc2626' : '#374151'">
                 {{ e.dataScadenza | date:'dd/MM/yyyy' }}
@@ -311,12 +311,12 @@
           </ng-container>
 
           <ng-container matColumnDef="controparte">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente / Fornitore</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.clienteFornitore' | t }}</th>
             <td mat-cell *matCellDef="let e">{{ e.controparte || '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="rimanente">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Rimanente</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'pagamenti.col.rimanente' | t }}</th>
             <td mat-cell *matCellDef="let e">
               <b [class.euro]="e.tipoEntry === 'FATTURA'" [class.euro-neg]="e.tipoEntry === 'ACQUISTO'">
                 {{ e.rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}
@@ -329,7 +329,7 @@
             <td mat-cell *matCellDef="let e" class="table-actions">
               <button mat-stroked-button type="button" (click)="salda(e)"
                       [style.color]="e.tipoEntry === 'FATTURA' ? '#16a34a' : '#dc2626'">
-                <mat-icon>payments</mat-icon> Salda
+                <mat-icon>payments</mat-icon> {{ 'pagamenti.azioni.salda' | t }}
               </button>
             </td>
           </ng-container>
@@ -339,7 +339,7 @@
               [style.background]="isScaduta(row) ? '#fff5f5' : null">
           </tr>
         </table>
-        @if (!scadenzario.length) { <app-empty-state compact icon="task_alt" title="Nessuna scadenza aperta" message="Tutto saldato: non ci sono importi in sospeso." /> }
+        @if (!scadenzario.length) { <app-empty-state compact icon="task_alt" [title]="'pagamenti.empty.nessunaScadenzaTitle' | t" [message]="'pagamenti.empty.nessunaScadenzaMsg' | t" /> }
       </div>
     }
 

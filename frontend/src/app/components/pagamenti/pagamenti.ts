@@ -20,6 +20,9 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { forkJoin } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { Pagamento, Fattura, TipoPagamento, ScadenzarioEntry, CausalePagamento } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 // ── Salda singolo ─────────────────────────────────────────────────────────────
 interface SaldaData { entry: ScadenzarioEntry; tipiPagamento: TipoPagamento[]; }
@@ -28,24 +31,24 @@ interface SaldaData { entry: ScadenzarioEntry; tipiPagamento: TipoPagamento[]; }
   selector: 'app-salda-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Salda {{ data.entry.numero }}</h2>
+    <h2 mat-dialog-title>{{ i18n.t('pagamenti.saldaDialog.title', { numero: data.entry.numero }) }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form" (keydown.enter)="save()">
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Importo *</mat-label>
+          <mat-label>{{ 'pagamenti.saldaDialog.importo' | t }}</mat-label>
           <input matInput type="number" step="0.01" formControlName="importo">
-          <mat-hint>Rimane: {{ data.entry.rimanente | currency:'EUR':'symbol':'1.2-2':'it' }}</mat-hint>
+          <mat-hint>{{ i18n.t('pagamenti.saldaDialog.rimane', { importo: (data.entry.rimanente | currency:'EUR':'symbol':'1.2-2':'it') ?? '' }) }}</mat-hint>
         </mat-form-field>
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Data saldo *</mat-label>
+          <mat-label>{{ 'pagamenti.saldaDialog.dataSaldo' | t }}</mat-label>
           <input matInput type="date" formControlName="dataPagamento">
         </mat-form-field>
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Metodo di pagamento</mat-label>
+          <mat-label>{{ 'pagamenti.saldaDialog.metodoPagamento' | t }}</mat-label>
           <mat-select formControlName="tipoPagamentoId">
-            <mat-option [value]="null">— nessuno —</mat-option>
+            <mat-option [value]="null">{{ 'pagamenti.saldaDialog.nessuno' | t }}</mat-option>
             @for (t of data.tipiPagamento; track t.id) {
               <mat-option [value]="t.id">{{ t.nome }}</mat-option>
             }
@@ -54,11 +57,12 @@ interface SaldaData { entry: ScadenzarioEntry; tipiPagamento: TipoPagamento[]; }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Conferma saldo</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.invalid">{{ 'pagamenti.saldaDialog.confermaSaldo' | t }}</button>
     </mat-dialog-actions>`
 })
 export class SaldaDialogComponent {
+  i18n = inject(I18nService);
   form: FormGroup;
   constructor(private fb: FormBuilder, public dialogRef: MatDialogRef<SaldaDialogComponent>,
               @Inject(MAT_DIALOG_DATA) public data: SaldaData) {
@@ -78,22 +82,22 @@ interface SaldaMultiploData { entries: ScadenzarioEntry[]; tipiPagamento: TipoPa
   selector: 'app-salda-multiplo-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Salda {{ data.entries.length }} voci</h2>
+    <h2 mat-dialog-title>{{ i18n.t('pagamenti.saldaMultiploDialog.title', { n: data.entries.length }) }}</h2>
     <mat-dialog-content>
       <p style="margin:0 0 16px;color:var(--text-secondary)">
-        Totale: <b style="color:var(--text-primary)">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
+        {{ 'pagamenti.saldaMultiploDialog.totale' | t }} <b style="color:var(--text-primary)">{{ totale | currency:'EUR':'symbol':'1.2-2':'it' }}</b>
       </p>
       <form [formGroup]="form" class="dialog-form" (keydown.enter)="save()">
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Data saldo *</mat-label>
+          <mat-label>{{ 'pagamenti.saldaDialog.dataSaldo' | t }}</mat-label>
           <input matInput type="date" formControlName="dataPagamento">
         </mat-form-field>
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Metodo di pagamento</mat-label>
+          <mat-label>{{ 'pagamenti.saldaDialog.metodoPagamento' | t }}</mat-label>
           <mat-select formControlName="tipoPagamentoId">
-            <mat-option [value]="null">— nessuno —</mat-option>
+            <mat-option [value]="null">{{ 'pagamenti.saldaDialog.nessuno' | t }}</mat-option>
             @for (t of data.tipiPagamento; track t.id) {
               <mat-option [value]="t.id">{{ t.nome }}</mat-option>
             }
@@ -102,11 +106,12 @@ interface SaldaMultiploData { entries: ScadenzarioEntry[]; tipiPagamento: TipoPa
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Conferma saldo</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.invalid">{{ 'pagamenti.saldaDialog.confermaSaldo' | t }}</button>
     </mat-dialog-actions>`
 })
 export class SaldaMultiploDialogComponent {
+  i18n = inject(I18nService);
   form: FormGroup;
   get totale() { return this.data.entries.reduce((s, e) => s + e.rimanente, 0); }
   constructor(private fb: FormBuilder, public dialogRef: MatDialogRef<SaldaMultiploDialogComponent>,
@@ -124,72 +129,73 @@ export class SaldaMultiploDialogComponent {
   selector: 'app-pagamento-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
-            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule],
+            MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule, TPipe],
   template: `
-    <h2 mat-dialog-title>{{ data?.id ? 'Modifica pagamento' : 'Nuovo pagamento' }}</h2>
+    <h2 mat-dialog-title>{{ (data?.id ? 'pagamenti.dialog.modificaTitle' : 'pagamenti.nuovoPagamento') | t }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Data *</mat-label>
+            <mat-label>{{ 'pagamenti.dialog.data' | t }}</mat-label>
             <input matInput type="date" formControlName="dataPagamento">
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Importo *</mat-label>
+            <mat-label>{{ 'pagamenti.dialog.importo' | t }}</mat-label>
             <input matInput type="number" step="0.01" formControlName="importo">
             <span matTextPrefix>€&nbsp;</span>
           </mat-form-field>
         </div>
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Tipo</mat-label>
+            <mat-label>{{ 'pagamenti.dialog.tipo' | t }}</mat-label>
             <mat-select formControlName="tipo">
-              <mat-option value="ENTRATA">Entrata</mat-option>
-              <mat-option value="USCITA">Uscita</mat-option>
+              <mat-option value="ENTRATA">{{ 'pagamenti.tipoEntry.entrata' | t }}</mat-option>
+              <mat-option value="USCITA">{{ 'pagamenti.tipoEntry.uscita' | t }}</mat-option>
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Metodo di pagamento</mat-label>
+            <mat-label>{{ 'pagamenti.saldaDialog.metodoPagamento' | t }}</mat-label>
             <mat-select formControlName="tipoPagamentoId">
-              <mat-option [value]="null">— nessuno —</mat-option>
+              <mat-option [value]="null">{{ 'pagamenti.saldaDialog.nessuno' | t }}</mat-option>
               @for (t of tipiPagamento; track t.id) {
                 <mat-option [value]="t.id">{{ t.nome }}</mat-option>
               }
             </mat-select>
-            <mat-hint>Il conto (banca/cassa) viene impostato in automatico.</mat-hint>
+            <mat-hint>{{ 'pagamenti.dialog.contoHint' | t }}</mat-hint>
           </mat-form-field>
         </div>
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Causale</mat-label>
+          <mat-label>{{ 'pagamenti.dialog.causale' | t }}</mat-label>
           <mat-select formControlName="causale">
-            <mat-option [value]="''">— nessuna —</mat-option>
+            <mat-option [value]="''">{{ 'pagamenti.dialog.nessuna' | t }}</mat-option>
             @for (c of causali; track c.id) {
               <mat-option [value]="c.nome">{{ c.nome }}</mat-option>
             }
           </mat-select>
-          <mat-hint>Gestisci l'elenco in Impostazioni → Causali pagamento.</mat-hint>
+          <mat-hint>{{ 'pagamenti.dialog.causaleHint' | t }}</mat-hint>
         </mat-form-field>
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Fattura collegata (facoltativa)</mat-label>
+          <mat-label>{{ 'pagamenti.dialog.fatturaCollegata' | t }}</mat-label>
           <mat-select formControlName="fatturaId">
-            <mat-option [value]="null">— nessuna —</mat-option>
+            <mat-option [value]="null">{{ 'pagamenti.dialog.nessuna' | t }}</mat-option>
             @for (f of fatture; track f.id) {
               <mat-option [value]="f.id">{{ f.numero }} — {{ f.clienteNome }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" style="width:100%">
-          <mat-label>Note</mat-label>
+          <mat-label>{{ 'pagamenti.dialog.note' | t }}</mat-label>
           <textarea matInput rows="2" formControlName="note"></textarea>
         </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.invalid">{{ 'fatture.dialog.salva' | t }}</button>
     </mat-dialog-actions>`
 })
 export class PagamentoDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   form: FormGroup;
   fatture: Fattura[] = [];
   tipiPagamento: TipoPagamento[] = [];
@@ -225,11 +231,12 @@ export class PagamentoDialogComponent implements OnInit {
   imports: [CommonModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule,
             MatDialogModule, MatSnackBarModule, MatButtonToggleModule,
             FormsModule, MatCheckboxModule, MatSelectModule, MatFormFieldModule, MatMenuModule, EmptyStateComponent,
-            MatPaginatorModule],
+            MatPaginatorModule, TPipe, TnPipe],
   templateUrl: './pagamenti.html',
   styleUrl: './pagamenti.scss'
 })
 export class PagamentiComponent implements OnInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   private allPagamenti: Pagamento[] = [];
   private allScadenzario: ScadenzarioEntry[] = [];
@@ -237,7 +244,7 @@ export class PagamentiComponent implements OnInit {
   filtro = 'TUTTI';
   selection = new SelectionModel<ScadenzarioEntry>(true, []);
   readonly oggi = new Date().toISOString().substring(0, 10);
-  readonly mesi = [{v:1,l:'Gen'},{v:2,l:'Feb'},{v:3,l:'Mar'},{v:4,l:'Apr'},{v:5,l:'Mag'},{v:6,l:'Giu'},{v:7,l:'Lug'},{v:8,l:'Ago'},{v:9,l:'Set'},{v:10,l:'Ott'},{v:11,l:'Nov'},{v:12,l:'Dic'}];
+  readonly mesi = [1,2,3,4,5,6,7,8,9,10,11,12].map(v => ({ v, l: this.i18n.t('fatture.mese.' + v) }));
 
   filtroAnno: number | null = null;
   filtroMese: number | null = null;
@@ -282,18 +289,20 @@ export class PagamentiComponent implements OnInit {
   resetFiltri() { this.filtroAnno = null; this.filtroMese = null; this.filtroControparte = null; }
 
   print() {
+    const t = (k: string) => this.i18n.t(k);
     const d = (s: string) => { const p = (s||'').substring(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—'; };
     const e = (n: number|undefined) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n??0);
     let html: string;
     if (this.filtro === 'DA_SALDARE') {
       const rows = this.selection.hasValue() ? this.selection.selected : this.scadenzario;
       const body = rows.map(r=>`<tr><td>${r.tipoEntry}</td><td>${r.numero}</td><td>${d(r.dataEmissione)}</td><td>${d(r.dataScadenza||'')}</td><td>${r.controparte||'—'}</td><td class="r">${e(r.rimanente)}</td></tr>`).join('');
-      html = `<!DOCTYPE html><html><head><title>Da Saldare</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>Da Saldare</h1><table><thead><tr><th>Tipo</th><th>Numero</th><th>Data</th><th>Scadenza</th><th>Controparte</th><th class="r">Rimanente</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+      const title = t('pagamenti.print.daSaldareTitle');
+      html = `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${title}</h1><table><thead><tr><th>${t('pagamenti.col.tipo')}</th><th>${t('pagamenti.col.numero')}</th><th>${t('pagamenti.col.data')}</th><th>${t('pagamenti.col.scadenza')}</th><th>${t('pagamenti.col.clienteFornitore')}</th><th class="r">${t('pagamenti.col.rimanente')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     } else {
       const rows = this.pagamenti;
       const body = rows.map(p=>`<tr><td>${d(p.dataPagamento)}</td><td>${p.tipo||'—'}</td><td class="r">${e(p.importo)}</td><td>${p.clienteNome||p.fornitoreNome||'—'}</td><td>${p.metodo||'—'}</td></tr>`).join('');
-      const title = this.filtro === 'ENTRATE' ? 'Entrate' : this.filtro === 'USCITE' ? 'Uscite' : 'Pagamenti';
-      html = `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${title}</h1><table><thead><tr><th>Data</th><th>Tipo</th><th class="r">Importo</th><th>Controparte</th><th>Metodo</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
+      const title = this.filtro === 'ENTRATE' ? t('pagamenti.print.entrateTitle') : this.filtro === 'USCITE' ? t('pagamenti.print.usciteTitle') : t('pagamenti.title');
+      html = `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{font-size:16px;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px;text-align:left;border-bottom:2px solid #ddd;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.r{text-align:right;font-weight:600}</style></head><body><h1>${title}</h1><table><thead><tr><th>${t('pagamenti.col.data')}</th><th>${t('pagamenti.col.tipo')}</th><th class="r">${t('pagamenti.col.importo')}</th><th>${t('pagamenti.col.clienteFornitore')}</th><th>${t('pagamenti.col.metodo')}</th></tr></thead><tbody>${body}</tbody></table></body></html>`;
     }
     const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
   }
@@ -388,15 +397,17 @@ export class PagamentiComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       const op = result.id ? this.ds.updatePagamento(result) : this.ds.createPagamento(result);
-      op.subscribe({ next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+      op.subscribe({ next: () => { this.load(); this.snack.open(this.i18n.t('pagamenti.msg.salvato'), '', { duration: 2000 }); },
                      error: e => this.snack.open(e.message, '', { duration: 3000 }) });
     });
   }
 
   async delete(p: Pagamento) {
-    const doc = p.fatturaNumero ? `fattura ${p.fatturaNumero}` : p.acquistoNumero ? `acquisto ${p.acquistoNumero}` : 'documento';
-    if (!await this.confirm.delete(`Eliminare il pagamento di €${p.importo}?\nIl ${doc} tornerà in "Da saldare".`)) return;
-    this.ds.deletePagamento(p.id!).subscribe(() => { this.load(); this.snack.open('Saldo annullato', '', { duration: 2000 }); });
+    const doc = p.fatturaNumero ? this.i18n.t('pagamenti.msg.docFattura', { numero: p.fatturaNumero })
+              : p.acquistoNumero ? this.i18n.t('pagamenti.msg.docAcquisto', { numero: p.acquistoNumero })
+              : this.i18n.t('pagamenti.msg.docGenerico');
+    if (!await this.confirm.delete(this.i18n.t('pagamenti.msg.confermaElimina', { importo: p.importo, doc }))) return;
+    this.ds.deletePagamento(p.id!).subscribe(() => { this.load(); this.snack.open(this.i18n.t('pagamenti.msg.saldoAnnullato'), '', { duration: 2000 }); });
   }
 
   salda(entry: ScadenzarioEntry) {
@@ -407,7 +418,7 @@ export class PagamentiComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (!result) return;
       this.registraPagamento(entry, result).subscribe({
-        next: () => { this.load(); this.snack.open('Saldato', '', { duration: 2000 }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('pagamenti.msg.saldato'), '', { duration: 2000 }); },
         error: e => this.snack.open(e.message, '', { duration: 3000 })
       });
     });
@@ -426,7 +437,7 @@ export class PagamentiComponent implements OnInit {
         this.registraPagamento(entry, { ...result, importo: entry.rimanente })
       );
       forkJoin(requests).subscribe({
-        next: () => { this.load(); this.snack.open(`${selected.length} voci saldate`, '', { duration: 2500 }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('pagamenti.msg.vociSaldate', { n: selected.length }), '', { duration: 2500 }); },
         error: e => this.snack.open(e.message, '', { duration: 3000 })
       });
     });
