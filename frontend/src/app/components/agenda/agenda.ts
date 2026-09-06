@@ -18,6 +18,9 @@ import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { DataService } from '../../services/data.service';
 import { Cliente, Fornitore } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
+import { TnPipe } from '../../pipes/tn.pipe';
 
 interface CalEvent {
   id: string;
@@ -62,32 +65,32 @@ interface Todo {
 @Component({
   selector: 'app-appuntamento-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule, MatButtonModule, MatIconModule, MatDatepickerModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule, MatButtonModule, MatIconModule, MatDatepickerModule, TPipe],
   template: `
-    <h2 mat-dialog-title>{{ data.app.id ? 'Modifica appuntamento' : 'Nuovo appuntamento' }}</h2>
+    <h2 mat-dialog-title>{{ (data.app.id ? 'agenda.dialog.modificaTitle' : 'agenda.dialog.nuovoTitle') | t }}</h2>
     <mat-dialog-content style="min-width:520px;max-width:640px">
-      <mat-form-field appearance="outline" style="width:100%"><mat-label>Titolo *</mat-label>
+      <mat-form-field appearance="outline" style="width:100%"><mat-label>{{ 'agenda.dialog.titolo' | t }}</mat-label>
         <input matInput [(ngModel)]="data.app.titolo" required>
       </mat-form-field>
 
-      <mat-checkbox [(ngModel)]="tuttoGiorno" (change)="onTuttoGiornoChange()" style="margin-bottom:12px">Tutto il giorno</mat-checkbox>
+      <mat-checkbox [(ngModel)]="tuttoGiorno" (change)="onTuttoGiornoChange()" style="margin-bottom:12px">{{ 'agenda.dialog.tuttoIlGiorno' | t }}</mat-checkbox>
 
       <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:8px">
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Data inizio *</mat-label>
+          <mat-label>{{ 'agenda.dialog.dataInizio' | t }}</mat-label>
           <input matInput [matDatepicker]="dpStart" [(ngModel)]="dataInizio" required>
           <mat-datepicker-toggle matIconSuffix [for]="dpStart"></mat-datepicker-toggle>
           <mat-datepicker #dpStart></mat-datepicker>
         </mat-form-field>
         @if (!tuttoGiorno) {
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
-            <mat-label>Ore</mat-label>
+            <mat-label>{{ 'agenda.dialog.ore' | t }}</mat-label>
             <mat-select [(ngModel)]="oraInizio">
               @for (h of ore; track h) { <mat-option [value]="h">{{ h }}</mat-option> }
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
-            <mat-label>Min</mat-label>
+            <mat-label>{{ 'agenda.dialog.min' | t }}</mat-label>
             <mat-select [(ngModel)]="minutiInizio">
               @for (m of minuti; track m) { <mat-option [value]="m">{{ m }}</mat-option> }
             </mat-select>
@@ -97,20 +100,20 @@ interface Todo {
 
       <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:12px">
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Data fine</mat-label>
+          <mat-label>{{ 'agenda.dialog.dataFine' | t }}</mat-label>
           <input matInput [matDatepicker]="dpEnd" [(ngModel)]="dataFine">
           <mat-datepicker-toggle matIconSuffix [for]="dpEnd"></mat-datepicker-toggle>
           <mat-datepicker #dpEnd></mat-datepicker>
         </mat-form-field>
         @if (!tuttoGiorno) {
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
-            <mat-label>Ore</mat-label>
+            <mat-label>{{ 'agenda.dialog.ore' | t }}</mat-label>
             <mat-select [(ngModel)]="oraFine">
               @for (h of ore; track h) { <mat-option [value]="h">{{ h }}</mat-option> }
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:90px">
-            <mat-label>Min</mat-label>
+            <mat-label>{{ 'agenda.dialog.min' | t }}</mat-label>
             <mat-select [(ngModel)]="minutiFine">
               @for (m of minuti; track m) { <mat-option [value]="m">{{ m }}</mat-option> }
             </mat-select>
@@ -118,12 +121,12 @@ interface Todo {
         }
       </div>
 
-      <mat-form-field appearance="outline" style="width:100%"><mat-label>Luogo</mat-label>
-        <input matInput [(ngModel)]="data.app.luogo" placeholder="es. Ufficio cliente">
+      <mat-form-field appearance="outline" style="width:100%"><mat-label>{{ 'agenda.dialog.luogo' | t }}</mat-label>
+        <input matInput [(ngModel)]="data.app.luogo" [placeholder]="'agenda.dialog.luogoPlaceholder' | t">
       </mat-form-field>
 
       <div style="display:flex;gap:8px">
-        <mat-form-field appearance="outline" style="flex:1"><mat-label>Cliente</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>{{ 'agenda.dialog.cliente' | t }}</mat-label>
           <mat-select [(ngModel)]="data.app.clienteId">
             <mat-option [value]="null">—</mat-option>
             @for (c of data.clienti; track c.id) {
@@ -131,7 +134,7 @@ interface Todo {
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field appearance="outline" style="flex:1"><mat-label>Fornitore</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>{{ 'agenda.dialog.fornitore' | t }}</mat-label>
           <mat-select [(ngModel)]="data.app.fornitoreId">
             <mat-option [value]="null">—</mat-option>
             @for (f of data.fornitori; track f.id) {
@@ -142,54 +145,54 @@ interface Todo {
       </div>
 
       <div style="display:flex;gap:8px;align-items:center">
-        <mat-form-field appearance="outline" style="flex:1"><mat-label>Colore</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>{{ 'agenda.dialog.colore' | t }}</mat-label>
           <mat-select [(ngModel)]="data.app.colore">
-            <mat-option value="#3b82f6"><span style="display:inline-block;width:14px;height:14px;background:#3b82f6;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Blu</mat-option>
-            <mat-option value="#16a34a"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Verde</mat-option>
-            <mat-option value="#dc2626"><span style="display:inline-block;width:14px;height:14px;background:#dc2626;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Rosso</mat-option>
-            <mat-option value="#f59e0b"><span style="display:inline-block;width:14px;height:14px;background:#f59e0b;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Arancio</mat-option>
-            <mat-option value="#0891b2"><span style="display:inline-block;width:14px;height:14px;background:#0891b2;border-radius:3px;vertical-align:middle;margin-right:6px"></span> Viola</mat-option>
+            <mat-option value="#3b82f6"><span style="display:inline-block;width:14px;height:14px;background:#3b82f6;border-radius:3px;vertical-align:middle;margin-right:6px"></span> {{ 'agenda.color.blu' | t }}</mat-option>
+            <mat-option value="#16a34a"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;vertical-align:middle;margin-right:6px"></span> {{ 'agenda.color.verde' | t }}</mat-option>
+            <mat-option value="#dc2626"><span style="display:inline-block;width:14px;height:14px;background:#dc2626;border-radius:3px;vertical-align:middle;margin-right:6px"></span> {{ 'agenda.color.rosso' | t }}</mat-option>
+            <mat-option value="#f59e0b"><span style="display:inline-block;width:14px;height:14px;background:#f59e0b;border-radius:3px;vertical-align:middle;margin-right:6px"></span> {{ 'agenda.color.arancio' | t }}</mat-option>
+            <mat-option value="#0891b2"><span style="display:inline-block;width:14px;height:14px;background:#0891b2;border-radius:3px;vertical-align:middle;margin-right:6px"></span> {{ 'agenda.color.viola' | t }}</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field appearance="outline" style="flex:1"><mat-label>Promemoria</mat-label>
+        <mat-form-field appearance="outline" style="flex:1"><mat-label>{{ 'agenda.dialog.promemoria' | t }}</mat-label>
           <mat-select [(ngModel)]="data.app.promemoria">
-            <mat-option [value]="null">Nessuno</mat-option>
-            <mat-option [value]="15">15 minuti prima</mat-option>
-            <mat-option [value]="30">30 minuti prima</mat-option>
-            <mat-option [value]="60">1 ora prima</mat-option>
-            <mat-option [value]="1440">1 giorno prima</mat-option>
+            <mat-option [value]="null">{{ 'agenda.dialog.nessuno' | t }}</mat-option>
+            <mat-option [value]="15">{{ 'agenda.dialog.min15' | t }}</mat-option>
+            <mat-option [value]="30">{{ 'agenda.dialog.min30' | t }}</mat-option>
+            <mat-option [value]="60">{{ 'agenda.dialog.ora1' | t }}</mat-option>
+            <mat-option [value]="1440">{{ 'agenda.dialog.giorno1' | t }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
 
-      <mat-form-field appearance="outline" style="width:100%"><mat-label>Note</mat-label>
+      <mat-form-field appearance="outline" style="width:100%"><mat-label>{{ 'agenda.dialog.note' | t }}</mat-label>
         <textarea matInput rows="2" [(ngModel)]="data.app.descrizione"></textarea>
       </mat-form-field>
 
       <div style="background:#f1f5f9;border-radius:8px;padding:10px 12px;margin-top:8px">
         <mat-checkbox [(ngModel)]="data.app.condiviso">
-          <span style="font-weight:600">Condividi con il mio gruppo</span>
+          <span style="font-weight:600">{{ 'agenda.dialog.condividiGruppo' | t }}</span>
         </mat-checkbox>
         <div style="font-size:11px;color:#64748b;margin-top:4px;margin-left:32px">
-          Se attivo, l'appuntamento sarà visibile a tutti gli utenti che condividono
-          un gruppo con te. Altrimenti lo vedi solo tu (e gli amministratori).
+          {{ 'agenda.dialog.condividiHint' | t }}
         </div>
       </div>
 
       @if (data.app.id && data.app.autoreUsername) {
         <p style="font-size:11px;color:#94a3b8;margin-top:8px;text-align:right">
-          Creato da: <b>{{ data.app.autoreNome || data.app.autoreUsername }}</b>
+          {{ 'agenda.dialog.creatoDa' | t }} <b>{{ data.app.autoreNome || data.app.autoreUsername }}</b>
         </p>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button color="primary" [disabled]="!data.app.titolo || !dataInizio" (click)="salva()">
-        <mat-icon>save</mat-icon> Salva
+        <mat-icon>save</mat-icon> {{ 'fatture.dialog.salva' | t }}
       </button>
     </mat-dialog-actions>`,
 })
 export class AppuntamentoDialogComponent {
+  i18n = inject(I18nService);
   tuttoGiorno = false;
   dataInizio: Date | null = null;
   oraInizio = '09';
@@ -276,85 +279,83 @@ export class AppuntamentoDialogComponent {
 @Component({
   selector: 'app-sync-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, TPipe],
   template: `
     <h2 mat-dialog-title>
       <mat-icon style="vertical-align:middle;color:#11769b">sync</mat-icon>
-      Sincronizza con calendario esterno
+      {{ 'agenda.sync.title' | t }}
     </h2>
     <mat-dialog-content style="min-width:520px;max-width:600px">
       <p style="font-size:13px;color:#475569;line-height:1.5">
-        Aggiungi questo calendario al tuo account Google / Outlook / Apple e si aggiornerà
-        automaticamente. Niente da configurare lato server: il link è personale e basta.
+        {{ 'agenda.sync.intro' | t }}
       </p>
 
       <div style="background:#f1f5f9;border-radius:8px;padding:12px;margin:12px 0">
         <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">
-          URL feed (HTTPS)
+          {{ 'agenda.sync.urlFeed' | t }}
         </div>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:100%">
           <input matInput [value]="data.httpsUrl" readonly #urlInput (focus)="urlInput.select()">
         </mat-form-field>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
           <button mat-stroked-button (click)="copia(data.httpsUrl)">
-            <mat-icon>content_copy</mat-icon> Copia URL
+            <mat-icon>content_copy</mat-icon> {{ 'agenda.sync.copiaUrl' | t }}
           </button>
           <a mat-flat-button color="primary" [href]="data.webcalUrl">
-            <mat-icon>event_available</mat-icon> Apri con app calendario
+            <mat-icon>event_available</mat-icon> {{ 'agenda.sync.apriApp' | t }}
           </a>
         </div>
       </div>
 
       <div style="margin-top:18px">
         <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
-          Istruzioni per provider
+          {{ 'agenda.sync.istruzioniProvider' | t }}
         </div>
 
         <details style="margin-bottom:8px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px">
           <summary style="cursor:pointer;font-weight:600;font-size:13px">
             <mat-icon style="vertical-align:middle;color:#4285f4;font-size:18px;width:18px;height:18px">event</mat-icon>
-            Google Calendar
+            {{ 'agenda.sync.google.title' | t }}
           </summary>
           <ol style="font-size:13px;color:#475569;margin:8px 0 0;padding-left:20px;line-height:1.7">
-            <li>Apri <a href="https://calendar.google.com/" target="_blank" rel="noopener">calendar.google.com</a></li>
-            <li>Sidebar sinistra → <b>"Altri calendari"</b> → <b>+</b> → <b>"Da URL"</b></li>
-            <li>Incolla l'URL HTTPS qui sopra e clicca "Aggiungi calendario"</li>
-            <li>Google ricarica gli eventi ogni 4-8 ore</li>
+            <li>{{ 'agenda.sync.google.li1' | t }} <a href="https://calendar.google.com/" target="_blank" rel="noopener">calendar.google.com</a></li>
+            <li>{{ 'agenda.sync.google.li2Prefix' | t }} <b>{{ 'agenda.sync.google.altriCalendari' | t }}</b> → <b>+</b> → <b>{{ 'agenda.sync.google.daUrl' | t }}</b></li>
+            <li>{{ 'agenda.sync.google.li3' | t }}</li>
+            <li>{{ 'agenda.sync.google.li4' | t }}</li>
           </ol>
         </details>
 
         <details style="margin-bottom:8px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px">
           <summary style="cursor:pointer;font-weight:600;font-size:13px">
             <mat-icon style="vertical-align:middle;color:#0078d4;font-size:18px;width:18px;height:18px">event</mat-icon>
-            Outlook / Microsoft 365
+            {{ 'agenda.sync.outlook.title' | t }}
           </summary>
           <ol style="font-size:13px;color:#475569;margin:8px 0 0;padding-left:20px;line-height:1.7">
-            <li>Outlook web → Calendario → <b>"Aggiungi calendario"</b> → <b>"Sottoscrivi dal web"</b></li>
-            <li>Incolla l'URL HTTPS, dai un nome (es. "Ordeva") e salva</li>
+            <li>{{ 'agenda.sync.outlook.li1Prefix' | t }} <b>{{ 'agenda.sync.outlook.aggiungiCalendario' | t }}</b> → <b>{{ 'agenda.sync.outlook.sottoscriviWeb' | t }}</b></li>
+            <li>{{ 'agenda.sync.outlook.li2' | t }}</li>
           </ol>
         </details>
 
         <details style="margin-bottom:8px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px">
           <summary style="cursor:pointer;font-weight:600;font-size:13px">
             <mat-icon style="vertical-align:middle;color:#000;font-size:18px;width:18px;height:18px">event</mat-icon>
-            Apple Calendar (Mac / iPhone)
+            {{ 'agenda.sync.apple.title' | t }}
           </summary>
           <ol style="font-size:13px;color:#475569;margin:8px 0 0;padding-left:20px;line-height:1.7">
-            <li>Mac: <b>Calendario → File → Nuovo iscrizione calendario...</b> → incolla l'URL HTTPS</li>
-            <li>iPhone: <b>Impostazioni → Calendario → Account → Aggiungi account → Altro → Aggiungi calendario sottoscritto</b></li>
-            <li>O più semplice: clicca <b>"Apri con app calendario"</b> qui sopra (usa il link webcal://)</li>
+            <li>{{ 'agenda.sync.apple.macPrefix' | t }} <b>{{ 'agenda.sync.apple.macBold' | t }}</b> {{ 'agenda.sync.apple.li1Suffix' | t }}</li>
+            <li>{{ 'agenda.sync.apple.iphonePrefix' | t }} <b>{{ 'agenda.sync.apple.iphoneBold' | t }}</b></li>
+            <li>{{ 'agenda.sync.apple.li3Prefix' | t }} <b>{{ 'agenda.sync.apple.li3Bold' | t }}</b> {{ 'agenda.sync.apple.li3Suffix' | t }}</li>
           </ol>
         </details>
       </div>
 
       <p style="font-size:11px;color:#94a3b8;margin-top:16px;padding:8px;background:#fef3c7;border-radius:6px">
         <mat-icon style="vertical-align:middle;font-size:14px;width:14px;height:14px;color:#92400e">info</mat-icon>
-        L'URL contiene un token firmato univoco per il tuo magazzino. Se sospetti che sia stato condiviso,
-        cambia AUTH_SECRET nelle env del server: tutti i feed vengono invalidati e ne genererai di nuovi.
+        {{ 'agenda.sync.tokenWarning' | t }}
       </p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Chiudi</button>
+      <button mat-button mat-dialog-close>{{ 'agenda.sync.chiudi' | t }}</button>
     </mat-dialog-actions>`,
 })
 export class SyncDialogComponent {
@@ -368,36 +369,36 @@ export class SyncDialogComponent {
 @Component({
   selector: 'app-todo-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, TPipe],
   template: `
-    <h2 mat-dialog-title>{{ data.t.id ? 'Modifica todo' : 'Nuova todo' }}</h2>
+    <h2 mat-dialog-title>{{ (data.t.id ? 'agenda.todoDialog.modificaTitle' : 'agenda.todoDialog.nuovaTitle') | t }}</h2>
     <mat-dialog-content style="min-width:420px">
-      <mat-form-field style="width:100%"><mat-label>Titolo *</mat-label>
+      <mat-form-field style="width:100%"><mat-label>{{ 'agenda.todoDialog.titolo' | t }}</mat-label>
         <input matInput [(ngModel)]="data.t.titolo" required>
       </mat-form-field>
-      <mat-form-field style="width:100%"><mat-label>Descrizione</mat-label>
+      <mat-form-field style="width:100%"><mat-label>{{ 'agenda.todoDialog.descrizione' | t }}</mat-label>
         <textarea matInput rows="2" [(ngModel)]="data.t.descrizione"></textarea>
       </mat-form-field>
       <div style="display:flex;gap:8px">
-        <mat-form-field style="flex:1"><mat-label>Scadenza</mat-label>
+        <mat-form-field style="flex:1"><mat-label>{{ 'agenda.todoDialog.scadenza' | t }}</mat-label>
           <input matInput type="datetime-local" [(ngModel)]="data.t.scadenza">
         </mat-form-field>
-        <mat-form-field style="flex:1"><mat-label>Priorità</mat-label>
+        <mat-form-field style="flex:1"><mat-label>{{ 'agenda.todoDialog.priorita' | t }}</mat-label>
           <mat-select [(ngModel)]="data.t.priorita">
-            <mat-option value="BASSA">Bassa</mat-option>
-            <mat-option value="MEDIA">Media</mat-option>
-            <mat-option value="ALTA">Alta</mat-option>
+            <mat-option value="BASSA">{{ 'agenda.priorita.bassa' | t }}</mat-option>
+            <mat-option value="MEDIA">{{ 'agenda.priorita.media' | t }}</mat-option>
+            <mat-option value="ALTA">{{ 'agenda.priorita.alta' | t }}</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field style="flex:1"><mat-label>Categoria</mat-label>
-          <input matInput [(ngModel)]="data.t.categoria" placeholder="es. Personale">
+        <mat-form-field style="flex:1"><mat-label>{{ 'agenda.todoDialog.categoria' | t }}</mat-label>
+          <input matInput [(ngModel)]="data.t.categoria" [placeholder]="'agenda.todoDialog.categoriaPlaceholder' | t">
         </mat-form-field>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button [disabled]="!data.t.titolo" (click)="ref.close(data.t)">
-        <mat-icon>save</mat-icon> Salva
+        <mat-icon>save</mat-icon> {{ 'fatture.dialog.salva' | t }}
       </button>
     </mat-dialog-actions>`,
 })
@@ -413,34 +414,34 @@ export class TodoDialogComponent {
   imports: [
     CommonModule, FormsModule, MatTabsModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule,
-    MatDialogModule, MatSnackBarModule, MatMenuModule, MatTooltipModule,
+    MatDialogModule, MatSnackBarModule, MatMenuModule, MatTooltipModule, TPipe, TnPipe,
   ],
   template: `
     <div class="page agenda-page">
       <div class="page-header agenda-header">
         <div class="agenda-header-left">
-          <h1 class="page-title">Agenda</h1>
+          <h1 class="page-title">{{ 'agenda.title' | t }}</h1>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vista-select">
-            <mat-label>Vista</mat-label>
+            <mat-label>{{ 'agenda.vista.label' | t }}</mat-label>
             <mat-select [(ngModel)]="vista" (selectionChange)="onVistaChange()">
               <mat-option value="mia">
                 <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">person</mat-icon>
-                La mia agenda
+                {{ 'agenda.vista.mia' | t }}
               </mat-option>
               @if (haGruppi) {
                 <mat-option value="gruppo">
                   <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">group</mat-icon>
-                  Il mio gruppo
+                  {{ 'agenda.vista.gruppo' | t }}
                 </mat-option>
               }
               <mat-option value="auto">
                 <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">visibility</mat-icon>
-                Visibili (default)
+                {{ 'agenda.vista.auto' | t }}
               </mat-option>
               @if (isAdmin) {
                 <mat-option value="tutte">
                   <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle">supervisor_account</mat-icon>
-                  Tutti gli utenti
+                  {{ 'agenda.vista.tutte' | t }}
                 </mat-option>
               }
             </mat-select>
@@ -448,42 +449,42 @@ export class TodoDialogComponent {
         </div>
         <div class="agenda-header-actions">
           <button mat-flat-button color="primary" class="btn-nuovo" (click)="nuovoAppuntamento()">
-            <mat-icon>add</mat-icon> <span class="btn-text">Nuovo appuntamento</span>
+            <mat-icon>add</mat-icon> <span class="btn-text">{{ 'agenda.nuovoAppuntamento' | t }}</span>
           </button>
-          <button mat-icon-button class="hide-desktop" [matMenuTriggerFor]="menuExtra" title="Altre azioni">
+          <button mat-icon-button class="hide-desktop" [matMenuTriggerFor]="menuExtra" [title]="'agenda.altreAzioni' | t">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menuExtra="matMenu">
-            <button mat-menu-item type="button" (click)="apriSync()"><mat-icon>sync</mat-icon> Sincronizza calendario</button>
-            <button mat-menu-item type="button" (click)="downloadIcs()"><mat-icon>download</mat-icon> Esporta .ics</button>
+            <button mat-menu-item type="button" (click)="apriSync()"><mat-icon>sync</mat-icon> {{ 'agenda.sincronizzaCalendario' | t }}</button>
+            <button mat-menu-item type="button" (click)="downloadIcs()"><mat-icon>download</mat-icon> {{ 'agenda.esportaIcs' | t }}</button>
           </mat-menu>
           <button mat-stroked-button class="hide-mobile" (click)="apriSync()">
-            <mat-icon>sync</mat-icon> Sincronizza
+            <mat-icon>sync</mat-icon> {{ 'agenda.sincronizza' | t }}
           </button>
           <button mat-stroked-button class="hide-mobile" (click)="downloadIcs()">
-            <mat-icon>download</mat-icon> .ics
+            <mat-icon>download</mat-icon> {{ 'agenda.icsShort' | t }}
           </button>
         </div>
       </div>
 
       <mat-tab-group animationDuration="0" [(selectedIndex)]="tabIndex">
         <!-- ── Vista calendario mensile ───────────────────────────────────── -->
-        <mat-tab label="Calendario">
+        <mat-tab [label]="'agenda.tab.calendario' | t">
           <div class="card" style="margin-top:16px">
             <div class="cal-toolbar">
-              <button mat-icon-button aria-label="Mese precedente" (click)="meseShift(-1)"><mat-icon>chevron_left</mat-icon></button>
-              <button mat-stroked-button (click)="oggi()">Oggi</button>
-              <button mat-icon-button aria-label="Mese successivo" (click)="meseShift(1)"><mat-icon>chevron_right</mat-icon></button>
+              <button mat-icon-button [attr.aria-label]="'agenda.mesePrecedente' | t" (click)="meseShift(-1)"><mat-icon>chevron_left</mat-icon></button>
+              <button mat-stroked-button (click)="oggi()">{{ 'agenda.oggi' | t }}</button>
+              <button mat-icon-button [attr.aria-label]="'agenda.meseSuccessivo' | t" (click)="meseShift(1)"><mat-icon>chevron_right</mat-icon></button>
               <div class="cal-title">{{ titoloMese() }}</div>
               <div class="cal-legend">
-                <span><span class="dot" style="background:#3b82f6"></span> Appuntamenti</span>
-                <span><span class="dot" style="background:#16a34a"></span> Incassi</span>
-                <span><span class="dot" style="background:#dc2626"></span> Pagamenti</span>
-                <span><span class="dot" style="background:#f59e0b"></span> Ricorrenti</span>
+                <span><span class="dot" style="background:#3b82f6"></span> {{ 'agenda.legend.appuntamenti' | t }}</span>
+                <span><span class="dot" style="background:#16a34a"></span> {{ 'agenda.legend.incassi' | t }}</span>
+                <span><span class="dot" style="background:#dc2626"></span> {{ 'agenda.legend.pagamenti' | t }}</span>
+                <span><span class="dot" style="background:#f59e0b"></span> {{ 'agenda.legend.ricorrenti' | t }}</span>
               </div>
             </div>
             <div class="cal-grid-head">
-              @for (d of giorniSettimana; track d) { <div>{{ d }}</div> }
+              @for (d of giorniSettimana; track d) { <div>{{ d | t }}</div> }
             </div>
             <div class="cal-grid">
               @for (cell of celle; track $index) {
@@ -504,7 +505,7 @@ export class TodoDialogComponent {
                       </div>
                     }
                     @if (eventiDelGiorno(cell.iso).length > 3) {
-                      <div class="cal-more">+{{ eventiDelGiorno(cell.iso).length - 3 }} altri</div>
+                      <div class="cal-more">{{ i18n.t('agenda.altriEventi', { n: eventiDelGiorno(cell.iso).length - 3 }) }}</div>
                     }
                   </div>
                 </div>
@@ -514,14 +515,14 @@ export class TodoDialogComponent {
         </mat-tab>
 
         <!-- ── Lista appuntamenti ─────────────────────────────────────────── -->
-        <mat-tab label="Lista appuntamenti">
+        <mat-tab [label]="'agenda.tab.listaAppuntamenti' | t">
           <div class="card" style="margin-top:16px">
             <div style="display:flex;justify-content:space-between;margin-bottom:12px;align-items:center">
-              <div style="color:#64748b;font-size:13px">{{ appuntamenti.length }} appuntamenti</div>
-              <button mat-flat-button (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> Nuovo</button>
+              <div style="color:#64748b;font-size:13px">{{ appuntamenti.length | tn:'agenda.nAppuntamenti' }}</div>
+              <button mat-flat-button (click)="nuovoAppuntamento()"><mat-icon>add</mat-icon> {{ 'agenda.nuovo' | t }}</button>
             </div>
             <table class="lista hide-mobile">
-              <thead><tr><th>Quando</th><th>Titolo</th><th>Autore</th><th>Luogo</th><th>Controparte</th><th>Stato</th><th></th></tr></thead>
+              <thead><tr><th>{{ 'agenda.col.quando' | t }}</th><th>{{ 'agenda.col.titolo' | t }}</th><th>{{ 'agenda.col.autore' | t }}</th><th>{{ 'agenda.col.luogo' | t }}</th><th>{{ 'agenda.col.controparte' | t }}</th><th>{{ 'agenda.col.stato' | t }}</th><th></th></tr></thead>
               <tbody>
                 @for (a of appuntamenti; track a.id) {
                   <tr>
@@ -530,42 +531,42 @@ export class TodoDialogComponent {
                     </td>
                     <td>
                       <b>{{ a.titolo }}</b>
-                      @if (a.condiviso) { <span style="font-size:10px;background:#cde3ec;color:#0b5066;padding:1px 6px;border-radius:8px;margin-left:6px">condiviso</span> }
+                      @if (a.condiviso) { <span style="font-size:10px;background:#cde3ec;color:#0b5066;padding:1px 6px;border-radius:8px;margin-left:6px">{{ 'agenda.condiviso' | t }}</span> }
                       @if (a.descrizione) { <div style="font-size:11px;color:#94a3b8">{{ a.descrizione }}</div> }
                     </td>
                     <td>
                       @if (a.userId === userId) {
-                        <span style="color:#0f172a">io</span>
+                        <span style="color:#0f172a">{{ 'agenda.io' | t }}</span>
                       } @else {
                         <span style="color:#64748b">{{ a.autoreNome || a.autoreUsername || '—' }}</span>
                       }
                     </td>
                     <td>{{ a.luogo || '—' }}</td>
                     <td>{{ a.clienteNome || a.fornitoreNome || '—' }}</td>
-                    <td>{{ a.stato }}</td>
+                    <td>{{ statoAppLabel(a.stato) | t }}</td>
                     <td>
                       @if (canModifica(a)) {
                         <button mat-icon-button [matMenuTriggerFor]="aMenu"><mat-icon>more_vert</mat-icon></button>
                         <mat-menu #aMenu="matMenu">
-                          <button mat-menu-item (click)="modificaAppuntamento(a)"><mat-icon>edit</mat-icon> Modifica</button>
+                          <button mat-menu-item (click)="modificaAppuntamento(a)"><mat-icon>edit</mat-icon> {{ 'agenda.modifica' | t }}</button>
                           <button mat-menu-item (click)="cambiaStatoApp(a, 'COMPLETATO')" [disabled]="a.stato==='COMPLETATO'">
-                            <mat-icon style="color:#16a34a">check_circle</mat-icon> Segna completato
+                            <mat-icon style="color:#16a34a">check_circle</mat-icon> {{ 'agenda.segnaCompletato' | t }}
                           </button>
                           <button mat-menu-item (click)="cambiaStatoApp(a, 'ANNULLATO')" [disabled]="a.stato==='ANNULLATO'">
-                            <mat-icon style="color:#f59e0b">cancel</mat-icon> Annulla
+                            <mat-icon style="color:#f59e0b">cancel</mat-icon> {{ 'agenda.annullaAzione' | t }}
                           </button>
                           <button mat-menu-item (click)="eliminaAppuntamento(a)" style="color:#dc2626">
-                            <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+                            <mat-icon style="color:#dc2626">delete</mat-icon> {{ 'agenda.elimina' | t }}
                           </button>
                         </mat-menu>
                       } @else {
-                        <mat-icon style="color:#94a3b8;font-size:18px;width:18px;height:18px" title="Solo letture: appuntamento di un altro utente">visibility</mat-icon>
+                        <mat-icon style="color:#94a3b8;font-size:18px;width:18px;height:18px" [title]="'agenda.soloLetturaTooltip' | t">visibility</mat-icon>
                       }
                     </td>
                   </tr>
                 }
                 @if (appuntamenti.length === 0) {
-                  <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px">Nessun appuntamento in questo periodo.</td></tr>
+                  <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px">{{ 'agenda.nessunAppuntamento' | t }}</td></tr>
                 }
               </tbody>
             </table>
@@ -596,29 +597,29 @@ export class TodoDialogComponent {
                   @if (canModifica(a)) {
                     <button mat-icon-button [matMenuTriggerFor]="mMenu" class="app-card-action"><mat-icon>more_vert</mat-icon></button>
                     <mat-menu #mMenu="matMenu">
-                      <button mat-menu-item type="button" (click)="modificaAppuntamento(a)"><mat-icon>edit</mat-icon> Modifica</button>
-                      <button mat-menu-item type="button" (click)="cambiaStatoApp(a, 'COMPLETATO')" [disabled]="a.stato==='COMPLETATO'"><mat-icon style="color:#16a34a">check_circle</mat-icon> Completato</button>
-                      <button mat-menu-item type="button" (click)="cambiaStatoApp(a, 'ANNULLATO')" [disabled]="a.stato==='ANNULLATO'"><mat-icon style="color:#f59e0b">cancel</mat-icon> Annulla</button>
-                      <button mat-menu-item type="button" (click)="eliminaAppuntamento(a)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                      <button mat-menu-item type="button" (click)="modificaAppuntamento(a)"><mat-icon>edit</mat-icon> {{ 'agenda.modifica' | t }}</button>
+                      <button mat-menu-item type="button" (click)="cambiaStatoApp(a, 'COMPLETATO')" [disabled]="a.stato==='COMPLETATO'"><mat-icon style="color:#16a34a">check_circle</mat-icon> {{ 'agenda.completatoShort' | t }}</button>
+                      <button mat-menu-item type="button" (click)="cambiaStatoApp(a, 'ANNULLATO')" [disabled]="a.stato==='ANNULLATO'"><mat-icon style="color:#f59e0b">cancel</mat-icon> {{ 'agenda.annullaAzione' | t }}</button>
+                      <button mat-menu-item type="button" (click)="eliminaAppuntamento(a)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> {{ 'agenda.elimina' | t }}</button>
                     </mat-menu>
                   }
                 </div>
               }
               @if (appuntamenti.length === 0) {
-                <p style="text-align:center;color:#94a3b8;padding:24px">Nessun appuntamento in questo periodo.</p>
+                <p style="text-align:center;color:#94a3b8;padding:24px">{{ 'agenda.nessunAppuntamento' | t }}</p>
               }
             </div>
           </div>
         </mat-tab>
 
         <!-- ── Todo list ──────────────────────────────────────────────────── -->
-        <mat-tab label="Todo">
+        <mat-tab [label]="'agenda.tab.todo' | t">
           <div class="card" style="margin-top:16px">
             <div style="display:flex;justify-content:space-between;margin-bottom:12px;align-items:center">
               <div style="color:#64748b;font-size:13px">
-                {{ todoPending() }} da fare · {{ todoInCorso() }} in corso · {{ todoFatte() }} completate
+                {{ todoPending() | tn:'agenda.todo.daFare' }} · {{ todoInCorso() | tn:'agenda.todo.inCorso' }} · {{ todoFatte() | tn:'agenda.todo.completate' }}
               </div>
-              <button mat-flat-button (click)="nuovaTodo()"><mat-icon>add</mat-icon> Nuova todo</button>
+              <button mat-flat-button (click)="nuovaTodo()"><mat-icon>add</mat-icon> {{ 'agenda.todo.nuovaTodo' | t }}</button>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px">
               @for (t of todoOrdinate(); track t.id) {
@@ -626,28 +627,28 @@ export class TodoDialogComponent {
                   <mat-checkbox [checked]="t.stato==='FATTA'" (change)="toggleTodo(t, $event.checked)"></mat-checkbox>
                   <div style="flex:1;min-width:0">
                     <div style="font-weight:600">{{ t.titolo }}
-                      <span class="pri" [class.pri-alta]="t.priorita==='ALTA'" [class.pri-media]="t.priorita==='MEDIA'">{{ t.priorita }}</span>
+                      <span class="pri" [class.pri-alta]="t.priorita==='ALTA'" [class.pri-media]="t.priorita==='MEDIA'">{{ prioritaKey(t.priorita) | t | uppercase }}</span>
                       @if (t.categoria) { <span class="cat">{{ t.categoria }}</span> }
                     </div>
                     @if (t.descrizione) { <div style="font-size:12px;color:#64748b">{{ t.descrizione }}</div> }
                     @if (t.scadenza) {
                       <div style="font-size:11px;color:#94a3b8;margin-top:2px">
                         <mat-icon style="font-size:12px;width:12px;height:12px;vertical-align:middle">schedule</mat-icon>
-                        Scadenza: {{ t.scadenza | date:'EEE dd MMM HH:mm' }}
+                        {{ i18n.t('agenda.todo.scadenzaLabel', { data: (t.scadenza | date:'EEE dd MMM HH:mm') ?? '' }) }}
                       </div>
                     }
                   </div>
                   <button mat-icon-button [matMenuTriggerFor]="tMenu"><mat-icon>more_vert</mat-icon></button>
                   <mat-menu #tMenu="matMenu">
-                    <button mat-menu-item (click)="modificaTodo(t)"><mat-icon>edit</mat-icon> Modifica</button>
+                    <button mat-menu-item (click)="modificaTodo(t)"><mat-icon>edit</mat-icon> {{ 'agenda.modifica' | t }}</button>
                     <button mat-menu-item (click)="eliminaTodo(t)" style="color:#dc2626">
-                      <mat-icon style="color:#dc2626">delete</mat-icon> Elimina
+                      <mat-icon style="color:#dc2626">delete</mat-icon> {{ 'agenda.elimina' | t }}
                     </button>
                   </mat-menu>
                 </div>
               }
               @if (todoList.length === 0) {
-                <p style="color:#94a3b8;text-align:center;padding:24px">Nessuna todo. Cliccca "Nuova todo" per aggiungerla.</p>
+                <p style="color:#94a3b8;text-align:center;padding:24px">{{ 'agenda.todo.nessunaTodo' | t }}</p>
               }
             </div>
           </div>
@@ -775,9 +776,10 @@ export class TodoDialogComponent {
   `],
 })
 export class AgendaComponent implements OnInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   tabIndex = 0;
-  giorniSettimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  giorniSettimana = ['agenda.giorni.lun', 'agenda.giorni.mar', 'agenda.giorni.mer', 'agenda.giorni.gio', 'agenda.giorni.ven', 'agenda.giorni.sab', 'agenda.giorni.dom'];
 
   // Stato vista calendario
   mese = new Date().getMonth();
@@ -877,6 +879,18 @@ export class AgendaComponent implements OnInit {
     return this.isAdmin || !a.userId || a.userId === this.userId;
   }
 
+  statoAppLabel(stato: string | undefined): string {
+    const map: Record<string, string> = {
+      PIANIFICATO: 'agenda.statoApp.pianificato', COMPLETATO: 'agenda.statoApp.completato', ANNULLATO: 'agenda.statoApp.annullato',
+    };
+    return map[stato ?? ''] || stato || '';
+  }
+
+  prioritaKey(p: string | undefined): string {
+    const map: Record<string, string> = { BASSA: 'agenda.priorita.bassa', MEDIA: 'agenda.priorita.media', ALTA: 'agenda.priorita.alta' };
+    return map[p ?? ''] || p || '';
+  }
+
   eventTooltip(e: CalEvent): string {
     const parts = [e.titolo];
     if (e.controparte) parts.push(`· ${e.controparte}`);
@@ -933,9 +947,9 @@ export class AgendaComponent implements OnInit {
             // Naviga al mese dell'appuntamento creato se è in un altro mese
             this.navigaAlMeseDi(saved.inizio);
             this.refreshAll();
-            this.snack.open('Appuntamento creato', '', { duration: 2000 });
+            this.snack.open(this.i18n.t('agenda.msg.appuntamentoCreato'), '', { duration: 2000 });
           },
-          error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), 'OK', { duration: 4000 }),
+          error: e => this.snack.open(this.i18n.t('agenda.msg.errore', { err: e.error?.error || e.message }), 'OK', { duration: 4000 }),
         });
       });
   }
@@ -957,7 +971,7 @@ export class AgendaComponent implements OnInit {
   }
 
   async eliminaAppuntamento(a: any) {
-    if (!await this.confirm.delete(`Eliminare "${a.titolo}"?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('agenda.msg.confermaElimina', { titolo: a.titolo }))) return;
     this.api.delete(`agenda/appuntamenti/${a.id}`).subscribe(() => this.refreshAll());
   }
 
@@ -1017,7 +1031,7 @@ export class AgendaComponent implements OnInit {
     });
   }
   async eliminaTodo(t: Todo) {
-    if (!await this.confirm.delete(`Eliminare "${t.titolo}"?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('agenda.msg.confermaElimina', { titolo: t.titolo }))) return;
     this.api.delete(`agenda/todo/${t.id}`).subscribe(() => this.refreshAll());
   }
 
@@ -1025,7 +1039,7 @@ export class AgendaComponent implements OnInit {
   apriSync() {
     this.ds.getAgendaFeedUrl().subscribe({
       next: r => this.dialog.open(SyncDialogComponent, { data: r }),
-      error: e => this.snack.open('Errore: ' + (e.error?.error || e.message), 'OK', { duration: 4000 }),
+      error: e => this.snack.open(this.i18n.t('agenda.msg.errore', { err: e.error?.error || e.message }), this.i18n.t('agenda.msg.ok'), { duration: 4000 }),
     });
   }
 
@@ -1039,7 +1053,7 @@ export class AgendaComponent implements OnInit {
         document.body.appendChild(a); a.click();
         setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
       },
-      error: e => this.snack.open('Errore export ICS: ' + (e.error?.error || e.message), 'OK', { duration: 4000 }),
+      error: e => this.snack.open(this.i18n.t('agenda.msg.erroreExportIcs', { err: e.error?.error || e.message }), this.i18n.t('agenda.msg.ok'), { duration: 4000 }),
     });
   }
 }
