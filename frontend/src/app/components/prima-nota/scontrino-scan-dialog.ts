@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -10,8 +10,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService } from '../../services/data.service';
 import { environment } from '../../../environments/environment';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 // ── Scansiona scontrino → registrazione di Prima Nota ─────────────────────────
 // Scatta/carica la foto di uno scontrino: l'OCR (Mindee) pre-compila data, importo
@@ -22,14 +25,14 @@ import { environment } from '../../../environments/environment';
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule, TPipe,
   ],
   template: `
     <div class="sc-head">
       <div class="sc-hero-icon"><mat-icon>receipt_long</mat-icon></div>
       <div>
-        <div class="sc-title">Scansiona scontrino</div>
-        <div class="sc-sub">Foto → registrazione di cassa, con scontrino allegato</div>
+        <div class="sc-title">{{ 'primaNota.scansionaScontrino' | t }}</div>
+        <div class="sc-sub">{{ 'primaNota.scontrino.subtitle' | t }}</div>
       </div>
     </div>
 
@@ -39,25 +42,25 @@ import { environment } from '../../../environments/environment';
         <div class="sc-pick">
           <label class="sc-pick-btn">
             <input type="file" accept="image/*" capture="environment" hidden (change)="onFile($event)">
-            <mat-icon>photo_camera</mat-icon><span>Scatta foto</span>
+            <mat-icon>photo_camera</mat-icon><span>{{ 'primaNota.scontrino.scattaFoto' | t }}</span>
           </label>
           <label class="sc-pick-btn">
             <input type="file" accept="image/*,application/pdf" hidden (change)="onFile($event)">
-            <mat-icon>upload_file</mat-icon><span>Carica file</span>
+            <mat-icon>upload_file</mat-icon><span>{{ 'primaNota.scontrino.caricaFile' | t }}</span>
           </label>
         </div>
-        <p class="sc-pick-hint">Immagine o PDF, max 5 MB.</p>
+        <p class="sc-pick-hint">{{ 'primaNota.scontrino.pickHint' | t }}</p>
       } @else {
         <div class="sc-preview">
           @if (isImage) { <img [src]="previewUrl" alt="scontrino"> }
           @else { <div class="sc-pdf"><mat-icon>picture_as_pdf</mat-icon><span>{{ fileName }}</span></div> }
-          <button mat-icon-button class="sc-preview-x" (click)="resetFile()" matTooltip="Cambia"><mat-icon>close</mat-icon></button>
+          <button mat-icon-button class="sc-preview-x" (click)="resetFile()" [matTooltip]="'primaNota.scontrino.cambia' | t"><mat-icon>close</mat-icon></button>
         </div>
 
         @if (analyzing) {
           <div class="sc-loading">
             <mat-spinner diameter="22"></mat-spinner>
-            <span>Lettura scontrino in corso…</span>
+            <span>{{ 'primaNota.scontrino.lettura' | t }}</span>
           </div>
         }
         @if (ocrNota) { <p class="sc-ocrnota"><mat-icon>info</mat-icon> {{ ocrNota }}</p> }
@@ -66,46 +69,46 @@ import { environment } from '../../../environments/environment';
         <div class="sc-form">
           <div class="sc-row">
             <mat-form-field appearance="outline">
-              <mat-label>Data *</mat-label>
+              <mat-label>{{ 'primaNota.dialog.data' | t }}</mat-label>
               <input matInput type="date" [(ngModel)]="data">
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Importo (€) *</mat-label>
+              <mat-label>{{ 'primaNota.dialog.importo' | t }}</mat-label>
               <input matInput type="number" step="0.01" min="0.01" [(ngModel)]="importo">
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline" class="sc-full">
-            <mat-label>Causale *</mat-label>
-            <input matInput [(ngModel)]="causale" placeholder="Es. Spesa, carburante, materiale…">
+            <mat-label>{{ 'primaNota.dialog.causale' | t }}</mat-label>
+            <input matInput [(ngModel)]="causale" [placeholder]="'primaNota.scontrino.causalePlaceholder' | t">
           </mat-form-field>
           <div class="sc-row">
             <mat-form-field appearance="outline">
-              <mat-label>Tipo *</mat-label>
+              <mat-label>{{ 'primaNota.dialog.tipo' | t }}</mat-label>
               <mat-select [(ngModel)]="tipo">
-                <mat-option value="USCITA">Uscita</mat-option>
-                <mat-option value="ENTRATA">Entrata</mat-option>
+                <mat-option value="USCITA">{{ 'primaNota.tipo.uscita' | t }}</mat-option>
+                <mat-option value="ENTRATA">{{ 'primaNota.tipo.entrata' | t }}</mat-option>
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Conto *</mat-label>
+              <mat-label>{{ 'primaNota.dialog.conto' | t }}</mat-label>
               <mat-select [(ngModel)]="conto">
-                <mat-option value="CASSA">Cassa</mat-option>
-                <mat-option value="BANCA">Banca</mat-option>
+                <mat-option value="CASSA">{{ 'primaNota.conto.cassa' | t }}</mat-option>
+                <mat-option value="BANCA">{{ 'primaNota.conto.banca' | t }}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline" class="sc-full">
-            <mat-label>Note</mat-label>
-            <input matInput [(ngModel)]="note" placeholder="Annotazioni opzionali">
+            <mat-label>{{ 'primaNota.dialog.note' | t }}</mat-label>
+            <input matInput [(ngModel)]="note" [placeholder]="'primaNota.dialog.notePlaceholder' | t">
           </mat-form-field>
         </div>
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close [disabled]="saving">Annulla</button>
+      <button mat-button mat-dialog-close [disabled]="saving">{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button color="primary" (click)="salva()" [disabled]="!canSave || saving">
-        <mat-icon>save</mat-icon> {{ saving ? 'Salvataggio…' : 'Registra' }}
+        <mat-icon>save</mat-icon> {{ (saving ? 'primaNota.scontrino.salvataggio' : 'primaNota.scontrino.registra') | t }}
       </button>
     </mat-dialog-actions>
   `,
@@ -136,6 +139,7 @@ import { environment } from '../../../environments/environment';
   `]
 })
 export class ScontrinoScanDialogComponent implements OnDestroy {
+  i18n = inject(I18nService);
   file: File | null = null;
   fileName = '';
   previewUrl: string | null = null;
@@ -165,7 +169,7 @@ export class ScontrinoScanDialogComponent implements OnDestroy {
   onFile(e: Event) {
     const f = (e.target as HTMLInputElement).files?.[0];
     if (!f) return;
-    if (f.size > 5 * 1024 * 1024) { this.snack.open('File troppo grande (max 5 MB)', '', { duration: 3000 }); return; }
+    if (f.size > 5 * 1024 * 1024) { this.snack.open(this.i18n.t('primaNota.scontrino.msg.fileTroppoGrande'), '', { duration: 3000 }); return; }
     this.file = f;
     this.fileName = f.name;
     this.isImage = f.type.startsWith('image/');
@@ -192,13 +196,13 @@ export class ScontrinoScanDialogComponent implements OnDestroy {
         if (s.data) this.data = s.data;
         if (s.importo) this.importo = s.importo;
         if (s.causale) this.causale = s.causale;
-        if (!s.importo && !s.data) this.ocrNota = 'Non sono riuscito a leggere i dati: inseriscili a mano.';
+        if (!s.importo && !s.data) this.ocrNota = this.i18n.t('primaNota.scontrino.msg.nonLetto');
       },
       error: e => {
         this.analyzing = false;
         this.ocrNota = (e.status === 500 && /MINDEE/.test(e.error?.error || ''))
-          ? 'OCR non configurato: inserisci i dati a mano (la foto verrà comunque allegata).'
-          : 'Lettura automatica non riuscita: inserisci i dati a mano.';
+          ? this.i18n.t('primaNota.scontrino.msg.ocrNonConfigurato')
+          : this.i18n.t('primaNota.scontrino.msg.letturaFallita');
       },
     });
   }
@@ -219,16 +223,16 @@ export class ScontrinoScanDialogComponent implements OnDestroy {
           this.http.post(`${environment.apiUrl}/allegati?tipo=primaNota&id=${entry.id}`, fd).subscribe({
             next: () => this.done(),
             // La registrazione è salvata; fallisce solo l'allegato → avvisa ma chiudi ok.
-            error: () => { this.snack.open('Registrazione salvata, ma la foto non è stata allegata', '', { duration: 3500 }); this.dialogRef.close(true); },
+            error: () => { this.snack.open(this.i18n.t('primaNota.scontrino.msg.fotoNonAllegata'), '', { duration: 3500 }); this.dialogRef.close(true); },
           });
         } else { this.done(); }
       },
-      error: e => { this.saving = false; this.snack.open(e.error?.error || 'Errore salvataggio', '', { duration: 3500 }); },
+      error: e => { this.saving = false; this.snack.open(e.error?.error || this.i18n.t('primaNota.scontrino.msg.erroreSalvataggio'), '', { duration: 3500 }); },
     });
   }
 
   private done() {
-    this.snack.open('Scontrino registrato', '', { duration: 2200, panelClass: 'snack-ok' });
+    this.snack.open(this.i18n.t('primaNota.scontrino.msg.registrato'), '', { duration: 2200, panelClass: 'snack-ok' });
     this.dialogRef.close(true);
   }
 

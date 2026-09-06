@@ -18,6 +18,8 @@ import { DataService } from '../../services/data.service';
 import { AllegatiComponent } from '../shared/allegati/allegati';
 import { ScontrinoScanDialogComponent } from './scontrino-scan-dialog';
 import { environment } from '../../../environments/environment';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 // ── Dialog ─────────────────────────────────────────────────────────────────────
 @Component({
@@ -25,7 +27,7 @@ import { environment } from '../../../environments/environment';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
             MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule, MatIconModule,
-            AllegatiComponent],
+            AllegatiComponent, TPipe],
   template: `
     <mat-dialog-content style="min-width:560px">
       <div class="dialog-hero">
@@ -33,62 +35,62 @@ import { environment } from '../../../environments/environment';
           <mat-icon>edit_note</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">{{ data?.id ? 'Modifica registrazione' : 'Nuova registrazione' }}</span>
-          <span class="dialog-hero-sub">{{ data?.id ? 'Aggiorna i dettagli della voce contabile' : 'Registra un movimento di cassa o banca' }}</span>
+          <span class="dialog-hero-title">{{ (data?.id ? 'primaNota.dialog.modificaTitle' : 'primaNota.nuovaRegistrazione') | t }}</span>
+          <span class="dialog-hero-sub">{{ (data?.id ? 'primaNota.dialog.modificaSub' : 'primaNota.dialog.nuovaSub') | t }}</span>
         </div>
       </div>
       <form [formGroup]="form" class="dialog-form">
         <div class="form-row">
           <mat-form-field>
-            <mat-label>Data *</mat-label>
+            <mat-label>{{ 'primaNota.dialog.data' | t }}</mat-label>
             <input matInput type="date" formControlName="data">
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Tipo *</mat-label>
+            <mat-label>{{ 'primaNota.dialog.tipo' | t }}</mat-label>
             <mat-select formControlName="tipo">
-              <mat-option value="ENTRATA">Entrata</mat-option>
-              <mat-option value="USCITA">Uscita</mat-option>
+              <mat-option value="ENTRATA">{{ 'primaNota.tipo.entrata' | t }}</mat-option>
+              <mat-option value="USCITA">{{ 'primaNota.tipo.uscita' | t }}</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
         <mat-form-field style="width:100%">
-          <mat-label>Causale *</mat-label>
-          <input matInput formControlName="causale" placeholder="Es. Incasso fattura, Pagamento fornitore...">
+          <mat-label>{{ 'primaNota.dialog.causale' | t }}</mat-label>
+          <input matInput formControlName="causale" [placeholder]="'primaNota.dialog.causalePlaceholder' | t">
           @if (form.get('causale')?.invalid && form.get('causale')?.touched) {
-            <mat-error>Causale obbligatoria</mat-error>
+            <mat-error>{{ 'primaNota.dialog.causaleRequired' | t }}</mat-error>
           }
         </mat-form-field>
         <div class="form-row">
           <mat-form-field>
-            <mat-label>Importo (€) *</mat-label>
+            <mat-label>{{ 'primaNota.dialog.importo' | t }}</mat-label>
             <input matInput type="number" step="0.01" min="0.01" formControlName="importo">
             @if (form.get('importo')?.invalid && form.get('importo')?.touched) {
-              <mat-error>Importo obbligatorio e maggiore di 0</mat-error>
+              <mat-error>{{ 'primaNota.dialog.importoRequired' | t }}</mat-error>
             }
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Conto *</mat-label>
+            <mat-label>{{ 'primaNota.dialog.conto' | t }}</mat-label>
             <mat-select formControlName="conto">
-              <mat-option value="CASSA">Cassa</mat-option>
-              <mat-option value="BANCA">Banca</mat-option>
+              <mat-option value="CASSA">{{ 'primaNota.conto.cassa' | t }}</mat-option>
+              <mat-option value="BANCA">{{ 'primaNota.conto.banca' | t }}</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
         <mat-form-field style="width:100%">
-          <mat-label>Note</mat-label>
-          <textarea matInput rows="2" formControlName="note" placeholder="Annotazioni opzionali"></textarea>
+          <mat-label>{{ 'primaNota.dialog.note' | t }}</mat-label>
+          <textarea matInput rows="2" formControlName="note" [placeholder]="'primaNota.dialog.notePlaceholder' | t"></textarea>
         </mat-form-field>
       </form>
       @if (data?.id) {
         <div style="margin-top:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--text-tertiary);margin-bottom:6px">Scontrino / allegati</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-tertiary);margin-bottom:6px">{{ 'primaNota.dialog.scontrinoAllegati' | t }}</div>
           <app-allegati documentoTipo="primaNota" [documentoId]="data.id"></app-allegati>
         </div>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button (click)="save()" [disabled]="form.invalid">Salva</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button (click)="save()" [disabled]="form.invalid">{{ 'fatture.dialog.salva' | t }}</button>
     </mat-dialog-actions>
   `
 })
@@ -126,12 +128,13 @@ export class PrimaNotaDialogComponent {
     MatTableModule, MatSortModule, MatPaginatorModule,
     MatButtonModule, MatIconModule, MatDialogModule, MatSnackBarModule,
     MatSelectModule, MatFormFieldModule, MatMenuModule,
-    EmptyStateComponent,
+    EmptyStateComponent, TPipe,
   ],
   templateUrl: './prima-nota.html',
   styleUrl: './prima-nota.scss',
 })
 export class PrimaNotaComponent implements OnInit, AfterViewInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
   /** Edizione desktop offline: nasconde la scansione OCR scontrino (usa Mindee, online). */
   readonly offline = environment.offline;
@@ -150,11 +153,8 @@ export class PrimaNotaComponent implements OnInit, AfterViewInit {
   filtroTipo   = '';
 
   readonly mesiOptions = [
-    { v: '', l: 'Tutti i mesi' },
-    ...Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(2000, i, 1);
-      return { v: String(i + 1).padStart(2, '0'), l: d.toLocaleString('it-IT', { month: 'long' }) };
-    }),
+    { v: '', l: this.i18n.t('primaNota.filtri.tuttiMesi') },
+    ...Array.from({ length: 12 }, (_, i) => ({ v: String(i + 1).padStart(2, '0'), l: this.i18n.t('common.meseFull.' + (i + 1)) })),
   ];
 
   annoCorrente = new Date().getFullYear();
@@ -195,7 +195,7 @@ export class PrimaNotaComponent implements OnInit, AfterViewInit {
         if (this.filtroTipo)  entries = entries.filter(e => e.tipo  === this.filtroTipo);
         this.dataSource.data = entries;
       },
-      error: err => this.snack.open(err.message || 'Errore caricamento', '', { duration: 3000 }),
+      error: err => this.snack.open(err.message || this.i18n.t('primaNota.msg.erroreCaricamento'), '', { duration: 3000 }),
     });
   }
 
@@ -217,7 +217,7 @@ export class PrimaNotaComponent implements OnInit, AfterViewInit {
         ? this.ds.updatePrimaNotaEntry(result)
         : this.ds.createPrimaNotaEntry(result);
       op.subscribe({
-        next: () => { this.load(); this.snack.open('Salvato', '', { duration: 2000 }); },
+        next: () => { this.load(); this.snack.open(this.i18n.t('primaNota.msg.salvato'), '', { duration: 2000 }); },
         error: err => this.snack.open(err.error?.error || err.message, '', { duration: 3000 }),
       });
     });
@@ -229,9 +229,9 @@ export class PrimaNotaComponent implements OnInit, AfterViewInit {
   }
 
   async delete(entry: any) {
-    if (!await this.confirm.delete(`Eliminare la registrazione "${entry.causale}" di €${entry.importo}?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('primaNota.msg.confermaElimina', { causale: entry.causale, importo: entry.importo }))) return;
     this.ds.deletePrimaNotaEntry(entry.id).subscribe({
-      next: () => { this.load(); this.snack.open('Eliminato', '', { duration: 2000 }); },
+      next: () => { this.load(); this.snack.open(this.i18n.t('primaNota.msg.eliminato'), '', { duration: 2000 }); },
       error: err => this.snack.open(err.message, '', { duration: 3000 }),
     });
   }
