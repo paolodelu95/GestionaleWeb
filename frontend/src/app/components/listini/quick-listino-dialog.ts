@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -12,6 +12,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { forkJoin, of } from 'rxjs';
 import { DataService } from '../../services/data.service';
 import { Listino, Prodotto } from '../../models';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 interface RigaSel {
   prodotto: Prodotto;
@@ -25,7 +27,7 @@ interface RigaSel {
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule,
-    MatCheckboxModule, MatTooltipModule, MatSnackBarModule,
+    MatCheckboxModule, MatTooltipModule, MatSnackBarModule, TPipe,
   ],
   template: `
     <mat-dialog-content class="ql-content">
@@ -34,19 +36,19 @@ interface RigaSel {
           <mat-icon>price_change</mat-icon>
         </div>
         <div class="dialog-hero-text">
-          <span class="dialog-hero-title">Creazione rapida listino</span>
-          <span class="dialog-hero-sub">Scegli i prodotti, applica uno sconto per automatizzare i prezzi o impostali a mano.</span>
+          <span class="dialog-hero-title">{{ 'listini.quick.title' | t }}</span>
+          <span class="dialog-hero-sub">{{ 'listini.quick.subtitle' | t }}</span>
         </div>
       </div>
 
       <form [formGroup]="form" class="ql-form">
         <div class="form-row">
           <mat-form-field style="flex:2">
-            <mat-label>Nome listino *</mat-label>
-            <input matInput formControlName="nome" placeholder="es. Rivenditori 2026, B2B...">
+            <mat-label>{{ 'listini.quick.nomeListino' | t }}</mat-label>
+            <input matInput formControlName="nome" [placeholder]="'listini.nuovoDialog.nomePh' | t">
           </mat-form-field>
           <mat-form-field style="flex:1;max-width:180px">
-            <mat-label>Sconto default %</mat-label>
+            <mat-label>{{ 'listini.quick.scontoDefault' | t }}</mat-label>
             <input matInput type="number" step="0.5" min="0" max="100" formControlName="scontoDefault">
             <mat-icon matSuffix>percent</mat-icon>
           </mat-form-field>
@@ -57,14 +59,14 @@ interface RigaSel {
       <div class="form-section">
         <div class="form-section-header">
           <mat-icon>inventory_2</mat-icon>
-          <span>Prodotti nel listino</span>
+          <span>{{ 'listini.quick.prodottiNelListino' | t }}</span>
           @if (selezionati.length) { <span class="ql-badge">{{ selezionati.length }}</span> }
         </div>
 
         <mat-form-field style="width:100%">
-          <mat-label>Cerca prodotto da aggiungere</mat-label>
+          <mat-label>{{ 'listini.quick.cercaProdotto' | t }}</mat-label>
           <input matInput [(ngModel)]="query" [ngModelOptions]="{ standalone: true }"
-                 (ngModelChange)="filtra()" placeholder="Nome, codice o categoria...">
+                 (ngModelChange)="filtra()" [placeholder]="'listini.quick.cercaProdottoPh' | t">
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
@@ -72,7 +74,7 @@ interface RigaSel {
           <div class="ql-picker">
             <div class="ql-picker-head">
               <button mat-button type="button" color="primary" (click)="aggiungiTuttiFiltrati()" [disabled]="!filtrati.length">
-                <mat-icon>done_all</mat-icon> Aggiungi tutti i {{ filtrati.length }} risultati
+                <mat-icon>done_all</mat-icon> {{ i18n.t('listini.quick.aggiungiTuttiRisultati', { n: filtrati.length }) }}
               </button>
             </div>
             @for (p of filtrati; track p.id) {
@@ -84,7 +86,7 @@ interface RigaSel {
               </div>
             }
             @if (!filtrati.length) {
-              <p class="ql-empty">Nessun prodotto per "{{ query }}".</p>
+              <p class="ql-empty">{{ i18n.t('listini.quick.nessunProdottoPer', { q: query }) }}</p>
             }
           </div>
         }
@@ -93,26 +95,26 @@ interface RigaSel {
       <!-- ── Righe selezionate + prezzi ──────────────────────── -->
       @if (selezionati.length) {
         <div class="ql-bulk">
-          <span class="ql-bulk-label">Applica a tutti i selezionati:</span>
+          <span class="ql-bulk-label">{{ 'listini.quick.applicaATuttiSelezionati' | t }}</span>
           <mat-form-field class="ql-bulk-field" subscriptSizing="dynamic">
-            <mat-label>Sconto %</mat-label>
+            <mat-label>{{ 'listini.scontoPercentPh' | t }}</mat-label>
             <input matInput type="number" step="0.5" min="0" max="100" [(ngModel)]="scontoBulk" [ngModelOptions]="{ standalone: true }">
           </mat-form-field>
           <button mat-stroked-button type="button" color="primary" (click)="applicaScontoBulk()">
-            <mat-icon>percent</mat-icon> Applica sconto
+            <mat-icon>percent</mat-icon> {{ 'listini.quick.applicaSconto' | t }}
           </button>
           <span class="totals-spacer"></span>
-          <button mat-button type="button" color="warn" (click)="selezionati = []">Svuota</button>
+          <button mat-button type="button" color="warn" (click)="selezionati = []">{{ 'listini.quick.svuota' | t }}</button>
         </div>
 
         <table class="ql-table">
           <thead>
             <tr>
-              <th>Prodotto</th>
-              <th class="num">Prezzo base</th>
-              <th class="num">Sconto %</th>
-              <th class="num">Prezzo manuale</th>
-              <th class="num">Prezzo finale</th>
+              <th>{{ 'listini.quick.col.prodotto' | t }}</th>
+              <th class="num">{{ 'listini.quick.col.prezzoBase' | t }}</th>
+              <th class="num">{{ 'listini.quick.col.scontoPercent' | t }}</th>
+              <th class="num">{{ 'listini.quick.col.prezzoManuale' | t }}</th>
+              <th class="num">{{ 'listini.quick.col.prezzoFinale' | t }}</th>
               <th style="width:36px"></th>
             </tr>
           </thead>
@@ -130,7 +132,7 @@ interface RigaSel {
                 <td><input class="ql-input num" type="number" step="0.01" min="0"
                            [(ngModel)]="r.prezzo" [ngModelOptions]="{ standalone: true }" placeholder="—"></td>
                 <td class="num"><b>{{ prezzoFinale(r) | currency:'EUR':'symbol':'1.2-2':'it' }}</b></td>
-                <td><button mat-icon-button type="button" color="warn" (click)="rimuovi(r)" matTooltip="Rimuovi">
+                <td><button mat-icon-button type="button" color="warn" (click)="rimuovi(r)" [matTooltip]="'listini.quick.rimuoviTooltip' | t">
                   <mat-icon style="font-size:18px">close</mat-icon></button></td>
               </tr>
             }
@@ -138,19 +140,19 @@ interface RigaSel {
         </table>
         <div class="ql-hint">
           <mat-icon>info</mat-icon>
-          <span>Lo <b>sconto %</b> calcola il prezzo dal listino base. Il <b>prezzo manuale</b> ha la precedenza e ignora lo sconto.</span>
+          <span>{{ 'listini.quick.hintA' | t }} <b>{{ 'listini.quick.hintScontoLabel' | t }}</b> {{ 'listini.quick.hintB' | t }} <b>{{ 'listini.quick.hintPrezzoManualeLabel' | t }}</b> {{ 'listini.quick.hintC' | t }}</span>
         </div>
       } @else {
         <div class="ql-empty-box">
           <mat-icon>shopping_cart</mat-icon>
-          <p>Cerca e seleziona i prodotti da inserire nel listino.</p>
+          <p>{{ 'listini.quick.cercaVuoto' | t }}</p>
         </div>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button color="primary" (click)="crea()" [disabled]="form.invalid || saving">
-        <mat-icon>check</mat-icon> Crea listino
+        <mat-icon>check</mat-icon> {{ 'listini.quick.creaListino' | t }}
         @if (selezionati.length) { <span>&nbsp;({{ selezionati.length }})</span> }
       </button>
     </mat-dialog-actions>
@@ -210,6 +212,7 @@ interface RigaSel {
   `],
 })
 export class QuickListinoDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   form: FormGroup;
   prodotti: Prodotto[] = [];
   filtrati: Prodotto[] = [];
@@ -300,11 +303,11 @@ export class QuickListinoDialogComponent implements OnInit {
             sconto: row.prezzo == null && row.sconto != null ? +row.sconto : null,
           }));
         forkJoin(ops.length ? ops : [of(null)]).subscribe({
-          next: () => { this.snack.open(`Listino creato con ${this.selezionati.length} prodotti`, '', { duration: 2500 }); this.dialogRef.close(id); },
-          error: () => { this.saving = false; this.snack.open('Listino creato, ma alcuni prezzi non sono stati salvati', 'OK', { duration: 4000 }); this.dialogRef.close(id); },
+          next: () => { this.snack.open(this.i18n.t('listini.quick.msgListinoCreato', { n: this.selezionati.length }), '', { duration: 2500 }); this.dialogRef.close(id); },
+          error: () => { this.saving = false; this.snack.open(this.i18n.t('listini.quick.msgListinoCreatoParziale'), 'OK', { duration: 4000 }); this.dialogRef.close(id); },
         });
       },
-      error: (e) => { this.saving = false; this.snack.open(e.error?.error || 'Errore creazione listino', 'OK', { duration: 4000 }); },
+      error: (e) => { this.saving = false; this.snack.open(e.error?.error || this.i18n.t('listini.msg.erroreCreazione'), 'OK', { duration: 4000 }); },
     });
   }
 }

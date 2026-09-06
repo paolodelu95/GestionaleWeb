@@ -1,4 +1,6 @@
 import { inject, Component, OnInit, Inject } from '@angular/core';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,9 +23,9 @@ import { DataService } from '../../services/data.service';
 import { PrintService } from '../../services/print.service';
 import { ViewChild } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material/menu';
-import { Listino, ListinoAlign, ListinoCellaStile, ListinoColonnaCfg, ListinoColonnaStdKey,
+import { Listino, ListinoAlign, ListinoCellaStile, ListinoColonnaCfg,
          ListinoPrezzo, ListinoSezione, ListinoTema, Prodotto,
-         LISTINO_STD_KEYS, LISTINO_COLONNE_DEFAULT_LABELS, LISTINI_TEMI, mergeColonneCfg } from '../../models';
+         LISTINO_STD_KEYS, LISTINI_TEMI, mergeColonneCfg } from '../../models';
 import { QuickListinoDialogComponent } from './quick-listino-dialog';
 
 /** Riga del listino nell'editor: prodotto oppure sezione (divisore). */
@@ -40,32 +42,32 @@ export interface RigaListino {
   selector: 'app-nuovo-listino-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule,
-            MatInputModule, MatButtonModule, MatIconModule],
+            MatInputModule, MatButtonModule, MatIconModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Nuovo listino</h2>
+    <h2 mat-dialog-title>{{ 'listini.nuovoListino' | t }}</h2>
     <mat-dialog-content style="min-width:420px">
       <div class="dialog-form" style="padding-top:8px">
         <mat-form-field style="width:100%">
-          <mat-label>Nome *</mat-label>
-          <input matInput [(ngModel)]="nome" autofocus placeholder="es. Rivenditori 2026, B2B..."
+          <mat-label>{{ 'listini.nuovoDialog.nome' | t }}</mat-label>
+          <input matInput [(ngModel)]="nome" autofocus [placeholder]="'listini.nuovoDialog.nomePh' | t"
                  (keyup.enter)="crea()">
         </mat-form-field>
         <mat-form-field style="width:100%">
-          <mat-label>Descrizione</mat-label>
+          <mat-label>{{ 'listini.nuovoDialog.descrizione' | t }}</mat-label>
           <textarea matInput rows="2" [(ngModel)]="descrizione"
-                    placeholder="Comparirà in testa al listino stampato"></textarea>
+                    [placeholder]="'listini.nuovoDialog.descrizionePh' | t"></textarea>
         </mat-form-field>
         <mat-form-field style="max-width:200px">
-          <mat-label>Sconto default (%)</mat-label>
+          <mat-label>{{ 'listini.nuovoDialog.scontoDefault' | t }}</mat-label>
           <input matInput type="number" step="0.5" min="0" max="100" [(ngModel)]="scontoDefault">
           <mat-icon matSuffix>percent</mat-icon>
         </mat-form-field>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button color="primary" (click)="crea()" [disabled]="!nome.trim()">
-        <mat-icon>arrow_forward</mat-icon> Crea e apri editor
+        <mat-icon>arrow_forward</mat-icon> {{ 'listini.nuovoDialog.creaEApri' | t }}
       </button>
     </mat-dialog-actions>`,
 })
@@ -90,42 +92,40 @@ export class NuovoListinoDialogComponent {
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule,
             MatInputModule, MatButtonModule, MatIconModule, MatCheckboxModule,
-            MatTooltipModule, DragDropModule],
+            MatTooltipModule, DragDropModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Colonne del listino</h2>
+    <h2 mat-dialog-title>{{ 'listini.colDialog.title' | t }}</h2>
     <mat-dialog-content style="min-width:560px">
       <p class="col-help">
-        Trascina per cambiare l'ordine, rinomina le intestazioni o spunta/togli la
-        visibilità: vale per la tabella e per la stampa PDF. Le colonne personalizzate
-        si compilano riga per riga.
+        {{ 'listini.colDialog.help' | t }}
       </p>
 
       <div cdkDropList (cdkDropListDropped)="riordina($event)">
         @for (c of colonne; track c.key) {
           <div class="col-row" cdkDrag>
-            <mat-icon cdkDragHandle class="col-drag" matTooltip="Trascina per riordinare">drag_indicator</mat-icon>
+            <mat-icon cdkDragHandle class="col-drag" [matTooltip]="'listini.tooltip.trascinaRiordinare' | t">drag_indicator</mat-icon>
             <mat-checkbox [(ngModel)]="c.visibile"></mat-checkbox>
             <input class="col-input" [(ngModel)]="c.label" [placeholder]="placeholderDi(c)"
                    [disabled]="!c.visibile">
             <span class="fmt-group">
               <button type="button" class="fmt-btn" [class.on]="c.bold" [disabled]="!c.visibile"
-                      (click)="c.bold = !c.bold" matTooltip="Grassetto (tutta la colonna)">
+                      (click)="c.bold = !c.bold" [matTooltip]="'listini.colDialog.grassettoTooltip' | t">
                 <mat-icon>format_bold</mat-icon>
               </button>
               <button type="button" class="fmt-btn" [class.on]="c.italic" [disabled]="!c.visibile"
-                      (click)="c.italic = !c.italic" matTooltip="Corsivo (tutta la colonna)">
+                      (click)="c.italic = !c.italic" [matTooltip]="'listini.colDialog.corsivoTooltip' | t">
                 <mat-icon>format_italic</mat-icon>
               </button>
               <button type="button" class="fmt-btn" [class.on]="!!c.align" [disabled]="!c.visibile"
-                      (click)="cycleAlign(c)" [matTooltip]="'Allineamento: ' + alignLabel(c)">
+                      (click)="cycleAlign(c)" [matTooltip]="i18n.t('listini.colDialog.allineamento', { label: alignLabel(c) })">
                 <mat-icon>{{ alignIcon(c) }}</mat-icon>
               </button>
             </span>
             @if (c.tipo === 'std') {
-              <span class="col-key" [matTooltip]="'Colonna standard: ' + placeholderDi(c)">{{ placeholderDi(c) }}</span>
+              <span class="col-key" [matTooltip]="i18n.t('listini.colDialog.colonnaStandard', { label: placeholderDi(c) })">{{ placeholderDi(c) }}</span>
             } @else {
-              <span class="col-badge">personalizzata</span>
-              <button mat-icon-button type="button" (click)="rimuovi(c)" matTooltip="Elimina colonna personalizzata">
+              <span class="col-badge">{{ 'listini.colDialog.personalizzata' | t }}</span>
+              <button mat-icon-button type="button" (click)="rimuovi(c)" [matTooltip]="'listini.colDialog.eliminaColonnaTooltip' | t">
                 <mat-icon style="color:#dc2626;font-size:18px">delete</mat-icon>
               </button>
             }
@@ -134,25 +134,25 @@ export class NuovoListinoDialogComponent {
       </div>
 
       <div class="col-add">
-        <input class="col-input" [(ngModel)]="nuova" placeholder="Nuova colonna personalizzata…"
+        <input class="col-input" [(ngModel)]="nuova" [placeholder]="'listini.colDialog.nuovaColonnaPh' | t"
                (keyup.enter)="aggiungi()">
         <button mat-stroked-button color="primary" type="button" (click)="aggiungi()" [disabled]="!nuova.trim()">
-          <mat-icon>add</mat-icon> Aggiungi
+          <mat-icon>add</mat-icon> {{ 'listini.colDialog.aggiungi' | t }}
         </button>
       </div>
 
       <div class="col-suggerimenti">
-        <span style="font-size:12px;color:var(--text-tertiary)">Suggerimenti:</span>
-        @for (s of suggerimenti; track s) {
-          @if (!esiste(s)) {
-            <button type="button" class="col-chip" (click)="aggiungiNome(s)">+ {{ s }}</button>
+        <span style="font-size:12px;color:var(--text-tertiary)">{{ 'listini.colDialog.suggerimenti' | t }}</span>
+        @for (s of suggerimenti; track s.key) {
+          @if (!esiste(i18n.t(s.key))) {
+            <button type="button" class="col-chip" (click)="aggiungiNome(i18n.t(s.key))">+ {{ s.key | t }}</button>
           }
         }
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
-      <button mat-flat-button color="primary" (click)="salva()" [disabled]="!almenoUnaVisibile">Salva colonne</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
+      <button mat-flat-button color="primary" (click)="salva()" [disabled]="!almenoUnaVisibile">{{ 'listini.colDialog.salvaColonne' | t }}</button>
     </mat-dialog-actions>`,
   styles: [`
     .col-help { margin: 4px 0 12px; font-size: 12.5px; color: var(--text-tertiary); }
@@ -198,10 +198,18 @@ export class NuovoListinoDialogComponent {
   `],
 })
 export class ColonneListinoDialogComponent {
+  i18n = inject(I18nService);
   colonne: ListinoColonnaCfg[] = [];
   nuova = '';
   // Dimensioni e Peso non sono qui: sono colonne standard (dalla scheda prodotto).
-  readonly suggerimenti = ['Q.tà per pallet', 'Q.tà per cartone', 'Confezione', 'Colore', 'Materiale', 'Note'];
+  readonly suggerimenti = [
+    { key: 'listini.colDialog.suggerimento.qtaPallet' },
+    { key: 'listini.colDialog.suggerimento.qtaCartone' },
+    { key: 'listini.colDialog.suggerimento.confezione' },
+    { key: 'listini.colDialog.suggerimento.colore' },
+    { key: 'listini.colDialog.suggerimento.materiale' },
+    { key: 'listini.colDialog.suggerimento.note' },
+  ];
 
   constructor(
     public dialogRef: MatDialogRef<ColonneListinoDialogComponent>,
@@ -212,8 +220,16 @@ export class ColonneListinoDialogComponent {
 
   get almenoUnaVisibile(): boolean { return this.colonne.some(c => c.visibile); }
 
+  private static readonly STD_KEY_I18N: Record<string, string> = {
+    num: 'listini.colStd.num', codice: 'listini.colStd.codice', prodotto: 'listini.colStd.prodotto',
+    dimensioni: 'listini.colStd.dimensioni', peso: 'listini.colStd.peso',
+    prezzoBase: 'listini.colStd.prezzoBase', sconto: 'listini.colStd.sconto', prezzo: 'listini.colStd.prezzo',
+  };
+
   placeholderDi(c: ListinoColonnaCfg): string {
-    return c.tipo === 'std' ? LISTINO_COLONNE_DEFAULT_LABELS[c.key as ListinoColonnaStdKey] : c.label || 'Colonna';
+    return c.tipo === 'std'
+      ? this.i18n.t(ColonneListinoDialogComponent.STD_KEY_I18N[c.key] || c.key)
+      : c.label || 'Colonna';
   }
 
   /** Allineamento a rotazione: automatico → sinistra → centro → destra. */
@@ -235,10 +251,10 @@ export class ColonneListinoDialogComponent {
 
   alignLabel(c: ListinoColonnaCfg): string {
     switch (c.align) {
-      case 'left': return 'sinistra';
-      case 'center': return 'centro';
-      case 'right': return 'destra';
-      default: return 'automatico';
+      case 'left': return this.i18n.t('listini.colDialog.align.sinistra');
+      case 'center': return this.i18n.t('listini.colDialog.align.centro');
+      case 'right': return this.i18n.t('listini.colDialog.align.destra');
+      default: return this.i18n.t('listini.colDialog.align.automatico');
     }
   }
 
@@ -287,20 +303,20 @@ export class ColonneListinoDialogComponent {
   selector: 'app-selezione-prodotti-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatButtonModule, MatIconModule, MatCheckboxModule],
+            MatSelectModule, MatButtonModule, MatIconModule, MatCheckboxModule, TPipe],
   template: `
-    <h2 mat-dialog-title>Aggiungi prodotti al listino</h2>
+    <h2 mat-dialog-title>{{ 'listini.selDialog.title' | t }}</h2>
     <mat-dialog-content class="sp-content">
       <div class="sp-filters">
         <mat-form-field style="flex:2" subscriptSizing="dynamic">
-          <mat-label>Cerca per nome, codice o categoria</mat-label>
+          <mat-label>{{ 'listini.selDialog.cerca' | t }}</mat-label>
           <input matInput [(ngModel)]="query" (ngModelChange)="filtra()" autofocus>
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
         <mat-form-field style="flex:1;min-width:170px" subscriptSizing="dynamic">
-          <mat-label>Categoria</mat-label>
+          <mat-label>{{ 'listini.selDialog.categoria' | t }}</mat-label>
           <mat-select [(ngModel)]="categoria" (selectionChange)="filtra()">
-            <mat-option [value]="''">Tutte le categorie</mat-option>
+            <mat-option [value]="''">{{ 'listini.selDialog.tutteCategorie' | t }}</mat-option>
             @for (c of categorie; track c) {
               <mat-option [value]="c">{{ c }}</mat-option>
             }
@@ -312,10 +328,10 @@ export class ColonneListinoDialogComponent {
         <mat-checkbox [checked]="tuttiFiltratiSelezionati()"
                       [indeterminate]="alcuniFiltratiSelezionati()"
                       (change)="toggleTutti($event.checked)">
-          Seleziona tutti i {{ filtrati.length }} prodotti filtrati
+          {{ i18n.t('listini.selDialog.selezionaTutti', { n: filtrati.length }) }}
         </mat-checkbox>
         <span class="totals-spacer" style="flex:1"></span>
-        <span class="sp-count" [class.has-sel]="selezione.size">{{ selezione.size }} selezionati</span>
+        <span class="sp-count" [class.has-sel]="selezione.size">{{ i18n.t('listini.selDialog.selezionatiCount', { n: selezione.size }) }}</span>
       </div>
 
       <div class="sp-list">
@@ -329,14 +345,14 @@ export class ColonneListinoDialogComponent {
           </div>
         }
         @if (!filtrati.length) {
-          <p class="sp-empty">Nessun prodotto trovato{{ esistenti.size ? ' (quelli già nel listino sono esclusi)' : '' }}.</p>
+          <p class="sp-empty">{{ 'listini.selDialog.nessunProdotto' | t }}{{ esistenti.size ? ('listini.selDialog.giaNelListino' | t) : '' }}.</p>
         }
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Annulla</button>
+      <button mat-button mat-dialog-close>{{ 'fatture.dialog.annulla' | t }}</button>
       <button mat-flat-button color="primary" [disabled]="!selezione.size" (click)="conferma()">
-        <mat-icon>playlist_add</mat-icon> Aggiungi {{ selezione.size || '' }}
+        <mat-icon>playlist_add</mat-icon> {{ i18n.t('listini.selDialog.aggiungiBtn', { n: selezione.size || '' }) }}
       </button>
     </mat-dialog-actions>`,
   styles: [`
@@ -376,6 +392,7 @@ export class ColonneListinoDialogComponent {
   `],
 })
 export class SelezioneProdottiDialogComponent implements OnInit {
+  i18n = inject(I18nService);
   prodotti: Prodotto[] = [];
   filtrati: Prodotto[] = [];
   categorie: string[] = [];
@@ -439,11 +456,12 @@ export class SelezioneProdottiDialogComponent implements OnInit {
   imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatMenuModule,
             MatFormFieldModule, MatInputModule, MatSelectModule, MatSlideToggleModule,
             MatTooltipModule, MatDialogModule, MatDividerModule, MatSnackBarModule,
-            DragDropModule, EmptyStateComponent],
+            DragDropModule, EmptyStateComponent, TPipe],
   templateUrl: './listini.html',
   styleUrl: './listini.scss',
 })
 export class ListiniComponent implements OnInit {
+  i18n = inject(I18nService);
   private confirm = inject(ConfirmService);
 
   // ── elenco ──
@@ -491,7 +509,7 @@ export class ListiniComponent implements OnInit {
         if (!l) return;
         this.ds.createListino(l).subscribe({
           next: (r: any) => { this.loadListini(); if (r?.id) this.apri(r.id); },
-          error: (e) => this.snack.open(e.error?.error || 'Errore creazione listino', 'OK', { duration: 4000 }),
+          error: (e) => this.snack.open(e.error?.error || this.i18n.t('listini.msg.erroreCreazione'), 'OK', { duration: 4000 }),
         });
       });
   }
@@ -536,14 +554,14 @@ export class ListiniComponent implements OnInit {
   }
 
   async deleteListino(l: Listino) {
-    if (!await this.confirm.delete(`Eliminare il listino "${l.nome}"?\n\nI clienti assegnati torneranno a usare i prezzi base.`)) return;
+    if (!await this.confirm.delete(this.i18n.t('listini.msg.confermaElimina', { nome: l.nome }))) return;
     this.ds.deleteListino(l.id!).subscribe({
       next: () => {
         if (this.sel?.id === l.id) this.chiudiEditor();
         this.loadListini();
-        this.snack.open('Listino eliminato', '', { duration: 2000 });
+        this.snack.open(this.i18n.t('listini.msg.eliminato'), '', { duration: 2000 });
       },
-      error: () => this.snack.open('Errore eliminazione', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('listini.msg.erroreEliminazione'), '', { duration: 3000 }),
     });
   }
 
@@ -560,7 +578,7 @@ export class ListiniComponent implements OnInit {
     if (this.snapshot() === this.anagraficaSnapshot) return;
     this.ds.updateListino(this.sel).subscribe({
       next: () => { this.anagraficaSnapshot = this.snapshot(); },
-      error: (e) => this.snack.open(e.error?.error || 'Errore salvataggio', 'OK', { duration: 4000 }),
+      error: (e) => this.snack.open(e.error?.error || this.i18n.t('listini.msg.erroreSalvataggio'), 'OK', { duration: 4000 }),
     });
   }
 
@@ -620,16 +638,16 @@ export class ListiniComponent implements OnInit {
     this.ds.bulkAddListinoPrezzi(this.sel!.id!, ids).subscribe({
       next: (r) => {
         this.reloadRighe();
-        this.snack.open(`${r.aggiunti} prodotti aggiunti al listino`, '', { duration: 2500 });
+        this.snack.open(this.i18n.t('listini.msg.prodottiAggiunti', { n: r.aggiunti }), '', { duration: 2500 });
       },
-      error: () => this.snack.open('Errore aggiunta prodotti', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('listini.msg.erroreAggiuntaProdotti'), '', { duration: 3000 }),
     });
   }
 
   aggiungiSezione() {
-    this.ds.createListinoSezione(this.sel!.id!, 'Nuova sezione').subscribe({
+    this.ds.createListinoSezione(this.sel!.id!, this.i18n.t('listini.nuovaSezione')).subscribe({
       next: () => this.reloadRighe(),
-      error: () => this.snack.open('Errore creazione sezione', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('listini.msg.erroreCreazioneSezione'), '', { duration: 3000 }),
     });
   }
 
@@ -642,11 +660,10 @@ export class ListiniComponent implements OnInit {
       if (c && !cats.includes(c)) cats.push(c);
     }
     if (!cats.length) {
-      this.snack.open('I prodotti del listino non hanno categorie', '', { duration: 3000 });
+      this.snack.open(this.i18n.t('listini.msg.noCategorieProdotti'), '', { duration: 3000 });
       return;
     }
-    if (!await this.confirm.ask(
-      `Creare ${cats.length} sezioni dalle categorie e raggruppare i prodotti?\n\nLe righe verranno riordinate per categoria.`)) return;
+    if (!await this.confirm.ask(this.i18n.t('listini.msg.confermaSezioniDaCategorie', { n: cats.length }))) return;
 
     const daCreare = cats.filter(c => !this.sezioni.some(s => s.nome.toLowerCase() === c.toLowerCase()));
     const creazioni = daCreare.length
@@ -676,12 +693,12 @@ export class ListiniComponent implements OnInit {
             if (!usate.has(s.id!)) items.push({ tipo: 'sezione', id: s.id! });
           }
           this.ds.riordinaListino(this.sel!.id!, items).subscribe({
-            next: () => { this.reloadRighe(); this.snack.open('Prodotti raggruppati per categoria', '', { duration: 2500 }); },
-            error: () => { this.snack.open('Errore riordino', '', { duration: 3000 }); this.reloadRighe(); },
+            next: () => { this.reloadRighe(); this.snack.open(this.i18n.t('listini.msg.prodottiRaggruppati'), '', { duration: 2500 }); },
+            error: () => { this.snack.open(this.i18n.t('listini.msg.erroreRiordino'), '', { duration: 3000 }); this.reloadRighe(); },
           });
         });
       },
-      error: () => this.snack.open('Errore creazione sezioni', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('listini.msg.erroreCreazioneSezioni'), '', { duration: 3000 }),
     });
   }
 
@@ -690,7 +707,7 @@ export class ListiniComponent implements OnInit {
     if (!v || v === s.nome) return;
     s.nome = v;
     this.ds.updateListinoSezione(this.sel!.id!, s.id!, v).subscribe({
-      error: () => { this.snack.open('Errore rinomina sezione', '', { duration: 3000 }); this.reloadRighe(); },
+      error: () => { this.snack.open(this.i18n.t('listini.msg.erroreRinominaSezione'), '', { duration: 3000 }); this.reloadRighe(); },
     });
   }
 
@@ -700,7 +717,7 @@ export class ListiniComponent implements OnInit {
         this.sezioni = this.sezioni.filter(x => x.id !== s.id);
         this.rebuildRighe();
       },
-      error: () => this.snack.open('Errore eliminazione sezione', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('listini.msg.erroreEliminazioneSezione'), '', { duration: 3000 }),
     });
   }
 
@@ -760,7 +777,7 @@ export class ListiniComponent implements OnInit {
       ...(includeExtra ? { datiExtra: p.datiExtra || {} } : {}),
       ...(includeStili ? { stili: p.stili || {} } : {}),
     }).subscribe({
-      error: () => { this.snack.open('Errore salvataggio riga', '', { duration: 3000 }); this.reloadRighe(); },
+      error: () => { this.snack.open(this.i18n.t('listini.msg.erroreSalvataggioRiga'), '', { duration: 3000 }); this.reloadRighe(); },
     });
   }
 
@@ -877,14 +894,14 @@ export class ListiniComponent implements OnInit {
 
   async svuotaListino() {
     if (!this.prezzi.length && !this.sezioni.length) return;
-    if (!await this.confirm.delete(`Rimuovere tutte le righe e le sezioni dal listino?`)) return;
+    if (!await this.confirm.delete(this.i18n.t('listini.msg.confermaSvuota'))) return;
     const ops = [
       ...this.prezzi.map(p => this.ds.deleteListinoPrezzo(this.sel!.id!, p.id!)),
       ...this.sezioni.map(s => this.ds.deleteListinoSezione(this.sel!.id!, s.id!)),
     ];
     forkJoin(ops.length ? ops : [of(null)]).subscribe(() => {
       this.prezzi = []; this.sezioni = []; this.righe = [];
-      this.snack.open('Listino svuotato', '', { duration: 2000 });
+      this.snack.open(this.i18n.t('listini.msg.listinoSvuotato'), '', { duration: 2000 });
     });
   }
 
@@ -903,7 +920,7 @@ export class ListiniComponent implements OnInit {
       id: (r.tipo === 'sezione' ? r.sezione!.id : r.prezzo!.id)!,
     }));
     this.ds.riordinaListino(this.sel!.id!, items).subscribe({
-      error: () => this.snack.open('Errore salvataggio ordine', '', { duration: 3000 }),
+      error: () => this.snack.open(this.i18n.t('listini.msg.erroreSalvataggioOrdine'), '', { duration: 3000 }),
     });
   }
 
@@ -915,8 +932,8 @@ export class ListiniComponent implements OnInit {
       return this.ds.upsertListinoPrezzo(this.sel!.id!, { prodottoId: p.prodottoId, prezzo: null, sconto: +s });
     });
     forkJoin(ops.length ? ops : [of(null)]).subscribe({
-      next: () => this.snack.open(`Sconto ${s}% applicato a ${ops.length} righe`, '', { duration: 2500 }),
-      error: () => { this.snack.open('Errore applicazione sconto', '', { duration: 3000 }); this.reloadRighe(); },
+      next: () => this.snack.open(this.i18n.t('listini.msg.scontoApplicato', { s, n: ops.length }), '', { duration: 2500 }),
+      error: () => { this.snack.open(this.i18n.t('listini.msg.erroreApplicazioneSconto'), '', { duration: 3000 }); this.reloadRighe(); },
     });
   }
 

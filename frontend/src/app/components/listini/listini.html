@@ -3,33 +3,30 @@
   <!-- ════════════════ Vista elenco ════════════════ -->
   @if (!sel) {
     <div class="page-header">
-      <h1 class="page-title">Listini</h1>
+      <h1 class="page-title">{{ 'listini.title' | t }}</h1>
       <div class="header-actions">
         <button mat-stroked-button color="primary" type="button" (click)="openQuickListino()">
-          <mat-icon>bolt</mat-icon> Creazione rapida
+          <mat-icon>bolt</mat-icon> {{ 'listini.creazioneRapida' | t }}
         </button>
         <button mat-flat-button color="primary" type="button" (click)="nuovoListino()">
-          <mat-icon>add</mat-icon> Nuovo listino
+          <mat-icon>add</mat-icon> {{ 'listini.nuovoListino' | t }}
         </button>
       </div>
     </div>
 
     <p class="page-intro">
-      Crea listini con prezzi e sconti personalizzati, organizzali in sezioni (es. per categoria),
-      arricchiscili con colonne descrittive (dimensioni, peso, quantità per pallet…) e stampali
-      in PDF con la grafica dei tuoi documenti. Assegna un listino al cliente dalla sua scheda
-      anagrafica: i prezzi vengono applicati automaticamente nei documenti.
+      {{ 'listini.pageIntro' | t }}
     </p>
 
     <div class="card">
       <table class="lst-table lst-elenco">
         <thead>
           <tr>
-            <th>Nome</th>
-            <th class="num">Sconto default</th>
-            <th class="num">Prodotti</th>
-            <th>Colonne extra</th>
-            <th>Stato</th>
+            <th>{{ 'listini.col.nome' | t }}</th>
+            <th class="num">{{ 'listini.col.scontoDefault' | t }}</th>
+            <th class="num">{{ 'listini.col.prodotti' | t }}</th>
+            <th>{{ 'listini.col.colonneExtra' | t }}</th>
+            <th>{{ 'listini.col.stato' | t }}</th>
             <th style="width:48px"></th>
           </tr>
         </thead>
@@ -42,21 +39,21 @@
                   <div class="lst-sub">{{ l.descrizione }}</div>
                 }
               </td>
-              <td class="num" data-label="Sconto default">
+              <td class="num" [attr.data-label]="'listini.col.scontoDefault' | t">
                 @if (l.scontoDefault) {
                   <span class="stato-chip inviato">-{{ l.scontoDefault }}%</span>
                 } @else {
                   <span class="lst-muted">—</span>
                 }
               </td>
-              <td class="num" data-label="Prodotti">
+              <td class="num" [attr.data-label]="'listini.col.prodotti' | t">
                 @if (l.prezziCount) {
                   <span class="lst-count"><mat-icon>sell</mat-icon>{{ l.prezziCount }}</span>
                 } @else {
                   <span class="lst-muted">—</span>
                 }
               </td>
-              <td data-label="Colonne extra">
+              <td [attr.data-label]="'listini.col.colonneExtra' | t">
                 @if (colonneExtraDi(l).length) {
                   <span class="lst-cols">
                     @for (c of colonneExtraDi(l); track c.key) {
@@ -67,15 +64,15 @@
                   <span class="lst-muted">—</span>
                 }
               </td>
-              <td data-label="Stato">
-                @if (l.attivo) { <span class="stato-chip pagata">Attivo</span> }
-                @else { <span class="stato-chip bozza">Disattivo</span> }
+              <td [attr.data-label]="'listini.col.stato' | t">
+                @if (l.attivo) { <span class="stato-chip pagata">{{ 'listini.stato.attivo' | t }}</span> }
+                @else { <span class="stato-chip bozza">{{ 'listini.stato.disattivo' | t }}</span> }
               </td>
               <td class="table-actions" (click)="$event.stopPropagation()">
-                <button mat-icon-button type="button" [matMenuTriggerFor]="lstMenu" title="Azioni"><mat-icon>more_vert</mat-icon></button>
+                <button mat-icon-button type="button" [matMenuTriggerFor]="lstMenu" [title]="'listini.altreAzioniTooltip' | t"><mat-icon>more_vert</mat-icon></button>
                 <mat-menu #lstMenu="matMenu">
-                  <button mat-menu-item type="button" (click)="apri(l.id!)"><mat-icon>edit</mat-icon> Apri editor</button>
-                  <button mat-menu-item type="button" (click)="deleteListino(l)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> Elimina</button>
+                  <button mat-menu-item type="button" (click)="apri(l.id!)"><mat-icon>edit</mat-icon> {{ 'listini.azioni.apriEditor' | t }}</button>
+                  <button mat-menu-item type="button" (click)="deleteListino(l)" style="color:#dc2626"><mat-icon style="color:#dc2626">delete</mat-icon> {{ 'listini.azioni.elimina' | t }}</button>
                 </mat-menu>
               </td>
             </tr>
@@ -83,8 +80,8 @@
         </tbody>
       </table>
       @if (!listini.length) {
-        <app-empty-state compact icon="sell" title="Nessun listino"
-          message="Creane uno per assegnare prezzi personalizzati ai clienti e stampare il catalogo prezzi." />
+        <app-empty-state compact icon="sell" [title]="'listini.empty.title' | t"
+          [message]="'listini.empty.msg' | t" />
       }
     </div>
   }
@@ -93,34 +90,34 @@
   @if (sel) {
     <div class="page-header">
       <div class="ed-title">
-        <button mat-icon-button type="button" (click)="chiudiEditor()" matTooltip="Torna all'elenco">
+        <button mat-icon-button type="button" (click)="chiudiEditor()" [matTooltip]="'listini.torna' | t">
           <mat-icon>arrow_back</mat-icon>
         </button>
         <h1 class="page-title">{{ sel.nome }}</h1>
-        @if (sel.attivo) { <span class="stato-chip pagata">Attivo</span> }
-        @else { <span class="stato-chip bozza">Disattivo</span> }
+        @if (sel.attivo) { <span class="stato-chip pagata">{{ 'listini.stato.attivo' | t }}</span> }
+        @else { <span class="stato-chip bozza">{{ 'listini.stato.disattivo' | t }}</span> }
       </div>
       <div class="header-actions">
         <button mat-stroked-button type="button" (click)="gestisciColonne()">
-          <mat-icon>view_column</mat-icon> Colonne
+          <mat-icon>view_column</mat-icon> {{ 'listini.colonne' | t }}
         </button>
         <button mat-stroked-button color="primary" type="button" [matMenuTriggerFor]="addMenu">
-          <mat-icon>playlist_add</mat-icon> Aggiungi
+          <mat-icon>playlist_add</mat-icon> {{ 'listini.aggiungi' | t }}
         </button>
         <mat-menu #addMenu="matMenu">
           <button mat-menu-item type="button" (click)="apriPicker()">
-            <mat-icon>checklist</mat-icon> Prodotti dall'elenco…
+            <mat-icon>checklist</mat-icon> {{ 'listini.aggiungiProdottiElenco' | t }}
           </button>
           @if (categorieDisponibili.length) {
             <button mat-menu-item type="button" [matMenuTriggerFor]="catMenu">
-              <mat-icon>category</mat-icon> Tutta una categoria
+              <mat-icon>category</mat-icon> {{ 'listini.tuttaCategoria' | t }}
             </button>
           }
           <button mat-menu-item type="button" (click)="aggiungiSezione()">
-            <mat-icon>splitscreen</mat-icon> Nuova sezione
+            <mat-icon>splitscreen</mat-icon> {{ 'listini.nuovaSezione' | t }}
           </button>
           <button mat-menu-item type="button" (click)="sezioniDaCategorie()" [disabled]="!prezzi.length">
-            <mat-icon>auto_awesome_motion</mat-icon> Sezioni dalle categorie
+            <mat-icon>auto_awesome_motion</mat-icon> {{ 'listini.sezioniDaCategorie' | t }}
           </button>
         </mat-menu>
         <mat-menu #catMenu="matMenu">
@@ -131,7 +128,7 @@
           }
         </mat-menu>
         <button mat-flat-button color="primary" type="button" (click)="stampa()" [disabled]="!prezzi.length">
-          <mat-icon>picture_as_pdf</mat-icon> Stampa PDF
+          <mat-icon>picture_as_pdf</mat-icon> {{ 'listini.stampaPdf' | t }}
         </button>
       </div>
     </div>
@@ -139,39 +136,39 @@
     <!-- Anagrafica (salvataggio automatico) -->
     <div class="card ed-anagrafica">
       <mat-form-field style="flex:2;min-width:220px" subscriptSizing="dynamic">
-        <mat-label>Nome listino</mat-label>
+        <mat-label>{{ 'listini.nomeListino' | t }}</mat-label>
         <input matInput [(ngModel)]="sel.nome" (blur)="salvaAnagrafica()">
       </mat-form-field>
       <mat-form-field style="flex:3;min-width:260px" subscriptSizing="dynamic">
-        <mat-label>Descrizione (compare in testa al PDF)</mat-label>
+        <mat-label>{{ 'listini.descrizionePdf' | t }}</mat-label>
         <input matInput [(ngModel)]="sel.descrizione" (blur)="salvaAnagrafica()">
       </mat-form-field>
       <mat-form-field style="max-width:180px" subscriptSizing="dynamic"
-                      matTooltip="Sconto applicato di default alle righe NUOVE che aggiungi. Non modifica le righe già inserite.">
-        <mat-label>Sconto nuove righe %</mat-label>
+                      [matTooltip]="'listini.scontoNuoveRigheTooltip' | t">
+        <mat-label>{{ 'listini.scontoNuoveRighe' | t }}</mat-label>
         <input matInput type="number" step="0.5" min="0" max="100"
                [(ngModel)]="sel.scontoDefault" (blur)="salvaAnagrafica()">
         <mat-icon matSuffix>percent</mat-icon>
       </mat-form-field>
       <mat-form-field style="max-width:190px" subscriptSizing="dynamic">
-        <mat-label>Tema stampa</mat-label>
+        <mat-label>{{ 'listini.temaStampa' | t }}</mat-label>
         <mat-select [(ngModel)]="sel.tema" (selectionChange)="salvaAnagrafica()">
-          <mat-option value="">Grafica documenti</mat-option>
+          <mat-option value="">{{ 'listini.graficaDocumenti' | t }}</mat-option>
           @for (t of temi; track t.key) {
             <mat-option [value]="t.key">
-              <span class="tema-dot" [style.background]="temaDot(t)"></span>{{ t.label }}
+              <span class="tema-dot" [style.background]="temaDot(t)"></span>{{ ('listini.tema.' + t.key) | t }}
             </mat-option>
           }
         </mat-select>
       </mat-form-field>
-      <mat-slide-toggle [(ngModel)]="sel.attivo" (change)="salvaAnagrafica()">Attivo</mat-slide-toggle>
+      <mat-slide-toggle [(ngModel)]="sel.attivo" (change)="salvaAnagrafica()">{{ 'listini.stato.attivo' | t }}</mat-slide-toggle>
       <mat-slide-toggle [(ngModel)]="sel.stampaDueColonne" (change)="salvaAnagrafica()"
-                        matTooltip="Nel PDF i prodotti vengono disposti su due tabelle affiancate (due per riga): ideale quando le colonne sono poche">
-        PDF a 2 colonne
+                        [matTooltip]="'listini.pdfDueColonneTooltip' | t">
+        {{ 'listini.pdfDueColonne' | t }}
       </mat-slide-toggle>
       <mat-slide-toggle [(ngModel)]="sel.griglia" (change)="salvaAnagrafica()"
-                        matTooltip="Righe verticali che separano le colonne, nella tabella e nella stampa PDF">
-        Griglia
+                        [matTooltip]="'listini.grigliaTooltip' | t">
+        {{ 'listini.griglia' | t }}
       </mat-slide-toggle>
     </div>
 
@@ -179,27 +176,27 @@
     <div class="card">
       <div class="ed-toolbar">
         <mat-form-field class="ed-filtro" subscriptSizing="dynamic">
-          <mat-label>Filtra righe</mat-label>
-          <input matInput [(ngModel)]="filtro" placeholder="Nome, codice o categoria…">
+          <mat-label>{{ 'listini.filtraRighe' | t }}</mat-label>
+          <input matInput [(ngModel)]="filtro" [placeholder]="'listini.filtraRighePh' | t">
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
-        <span class="ed-righe-count">{{ prodottiCount }} prodotti · {{ sezioni.length }} sezioni</span>
+        <span class="ed-righe-count">{{ i18n.t('listini.righeCount', { prodotti: prodottiCount, sezioni: sezioni.length }) }}</span>
         <span style="flex:1"></span>
         <input class="bulk-input" type="number" step="0.5" min="0" max="100"
-               placeholder="Sconto %" [(ngModel)]="scontoBulk"
-               matTooltip="Forza questo sconto su TUTTE le righe già inserite, sovrascrivendo i valori attuali e gli eventuali prezzi manuali."
+               [placeholder]="'listini.scontoPercentPh' | t" [(ngModel)]="scontoBulk"
+               [matTooltip]="'listini.forzaScontoTooltip' | t"
                (keyup.enter)="applicaScontoBulk()">
         <button mat-stroked-button type="button" (click)="applicaScontoBulk()"
                 [disabled]="scontoBulk == null || !prezzi.length"
-                matTooltip="Forza questo sconto su TUTTE le righe già inserite, sovrascrivendo i valori attuali e gli eventuali prezzi manuali.">
-          <mat-icon>percent</mat-icon> Forza su tutte
+                [matTooltip]="'listini.forzaScontoTooltip' | t">
+          <mat-icon>percent</mat-icon> {{ 'listini.forzaSuTutte' | t }}
         </button>
-        <button mat-icon-button type="button" [matMenuTriggerFor]="moreMenu" matTooltip="Altre azioni">
+        <button mat-icon-button type="button" [matMenuTriggerFor]="moreMenu" [matTooltip]="'listini.altreAzioniTooltip' | t">
           <mat-icon>more_vert</mat-icon>
         </button>
         <mat-menu #moreMenu="matMenu">
           <button mat-menu-item type="button" (click)="svuotaListino()" [disabled]="!prezzi.length && !sezioni.length" style="color:#dc2626">
-            <mat-icon style="color:#dc2626">delete_sweep</mat-icon> Svuota listino
+            <mat-icon style="color:#dc2626">delete_sweep</mat-icon> {{ 'listini.svuotaListino' | t }}
           </button>
         </mat-menu>
       </div>
@@ -226,7 +223,7 @@
                 @if (r.tipo === 'sezione') {
                   <tr cdkDrag [cdkDragDisabled]="!!filtro" class="sez-row">
                     <td class="drag-td">
-                      <mat-icon cdkDragHandle class="drag-handle" matTooltip="Trascina per riordinare">drag_indicator</mat-icon>
+                      <mat-icon cdkDragHandle class="drag-handle" [matTooltip]="'listini.tooltip.trascinaRiordinare' | t">drag_indicator</mat-icon>
                     </td>
                     <td [attr.colspan]="colonneVisibili.length">
                       <div class="sez-cell">
@@ -238,7 +235,7 @@
                     </td>
                     <td>
                       <button mat-icon-button type="button" (click)="deleteSezione(r.sezione!)"
-                              matTooltip="Elimina sezione (i prodotti restano nel listino)">
+                              [matTooltip]="'listini.tooltip.eliminaSezione' | t">
                         <mat-icon class="del-icon">close</mat-icon>
                       </button>
                     </td>
@@ -250,7 +247,7 @@
                   <tr cdkDrag [cdkDragDisabled]="!!filtro">
                     <td class="drag-td">
                       <mat-icon cdkDragHandle class="drag-handle"
-                                [matTooltip]="filtro ? 'Riordino disabilitato con filtro attivo' : 'Trascina per riordinare'">
+                                [matTooltip]="filtro ? ('listini.tooltip.riordinoDisabilitato' | t) : ('listini.tooltip.trascinaRiordinare' | t)">
                         drag_indicator
                       </mat-icon>
                     </td>
@@ -302,7 +299,7 @@
                                    [value]="r.prezzo!.sconto ?? ''" placeholder="—"
                                    [disabled]="r.prezzo!.prezzo != null"
                                    [ngStyle]="cellNgStyle(r.prezzo!, c)"
-                                   [matTooltip]="r.prezzo!.prezzo != null ? 'Sconto ignorato: la riga ha un prezzo manuale' : ''"
+                                   [matTooltip]="r.prezzo!.prezzo != null ? ('listini.tooltip.prezzoManualeIgnoraSconto' | t) : ''"
                                    [attr.data-row]="i" [attr.data-col]="'sconto'"
                                    (blur)="updateSconto(r.prezzo!, $event)"
                                    (keydown.enter)="updateSconto(r.prezzo!, $event); focusNext($event, 'sconto')">
@@ -319,7 +316,7 @@
                                      (keydown.enter)="updatePrezzoFinale(r.prezzo!, $event); focusNext($event, 'prezzo')">
                               @if (r.prezzo!.prezzo != null) {
                                 <button type="button" class="override-undo" (click)="rimuoviOverride(r.prezzo!)"
-                                        matTooltip="Prezzo manuale: clicca per tornare al calcolo da sconto">
+                                        [matTooltip]="'listini.tooltip.prezzoManualeUndo' | t">
                                   <mat-icon>undo</mat-icon>
                                 </button>
                               }
@@ -329,7 +326,7 @@
                       }
                     }
                     <td>
-                      <button mat-icon-button type="button" (click)="removeRiga(r.prezzo!)" matTooltip="Rimuovi dal listino">
+                      <button mat-icon-button type="button" (click)="removeRiga(r.prezzo!)" [matTooltip]="'listini.tooltip.rimuoviDalListino' | t">
                         <mat-icon class="del-icon">close</mat-icon>
                       </button>
                     </td>
@@ -342,15 +339,15 @@
         <div class="ed-hint">
           <mat-icon>info</mat-icon>
           <span>
-            <b>Sezioni</b>: righe-divisore per raggruppare i prodotti (es. per categoria), rinominabili sul posto.
-            <b>Prezzo</b>: scrivici sopra per fissarlo a mano (l'icona <mat-icon class="hint-icon">undo</mat-icon> torna al calcolo da sconto, vuoto = sconto default {{ sel.scontoDefault || 0 }}%).
-            <b>Invio</b> su una cella passa alla riga successiva; trascina <mat-icon class="hint-icon">drag_indicator</mat-icon> per riordinare righe e sezioni come appariranno in stampa.
-            Da <b>Colonne</b> riordini, rinomini, nascondi o formatti ogni colonna; <b>tasto destro su una cella</b> per grassetto, corsivo, barrato e allineamento della singola cella.
+            <b>{{ 'listini.hint.sezioni' | t }}</b>{{ 'listini.hint.sezioniDesc' | t }}
+            <b>{{ 'listini.hint.prezzo' | t }}</b>: {{ 'listini.hint.prezzoDescA' | t }} <mat-icon class="hint-icon">undo</mat-icon> {{ i18n.t('listini.hint.prezzoDescB', { n: sel.scontoDefault || 0 }) }}
+            <b>{{ 'listini.hint.invio' | t }}</b> {{ 'listini.hint.invioDescA' | t }} <mat-icon class="hint-icon">drag_indicator</mat-icon> {{ 'listini.hint.invioDescB' | t }}
+            {{ 'listini.hint.da' | t }} <b>{{ 'listini.colonne' | t }}</b> {{ 'listini.hint.colonneDesc' | t }} <b>{{ 'listini.hint.tastoDestro' | t }}</b> {{ 'listini.hint.tastoDestroDesc' | t }}
           </span>
         </div>
       } @else {
-        <app-empty-state compact icon="playlist_add" title="Listino vuoto"
-          message="Aggiungi i prodotti dall'elenco con i flag rapidi oppure un'intera categoria in un click." />
+        <app-empty-state compact icon="playlist_add" [title]="'listini.empty.listinoVuotoTitle' | t"
+          [message]="'listini.empty.listinoVuotoMsg' | t" />
       }
     </div>
 
@@ -359,33 +356,33 @@
          [matMenuTriggerFor]="cellaMenu" #ctxTrigger="matMenuTrigger"></div>
     <mat-menu #cellaMenu="matMenu">
       <button mat-menu-item type="button" (click)="toggleStileCella('b')">
-        <mat-icon>format_bold</mat-icon> Grassetto
+        <mat-icon>format_bold</mat-icon> {{ 'listini.ctx.grassetto' | t }}
         @if (stileCellaAttivo('b')) { <mat-icon class="ctx-check">check</mat-icon> }
       </button>
       <button mat-menu-item type="button" (click)="toggleStileCella('i')">
-        <mat-icon>format_italic</mat-icon> Corsivo
+        <mat-icon>format_italic</mat-icon> {{ 'listini.ctx.corsivo' | t }}
         @if (stileCellaAttivo('i')) { <mat-icon class="ctx-check">check</mat-icon> }
       </button>
       <button mat-menu-item type="button" (click)="toggleStileCella('s')">
-        <mat-icon>format_strikethrough</mat-icon> Barrato
+        <mat-icon>format_strikethrough</mat-icon> {{ 'listini.ctx.barrato' | t }}
         @if (stileCellaAttivo('s')) { <mat-icon class="ctx-check">check</mat-icon> }
       </button>
       <mat-divider></mat-divider>
       <button mat-menu-item type="button" (click)="setAlignCella('left')">
-        <mat-icon>format_align_left</mat-icon> Allinea a sinistra
+        <mat-icon>format_align_left</mat-icon> {{ 'listini.ctx.allineaSinistra' | t }}
         @if (alignCellaAttivo('left')) { <mat-icon class="ctx-check">check</mat-icon> }
       </button>
       <button mat-menu-item type="button" (click)="setAlignCella('center')">
-        <mat-icon>format_align_center</mat-icon> Centra
+        <mat-icon>format_align_center</mat-icon> {{ 'listini.ctx.centra' | t }}
         @if (alignCellaAttivo('center')) { <mat-icon class="ctx-check">check</mat-icon> }
       </button>
       <button mat-menu-item type="button" (click)="setAlignCella('right')">
-        <mat-icon>format_align_right</mat-icon> Allinea a destra
+        <mat-icon>format_align_right</mat-icon> {{ 'listini.ctx.allineaDestra' | t }}
         @if (alignCellaAttivo('right')) { <mat-icon class="ctx-check">check</mat-icon> }
       </button>
       <mat-divider></mat-divider>
       <button mat-menu-item type="button" (click)="clearStileCella()">
-        <mat-icon>format_clear</mat-icon> Rimuovi stili cella
+        <mat-icon>format_clear</mat-icon> {{ 'listini.ctx.rimuoviStili' | t }}
       </button>
     </mat-menu>
   }
