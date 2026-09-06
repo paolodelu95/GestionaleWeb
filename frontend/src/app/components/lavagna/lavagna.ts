@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,8 @@ import { DragDropModule, CdkDragEnd } from '@angular/cdk/drag-drop';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
+import { I18nService } from '../../services/i18n.service';
+import { TPipe } from '../../pipes/t.pipe';
 
 type TipoCorpo = 'testo' | 'elenco' | 'todo';
 
@@ -41,15 +43,15 @@ const COLORI = [
 @Component({
   selector: 'app-lavagna',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, DragDropModule],
+  imports: [CommonModule, FormsModule, MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, DragDropModule, TPipe],
   template: `
     <div class="lav-page">
       <div class="lav-header">
-        <h1 class="page-title">Lavagna</h1>
-        <span class="lav-hint">Trascina dall'icona in alto a sinistra di ogni post-it · ridimensiona dall'angolo</span>
+        <h1 class="page-title">{{ 'lavagna.title' | t }}</h1>
+        <span class="lav-hint">{{ 'lavagna.hint' | t }}</span>
         <span class="lav-spacer"></span>
         <button mat-flat-button color="primary" type="button" (click)="aggiungi()">
-          <mat-icon>add</mat-icon> Nuovo post-it
+          <mat-icon>add</mat-icon> {{ 'lavagna.nuovoPostIt' | t }}
         </button>
       </div>
 
@@ -65,9 +67,9 @@ const COLORI = [
                    [style.background]="n.colore"
                    #el (mouseup)="onResize(n, el)">
                 <div class="postit-bar">
-                  <mat-icon class="grip" cdkDragHandle matTooltip="Trascina">drag_indicator</mat-icon>
+                  <mat-icon class="grip" cdkDragHandle [matTooltip]="'lavagna.trascina' | t">drag_indicator</mat-icon>
                   <span class="bar-spacer"></span>
-                  <button mat-icon-button type="button" [matMenuTriggerFor]="colorMenu" matTooltip="Colore">
+                  <button mat-icon-button type="button" [matMenuTriggerFor]="colorMenu" [matTooltip]="'lavagna.colore' | t">
                     <mat-icon>palette</mat-icon>
                   </button>
                   <mat-menu #colorMenu="matMenu" class="color-menu">
@@ -78,28 +80,28 @@ const COLORI = [
                       }
                     </div>
                   </mat-menu>
-                  <button mat-icon-button type="button" matTooltip="Riduci" (click)="minimizza(n)">
+                  <button mat-icon-button type="button" [matTooltip]="'lavagna.riduci' | t" (click)="minimizza(n)">
                     <mat-icon>remove</mat-icon>
                   </button>
-                  <button mat-icon-button type="button" matTooltip="Elimina" (click)="elimina(n)">
+                  <button mat-icon-button type="button" [matTooltip]="'lavagna.elimina' | t" (click)="elimina(n)">
                     <mat-icon>close</mat-icon>
                   </button>
                 </div>
 
                 <input class="postit-titolo" [(ngModel)]="n.titolo" (ngModelChange)="touch()"
-                       placeholder="Titolo">
+                       [placeholder]="'lavagna.titoloPlaceholder' | t">
 
                 <div class="postit-tipo">
-                  <button type="button" [class.on]="n.tipo === 'testo'" (click)="setTipo(n, 'testo')" matTooltip="Testo libero"><mat-icon>notes</mat-icon></button>
-                  <button type="button" [class.on]="n.tipo === 'elenco'" (click)="setTipo(n, 'elenco')" matTooltip="Elenco puntato"><mat-icon>format_list_bulleted</mat-icon></button>
-                  <button type="button" [class.on]="n.tipo === 'todo'" (click)="setTipo(n, 'todo')" matTooltip="Checklist"><mat-icon>checklist</mat-icon></button>
+                  <button type="button" [class.on]="n.tipo === 'testo'" (click)="setTipo(n, 'testo')" [matTooltip]="'lavagna.testoLibero' | t"><mat-icon>notes</mat-icon></button>
+                  <button type="button" [class.on]="n.tipo === 'elenco'" (click)="setTipo(n, 'elenco')" [matTooltip]="'lavagna.elencoPuntato' | t"><mat-icon>format_list_bulleted</mat-icon></button>
+                  <button type="button" [class.on]="n.tipo === 'todo'" (click)="setTipo(n, 'todo')" [matTooltip]="'lavagna.checklist' | t"><mat-icon>checklist</mat-icon></button>
                 </div>
 
                 <div class="postit-corpo">
                   @switch (n.tipo) {
                     @case ('testo') {
                       <textarea class="postit-text" [(ngModel)]="n.testo" (ngModelChange)="touch()"
-                                placeholder="Scrivi qui…"></textarea>
+                                [placeholder]="'lavagna.scriviQuiPlaceholder' | t"></textarea>
                     }
                     @default {
                       <div class="voci">
@@ -116,12 +118,12 @@ const COLORI = [
                                    [(ngModel)]="v.t" (ngModelChange)="touch()"
                                    (keydown.enter)="aggiungiVoce(n, $index + 1)"
                                    (keydown.backspace)="rimuoviVoceSeVuota(n, $index, $event)"
-                                   placeholder="Voce…">
+                                   [placeholder]="'lavagna.vocePlaceholder' | t">
                             <button type="button" class="voce-x" (click)="rimuoviVoce(n, $index)"><mat-icon>close</mat-icon></button>
                           </div>
                         }
                         <button type="button" class="add-voce" (click)="aggiungiVoce(n, n.voci.length)">
-                          <mat-icon>add</mat-icon> Aggiungi voce
+                          <mat-icon>add</mat-icon> {{ 'lavagna.aggiungiVoce' | t }}
                         </button>
                       </div>
                     }
@@ -133,7 +135,7 @@ const COLORI = [
             @if (!note.length) {
               <div class="lav-empty">
                 <mat-icon>sticky_note_2</mat-icon>
-                <p>Nessun post-it. Creane uno con "Nuovo post-it".</p>
+                <p>{{ 'lavagna.nessunPostIt' | t }}</p>
               </div>
             }
           </div>
@@ -142,11 +144,11 @@ const COLORI = [
         <!-- Barra laterale dei ridotti -->
         @if (ridotti().length) {
           <div class="lav-side">
-            <div class="side-title">Ridotti</div>
+            <div class="side-title">{{ 'lavagna.ridotti' | t }}</div>
             @for (n of ridotti(); track n.id) {
               <button type="button" class="side-item" [style.borderLeftColor]="n.colore"
-                      (click)="ripristina(n)" matTooltip="Ripristina">
-                <span class="side-name">{{ n.titolo || 'Senza titolo' }}</span>
+                      (click)="ripristina(n)" [matTooltip]="'lavagna.ripristina' | t">
+                <span class="side-name">{{ n.titolo || ('lavagna.senzaTitolo' | t) }}</span>
                 <mat-icon>open_in_full</mat-icon>
               </button>
             }
